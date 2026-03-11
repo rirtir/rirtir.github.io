@@ -54,7 +54,13 @@ background:black;
 width:100%;
 }
 
+.frameButtons{
+display:flex;
+gap:10px;
+}
+
 button{
+flex:1;
 padding:12px;
 font-size:16px;
 border:none;
@@ -83,7 +89,8 @@ background:white;
 <h1>動画フレーム抽出</h1>
 
 <div id="dropArea">
-動画をドラッグ&ドロップ<br>またはクリックして選択
+動画をドラッグ&ドロップ<br>
+またはクリックして選択
 </div>
 
 <input type="file" id="fileInput" accept="video/*" hidden>
@@ -93,6 +100,11 @@ background:white;
 <video id="video" controls></video>
 
 <input type="range" id="slider" min="0" max="0" step="0.01">
+
+<div class="frameButtons">
+<button id="prevFrame">◀ 1フレーム</button>
+<button id="nextFrame">1フレーム ▶</button>
+</div>
 
 <button id="capture">このフレームを画像化</button>
 
@@ -110,11 +122,17 @@ const video=document.getElementById("video")
 const slider=document.getElementById("slider")
 const canvas=document.getElementById("canvas")
 const ctx=canvas.getContext("2d")
+
 const captureBtn=document.getElementById("capture")
 const downloadBtn=document.getElementById("download")
 const controls=document.getElementById("controls")
 
+const prevFrameBtn=document.getElementById("prevFrame")
+const nextFrameBtn=document.getElementById("nextFrame")
+
 let videoURL=null
+
+const frameStep=1/30
 
 function loadVideo(file){
 
@@ -158,13 +176,35 @@ e.preventDefault()
 dropArea.style.background="white"
 
 const file=e.dataTransfer.files[0]
+
 if(file && file.type.startsWith("video")){
 loadVideo(file)
 }
+
 }
 
 slider.oninput=()=>{
 video.currentTime=slider.value
+}
+
+prevFrameBtn.onclick=()=>{
+
+let t=video.currentTime-frameStep
+if(t<0) t=0
+
+video.currentTime=t
+slider.value=t
+
+}
+
+nextFrameBtn.onclick=()=>{
+
+let t=video.currentTime+frameStep
+if(t>video.duration) t=video.duration
+
+video.currentTime=t
+slider.value=t
+
 }
 
 captureBtn.onclick=()=>{
@@ -175,10 +215,18 @@ ctx.drawImage(video,0,0,canvas.width,canvas.height)
 
 downloadBtn.onclick=()=>{
 
-const link=document.createElement("a")
-link.download="frame.png"
-link.href=canvas.toDataURL("image/png")
-link.click()
+canvas.toBlob(blob=>{
+
+const url=URL.createObjectURL(blob)
+
+const a=document.createElement("a")
+a.href=url
+a.download="frame.png"
+a.click()
+
+URL.revokeObjectURL(url)
+
+},"image/png")
 
 }
 
