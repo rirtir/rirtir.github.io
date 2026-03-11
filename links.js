@@ -48,6 +48,11 @@ const data = [
         category: "AudioProcessing",
         links: [
             {
+                title: "音声解析ツール",
+                url: "https://rirtir.com/AudioInfo/",
+                desc: "音声のサンプリング周波数やビット深度などを表示する。またFFTも表示。"
+            },
+            {
                 title: "リアルタイム文字起こし",
                 url: "https://rirtir.com/RealTimeWhisper/",
                 desc: "音声から文字起こしをする。調整中"

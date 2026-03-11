@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Audio Analyzer</title>
+
+<style>
+
+body{
+font-family:sans-serif;
+margin:0;
+padding:20px;
+background:#f5f5f5;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+#dropArea{
+width:100%;
+max-width:500px;
+height:120px;
+border:3px dashed #888;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+text-align:center;
+background:white;
+cursor:pointer;
+margin-bottom:15px;
+}
+
+#controls{
+width:100%;
+max-width:500px;
+display:none;
+flex-direction:column;
+gap:10px;
+}
+
+#info{
+background:white;
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc;
+font-size:14px;
+}
+
+canvas{
+width:100%;
+max-width:500px;
+margin-top:10px;
+border:1px solid #ccc;
+background:white;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>音声解析ツール</h1>
+
+<div id="dropArea">
+音声をドラッグ&ドロップ<br>
+またはクリックして選択
+</div>
+
+<input type="file" id="fileInput" accept="audio/*" hidden>
+
+<div id="controls">
+
+<audio id="audio" controls></audio>
+
+<div id="info"></div>
+
+</div>
+
+<canvas id="waveCanvas" height="200"></canvas>
+<canvas id="fftCanvas" height="200"></canvas>
+
+<script>
+
+const dropArea=document.getElementById("dropArea")
+const fileInput=document.getElementById("fileInput")
+const audio=document.getElementById("audio")
+const info=document.getElementById("info")
+const controls=document.getElementById("controls")
+
+const waveCanvas=document.getElementById("waveCanvas")
+const waveCtx=waveCanvas.getContext("2d")
+
+const fftCanvas=document.getElementById("fftCanvas")
+const fftCtx=fftCanvas.getContext("2d")
+
+let audioURL=null
+
+const audioCtx=new AudioContext()
+
+let analyser
+let source
+
+audio.addEventListener("play",()=>{
+if(audioCtx.state==="suspended"){
+audioCtx.resume()
+}
+})
+
+function findFmtChunk(view){
+
+let pos=12
+
+while(pos<view.byteLength){
+
+const id=String.fromCharCode(
+view.getUint8(pos),
+view.getUint8(pos+1),
+view.getUint8(pos+2),
+view.getUint8(pos+3)
+)
+
+const size=view.getUint32(pos+4,true)
+
+if(id==="fmt ") return pos+8
+
+pos+=8+size
+
+}
+
+return null
+
+}
+
+function parseWavBits(buffer){
+
+const view=new DataView(buffer)
+
+if(
+view.getUint32(0,false)!==0x52494646 ||
+view.getUint32(8,false)!==0x57415645
+){
+return null
+}
+
+const fmt=findFmtChunk(view)
+
+if(!fmt) return null
+
+return view.getUint16(fmt+14,true)
+
+}
+
+async function loadAudio(file){
+
+if(audioURL) URL.revokeObjectURL(audioURL)
+
+audioURL=URL.createObjectURL(file)
+audio.src=audioURL
+
+const buffer=await file.arrayBuffer()
+
+const decoded=await audioCtx.decodeAudioData(buffer.slice(0))
+
+const duration=decoded.duration
+const sampleRate=decoded.sampleRate
+const channels=decoded.numberOfChannels
+
+let bitDepth=parseWavBits(buffer)
+bitDepth=bitDepth?bitDepth+" bit":"不明"
+
+info.innerHTML=`
+長さ: ${duration.toFixed(2)} 秒<br>
+サンプリング周波数: ${sampleRate} Hz<br>
+ビット深度: ${bitDepth}<br>
+チャンネル: ${channels===1?"モノラル":"ステレオ"}<br>
+ファイルサイズ: ${(file.size/1024/1024).toFixed(2)} MB
+`
+
+drawWaveform(decoded)
+
+setupFFT()
+
+controls.style.display="flex"
+
+}
+
+function drawWaveform(audioBuffer){
+
+waveCanvas.width=waveCanvas.clientWidth
+
+const data=audioBuffer.getChannelData(0)
+
+const step=Math.ceil(data.length/waveCanvas.width)
+
+const amp=waveCanvas.height/2
+
+waveCtx.clearRect(0,0,waveCanvas.width,waveCanvas.height)
+
+waveCtx.beginPath()
+
+for(let i=0;i<waveCanvas.width;i++){
+
+let min=1
+let max=-1
+
+for(let j=0;j<step;j++){
+
+const d=data[(i*step)+j]
+
+if(d<min) min=d
+if(d>max) max=d
+
+}
+
+waveCtx.moveTo(i,(1+min)*amp)
+waveCtx.lineTo(i,(1+max)*amp)
+
+}
+
+waveCtx.stroke()
+
+}
+
+function setupFFT(){
+
+if(source) source.disconnect()
+
+analyser=audioCtx.createAnalyser()
+analyser.fftSize=2048
+
+source=audioCtx.createMediaElementSource(audio)
+
+source.connect(analyser)
+analyser.connect(audioCtx.destination)
+
+const data=new Uint8Array(analyser.frequencyBinCount)
+
+function draw(){
+
+fftCanvas.width=fftCanvas.clientWidth
+
+analyser.getByteFrequencyData(data)
+
+fftCtx.clearRect(0,0,fftCanvas.width,fftCanvas.height)
+
+const barWidth=fftCanvas.width/data.length
+
+let x=0
+
+for(let i=0;i<data.length;i++){
+
+const v=data[i]/255
+const y=v*fftCanvas.height
+
+fftCtx.fillStyle="#007bff"
+fftCtx.fillRect(x,fftCanvas.height-y,barWidth,y)
+
+x+=barWidth
+
+}
+
+requestAnimationFrame(draw)
+
+}
+
+draw()
+
+}
+
+dropArea.onclick=()=>fileInput.click()
+
+fileInput.onchange=e=>{
+const file=e.target.files[0]
+if(file) loadAudio(file)
+}
+
+dropArea.ondragover=e=>{
+e.preventDefault()
+dropArea.style.background="#eef"
+}
+
+dropArea.ondragleave=e=>{
+dropArea.style.background="white"
+}
+
+dropArea.ondrop=e=>{
+e.preventDefault()
+dropArea.style.background="white"
+
+const file=e.dataTransfer.files[0]
+
+if(file && file.type.startsWith("audio")){
+loadAudio(file)
+}
+
+}
+
+</script>
+
+</body>
+</html>
