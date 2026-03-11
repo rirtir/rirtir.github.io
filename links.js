@@ -36,6 +36,11 @@ const data = [
                 title: "輝度値→アルファ変換",
                 url: "https://rirtir.com/Line2AlphaConverter/",
                 desc: "グレースケール画像を透過画像にする。線画を線だけにするなど。"
+            },
+            {
+                title: "動画から画像抽出",
+                url: "https://rirtir.com/Video2Image/",
+                desc: "動画から任意のフレームを抜き出す。"
             }
         ]
     },
