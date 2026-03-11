@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Line Alpha Tool</title>
+
+<style>
+
+body{
+font-family:sans-serif;
+margin:0;
+background:#f0f0f0;
+}
+
+h2{
+margin:10px 0;
+}
+
+.container{
+display:flex;
+height:100vh;
+}
+
+/* 左パネル */
+
+.controls{
+flex:1;
+padding:15px;
+overflow:auto;
+box-sizing:border-box;
+}
+
+/* 右パネル */
+
+.preview{
+flex:1;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#ddd;
+}
+
+/* 画像表示 */
+
+canvas{
+
+max-width:90%;
+max-height:90%;
+
+border:1px solid #888;
+
+background-image:
+linear-gradient(45deg,#ccc 25%,transparent 25%),
+linear-gradient(-45deg,#ccc 25%,transparent 25%),
+linear-gradient(45deg,transparent 75%,#ccc 75%),
+linear-gradient(-45deg,transparent 75%,#ccc 75%);
+
+background-size:20px 20px;
+background-position:0 0,0 10px,10px -10px,-10px 0px;
+
+}
+
+/* ドロップ領域 */
+
+#drop{
+
+border:2px dashed #888;
+padding:20px;
+text-align:center;
+background:white;
+cursor:pointer;
+
+}
+
+/* ヒストグラム */
+
+#histCanvas{
+width:100%;
+background:white;
+}
+
+/* スライダー */
+
+input[type=range]{
+width:100%;
+}
+
+.valueBox{
+float:right;
+}
+
+/* スマホレイアウト */
+
+@media (max-width:800px){
+
+.container{
+flex-direction:column;
+height:auto;
+}
+
+.preview{
+order:2;
+padding:10px;
+}
+
+.controls{
+order:1;
+}
+
+canvas{
+max-width:100%;
+max-height:none;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="controls">
+
+<h2>Line → Alpha Tool</h2>
+
+<div id="drop">
+Drag & Drop Image<br>
+or Click to Select
+<input type="file" id="fileInput" accept="image/*" style="display:none">
+</div>
+
+<br>
+
+<label>
+<input type="radio" name="bg" value="black" checked>
+黒背景
+</label>
+
+<label>
+<input type="radio" name="bg" value="white">
+白背景
+</label>
+
+<label>
+<input type="radio" name="bg" value="alpha">
+透過背景
+</label>
+
+<br><br>
+
+線の色 <input type="color" id="lineColor" value="#000000">
+
+<br><br>
+
+輝度 <span class="valueBox" id="brightnessValue">0.0</span> <input type="range" id="brightness" min="-1" max="1" step="0.05" value="0">
+
+<br>
+
+コントラスト <span class="valueBox" id="contrastValue">1.0</span> <input type="range" id="contrast" min="0" max="3" step="0.1" value="1">
+
+<br>
+
+太さ <span class="valueBox" id="thicknessValue">0.0</span> <input type="range" id="thickness" min="0" max="5" step="1" value="0">
+
+<br><br>
+
+<button id="download">Download PNG</button>
+
+<br><br>
+
+<canvas id="histCanvas" width="512" height="200"></canvas>
+
+</div>
+
+<div class="preview">
+
+<canvas id="canvas"></canvas>
+
+</div>
+
+</div>
+
+<script>
+
+let originalImageData=null
+
+const canvas=document.getElementById("canvas")
+const ctx=canvas.getContext("2d")
+
+const histCanvas=document.getElementById("histCanvas")
+const histCtx=histCanvas.getContext("2d")
+
+const drop=document.getElementById("drop")
+const fileInput=document.getElementById("fileInput")
+
+function clamp(x,a,b){
+return Math.max(a,Math.min(b,x))
+}
+
+function setValue(id,val){
+document.getElementById(id).textContent=
+Number(val).toFixed(1)
+}
+
+function hexToRgb(hex){
+
+return{
+
+r:parseInt(hex.substr(1,2),16),
+g:parseInt(hex.substr(3,2),16),
+b:parseInt(hex.substr(5,2),16)
+
+}
+
+}
+
+drop.onclick=()=>{
+fileInput.click()
+}
+
+fileInput.onchange=e=>{
+loadFile(e.target.files[0])
+}
+
+drop.addEventListener("dragover",e=>{
+e.preventDefault()
+})
+
+drop.addEventListener("drop",e=>{
+
+e.preventDefault()
+
+loadFile(e.dataTransfer.files[0])
+
+})
+
+function loadFile(file){
+
+const reader=new FileReader()
+
+reader.onload=ev=>{
+
+const img=new Image()
+
+img.onload=()=>{
+
+canvas.width=img.width
+canvas.height=img.height
+
+ctx.drawImage(img,0,0)
+
+originalImageData=
+ctx.getImageData(0,0,img.width,img.height)
+
+update()
+
+}
+
+img.src=ev.target.result
+
+}
+
+reader.readAsDataURL(file)
+
+}
+
+document.querySelectorAll("input").forEach(e=>{
+e.oninput=update
+})
+
+function update(){
+
+if(!originalImageData) return
+
+const brightness=parseFloat(
+document.getElementById("brightness").value)
+
+const contrast=parseFloat(
+document.getElementById("contrast").value)
+
+const thickness=parseInt(
+document.getElementById("thickness").value)
+
+setValue("brightnessValue",brightness)
+setValue("contrastValue",contrast)
+setValue("thicknessValue",thickness)
+
+const bg=document.querySelector(
+"input[name=bg]:checked").value
+
+const color=hexToRgb(
+document.getElementById("lineColor").value)
+
+const w=originalImageData.width
+const h=originalImageData.height
+
+const src=originalImageData.data
+
+const imageData=new ImageData(
+new Uint8ClampedArray(src),w,h)
+
+const data=imageData.data
+
+let alphaArray=new Float32Array(w*h)
+
+for(let i=0;i<w*h;i++){
+
+const r=src[i*4]
+const g=src[i*4+1]
+const b=src[i*4+2]
+const a=src[i*4+3]
+
+const L=0.299*r+0.587*g+0.114*b
+
+let A0;
+if (bg === "black") {
+  A0 = L;
+} else if (bg === "white") {
+  A0 = 255 - L;
+} else {
+  A0 = a; // デフォルト
+}
+
+let x=A0/255
+
+x=(x-0.5)*contrast+0.5
+
+x+=brightness
+
+x=clamp(x,0,1)
+
+alphaArray[i]=x*255
+
+}
+
+if(thickness>0){
+
+let temp=new Float32Array(w*h)
+
+for(let y=0;y<h;y++)
+for(let x=0;x<w;x++){
+
+let maxA=0
+
+for(let j=-thickness;j<=thickness;j++)
+for(let i=-thickness;i<=thickness;i++){
+
+let xx=x+i
+let yy=y+j
+
+if(xx<0||yy<0||xx>=w||yy>=h) continue
+
+maxA=Math.max(maxA,
+alphaArray[yy*w+xx])
+
+}
+
+temp[y*w+x]=maxA
+
+}
+
+alphaArray=temp
+
+}
+
+let hist=new Array(256).fill(0)
+
+for(let i=0;i<w*h;i++){
+
+let a=Math.round(alphaArray[i])
+
+hist[a]++
+
+data[i*4]=color.r
+data[i*4+1]=color.g
+data[i*4+2]=color.b
+data[i*4+3]=a
+
+}
+
+ctx.putImageData(imageData,0,0)
+
+drawHistogram(hist)
+
+}
+
+function drawHistogram(hist){
+
+histCtx.clearRect(0,0,512,200)
+
+let max=Math.max(...hist)
+
+for(let i=0;i<256;i++){
+
+let v=hist[i]/max
+
+let h=v*200
+
+histCtx.fillRect(
+i*2,
+200-h,
+2,
+h)
+
+}
+
+}
+
+document.getElementById("download").onclick=()=>{
+
+const link=document.createElement("a")
+
+link.download="result.png"
+
+link.href=canvas.toDataURL()
+
+link.click()
+
+}
+
+</script>
+
+</body>
+</html>

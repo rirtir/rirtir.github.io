@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<title>Tap Incremental</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+
+touch-action:manipulation;
+
+-webkit-user-select:none;
+user-select:none;
+
+-webkit-touch-callout:none;
+}
+
+html,body{
+height:100%;
+background:#111;
+color:white;
+font-family:sans-serif;
+touch-action:manipulation;
+}
+
+body{
+display:flex;
+flex-direction:column;
+}
+
+/* スコア表示 */
+
+#score{
+font-size:32px;
+text-align:center;
+padding:20px;
+}
+
+/* ログ */
+
+#log{
+flex:1;
+overflow:auto;
+padding:10px;
+font-size:12px;
+opacity:0.7;
+}
+
+/* 下UI */
+
+#bottom{
+position:sticky;
+bottom:0;
+background:#222;
+padding:10px;
+touch-action:manipulation;
+}
+
+/* タップボタン */
+
+#tap{
+width:100%;
+font-size:28px;
+padding:22px;
+margin-bottom:10px;
+background:#444;
+border:none;
+color:white;
+border-radius:8px;
+}
+
+#tap:active{
+background:#777;
+}
+
+/* ストア */
+
+.storeItem{
+background:#333;
+margin:6px 0;
+padding:10px;
+border-radius:6px;
+
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.storeItem button{
+font-size:18px;
+padding:12px 20px;
+min-height:44px;
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="score">0</div>
+
+<div id="log"></div>
+
+<div id="bottom">
+
+<button id="tap">タップ</button>
+
+<div id="store"></div>
+
+</div>
+
+<script>
+
+/* ---------- セーブ ---------- */
+
+let save = JSON.parse(localStorage.getItem("tapGameSave"))
+
+if(!save){
+
+save={
+score:0,
+tapPower:1,
+autoPower:0,
+tapLevel:0,
+autoLevel:0,
+lastUpdate:Date.now()
+}
+
+}
+
+/* ---------- オフライン進行 ---------- */
+
+let now = Date.now()
+let diff = Math.floor((now-save.lastUpdate)/1000)
+
+if(diff>0){
+save.score += diff * save.autoPower
+}
+
+/* ---------- セーブ関数 ---------- */
+
+function saveGame(){
+
+save.lastUpdate=Date.now()
+
+localStorage.setItem(
+"tapGameSave",
+JSON.stringify(save)
+)
+
+}
+
+/* ---------- ログ ---------- */
+
+function log(text){
+
+let el=document.getElementById("log")
+
+el.innerHTML = text+"<br>"+el.innerHTML
+
+}
+
+/* ---------- UI更新 ---------- */
+
+function updateUI(){
+
+document.getElementById("score").innerText =
+"スコア : "+Math.floor(save.score)
+
+let store=document.getElementById("store")
+
+store.innerHTML=""
+
+/* Tap Upgrade */
+
+createStoreItem(
+"タップアップグレード",
+"タップ +1",
+10*(save.tapLevel+1),
+()=>{
+
+save.tapPower+=1
+save.tapLevel++
+
+log("Tap power increased")
+
+}
+)
+
+/* Auto Generator */
+
+createStoreItem(
+"タップ自動化",
+"+1 / 秒",
+25*(save.autoLevel+1),
+()=>{
+
+save.autoPower+=1
+save.autoLevel++
+
+log("Auto generator added")
+
+}
+)
+
+}
+
+/* ---------- ストア生成 ---------- */
+
+function createStoreItem(name,desc,cost,buy){
+
+let store=document.getElementById("store")
+
+let div=document.createElement("div")
+div.className="storeItem"
+
+let text=document.createElement("div")
+
+let color = save.score >= cost ? "white" : "red"
+
+text.innerHTML =
+name+"<br>"+desc+
+"<br><span style='color:"+color+"'>コスト : "+cost+"</span>"
+
+let btn=document.createElement("button")
+btn.innerText="買う"
+
+btn.onclick=()=>{
+
+if(save.score>=cost){
+
+save.score-=cost
+buy()
+
+updateUI()
+saveGame()
+
+}
+
+}
+
+div.appendChild(text)
+div.appendChild(btn)
+
+store.appendChild(div)
+
+}
+
+/* ---------- タップ ---------- */
+
+document.getElementById("tap").addEventListener("pointerdown",()=>{
+
+save.score += save.tapPower
+
+updateUI()
+
+})
+
+document.addEventListener(
+"dblclick",
+function(e){
+e.preventDefault();
+},
+{ passive:false }
+);
+
+let lastTouchEnd = 0;
+
+document.addEventListener("touchend", function (event) {
+
+let now = new Date().getTime();
+
+if (now - lastTouchEnd <= 300) {
+event.preventDefault();
+}
+
+lastTouchEnd = now;
+
+}, false);
+
+/* ---------- 自動生成 ---------- */
+
+setInterval(()=>{
+
+save.score += save.autoPower
+
+updateUI()
+
+},1000)
+
+/* ---------- 定期セーブ ---------- */
+
+setInterval(saveGame,3000)
+
+/* ---------- 初期UI ---------- */
+
+updateUI()
+
+</script>
+
+</body>
+</html>

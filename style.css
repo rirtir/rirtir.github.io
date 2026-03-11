@@ -1,0 +1,117 @@
+/* ===== Base ===== */
+
+
+:root{
+--space-s:clamp(8px,1.2vw,12px);
+--space-m:clamp(12px,1.8vw,18px);
+--space-l:clamp(20px,3vw,40px);
+
+--font-small:clamp(12px,1.4vw,14px);
+--font-body:clamp(14px,1.6vw,16px);
+--font-title:clamp(24px,3vw,32px);
+--font-section:clamp(16px,2vw,20px);
+}
+
+body{
+font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+background:#0f1116;
+color:#e6e6e6;
+margin:0;
+font-size:var(--font-body);
+}
+
+/* ===== Header ===== */
+
+header{
+text-align:center;
+padding:var(--space-l) var(--space-m);
+border-bottom:1px solid #333;
+}
+
+h1{
+margin:0;
+font-size:var(--font-title);
+}
+
+/* ===== Container ===== */
+
+#container{
+max-width:900px;
+margin:auto;
+padding:var(--space-l);
+}
+
+/* ===== Category ===== */
+
+.category{
+margin-bottom:var(--space-l);
+}
+
+.category h2{
+border-left:4px solid #4da3ff;
+padding-left:var(--space-s);
+font-size:var(--font-section);
+}
+
+/* ===== Links grid ===== */
+
+.links{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+gap:var(--space-m);
+margin-top:var(--space-m);
+}
+
+/* ===== Cards ===== */
+
+.card{
+background:#1a1d25;
+padding:var(--space-m);
+border-radius:clamp(8px,1vw,12px);
+transition:0.2s;
+text-decoration:none;
+color:white;
+display:block;
+}
+
+.card:hover{
+background:#252a36;
+transform:translateY(-2px);
+}
+
+.card p{
+margin:5px 0 0 0;
+font-size:var(--font-small);
+opacity:0.7;
+}
+
+/* ===== Mobile optimization ===== */
+
+@media (max-width:700px),(max-aspect-ratio:4/5){
+
+#container{
+padding:var(--space-m);
+}
+
+.category{
+margin-bottom:var(--space-m);
+}
+
+/* 2 columns for smartphone */
+.links{
+grid-template-columns:repeat(2,1fr);
+}
+
+/* touch friendly */
+.card{
+padding:clamp(14px,3vw,20px);
+border-radius:14px;
+}
+
+/* tap feedback */
+.card:active{
+transform:scale(0.97);
+background:#2e3444;
+}
+
+}

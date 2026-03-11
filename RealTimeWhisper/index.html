@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Realtime Whisper</title>
+
+<style>
+body{
+font-family:sans-serif;
+background:#f0f0f0;
+padding:20px;
+}
+
+button{
+font-size:20px;
+padding:12px 20px;
+}
+
+#status{
+margin-top:10px;
+color:#666;
+}
+
+#output{
+margin-top:20px;
+background:white;
+padding:15px;
+border:1px solid #ccc;
+min-height:200px;
+font-size:18px;
+line-height:1.6;
+white-space:pre-wrap;
+}
+</style>
+</head>
+
+<body>
+
+<h2>リアルタイム文字起こし</h2>
+
+<button id="toggle">開始</button>
+
+<div id="status">モデル未ロード</div>
+
+<div id="output"></div>
+
+<script type="module">
+
+import { pipeline } from "https://cdn.jsdelivr.net/npm/@xenova/transformers";
+
+let transcriber=null;
+let recording=false;
+
+let audioContext;
+let processor;
+let input;
+
+let buffer=[];
+let sampleRate;
+
+let lastText="";
+
+const TARGET_SR=16000;
+
+const WINDOW_SECONDS=6;
+const STEP_SECONDS=3;
+
+const VAD_THRESHOLD=0.01;
+
+const button=document.getElementById("toggle");
+const status=document.getElementById("status");
+const output=document.getElementById("output");
+
+function rms(data){
+
+let sum=0;
+
+for(let i=0;i<data.length;i++){
+sum+=data[i]*data[i];
+}
+
+return Math.sqrt(sum/data.length);
+
+}
+
+function resample(data,inRate,outRate){
+
+if(inRate===outRate) return data;
+
+const ratio=inRate/outRate;
+const newLen=Math.round(data.length/ratio);
+
+const result=new Float32Array(newLen);
+
+for(let i=0;i<newLen;i++){
+
+const idx=i*ratio;
+const low=Math.floor(idx);
+const high=Math.min(Math.ceil(idx),data.length-1);
+const w=idx-low;
+
+result[i]=data[low]*(1-w)+data[high]*w;
+
+}
+
+return result;
+
+}
+
+function encodeWav(samples){
+
+const buffer=new ArrayBuffer(44+samples.length*2);
+const view=new DataView(buffer);
+
+function writeStr(o,s){
+for(let i=0;i<s.length;i++){
+view.setUint8(o+i,s.charCodeAt(i));
+}
+}
+
+writeStr(0,"RIFF");
+view.setUint32(4,36+samples.length*2,true);
+writeStr(8,"WAVE");
+
+writeStr(12,"fmt ");
+view.setUint32(16,16,true);
+view.setUint16(20,1,true);
+view.setUint16(22,1,true);
+
+view.setUint32(24,16000,true);
+view.setUint32(28,32000,true);
+view.setUint16(32,2,true);
+view.setUint16(34,16,true);
+
+writeStr(36,"data");
+view.setUint32(40,samples.length*2,true);
+
+let offset=44;
+
+for(let i=0;i<samples.length;i++){
+
+let s=Math.max(-1,Math.min(1,samples[i]));
+view.setInt16(offset,s<0?s*0x8000:s*0x7fff,true);
+offset+=2;
+
+}
+
+return new Blob([view],{type:"audio/wav"});
+
+}
+
+async function runWhisper(floatData){
+
+const energy=rms(floatData);
+
+if(energy<VAD_THRESHOLD){
+return;
+}
+
+const resampled=resample(floatData,sampleRate,TARGET_SR);
+
+const wav=encodeWav(resampled);
+
+const buf=await wav.arrayBuffer();
+
+status.textContent="認識中...";
+
+const result=await transcriber(buf);
+
+const text=result.text.trim();
+
+if(text && text!==lastText){
+
+output.textContent+=text+" ";
+lastText=text;
+
+}
+
+status.textContent="録音中";
+
+}
+
+async function start(){
+
+const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+
+audioContext=new AudioContext();
+
+sampleRate=audioContext.sampleRate;
+
+input=audioContext.createMediaStreamSource(stream);
+
+processor=audioContext.createScriptProcessor(4096,1,1);
+
+input.connect(processor);
+processor.connect(audioContext.destination);
+
+processor.onaudioprocess=(e)=>{
+
+const data=e.inputBuffer.getChannelData(0);
+
+buffer.push(...data);
+
+const windowSize=sampleRate*WINDOW_SECONDS;
+const stepSize=sampleRate*STEP_SECONDS;
+
+if(buffer.length>windowSize){
+
+const chunk=buffer.slice(0,windowSize);
+
+buffer=buffer.slice(stepSize);
+
+runWhisper(new Float32Array(chunk));
+
+}
+
+};
+
+}
+
+function stop(){
+
+processor.disconnect();
+input.disconnect();
+audioContext.close();
+
+}
+
+button.onclick=async()=>{
+
+if(!transcriber){
+
+status.textContent="Whisperロード中(初回1分)";
+
+transcriber=await pipeline(
+"automatic-speech-recognition",
+"Xenova/whisper-tiny"
+);
+
+status.textContent="ロード完了";
+
+}
+
+if(!recording){
+
+recording=true;
+button.textContent="停止";
+
+output.textContent="";
+
+start();
+
+status.textContent="録音中";
+
+}else{
+
+recording=false;
+button.textContent="開始";
+
+stop();
+
+status.textContent="停止";
+
+}
+
+};
+
+</script>
+
+</body>
+</html>

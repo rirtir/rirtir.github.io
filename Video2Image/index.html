@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Frame Extractor</title>
+
+<style>
+
+body{
+font-family:sans-serif;
+margin:0;
+padding:20px;
+background:#f5f5f5;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+h1{
+font-size:22px;
+}
+
+#dropArea{
+width:100%;
+max-width:500px;
+height:120px;
+border:3px dashed #888;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+text-align:center;
+background:white;
+cursor:pointer;
+margin-bottom:15px;
+}
+
+#controls{
+width:100%;
+max-width:500px;
+display:none;
+flex-direction:column;
+gap:10px;
+}
+
+video{
+width:100%;
+max-height:240px;
+background:black;
+}
+
+#slider{
+width:100%;
+}
+
+button{
+padding:12px;
+font-size:16px;
+border:none;
+border-radius:8px;
+background:#007bff;
+color:white;
+}
+
+button:active{
+transform:scale(0.98);
+}
+
+canvas{
+width:100%;
+max-width:500px;
+margin-top:10px;
+border:1px solid #ccc;
+background:white;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>動画フレーム抽出</h1>
+
+<div id="dropArea">
+動画をドラッグ&ドロップ<br>またはクリックして選択
+</div>
+
+<input type="file" id="fileInput" accept="video/*" hidden>
+
+<div id="controls">
+
+<video id="video" controls></video>
+
+<input type="range" id="slider" min="0" max="0" step="0.01">
+
+<button id="capture">このフレームを画像化</button>
+
+<button id="download">画像ダウンロード</button>
+
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+
+const dropArea=document.getElementById("dropArea")
+const fileInput=document.getElementById("fileInput")
+const video=document.getElementById("video")
+const slider=document.getElementById("slider")
+const canvas=document.getElementById("canvas")
+const ctx=canvas.getContext("2d")
+const captureBtn=document.getElementById("capture")
+const downloadBtn=document.getElementById("download")
+const controls=document.getElementById("controls")
+
+let videoURL=null
+
+function loadVideo(file){
+
+if(videoURL){
+URL.revokeObjectURL(videoURL)
+}
+
+videoURL=URL.createObjectURL(file)
+video.src=videoURL
+
+video.onloadedmetadata=()=>{
+
+slider.max=video.duration
+controls.style.display="flex"
+
+canvas.width=video.videoWidth
+canvas.height=video.videoHeight
+
+}
+
+}
+
+dropArea.onclick=()=>fileInput.click()
+
+fileInput.onchange=e=>{
+const file=e.target.files[0]
+if(file) loadVideo(file)
+}
+
+dropArea.ondragover=e=>{
+e.preventDefault()
+dropArea.style.background="#eef"
+}
+
+dropArea.ondragleave=e=>{
+dropArea.style.background="white"
+}
+
+dropArea.ondrop=e=>{
+e.preventDefault()
+dropArea.style.background="white"
+
+const file=e.dataTransfer.files[0]
+if(file && file.type.startsWith("video")){
+loadVideo(file)
+}
+}
+
+slider.oninput=()=>{
+video.currentTime=slider.value
+}
+
+captureBtn.onclick=()=>{
+
+ctx.drawImage(video,0,0,canvas.width,canvas.height)
+
+}
+
+downloadBtn.onclick=()=>{
+
+const link=document.createElement("a")
+link.download="frame.png"
+link.href=canvas.toDataURL("image/png")
+link.click()
+
+}
+
+</script>
+
+</body>
+</html>
