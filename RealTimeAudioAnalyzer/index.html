@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microphone Analyzer</title>
+
+<style>
+
+body{
+font-family:sans-serif;
+margin:0;
+padding:20px;
+background:#f5f5f5;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+h1{
+font-size:22px;
+}
+
+#controls{
+width:100%;
+max-width:500px;
+display:flex;
+flex-direction:column;
+gap:10px;
+margin-bottom:10px;
+}
+
+button{
+padding:12px;
+font-size:16px;
+border:none;
+border-radius:8px;
+background:#007bff;
+color:white;
+}
+
+button:active{
+transform:scale(0.98);
+}
+
+canvas{
+width:100%;
+max-width:500px;
+border:1px solid #ccc;
+background:white;
+margin-top:10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>マイク音声リアルタイム解析</h1>
+
+<div id="controls">
+<button id="startBtn">マイク開始</button>
+<button id="stopBtn">停止</button>
+</div>
+
+<canvas id="waveCanvas" width="500" height="150"></canvas>
+<canvas id="fftCanvas" width="500" height="150"></canvas>
+
+<script>
+
+const waveCanvas=document.getElementById("waveCanvas")
+const fftCanvas=document.getElementById("fftCanvas")
+
+const waveCtx=waveCanvas.getContext("2d")
+const fftCtx=fftCanvas.getContext("2d")
+
+const startBtn=document.getElementById("startBtn")
+const stopBtn=document.getElementById("stopBtn")
+
+let audioContext
+let analyser
+let dataArray
+let freqArray
+let source
+let stream
+
+let running=false
+
+async function startMic(){
+
+stream=await navigator.mediaDevices.getUserMedia({audio:true})
+
+audioContext=new AudioContext()
+
+source=audioContext.createMediaStreamSource(stream)
+
+analyser=audioContext.createAnalyser()
+
+analyser.fftSize=2048
+
+const bufferLength=analyser.fftSize
+dataArray=new Uint8Array(bufferLength)
+
+const freqLength=analyser.frequencyBinCount
+freqArray=new Uint8Array(freqLength)
+
+source.connect(analyser)
+
+running=true
+draw()
+
+}
+
+function stopMic(){
+
+running=false
+
+if(stream){
+
+stream.getTracks().forEach(track=>track.stop())
+
+}
+
+if(audioContext){
+audioContext.close()
+}
+
+}
+
+function draw(){
+
+if(!running) return
+
+requestAnimationFrame(draw)
+
+analyser.getByteTimeDomainData(dataArray)
+analyser.getByteFrequencyData(freqArray)
+
+drawWave()
+drawFFT()
+
+}
+
+function drawWave(){
+
+waveCtx.clearRect(0,0,waveCanvas.width,waveCanvas.height)
+
+waveCtx.beginPath()
+
+const sliceWidth=waveCanvas.width/dataArray.length
+let x=0
+
+for(let i=0;i<dataArray.length;i++){
+
+const v=dataArray[i]/128.0
+const y=v*waveCanvas.height/2
+
+if(i===0){
+waveCtx.moveTo(x,y)
+}else{
+waveCtx.lineTo(x,y)
+}
+
+x+=sliceWidth
+
+}
+
+waveCtx.stroke()
+
+}
+
+function drawFFT(){
+
+fftCtx.clearRect(0,0,fftCanvas.width,fftCanvas.height)
+
+const barWidth=fftCanvas.width/freqArray.length
+
+for(let i=0;i<freqArray.length;i++){
+
+const v=freqArray[i]/255
+const h=v*fftCanvas.height
+
+fftCtx.fillRect(i*barWidth,fftCanvas.height-h,barWidth,h)
+
+}
+
+}
+
+startBtn.onclick=startMic
+stopBtn.onclick=stopMic
+
+</script>
+
+</body>
+</html>
