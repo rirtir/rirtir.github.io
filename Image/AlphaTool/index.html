@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magic Transparency Tool</title>
+
+<style>
+
+body{
+font-family:sans-serif;
+margin:0;
+background:#f0f0f0;
+}
+
+.container{
+display:flex;
+height:100vh;
+}
+
+.controls{
+flex:1;
+padding:15px;
+overflow:auto;
+box-sizing:border-box;
+}
+
+.preview{
+flex:1;
+display:flex;
+align-items:center;
+justify-content:center;
+position:relative;
+}
+
+canvas{
+max-width:90%;
+max-height:90%;
+border:1px solid #888;
+}
+
+.checker{
+background-image:
+linear-gradient(45deg,#ccc 25%,transparent 25%),
+linear-gradient(-45deg,#ccc 25%,transparent 25%),
+linear-gradient(45deg,transparent 75%,#ccc 75%),
+linear-gradient(-45deg,transparent 75%,#ccc 75%);
+background-size:20px 20px;
+background-position:0 0,0 10px,10px -10px,-10px 0;
+}
+
+#drop{
+border:2px dashed #888;
+padding:20px;
+text-align:center;
+background:white;
+cursor:pointer;
+}
+
+input[type=range]{width:100%;}
+
+.valueBox{float:right;}
+
+#marker{
+position:absolute;
+width:30px;
+height:30px;
+border-radius:50%;
+border:3px solid red;
+pointer-events:none;
+transform:translate(-50%,-50%);
+display:none;
+}
+
+@media (max-width:800px){
+
+.container{
+flex-direction:column;
+height:auto;
+}
+
+.preview{
+order:2;
+padding:10px;
+}
+
+.controls{
+order:1;
+}
+
+canvas{
+max-width:100%;
+max-height:none;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="controls">
+
+<h2>Transparency Tool</h2>
+
+<div id="drop">
+Drag & Drop Image<br>
+or Click
+<input type="file" id="fileInput" accept="image/*" hidden>
+</div>
+
+<br>
+
+<label><input type="radio" name="mode" value="color" checked>色依存</label>
+<label><input type="radio" name="mode" value="position">位置依存</label>
+
+<br><br>
+
+対象色
+<input type="color" id="targetColor">
+
+<br><br>
+
+しきい値
+<span class="valueBox" id="thrVal">20</span>
+<input type="range" id="threshold" min="0" max="50" value="20">
+
+<br>
+
+滑らかさ
+<span class="valueBox" id="smoothVal">0.5</span>
+<input type="range" id="smooth" min="0" max="1" step="0.01" value="0.5">
+
+<br><br>
+
+背景色
+<input type="color" id="bgColor" value="#ffffff">
+
+<label>
+<input type="checkbox" id="alphaPreview" checked>
+透過
+</label>
+
+<br><br>
+
+<button id="downloadAlpha">Download PNG (alpha)</button>
+<button id="downloadBg">Download PNG (background)</button>
+
+</div>
+
+<div class="preview checker" id="preview">
+
+<canvas id="canvas"></canvas>
+<div id="marker"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const canvas=document.getElementById("canvas")
+const ctx=canvas.getContext("2d")
+
+const preview=document.getElementById("preview")
+const marker=document.getElementById("marker")
+
+let original=null
+let labData=null
+let clickPos=null
+let target=[255,255,255]
+
+/* UI */
+
+const threshold=document.getElementById("threshold")
+const smooth=document.getElementById("smooth")
+const thrVal=document.getElementById("thrVal")
+const smoothVal=document.getElementById("smoothVal")
+const targetColor=document.getElementById("targetColor")
+
+/* RGB→Lab */
+
+function rgb2lab(r,g,b){
+
+r/=255
+g/=255
+b/=255
+
+r=r>0.04045?((r+0.055)/1.055)**2.4:r/12.92
+g=g>0.04045?((g+0.055)/1.055)**2.4:g/12.92
+b=b>0.04045?((b+0.055)/1.055)**2.4:b/12.92
+
+let x=r*0.4124+g*0.3576+b*0.1805
+let y=r*0.2126+g*0.7152+b*0.0722
+let z=r*0.0193+g*0.1192+b*0.9505
+
+x/=0.95047
+z/=1.08883
+
+function f(t){
+return t>0.008856?Math.cbrt(t):(7.787*t+16/116)
+}
+
+let fx=f(x)
+let fy=f(y)
+let fz=f(z)
+
+return [
+116*fy-16,
+500*(fx-fy),
+200*(fy-fz)
+]
+
+}
+
+/* CIEDE2000 */
+
+function deltaE(l1,a1,b1,l2,a2,b2){
+
+let dl=l1-l2
+let da=a1-a2
+let db=b1-b2
+
+return Math.sqrt(dl*dl+da*da+db*db)
+
+}
+
+/* α計算 */
+
+function alpha(dist){
+
+let thr=parseFloat(threshold.value)
+let s=parseFloat(smooth.value)
+
+if(s===0) return dist<thr?0:255
+
+let a=1/(0.1+s*10)
+
+let v=1/(1+Math.exp(-a*(thr-dist)))
+
+return 255*(1-v)
+
+}
+
+/* メイン処理 */
+
+function process(){
+
+if(!original || !clickPos) return
+
+let w=canvas.width
+let h=canvas.height
+
+let data=new Uint8ClampedArray(original.data)
+
+let [tr,tg,tb]=target
+let [tl,ta,tb2]=rgb2lab(tr,tg,tb)
+
+let mode=document.querySelector("input[name=mode]:checked").value
+
+let visited=new Uint8Array(w*h)
+
+if(mode==="color"){
+
+for(let i=0;i<w*h;i++){
+
+let l=labData[i*3]
+let a=labData[i*3+1]
+let b=labData[i*3+2]
+
+let d=deltaE(l,a,b,tl,ta,tb2)
+
+data[i*4+3]=alpha(d)
+
+}
+
+}else{
+
+let stack=[clickPos]
+
+while(stack.length){
+
+let [x,y]=stack.pop()
+
+if(x<0||y<0||x>=w||y>=h) continue
+
+let id=y*w+x
+if(visited[id]) continue
+visited[id]=1
+
+let l=labData[id*3]
+let a=labData[id*3+1]
+let b=labData[id*3+2]
+
+let d=deltaE(l,a,b,tl,ta,tb2)
+
+if(d>threshold.value) continue
+
+data[id*4+3]=alpha(d)
+
+stack.push([x+1,y])
+stack.push([x-1,y])
+stack.push([x,y+1])
+stack.push([x,y-1])
+
+}
+
+}
+
+ctx.putImageData(new ImageData(data,w,h),0,0)
+
+drawMarker()
+
+}
+
+/* マーカー */
+
+function drawMarker(){
+
+if(!clickPos) return
+
+let rect=canvas.getBoundingClientRect()
+
+let x=(clickPos[0]/canvas.width)*rect.width
+let y=(clickPos[1]/canvas.height)*rect.height
+
+marker.style.left=(canvas.offsetLeft + x)+"px"
+marker.style.top=(canvas.offsetTop + y)+"px"
+marker.style.display="block"
+
+}
+/* クリック */
+
+canvas.onclick=e=>{
+
+let rect=canvas.getBoundingClientRect()
+
+let x=Math.floor((e.clientX-rect.left)*canvas.width/rect.width)
+let y=Math.floor((e.clientY-rect.top)*canvas.height/rect.height)
+
+clickPos=[x,y]
+
+let p=original.data
+let i=(y*canvas.width+x)*4
+
+target=[p[i],p[i+1],p[i+2]]
+
+targetColor.value=
+"#"+((1<<24)+(target[0]<<16)+(target[1]<<8)+target[2]).toString(16).slice(1)
+
+process()
+
+}
+
+/* UI */
+
+threshold.oninput=()=>{thrVal.textContent=threshold.value;process()}
+smooth.oninput=()=>{smoothVal.textContent=smooth.value;process()}
+
+targetColor.oninput=()=>{
+
+let hex=targetColor.value
+
+target=[
+parseInt(hex.substr(1,2),16),
+parseInt(hex.substr(3,2),16),
+parseInt(hex.substr(5,2),16)
+]
+
+process()
+
+}
+
+document.querySelectorAll("input[name=mode]").forEach(e=>e.onchange=process)
+
+/* 背景 */
+
+const bgColor=document.getElementById("bgColor")
+const alphaPreview=document.getElementById("alphaPreview")
+
+function updatePreview(){
+
+if(alphaPreview.checked){
+
+preview.classList.add("checker")
+preview.style.backgroundColor=""
+
+}else{
+
+preview.classList.remove("checker")
+preview.style.backgroundColor=bgColor.value
+
+}
+
+}
+
+bgColor.oninput=updatePreview
+alphaPreview.onchange=updatePreview
+
+updatePreview()
+
+/* 画像ロード */
+
+function load(file){
+
+let img=new Image()
+
+img.onload=()=>{
+
+canvas.width=img.width
+canvas.height=img.height
+
+ctx.drawImage(img,0,0)
+
+original=ctx.getImageData(0,0,canvas.width,canvas.height)
+
+/* Lab事前計算 */
+
+let pixels=canvas.width*canvas.height
+labData=new Float32Array(pixels*3)
+
+for(let i=0;i<pixels;i++){
+
+let r=original.data[i*4]
+let g=original.data[i*4+1]
+let b=original.data[i*4+2]
+
+let lab=rgb2lab(r,g,b)
+
+labData[i*3]=lab[0]
+labData[i*3+1]=lab[1]
+labData[i*3+2]=lab[2]
+
+}
+
+}
+
+img.src=URL.createObjectURL(file)
+
+}
+
+const drop=document.getElementById("drop")
+const fileInput=document.getElementById("fileInput")
+
+drop.onclick=()=>fileInput.click()
+
+fileInput.onchange=e=>load(e.target.files[0])
+
+drop.ondragover=e=>e.preventDefault()
+
+drop.ondrop=e=>{
+e.preventDefault()
+load(e.dataTransfer.files[0])
+}
+
+/* ダウンロード */
+
+document.getElementById("downloadAlpha").onclick=()=>{
+
+let link=document.createElement("a")
+link.download="alpha.png"
+link.href=canvas.toDataURL()
+link.click()
+
+}
+
+document.getElementById("downloadBg").onclick=()=>{
+
+let bg=bgColor.value
+
+let tmp=document.createElement("canvas")
+tmp.width=canvas.width
+tmp.height=canvas.height
+
+let c=tmp.getContext("2d")
+
+c.fillStyle=bg
+c.fillRect(0,0,tmp.width,tmp.height)
+
+c.drawImage(canvas,0,0)
+
+let link=document.createElement("a")
+
+link.download="background.png"
+link.href=tmp.toDataURL()
+
+link.click()
+
+}
+
+</script>
+
+</body>
+</html>

@@ -38,6 +38,11 @@ const data = [
                 desc: "グレースケール画像を透過画像にする。線画を線だけにするなど。"
             },
             {
+                title: "画像透過ツール",
+                url: "https://rirtir.com/Image/AlphaTool/",
+                desc: "画像の一部を透過する。透過したい箇所をタップして透過可能。"
+            },
+            {
                 title: "動画から画像抽出",
                 url: "https://rirtir.com/Image/Video2Image/",
                 desc: "動画から任意のフレームを抜き出す。"

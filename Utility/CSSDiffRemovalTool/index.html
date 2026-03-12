@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>CSS重複削除ツール</title>
+
+<style>
+
+body{
+font-family:sans-serif;
+margin:0;
+padding:30px;
+background:#f5f5f5;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+h1{
+margin-bottom:20px;
+}
+
+.container{
+display:flex;
+gap:20px;
+margin-bottom:20px;
+}
+
+.drop{
+width:220px;
+height:120px;
+border:3px dashed #888;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+background:white;
+cursor:pointer;
+text-align:center;
+}
+
+button{
+padding:10px 25px;
+font-size:16px;
+cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>CSS重複削除ツール</h1>
+
+<div class="container">
+<div class="drop" id="dropA">残したい方 <br> (HTML / CSS)</div>
+<div class="drop" id="dropB">比較対象 <br> (HTML / CSS)</div>
+</div>
+
+<button id="run">処理</button>
+
+<script>
+
+let textA=""
+let textB=""
+
+
+
+function setupDrop(id,callback){
+
+const el=document.getElementById(id)
+
+el.onclick=()=>{
+const input=document.createElement("input")
+input.type="file"
+input.accept=".html,.css"
+input.onchange=e=>{
+const file=e.target.files[0]
+readFile(file,callback)
+}
+input.click()
+}
+
+el.ondragover=e=>{
+e.preventDefault()
+}
+
+el.ondrop=e=>{
+e.preventDefault()
+const file=e.dataTransfer.files[0]
+readFile(file,callback)
+}
+
+}
+
+
+
+function readFile(file,callback){
+
+const reader=new FileReader()
+
+reader.onload=e=>{
+callback(e.target.result)
+}
+
+reader.readAsText(file)
+
+}
+
+
+
+setupDrop("dropA",text=>{
+textA=text
+document.getElementById("dropA").textContent="A 読み込み完了"
+})
+
+setupDrop("dropB",text=>{
+textB=text
+document.getElementById("dropB").textContent="B 読み込み完了"
+})
+
+
+
+function extractCSS(text){
+
+const styles=[...text.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
+
+if(styles.length>0){
+return styles.map(s=>s[1]).join("\n")
+}
+
+return text
+
+}
+
+
+
+function removeComments(css){
+return css.replace(/\/\*[\s\S]*?\*\//g,"")
+}
+
+
+
+function parseCSS(css){
+
+css=removeComments(css)
+
+const result={}
+
+const regex=/([^{}]+)\{([^{}]+)\}/g
+
+let match
+
+while(match=regex.exec(css)){
+
+const selector=match[1].trim()
+const body=match[2].trim()
+
+const props={}
+
+body.split(";").forEach(line=>{
+
+const p=line.trim()
+if(!p)return
+
+const pair=p.split(":")
+if(pair.length<2)return
+
+const key=pair[0].trim()
+const val=pair.slice(1).join(":").trim()
+
+props[key]=val
+
+})
+
+if(Object.keys(props).length>0){
+result[selector]=props
+}
+
+}
+
+return result
+
+}
+
+
+
+function diffCSS(a,b){
+
+const result={}
+
+for(const selector in a){
+
+const propsA=a[selector]
+const propsB=b[selector]
+
+const newProps={}
+
+for(const key in propsA){
+
+if(propsB && propsB[key]===propsA[key]){
+continue
+}
+
+newProps[key]=propsA[key]
+
+}
+
+if(Object.keys(newProps).length>0){
+result[selector]=newProps
+}
+
+}
+
+return result
+
+}
+
+
+
+function stringifyCSS(obj){
+
+let css=""
+
+for(const selector in obj){
+
+css+=selector+"{\n"
+
+const props=obj[selector]
+
+for(const key in props){
+css+="  "+key+": "+props[key]+";\n"
+}
+
+css+="}\n\n"
+
+}
+
+return css
+
+}
+
+
+
+document.getElementById("run").onclick=()=>{
+
+if(!textA || !textB){
+alert("AとBを読み込んでください")
+return
+}
+
+const cssA=extractCSS(textA)
+const cssB=extractCSS(textB)
+
+const parsedA=parseCSS(cssA)
+const parsedB=parseCSS(cssB)
+
+const diff=diffCSS(parsedA,parsedB)
+
+const output=stringifyCSS(diff)
+
+const blob=new Blob([output],{type:"text/css"})
+
+const link=document.createElement("a")
+
+link.href=URL.createObjectURL(blob)
+link.download="result.css"
+
+link.click()
+
+}
+
+</script>
+
+</body>
+</html>

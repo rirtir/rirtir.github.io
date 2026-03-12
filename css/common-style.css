@@ -1,0 +1,156 @@
+/* ===== Base ===== */
+
+body{
+font-family:sans-serif;
+margin:0;
+background:#f5f5f5;
+}
+
+h1{
+font-size:22px;
+margin-bottom:20px;
+}
+
+h2{
+margin:10px 0;
+}
+
+
+/* ===== Layout ===== */
+
+.container{
+display:flex;
+height:100vh;
+}
+
+.controls{
+flex:1;
+padding:15px;
+overflow:auto;
+box-sizing:border-box;
+}
+
+.preview{
+flex:1;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+
+/* ===== Drag & Drop ===== */
+
+#drop{
+width:100%;
+max-width:500px;
+border:3px dashed #888;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+text-align:center;
+background:white;
+cursor:pointer;
+padding:20px;
+}
+
+#dropArea{
+width:100%;
+max-width:500px;
+border:3px dashed #888;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+text-align:center;
+background:white;
+cursor:pointer;
+padding:20px;
+}
+
+
+/* ===== Canvas ===== */
+
+canvas{
+width:100%;
+max-width:500px;
+border:1px solid #888;
+background:white;
+}
+
+
+/* ===== Button ===== */
+
+button{
+padding:12px;
+font-size:16px;
+border:none;
+border-radius:8px;
+background:#007bff;
+color:white;
+cursor:pointer;
+}
+
+button:active{
+transform:scale(0.98);
+}
+
+
+/* ===== Form ===== */
+
+select{
+width:100%;
+font-size:15px;
+}
+
+input[type=range]{
+width:100%;
+font-size:15px;
+}
+
+.valueBox{
+float:right;
+}
+
+
+/* ===== Histogram ===== */
+
+#histCanvas{
+width:100%;
+background:white;
+}
+
+
+/* ===== Video ===== */
+
+video{
+width:100%;
+max-height:240px;
+background:black;
+}
+
+
+/* ===== Mobile Layout ===== */
+
+@media (max-width:800px){
+
+.container{
+flex-direction:column;
+height:auto;
+}
+
+.preview{
+order:2;
+padding:10px;
+}
+
+.controls{
+order:1;
+}
+
+canvas{
+max-width:100%;
+max-height:none;
+}
+
+}
