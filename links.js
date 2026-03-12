@@ -4,12 +4,12 @@ const data = [
         links: [
             {
                 title: "ito",
-                url: "https://rirtir.com/ito/",
+                url: "https://rirtir.com/Game/ito/",
                 desc: "スマホ一台でみんなで遊べる"
             },
             {
                 title: "ボブジテン",
-                url: "https://rirtir.com/bob/",
+                url: "https://rirtir.com/Game/bob/",
                 desc: "スマホ一台でみんなで遊べる"
             },
             {
@@ -24,7 +24,7 @@ const data = [
             },
             {
                 title: "インクリメンタルゲーム",
-                url: "https://rirtir.com/incremental/",
+                url: "https://rirtir.com/Game/incremental/",
                 desc: "制作中（デモ版）"
             }
         ]
@@ -34,12 +34,12 @@ const data = [
         links: [
             {
                 title: "輝度値→アルファ変換",
-                url: "https://rirtir.com/Line2AlphaConverter/",
+                url: "https://rirtir.com/Image/Line2AlphaConverter/",
                 desc: "グレースケール画像を透過画像にする。線画を線だけにするなど。"
             },
             {
                 title: "動画から画像抽出",
-                url: "https://rirtir.com/Video2Image/",
+                url: "https://rirtir.com/Image/Video2Image/",
                 desc: "動画から任意のフレームを抜き出す。"
             }
         ]
@@ -48,28 +48,23 @@ const data = [
         category: "AudioProcessing",
         links: [
             {
-                title: "動画から音声抽出（WAVのみ）",
-                url: "https://rirtir.com/Video2Audio_wav/",
-                desc: "動画から音声ファイルを抽出する。高速だがWAVファイルのみ対応。"
-            },
-            {
                 title: "動画から音声抽出",
-                url: "https://rirtir.com/Video2Audio/",
-                desc: "動画から音声ファイルを抽出する。オリジナル、mp3、wavから選べるが初回は40MBほどのダウンロードが入る。"
+                url: "https://rirtir.com/Audio/Video2Audio/",
+                desc: "動画から音声ファイルを抽出する。オリジナル、mp3、wavから選べる。"
             },
             {
                 title: "音声解析ツール",
-                url: "https://rirtir.com/AudioInfo/",
+                url: "https://rirtir.com/Audio/AudioInfo/",
                 desc: "音声のサンプリング周波数やビット深度などを表示する。またFFTも表示。"
             },
             {
                 title: "リアルタイム音声解析",
-                url: "https://rirtir.com/RealTimeAudioAnalyzer/",
+                url: "https://rirtir.com/Audio/RealTimeAudioAnalyzer/",
                 desc: "マイク音声の波形とFFTを表示する"
             },
             {
                 title: "リアルタイム文字起こし",
-                url: "https://rirtir.com/RealTimeWhisper/",
+                url: "https://rirtir.com/Audio/RealTimeWhisper/",
                 desc: "音声から文字起こしをする。調整中"
             }
         ]
