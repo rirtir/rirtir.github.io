@@ -48,6 +48,16 @@ const data = [
         category: "AudioProcessing",
         links: [
             {
+                title: "動画から音声抽出（WAVのみ）",
+                url: "https://rirtir.com/AudioInfo/",
+                desc: "動画から音声ファイルを抽出する。高速だがWAVファイルのみ対応。"
+            },
+            {
+                title: "動画から音声抽出",
+                url: "https://rirtir.com/AudioInfo/",
+                desc: "動画から音声ファイルを抽出する。オリジナル、mp3、wavから選べるが初回は40MBほどのダウンロードが入る。"
+            },
+            {
                 title: "音声解析ツール",
                 url: "https://rirtir.com/AudioInfo/",
                 desc: "音声のサンプリング周波数やビット深度などを表示する。またFFTも表示。"

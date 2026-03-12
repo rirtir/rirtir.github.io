@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Audio Extractor</title>
+
+<style>
+
+body{
+font-family:sans-serif;
+margin:0;
+padding:20px;
+background:#f5f5f5;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+h1{
+font-size:22px;
+}
+
+#dropArea{
+width:100%;
+max-width:500px;
+height:120px;
+border:3px dashed #888;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+text-align:center;
+background:white;
+cursor:pointer;
+margin-bottom:15px;
+}
+
+#controls{
+width:100%;
+max-width:500px;
+display:none;
+flex-direction:column;
+gap:10px;
+}
+
+video{
+width:100%;
+max-height:240px;
+background:black;
+}
+
+button{
+padding:12px;
+font-size:16px;
+border:none;
+border-radius:8px;
+background:#007bff;
+color:white;
+}
+
+button:active{
+transform:scale(0.98);
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>動画→音声抽出</h1>
+
+<div id="dropArea">
+動画をドラッグ&ドロップ<br>
+またはクリックして選択
+</div>
+
+<input type="file" id="fileInput" accept="video/*" hidden>
+
+<div id="controls">
+
+<video id="video" controls></video>
+
+<button id="extract">音声抽出</button>
+<button id="download">音声ダウンロード</button>
+
+</div>
+
+<script>
+
+const dropArea=document.getElementById("dropArea")
+const fileInput=document.getElementById("fileInput")
+const video=document.getElementById("video")
+
+const extractBtn=document.getElementById("extract")
+const downloadBtn=document.getElementById("download")
+const controls=document.getElementById("controls")
+
+let videoURL=null
+let audioBlob=null
+
+function loadVideo(file){
+
+if(videoURL){
+URL.revokeObjectURL(videoURL)
+}
+
+videoURL=URL.createObjectURL(file)
+video.src=videoURL
+
+video.onloadedmetadata=()=>{
+controls.style.display="flex"
+}
+
+}
+
+/* ---- ここはあなたのコードそのまま ---- */
+
+dropArea.onclick=()=>fileInput.click()
+
+fileInput.onchange=e=>{
+const file=e.target.files[0]
+if(file) loadVideo(file)
+}
+
+dropArea.ondragover=e=>{
+e.preventDefault()
+dropArea.style.background="#eef"
+}
+
+dropArea.ondragleave=e=>{
+dropArea.style.background="white"
+}
+
+dropArea.ondrop=e=>{
+e.preventDefault()
+dropArea.style.background="white"
+
+const file=e.dataTransfer.files[0]
+
+if(file && file.type.startsWith("video")){
+loadVideo(file)
+}
+
+}
+
+/* ---- 音声抽出 ---- */
+
+extractBtn.onclick=async()=>{
+
+const ctx=new AudioContext()
+
+const response=await fetch(video.src)
+const buffer=await response.arrayBuffer()
+
+const audioBuffer=await ctx.decodeAudioData(buffer)
+
+const offline=new OfflineAudioContext(
+audioBuffer.numberOfChannels,
+audioBuffer.length,
+audioBuffer.sampleRate
+)
+
+const source=offline.createBufferSource()
+source.buffer=audioBuffer
+source.connect(offline.destination)
+source.start()
+
+const rendered=await offline.startRendering()
+
+const wav=audioBufferToWav(rendered)
+audioBlob=new Blob([wav],{type:"audio/wav"})
+
+alert("音声抽出完了")
+
+}
+
+/* ---- WAV変換 ---- */
+
+function audioBufferToWav(buffer){
+
+const numOfChan=buffer.numberOfChannels
+const length=buffer.length*2*numOfChan+44
+const bufferArray=new ArrayBuffer(length)
+const view=new DataView(bufferArray)
+
+let offset=0
+
+function writeString(s){
+for(let i=0;i<s.length;i++){
+view.setUint8(offset++,s.charCodeAt(i))
+}
+}
+
+writeString("RIFF")
+view.setUint32(offset,36+buffer.length*2*numOfChan,true);offset+=4
+writeString("WAVE")
+writeString("fmt ")
+view.setUint32(offset,16,true);offset+=4
+view.setUint16(offset,1,true);offset+=2
+view.setUint16(offset,numOfChan,true);offset+=2
+view.setUint32(offset,buffer.sampleRate,true);offset+=4
+view.setUint32(offset,buffer.sampleRate*2*numOfChan,true);offset+=4
+view.setUint16(offset,2*numOfChan,true);offset+=2
+view.setUint16(offset,16,true);offset+=2
+writeString("data")
+view.setUint32(offset,buffer.length*2*numOfChan,true);offset+=4
+
+const channels=[]
+for(let i=0;i<numOfChan;i++){
+channels.push(buffer.getChannelData(i))
+}
+
+let pos=0
+while(pos<buffer.length){
+
+for(let i=0;i<numOfChan;i++){
+
+let sample=Math.max(-1,Math.min(1,channels[i][pos]))
+sample=sample<0?sample*0x8000:sample*0x7FFF
+view.setInt16(offset,sample,true)
+offset+=2
+
+}
+
+pos++
+
+}
+
+return bufferArray
+
+}
+
+/* ---- ダウンロード ---- */
+
+downloadBtn.onclick=()=>{
+
+if(!audioBlob) return
+
+const url=URL.createObjectURL(audioBlob)
+
+const a=document.createElement("a")
+a.href=url
+a.download="audio.wav"
+a.click()
+
+URL.revokeObjectURL(url)
+
+}
+
+</script>
+
+</body>
+</html>
