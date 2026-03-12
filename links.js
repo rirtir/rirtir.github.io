@@ -49,12 +49,12 @@ const data = [
         links: [
             {
                 title: "動画から音声抽出（WAVのみ）",
-                url: "https://rirtir.com/AudioInfo/",
+                url: "https://rirtir.com/Video2Audio_wav/",
                 desc: "動画から音声ファイルを抽出する。高速だがWAVファイルのみ対応。"
             },
             {
                 title: "動画から音声抽出",
-                url: "https://rirtir.com/AudioInfo/",
+                url: "https://rirtir.com/Video2Audio/",
                 desc: "動画から音声ファイルを抽出する。オリジナル、mp3、wavから選べるが初回は40MBほどのダウンロードが入る。"
             },
             {

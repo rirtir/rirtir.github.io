@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Video Audio Extractor</title>
+
+<title>動画→音声抽出ツール</title>
 
 <style>
 
@@ -18,7 +20,7 @@ align-items:center;
 }
 
 h1{
-font-size:22px;
+margin-bottom:20px;
 }
 
 #dropArea{
@@ -44,34 +46,49 @@ flex-direction:column;
 gap:10px;
 }
 
-video{
-width:100%;
-max-height:240px;
-background:black;
+#info{
+background:white;
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc;
+font-size:14px;
 }
 
-button,select{
-padding:12px;
-font-size:16px;
-border:none;
-border-radius:8px;
+select,button{
+padding:10px;
+font-size:15px;
 }
 
 button{
-background:#007bff;
-color:white;
+cursor:pointer;
 }
 
-button:active{
-transform:scale(0.98);
+#popup{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.4);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:10;
+}
+
+#popupContent{
+background:white;
+padding:20px;
+border-radius:10px;
+font-size:16px;
 }
 
 </style>
-</head>
 
+</head>
 <body>
 
-<h1>動画→音声抽出</h1>
+<h1>動画→音声抽出ツール</h1>
 
 <div id="dropArea">
 動画をドラッグ&ドロップ<br>
@@ -82,64 +99,63 @@ transform:scale(0.98);
 
 <div id="controls">
 
-<video id="video" controls></video>
+<div id="info"></div>
 
-<select id="format">
-<option value="copy">オリジナル</option>
+<select id="mode">
+<option value="wav">WAV（高速）</option>
 <option value="mp3">MP3</option>
-<option value="wav">WAV</option>
+<option value="original">オリジナル形式</option>
 </select>
 
-<button id="extract">音声抽出</button>
+<button id="extractBtn">音声抽出</button>
+
+<button id="downloadBtn" style="display:none">
+ダウンロード
+</button>
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+<div id="popup">
+<div id="popupContent">処理中...</div>
+</div>
+
+<script src="https://unpkg.com/lamejs@1.2.0/lame.min.js"></script>
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
 <script>
 
-const {createFFmpeg,fetchFile}=FFmpeg
-
-const ffmpeg=createFFmpeg({
-log:true,
-corePath:"https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js"
-})
-
 const dropArea=document.getElementById("dropArea")
 const fileInput=document.getElementById("fileInput")
-const video=document.getElementById("video")
 const controls=document.getElementById("controls")
+const info=document.getElementById("info")
+const extractBtn=document.getElementById("extractBtn")
+const downloadBtn=document.getElementById("downloadBtn")
+const popup=document.getElementById("popup")
+const modeSelect=document.getElementById("mode")
 
-const formatSelect=document.getElementById("format")
-const extractBtn=document.getElementById("extract")
+let file
+let outputBlob
+let outputExt="audio"
 
-let file=null
-let videoURL=null
+const audioCtx=new AudioContext()
 
-async function loadVideo(f){
+let ffmpeg
+let ffmpegLoaded=false
 
-file=f
-
-if(videoURL){
-URL.revokeObjectURL(videoURL)
+function showPopup(msg){
+popup.style.display="flex"
+popup.firstElementChild.innerText=msg
 }
 
-videoURL=URL.createObjectURL(file)
-video.src=videoURL
-
-video.onloadedmetadata=()=>{
-controls.style.display="flex"
+function hidePopup(){
+popup.style.display="none"
 }
-
-}
-
-/* ---- あなたのコードそのまま ---- */
 
 dropArea.onclick=()=>fileInput.click()
 
 fileInput.onchange=e=>{
 const f=e.target.files[0]
-if(f) loadVideo(f)
+if(f) loadFile(f)
 }
 
 dropArea.ondragover=e=>{
@@ -158,70 +174,257 @@ dropArea.style.background="white"
 const f=e.dataTransfer.files[0]
 
 if(f && f.type.startsWith("video")){
-loadVideo(f)
+loadFile(f)
 }
 
 }
 
-/* ---- 音声抽出 ---- */
+async function loadFile(f){
+
+file=f
+
+const url=URL.createObjectURL(f)
+
+const video=document.createElement("video")
+
+video.src=url
+
+await video.play().catch(()=>{})
+video.pause()
+
+info.innerHTML=`
+ファイル名: ${f.name}<br>
+サイズ: ${(f.size/1024/1024).toFixed(2)} MB<br>
+長さ: ${video.duration.toFixed(2)} 秒
+`
+
+controls.style.display="flex"
+
+}
 
 extractBtn.onclick=async()=>{
 
-if(!file) return
+downloadBtn.style.display="none"
 
-if(!ffmpeg.isLoaded()){
-await ffmpeg.load()
+const mode=modeSelect.value
+
+if(mode==="wav"){
+await extractWav()
 }
 
+if(mode==="mp3"){
+await extractMp3()
+}
+
+if(mode==="original"){
+await extractOriginal()
+}
+
+downloadBtn.style.display="block"
+
+}
+
+async function decodeAudio(){
+
+showPopup("音声デコード中...")
+
+const buffer=await file.arrayBuffer()
+const audioBuffer=await audioCtx.decodeAudioData(buffer)
+
+hidePopup()
+
+return audioBuffer
+
+}
+
+function encodeWav(audioBuffer){
+
+const numCh=audioBuffer.numberOfChannels
+const sampleRate=audioBuffer.sampleRate
+const length=audioBuffer.length
+
+const buffer=new ArrayBuffer(44+length*2*numCh)
+const view=new DataView(buffer)
+
+function writeString(o,s){
+for(let i=0;i<s.length;i++){
+view.setUint8(o+i,s.charCodeAt(i))
+}
+}
+
+writeString(0,"RIFF")
+view.setUint32(4,36+length*2*numCh,true)
+writeString(8,"WAVE")
+
+writeString(12,"fmt ")
+view.setUint32(16,16,true)
+view.setUint16(20,1,true)
+view.setUint16(22,numCh,true)
+view.setUint32(24,sampleRate,true)
+view.setUint32(28,sampleRate*numCh*2,true)
+view.setUint16(32,numCh*2,true)
+view.setUint16(34,16,true)
+
+writeString(36,"data")
+view.setUint32(40,length*numCh*2,true)
+
+let offset=44
+
+for(let i=0;i<length;i++){
+for(let ch=0;ch<numCh;ch++){
+
+let sample=audioBuffer.getChannelData(ch)[i]
+sample=Math.max(-1,Math.min(1,sample))
+view.setInt16(offset,sample*0x7fff,true)
+offset+=2
+
+}
+}
+
+outputExt="wav"
+
+return new Blob([buffer],{type:"audio/wav"})
+
+}
+
+async function extractWav(){
+
+const audioBuffer=await decodeAudio()
+
+showPopup("WAV生成中...")
+
+outputBlob=encodeWav(audioBuffer)
+
+hidePopup()
+
+}
+
+async function extractMp3(){
+
+const audioBuffer=await decodeAudio()
+
+showPopup("MP3エンコード中...")
+
+const channels=audioBuffer.numberOfChannels
+
+const mp3encoder=new lamejs.Mp3Encoder(
+channels,
+audioBuffer.sampleRate,
+128
+)
+
+const block=1152
+let mp3Data=[]
+
+if(channels===1){
+
+const samples=audioBuffer.getChannelData(0)
+
+for(let i=0;i<samples.length;i+=block){
+
+const slice=samples.subarray(i,i+block)
+
+const mp3buf=mp3encoder.encodeBuffer(slice)
+
+if(mp3buf.length>0) mp3Data.push(new Int8Array(mp3buf))
+
+}
+
+}else{
+
+const left=audioBuffer.getChannelData(0)
+const right=audioBuffer.getChannelData(1)
+
+for(let i=0;i<left.length;i+=block){
+
+const leftSlice=left.subarray(i,i+block)
+const rightSlice=right.subarray(i,i+block)
+
+const mp3buf=mp3encoder.encodeBuffer(leftSlice,rightSlice)
+
+if(mp3buf.length>0) mp3Data.push(new Int8Array(mp3buf))
+
+}
+
+}
+
+const end=mp3encoder.flush()
+if(end.length>0) mp3Data.push(new Int8Array(end))
+
+outputExt="mp3"
+outputBlob=new Blob(mp3Data,{type:"audio/mp3"})
+
+hidePopup()
+
+}
+
+async function loadFFmpeg(){
+
+if(ffmpegLoaded) return
+
+const { createFFmpeg, fetchFile } = FFmpeg
+
+ffmpeg=createFFmpeg({
+log:false,
+corePath:"https://unpkg.com/@ffmpeg/core@0.11.6/dist/ffmpeg-core.js"
+})
+
+showPopup("FFmpegロード中（初回のみ）...")
+
+await ffmpeg.load()
+
+ffmpegLoaded=true
+
+hidePopup()
+
+}
+
+function codecToExt(codec){
+
+if(codec.includes("aac")) return "m4a"
+if(codec.includes("mp3")) return "mp3"
+if(codec.includes("opus")) return "opus"
+if(codec.includes("vorbis")) return "ogg"
+
+return "m4a"
+
+}
+
+async function extractOriginal(){
+
+await loadFFmpeg()
+
+showPopup("音声抽出中...")
+
+const { fetchFile } = FFmpeg
+
 ffmpeg.FS("writeFile","input",await fetchFile(file))
-
-const format=formatSelect.value
-
-let output="audio"
-
-if(format==="copy"){
-
-output+=".m4a"
 
 await ffmpeg.run(
 "-i","input",
 "-vn",
 "-acodec","copy",
-output
+"output.m4a"
 )
 
-}else if(format==="mp3"){
+const data=ffmpeg.FS("readFile","output.m4a")
 
-output+=".mp3"
+outputExt="m4a"
+outputBlob=new Blob([data.buffer])
 
-await ffmpeg.run(
-"-i","input",
-"-vn",
-"-acodec","libmp3lame",
-output
-)
-
-}else{
-
-output+=".wav"
-
-await ffmpeg.run(
-"-i","input",
-"-vn",
-output
-)
+hidePopup()
 
 }
 
-const data=ffmpeg.FS("readFile",output)
+downloadBtn.onclick=()=>{
 
-const url=URL.createObjectURL(
-new Blob([data.buffer])
-)
+const url=URL.createObjectURL(outputBlob)
 
 const a=document.createElement("a")
+
 a.href=url
-a.download=output
+a.download="audio."+outputExt
+
 a.click()
 
 URL.revokeObjectURL(url)
