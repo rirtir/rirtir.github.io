@@ -1,0 +1,30 @@
+body{
+padding:20px;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+#controls{
+width:100%;
+max-width:500px;
+display:none;
+flex-direction:column;
+gap:10px;
+}
+
+#info{
+background:white;
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc;
+font-size:14px;
+}
+
+canvas{
+width:100%;
+max-width:500px;
+margin-top:10px;
+border:1px solid #ccc;
+background:white;
+}

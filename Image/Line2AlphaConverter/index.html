@@ -6,16 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Line Alpha Tool</title>
 
+<link rel="stylesheet" href="./../../css/common-style.css">
 <style>
 
-body{
-font-family:sans-serif;
-margin:0;
-background:#f0f0f0;
-}
-
-h2{
-margin:10px 0;
+h1{
+font-size:22px;
 }
 
 .container{
@@ -63,15 +58,9 @@ background-position:0 0,0 10px,10px -10px,-10px 0px;
 }
 
 /* ドロップ領域 */
-
-#drop{
-
-border:2px dashed #888;
-padding:20px;
-text-align:center;
-background:white;
-cursor:pointer;
-
+#dropArea{
+max-width:none;
+height: 100px;
 }
 
 /* ヒストグラム */
@@ -126,9 +115,9 @@ max-height:none;
 
 <div class="controls">
 
-<h2>Line → Alpha Tool</h2>
+<h1>Line → Alpha Tool</h1>
 
-<div id="drop">
+<div id="dropArea">
 Drag & Drop Image<br>
 or Click to Select
 <input type="file" id="fileInput" accept="image/*" style="display:none">
@@ -195,7 +184,7 @@ const ctx=canvas.getContext("2d")
 const histCanvas=document.getElementById("histCanvas")
 const histCtx=histCanvas.getContext("2d")
 
-const drop=document.getElementById("drop")
+const drop=document.getElementById("dropArea")
 const fileInput=document.getElementById("fileInput")
 
 function clamp(x,a,b){
@@ -231,7 +220,7 @@ drop.addEventListener("dragover",e=>{
 e.preventDefault()
 })
 
-drop.addEventListener("drop",e=>{
+drop.addEventListener("dropArea",e=>{
 
 e.preventDefault()
 
