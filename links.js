@@ -73,6 +73,31 @@ const data = [
                 desc: "音声から文字起こしをする。調整中"
             }
         ]
+    },
+    {
+        category: "Utility",
+        links: [
+            {
+                title: "CSS重複削除ツール",
+                url: "https://rirtir.com/Utility/CSSDiffRemovalTool/",
+                desc: "【個人用】CSSの被りをなくすためのツール。"
+            },
+            {
+                title: "jsonlをグラフ化",
+                url: "https://rirtir.com/Utility/CSSDiffRemovalTool/",
+                desc: "【超個人用】jsonlの学習結果をグラフに起こすだけのツール。"
+            }
+        ]
+    },
+    {
+        category: "Links",
+        links: [
+            {
+                title: "GitHub",
+                url: "https://github.com/rirtir/rirtir.github.io",
+                desc: "このページのリポジトリ"
+            }
+        ]
     }
 ]
 
