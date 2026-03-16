@@ -46,6 +46,16 @@ const data = [
                 title: "動画から画像抽出",
                 url: "https://rirtir.com/Image/Video2Image/",
                 desc: "動画から任意のフレームを抜き出す。"
+            },
+            {
+                title: "画像連番から動画作成",
+                url: "https://rirtir.com/Image/Image2Video/",
+                desc: "画像を複数入力して動画を作成（調整中）"
+            },
+            {
+                title: "画像からカラーパレット抽出",
+                url: "https://rirtir.com/Image/CreateColorPalette/",
+                desc: "画像から主要な色を抽出（調整中）"
             }
         ]
     },
