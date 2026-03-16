@@ -94,7 +94,7 @@ const data = [
             },
             {
                 title: "jsonlをグラフ化",
-                url: "https://rirtir.com/Utility/CSSDiffRemovalTool/",
+                url: "https://rirtir.com/Utility/jsonl2graph/",
                 desc: "【超個人用】jsonlの学習結果をグラフに起こすだけのツール。"
             }
         ]
