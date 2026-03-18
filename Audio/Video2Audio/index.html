@@ -349,10 +349,11 @@ await loadFFmpeg()
 
 showPopup("音声抽出中...")
 
-// Write file directly (no fetchFile needed)
-await ffmpeg.writeFile("input", file)
+// Convert File → Uint8Array
+const data = new Uint8Array(await file.arrayBuffer())
+await ffmpeg.writeFile("input", data)
 
-// Extract audio without re-encoding
+// Extract audio
 await ffmpeg.exec([
   "-i","input",
   "-vn",
@@ -360,10 +361,10 @@ await ffmpeg.exec([
   "output.m4a"
 ])
 
-const data = await ffmpeg.readFile("output.m4a")
+const out = await ffmpeg.readFile("output.m4a")
 
 outputExt = "m4a"
-outputBlob = new Blob([data.buffer])
+outputBlob = new Blob([out.buffer])
 
 hidePopup()
 
