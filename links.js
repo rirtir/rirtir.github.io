@@ -106,6 +106,11 @@ const data = [
                 title: "GitHub",
                 url: "https://github.com/rirtir/rirtir.github.io",
                 desc: "このページのリポジトリ"
+            },
+            {
+                title: "デバッグ",
+                url: "https://rirtir.com/template/ffmpegTest.html",
+                desc: ""
             }
         ]
     }
