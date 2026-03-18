@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ffmpeg test</title>
+</head>
+<body>
+
+<button id="runBtn">run</button>
+
+<script type="module">
+import { createFFmpeg } from "https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js";
+
+const ffmpeg = createFFmpeg({
+  log: true,
+  corePath: new URL("./ffmpeg/ffmpeg-core.js", import.meta.url).toString()
+});
+
+document.getElementById("runBtn").onclick = async () => {
+  try {
+    console.log("loading...");
+    await ffmpeg.load();
+    console.log("loaded");
+
+    await ffmpeg.exec(["-version"]);
+
+    console.log("ffmpeg works!");
+  } catch (e) {
+    console.error("ERROR:", e);
+  }
+};
+</script>
+
+</body>
+</html>
