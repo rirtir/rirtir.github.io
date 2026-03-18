@@ -11,7 +11,9 @@
 <script type="module">
 import { FFmpeg } from "https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js";
 
-const ffmpeg = new FFmpeg();
+const ffmpeg = new FFmpeg({
+  workerURL: new URL("./../../ffmpeg/worker.js", import.meta.url).toString() // ← ここに書く
+});
 
 document.getElementById("runBtn").onclick = async () => {
   try {
@@ -19,8 +21,7 @@ document.getElementById("runBtn").onclick = async () => {
 
     await ffmpeg.load({
       coreURL: new URL("./../../ffmpeg/ffmpeg-core.js", import.meta.url).toString(),
-      wasmURL: new URL("./../../ffmpeg/ffmpeg-core.wasm", import.meta.url).toString(),
-      workerURL: new URL("./../../ffmpeg/worker.js", import.meta.url).toString()
+      wasmURL: new URL("./../../ffmpeg/ffmpeg-core.wasm", import.meta.url).toString()
     });
 
     console.log("loaded");
