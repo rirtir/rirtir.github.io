@@ -1,19 +1,7 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>ffmpeg test</title>
-</head>
-<body>
-
-<button id="runBtn">run</button>
-
 <script type="module">
-import { FFmpeg } from "https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js";
+import { FFmpeg } from "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js";
 
-const ffmpeg = new FFmpeg({
-  workerURL: new URL("./../../ffmpeg/worker.js", import.meta.url).toString() // ← ここに書く
-});
+const ffmpeg = new FFmpeg();
 
 document.getElementById("runBtn").onclick = async () => {
   try {
@@ -21,7 +9,8 @@ document.getElementById("runBtn").onclick = async () => {
 
     await ffmpeg.load({
       coreURL: new URL("./../../ffmpeg/ffmpeg-core.js", import.meta.url).toString(),
-      wasmURL: new URL("./../../ffmpeg/ffmpeg-core.wasm", import.meta.url).toString()
+      wasmURL: new URL("./../../ffmpeg/ffmpeg-core.wasm", import.meta.url).toString(),
+      classWorkerURL: new URL("./../../ffmpeg/worker.js", import.meta.url).toString() // ← これ
     });
 
     console.log("loaded");
@@ -34,6 +23,3 @@ document.getElementById("runBtn").onclick = async () => {
   }
 };
 </script>
-
-</body>
-</html>
