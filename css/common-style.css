@@ -71,7 +71,12 @@ justify-content:center;
 text-align:center;
 background:white;
 cursor:pointer;
-margin-bottom:15px;
+margin:0 auto 15px auto; /* ←これが重要 */
+}
+
+#dropArea.dragover{
+  background: #eef;
+  border-color: #66a;
 }
 
 

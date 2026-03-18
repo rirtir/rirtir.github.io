@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resizable Test</title>
+
+<style>
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#f0f0f0;
+  font-family:sans-serif;
+}
+
+.box{
+  width:200px;
+  height:150px;
+  background:#4CAF50;
+  position:relative;
+  border-radius:8px;
+  overflow:hidden;
+}
+
+/* リサイズハンドル */
+.resizer{
+  width:20px;
+  height:20px;
+  background:#333;
+  position:absolute;
+  right:0;
+  bottom:0;
+  cursor:se-resize;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box" id="box">
+  <div class="resizer" id="resizer"></div>
+</div>
+
+<script>
+const box = document.getElementById("box");
+const resizer = document.getElementById("resizer");
+
+let isResizing = false;
+let startX, startY, startWidth, startHeight;
+
+// マウス押下
+resizer.addEventListener("mousedown", startResize);
+// タッチ押下
+resizer.addEventListener("touchstart", startResize);
+
+function startResize(e){
+  e.preventDefault();
+
+  isResizing = true;
+
+  const event = e.touches ? e.touches[0] : e;
+
+  startX = event.clientX;
+  startY = event.clientY;
+
+  startWidth = box.offsetWidth;
+  startHeight = box.offsetHeight;
+
+  document.addEventListener("mousemove", resize);
+  document.addEventListener("mouseup", stopResize);
+
+  document.addEventListener("touchmove", resize);
+  document.addEventListener("touchend", stopResize);
+}
+
+function resize(e){
+  if(!isResizing) return;
+
+  const event = e.touches ? e.touches[0] : e;
+
+  const dx = event.clientX - startX;
+  const dy = event.clientY - startY;
+
+  box.style.width = (startWidth + dx) + "px";
+  box.style.height = (startHeight + dy) + "px";
+}
+
+function stopResize(){
+  isResizing = false;
+
+  document.removeEventListener("mousemove", resize);
+  document.removeEventListener("mouseup", stopResize);
+
+  document.removeEventListener("touchmove", resize);
+  document.removeEventListener("touchend", stopResize);
+}
+</script>
+
+</body>
+</html>
