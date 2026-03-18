@@ -18,9 +18,9 @@ document.getElementById("runBtn").onclick = async () => {
     console.log("loading...");
 
     await ffmpeg.load({
-      coreURL: new URL("./../../ffmpeg/ffmpeg-core.js", import.meta.url).toString(),
-      wasmURL: new URL("./../../ffmpeg/ffmpeg-core.wasm", import.meta.url).toString(),
-      classWorkerURL: new URL("./../../ffmpeg/worker.js", import.meta.url).toString()
+      coreURL: new URL("/ffmpeg/ffmpeg-core.js", import.meta.url).toString(),
+      wasmURL: new URL("/ffmpeg/ffmpeg-core.wasm", import.meta.url).toString(),
+      classWorkerURL: new URL("/ffmpeg/worker.js", import.meta.url).toString()
     });
 
     console.log("loaded");

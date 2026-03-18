@@ -73,9 +73,10 @@ font-size:16px;
 
 <script src="https://unpkg.com/lamejs@1.2.0/lame.min.js"></script>
 <!-- <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script> -->
-<script src="./../../ffmpeg/ffmpeg.min.js"></script>
+<!-- <script src="./../../ffmpeg/ffmpeg.min.js"></script> -->
 
-<script>
+<script type="module">
+import { FFmpeg } from "./../../ffmpeg/index.js";
 
 const dropArea=document.getElementById("dropArea")
 const fileInput=document.getElementById("fileInput")
@@ -93,7 +94,7 @@ let outputExt="audio"
 const audioCtx=new AudioContext()
 
 let ffmpeg
-let ffmpegLoaded=false
+let ffmpegLoaded = false
 
 function showPopup(msg){
 popup.style.display="flex"
@@ -315,19 +316,17 @@ async function loadFFmpeg(){
 
 if(ffmpegLoaded) return
 
-const { createFFmpeg, fetchFile } = FFmpeg
-
-ffmpeg=createFFmpeg({
-  log:false,
-  corePath: "./../../ffmpeg/ffmpeg-core.js",
-  coreURL: "./../../ffmpeg/ffmpeg-core.js"
-})
+ffmpeg = new FFmpeg()
 
 showPopup("FFmpegロード中（初回のみ）...")
 
-await ffmpeg.load()
+await ffmpeg.load({
+  coreURL: new URL("./../../ffmpeg/ffmpeg-core.js", import.meta.url).toString(),
+  wasmURL: new URL("./../../ffmpeg/ffmpeg-core.wasm", import.meta.url).toString(),
+  classWorkerURL: new URL("./../../ffmpeg/worker.js", import.meta.url).toString()
+})
 
-ffmpegLoaded=true
+ffmpegLoaded = true
 
 hidePopup()
 
@@ -350,21 +349,21 @@ await loadFFmpeg()
 
 showPopup("音声抽出中...")
 
-const { fetchFile } = FFmpeg
+// Write file directly (no fetchFile needed)
+await ffmpeg.writeFile("input", file)
 
-ffmpeg.FS("writeFile","input",await fetchFile(file))
+// Extract audio without re-encoding
+await ffmpeg.exec([
+  "-i","input",
+  "-vn",
+  "-acodec","copy",
+  "output.m4a"
+])
 
-await ffmpeg.run(
-"-i","input",
-"-vn",
-"-acodec","copy",
-"output.m4a"
-)
+const data = await ffmpeg.readFile("output.m4a")
 
-const data=ffmpeg.FS("readFile","output.m4a")
-
-outputExt="m4a"
-outputBlob=new Blob([data.buffer])
+outputExt = "m4a"
+outputBlob = new Blob([data.buffer])
 
 hidePopup()
 
