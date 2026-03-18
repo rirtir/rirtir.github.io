@@ -9,7 +9,7 @@
 <button id="runBtn">run</button>
 
 <script type="module">
-import { FFmpeg } from "https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js";
+import { FFmpeg } from "/ffmpeg/index.js";
 
 const ffmpeg = new FFmpeg();
 
@@ -20,7 +20,7 @@ document.getElementById("runBtn").onclick = async () => {
     await ffmpeg.load({
       coreURL: new URL("./../../ffmpeg/ffmpeg-core.js", import.meta.url).toString(),
       wasmURL: new URL("./../../ffmpeg/ffmpeg-core.wasm", import.meta.url).toString(),
-      classWorkerURL: new URL("./../../ffmpeg/worker.js", import.meta.url).toString() // ← これ
+      classWorkerURL: new URL("./../../ffmpeg/worker.js", import.meta.url).toString()
     });
 
     console.log("loaded");
