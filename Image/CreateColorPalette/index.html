@@ -82,19 +82,14 @@ let imgData=null
 
 dropArea.onclick=()=>file.click()
 
-dropArea.ondragover=e=>{
-e.preventDefault()
-dropArea.style.background="#eee"
-}
-dropArea.ondragleave=()=>dropArea.style.background="white"
+dropArea.ondragover=e=>e.preventDefault()
 
 dropArea.ondrop=e=>{
 e.preventDefault()
-dropArea.style.background="white"
 load(e.dataTransfer.files[0])
 }
 
-file.onchange=()=>load(file.files[0])
+file.onchange=e=>load(e.target.files[0])
 
 slider.oninput=()=>{
 label.textContent=slider.value
