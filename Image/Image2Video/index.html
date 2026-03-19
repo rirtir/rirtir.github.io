@@ -1,68 +1,131 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Image → Movie</title>
+
+<title>画像→動画生成ツール</title>
 
 <link rel="stylesheet" href="./../../css/common-style.css">
 <link rel="stylesheet" href="./../../css/common-style2.css">
 <style>
-video{
-width:100%;
-max-height:240px;
-background:black;
-}
 
-#slider{
-width:100%;
-}
-
-.frameButtons{
+#imageList{
 display:flex;
+flex-wrap:wrap;
 gap:10px;
+margin-bottom:15px;
+}
+
+.imageItem{
+width:100px;
+border:1px solid #ccc;
+background:white;
+padding:5px;
+cursor:grab;
+}
+
+.imageItem img{
+width:100%;
+height:80px;
+object-fit:cover;
+}
+
+select{
+padding:10px;
+font-size:14px;
+}
+
+#popup{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.4);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:10;
+}
+
+#popupContent{
+background:white;
+padding:20px;
+border-radius:10px;
 }
 
 </style>
-</head>
 
+</head>
 <body>
 
-<h2>画像 → 動画</h2>
+<h1>画像→動画生成ツール</h1>
 
 <div id="dropArea">
-ドラッグ&ドロップ<br>
-またはクリック
+画像をドラッグ&ドロップ<br>
+またはクリックして選択
 </div>
 
-<input type="file" id="fileInput" multiple hidden accept="image/png">
+<input type="file" id="fileInput" accept="image/*" multiple hidden>
 
-<br>
+<div class="controls">
+<select id="sortMode">
+<option value="name">名前順</option>
+<option value="time">作成順</option>
+</select>
 
-FPS
-<input type="range" id="fps" min="1" max="60" value="15">
-<span id="fpsValue">15</span>
+<label>FPS:
+<input type="range" id="fps" min="1" max="60" value="12">
+<span id="fpsVal">12</span>
+</label>
 
-<br><br>
+<button id="generateBtn">動画生成</button>
+<button id="downloadBtn" style="display:none">ダウンロード</button>
+</div>
 
-<button id="create">動画生成</button>
+<div id="imageList"></div>
 
+<div id="popup">
+<div id="popupContent">処理中...</div>
+</div>
 
-<script src="https://unpkg.com/lamejs@1.2.0/lame.min.js"></script>
-<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
-
-
-<script>
+<script type="module">
+import { FFmpeg } from "./../../ffmpeg/index.js";
 
 const dropArea=document.getElementById("dropArea")
 const fileInput=document.getElementById("fileInput")
+const imageList=document.getElementById("imageList")
+const sortMode=document.getElementById("sortMode")
+const fpsSlider=document.getElementById("fps")
+const fpsVal=document.getElementById("fpsVal")
+const generateBtn=document.getElementById("generateBtn")
+const downloadBtn=document.getElementById("downloadBtn")
+const popup=document.getElementById("popup")
 
-let files=[]
+let images=[]
+let ffmpeg
+let ffmpegLoaded=false
+let outputBlob=null
+
+function showPopup(msg){
+popup.style.display="flex"
+popup.firstElementChild.innerText=msg
+}
+
+function hidePopup(){
+popup.style.display="none"
+}
+
+fpsSlider.oninput=()=>{
+fpsVal.innerText=fpsSlider.value
+}
 
 dropArea.onclick=()=>fileInput.click()
 
 fileInput.onchange=e=>{
-files=Array.from(e.target.files)
+addFiles(e.target.files)
 }
 
 dropArea.ondragover=e=>{
@@ -70,70 +133,146 @@ e.preventDefault()
 dropArea.style.background="#eef"
 }
 
-dropArea.ondragleave=e=>{
-dropArea.style.background="white"
-}
-
 dropArea.ondrop=e=>{
-
 e.preventDefault()
 dropArea.style.background="white"
+addFiles(e.dataTransfer.files)
+}
 
-files=Array.from(e.dataTransfer.files)
+function addFiles(files){
+for(const f of files){
+if(f.type.startsWith("image")){
+images.push({
+file:f,
+name:f.name,
+time:f.lastModified
+})
+}
+}
+sortImages()
+render()
+}
+
+function sortImages(){
+if(sortMode.value==="name"){
+images.sort((a,b)=>a.name.localeCompare(b.name))
+}else{
+images.sort((a,b)=>a.time-b.time)
+}
+}
+
+sortMode.onchange=()=>{
+sortImages()
+render()
+}
+
+function render(){
+imageList.innerHTML=""
+
+images.forEach((imgData,index)=>{
+
+const div=document.createElement("div")
+div.className="imageItem"
+div.draggable=true
+
+const url=URL.createObjectURL(imgData.file)
+
+div.innerHTML=`<img src="${url}"><div>${imgData.name}</div>`
+
+// drag
+div.ondragstart=e=>{
+e.dataTransfer.setData("index",index)
+}
+
+div.ondragover=e=>e.preventDefault()
+
+div.ondrop=e=>{
+const from=e.dataTransfer.getData("index")
+const to=index
+
+const temp=images[from]
+images.splice(from,1)
+images.splice(to,0,temp)
+
+render()
+}
+
+imageList.appendChild(div)
+
+})
 
 }
 
-const fpsSlider=document.getElementById("fps")
-const fpsValue=document.getElementById("fpsValue")
+async function loadFFmpeg(){
 
-fpsSlider.oninput=()=>{
-fpsValue.textContent=fpsSlider.value
-}
+if(ffmpegLoaded) return
 
-document.getElementById("create").onclick=async()=>{
+ffmpeg=new FFmpeg()
 
-if(files.length===0){
-alert("画像がありません")
-return
-}
+showPopup("FFmpegロード中...")
 
-const { createFFmpeg, fetchFile } = FFmpeg
+await ffmpeg.load({
+coreURL:new URL("./../../ffmpeg/ffmpeg-core.js", import.meta.url).toString(),
+wasmURL:new URL("./../../ffmpeg/ffmpeg-core.wasm", import.meta.url).toString(),
+classWorkerURL:new URL("./../../ffmpeg/worker.js", import.meta.url).toString()
+})
 
-const ffmpeg=createFFmpeg({log:true})
+ffmpegLoaded=true
 
-await ffmpeg.load()
-
-// 画像を書き込む
-for(let i=0;i<files.length;i++){
-
-const name=`img${i}.png`
-
-ffmpeg.FS("writeFile",name,await fetchFile(files[i]))
+hidePopup()
 
 }
 
-// ffmpeg 実行
-const fps=fpsSlider.value
+generateBtn.onclick=async()=>{
 
-await ffmpeg.run(
-"-framerate",fps,
-"-i","img%d.png",
-"-c:v","libx264",
+if(images.length===0) return
+
+await loadFFmpeg()
+
+showPopup("動画生成中...")
+
+// write images
+for(let i=0;i<images.length;i++){
+const data=new Uint8Array(await images[i].file.arrayBuffer())
+await ffmpeg.writeFile(`img${i}.png`,data)
+}
+
+// create list file
+let list=""
+for(let i=0;i<images.length;i++){
+list+=`file 'img${i}.png'\n`
+list+=`duration ${1/parseInt(fpsSlider.value)}\n`
+}
+list+=`file 'img${images.length-1}.png'\n`
+
+await ffmpeg.writeFile("list.txt",new TextEncoder().encode(list))
+
+await ffmpeg.exec([
+"-f","concat",
+"-safe","0",
+"-i","list.txt",
+"-vsync","vfr",
 "-pix_fmt","yuv420p",
-"output.mp4"
-)
+"out.mp4"
+])
 
-const data=ffmpeg.FS("readFile","output.mp4")
+const data=await ffmpeg.readFile("out.mp4")
 
-const videoBlob=new Blob([data.buffer],{type:"video/mp4"})
+outputBlob=new Blob([data.buffer],{type:"video/mp4"})
 
-const url=URL.createObjectURL(videoBlob)
+hidePopup()
 
+downloadBtn.style.display="inline-block"
+
+}
+
+downloadBtn.onclick=()=>{
+const url=URL.createObjectURL(outputBlob)
 const a=document.createElement("a")
 a.href=url
 a.download="output.mp4"
 a.click()
-
+URL.revokeObjectURL(url)
 }
 
 </script>

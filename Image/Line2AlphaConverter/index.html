@@ -184,7 +184,7 @@ const ctx=canvas.getContext("2d")
 const histCanvas=document.getElementById("histCanvas")
 const histCtx=histCanvas.getContext("2d")
 
-const drop=document.getElementById("dropArea")
+const dropArea=document.getElementById("dropArea")
 const fileInput=document.getElementById("fileInput")
 
 function clamp(x,a,b){
@@ -208,7 +208,7 @@ b:parseInt(hex.substr(5,2),16)
 
 }
 
-drop.onclick=()=>{
+dropArea.onclick=()=>{
 fileInput.click()
 }
 
@@ -216,11 +216,11 @@ fileInput.onchange=e=>{
 loadFile(e.target.files[0])
 }
 
-drop.addEventListener("dragover",e=>{
+dropArea.addEventListener("dragover",e=>{
 e.preventDefault()
 })
 
-drop.addEventListener("dropArea",e=>{
+dropArea.addEventListener("drop",e=>{
 
 e.preventDefault()
 

@@ -439,16 +439,16 @@ img.src=URL.createObjectURL(file)
 
 }
 
-const drop=document.getElementById("dropArea")
+const dropArea=document.getElementById("dropArea")
 const fileInput=document.getElementById("fileInput")
 
-drop.onclick=()=>fileInput.click()
+dropArea.onclick=()=>fileInput.click()
 
 fileInput.onchange=e=>load(e.target.files[0])
 
-drop.ondragover=e=>e.preventDefault()
+dropArea.ondragover=e=>e.preventDefault()
 
-drop.ondrop=e=>{
+dropArea.ondrop=e=>{
 e.preventDefault()
 load(e.dataTransfer.files[0])
 }
