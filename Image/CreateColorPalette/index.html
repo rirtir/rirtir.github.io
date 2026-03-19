@@ -245,16 +245,23 @@ palette.forEach(c=>{
 let d=(img.data[i]-c[0])**2+(img.data[i+1]-c[1])**2+(img.data[i+2]-c[2])**2
 if(d<dist){dist=d;best=c}
 })
-img.data[i]=best[0]
-img.data[i+1]=best[1]
-img.data[i+2]=best[2]
+img.data[i]=clamp(best[0])
+img.data[i+1]=clamp(best[1])
+img.data[i+2]=clamp(best[2])
 }
 
 pctx.putImageData(img,0,0)
 }
 
+function clamp(v){
+return Math.max(0,Math.min(255,Math.round(v)))
+}
+
 function rgbToHex(c){
-return "#"+((1<<24)+(c[0]<<16)+(c[1]<<8)+c[2]).toString(16).slice(1)
+const r=clamp(c[0])
+const g=clamp(c[1])
+const b=clamp(c[2])
+return "#"+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1)
 }
 
 document.getElementById("download").onclick=()=>{
