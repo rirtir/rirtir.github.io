@@ -50,7 +50,7 @@ const data = [
             {
                 title: "画像連番から動画作成",
                 url: "https://rirtir.com/Image/Image2Video/",
-                desc: "画像を複数入力して動画を作成（調整中）"
+                desc: "画像を複数入力して動画を作成"
             },
             {
                 title: "画像からカラーパレット抽出",
@@ -106,11 +106,6 @@ const data = [
                 title: "GitHub",
                 url: "https://github.com/rirtir/rirtir.github.io",
                 desc: "このページのリポジトリ"
-            },
-            {
-                title: "デバッグ",
-                url: "https://rirtir.com/template/ffmpegTest.html",
-                desc: ""
             }
         ]
     }

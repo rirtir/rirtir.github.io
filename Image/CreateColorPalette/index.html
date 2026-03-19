@@ -1,155 +1,273 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-
 <title>カラーパレット抽出</title>
 
 <link rel="stylesheet" href="./../../css/common-style.css">
 <link rel="stylesheet" href="./../../css/common-style2.css">
 <style>
-.palette{
-display:flex;
-flex-wrap:wrap;
-justify-content:center;
-gap:10px;
-}
-
-.color{
-width:80px;
-height:80px;
-border-radius:8px;
-border:1px solid #0002;
-display:flex;
-align-items:flex-end;
-justify-content:center;
-font-size:12px;
-color:black;
+canvas{
+width:100%;
+max-width:500px;
+margin-top:10px;
+border:1px solid #ccc;
 background:white;
 }
 
+.palette{
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+justify-content:center;
+margin-top:10px;
+}
+
+.color{
+width:70px;
+height:70px;
+border-radius:6px;
+display:flex;
+align-items:flex-end;
+justify-content:center;
+font-size:11px;
+cursor:pointer;
+border:1px solid #0002;
+}
 </style>
 </head>
 
 <body>
 
-<h1>画像 → カラーパレット抽出</h1>
+<h1>カラーパレット抽出（完全版）</h1>
 
-<div id="dropArea">
-ドラッグ&ドロップ<br>
-またはクリックして選択
-</div>
-
+<div id="dropArea">ドラッグ or クリック</div>
 <input type="file" id="file" accept="image/*" hidden>
 
+<div class="controls">
+<label>色数
+<input type="range" id="colorCount" min="2" max="32" value="8">
+<span id="countLabel">8</span>
+</label>
+
+<select id="method">
+<option value="rgb">RGB量子化</option>
+<option value="median">MedianCut</option>
+<option value="kmeans">K-means</option>
+</select>
+
+<button id="download">PNGダウンロード</button>
+</div>
+
 <canvas id="canvas"></canvas>
+<canvas id="preview"></canvas>
 
 <div class="palette" id="palette"></div>
 
 <script>
-
-const drop=document.getElementById("dropArea")
-const fileInput=document.getElementById("file")
+const dropArea=document.getElementById("dropArea")
+const file=document.getElementById("file")
 const canvas=document.getElementById("canvas")
 const ctx=canvas.getContext("2d")
+const preview=document.getElementById("preview")
+const pctx=preview.getContext("2d")
 const paletteDiv=document.getElementById("palette")
 
-drop.onclick=()=>fileInput.click()
+const slider=document.getElementById("colorCount")
+const label=document.getElementById("countLabel")
+const methodSelect=document.getElementById("method")
 
-drop.ondragover=e=>{
+let imgData=null
+
+dropArea.onclick=()=>file.click()
+
+dropArea.ondragover=e=>{
 e.preventDefault()
-drop.style.background="#eee"
+dropArea.style.background="#eee"
 }
+dropArea.ondragleave=()=>dropArea.style.background="white"
 
-drop.ondragleave=e=>{
-drop.style.background="white"
-}
-
-drop.ondrop=e=>{
+dropArea.ondrop=e=>{
 e.preventDefault()
-drop.style.background="white"
-loadFile(e.dataTransfer.files[0])
+dropArea.style.background="white"
+load(e.dataTransfer.files[0])
 }
 
-fileInput.onchange=()=>{
-loadFile(fileInput.files[0])
+file.onchange=()=>load(file.files[0])
+
+slider.oninput=()=>{
+label.textContent=slider.value
+process()
 }
 
-function loadFile(file){
+methodSelect.onchange=process
 
+function load(f){
 const img=new Image()
-
 img.onload=()=>{
-
 const max=300
 let w=img.width
 let h=img.height
-
-if(w>max){
-h=h*(max/w)
-w=max
-}
+if(w>max){h*=max/w;w=max}
 
 canvas.width=w
 canvas.height=h
+preview.width=w
+preview.height=h
 
 ctx.drawImage(img,0,0,w,h)
-
-extract()
-
+imgData=ctx.getImageData(0,0,w,h)
+process()
+}
+img.src=URL.createObjectURL(f)
 }
 
-img.src=URL.createObjectURL(file)
+function process(){
+if(!imgData)return
 
+let palette
+
+if(methodSelect.value==="rgb"){
+palette=rgbQuant(imgData,slider.value)
+}
+else if(methodSelect.value==="median"){
+palette=medianCut(imgData,slider.value)
+}
+else{
+palette=kmeans(imgData,slider.value)
 }
 
-function extract(){
+drawPalette(palette)
+drawPreview(palette)
+}
 
-const data=ctx.getImageData(0,0,canvas.width,canvas.height).data
-
+function rgbQuant(data,count){
 const map={}
+const step=Math.floor(256/Math.cbrt(count))
 
-for(let i=0;i<data.length;i+=4){
-
-let r=data[i]
-let g=data[i+1]
-let b=data[i+2]
-
-r=Math.round(r/32)*32
-g=Math.round(g/32)*32
-b=Math.round(b/32)*32
-
+for(let i=0;i<data.data.length;i+=4){
+let r=Math.floor(data.data[i]/step)*step
+let g=Math.floor(data.data[i+1]/step)*step
+let b=Math.floor(data.data[i+2]/step)*step
 const key=r+","+g+","+b
-
 map[key]=(map[key]||0)+1
-
 }
 
-const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,8)
+return Object.entries(map)
+.sort((a,b)=>b[1]-a[1])
+.slice(0,count)
+.map(e=>e[0].split(",").map(Number))
+}
 
+function medianCut(data,k){
+let pixels=[]
+for(let i=0;i<data.data.length;i+=4){
+pixels.push([data.data[i],data.data[i+1],data.data[i+2]])
+}
+
+function split(boxes){
+while(boxes.length<k){
+boxes.sort((a,b)=>b.length-a.length)
+let box=boxes.shift()
+
+let dim=0
+let ranges=[0,1,2].map(i=>Math.max(...box.map(p=>p[i]))-Math.min(...box.map(p=>p[i])))
+dim=ranges.indexOf(Math.max(...ranges))
+
+box.sort((a,b)=>a[dim]-b[dim])
+let mid=box.length>>1
+boxes.push(box.slice(0,mid),box.slice(mid))
+}
+return boxes
+}
+
+let boxes=split([pixels])
+return boxes.map(box=>{
+let r=0,g=0,b=0
+box.forEach(p=>{r+=p[0];g+=p[1];b+=p[2]})
+return [r/box.length,g/box.length,b/box.length]
+})
+}
+
+function kmeans(data,k){
+let pixels=[]
+for(let i=0;i<data.data.length;i+=4){
+pixels.push([data.data[i],data.data[i+1],data.data[i+2]])
+}
+
+let centers=pixels.slice(0,k)
+
+for(let iter=0;iter<5;iter++){
+let groups=Array.from({length:k},()=>[])
+
+pixels.forEach(p=>{
+let min=1e9,idx=0
+centers.forEach((c,i)=>{
+let d=(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2
+if(d<min){min=d;idx=i}
+})
+groups[idx].push(p)
+})
+
+centers=groups.map(g=>{
+if(g.length===0)return [0,0,0]
+let r=0,gc=0,b=0
+g.forEach(p=>{r+=p[0];gc+=p[1];b+=p[2]})
+return [r/g.length,gc/g.length,b/g.length]
+})
+}
+
+return centers
+}
+
+function drawPalette(p){
 paletteDiv.innerHTML=""
-
-sorted.forEach(c=>{
-
-const [rgb]=c
-
-const [r,g,b]=rgb.split(",")
-
-const hex="#"+((1<<24)+(r<<16)+(g<<8)+(+b)).toString(16).slice(1)
+p.forEach(c=>{
+const hex=rgbToHex(c)
 
 const div=document.createElement("div")
 div.className="color"
 div.style.background=hex
 div.textContent=hex
 
-paletteDiv.appendChild(div)
-
-})
-
+div.onclick=()=>{
+navigator.clipboard.writeText(hex)
+div.textContent="コピー!"
+setTimeout(()=>div.textContent=hex,800)
 }
 
+paletteDiv.appendChild(div)
+})
+}
+
+function drawPreview(palette){
+let img=new ImageData(new Uint8ClampedArray(imgData.data),imgData.width,imgData.height)
+
+for(let i=0;i<img.data.length;i+=4){
+let best,dist=1e9
+palette.forEach(c=>{
+let d=(img.data[i]-c[0])**2+(img.data[i+1]-c[1])**2+(img.data[i+2]-c[2])**2
+if(d<dist){dist=d;best=c}
+})
+img.data[i]=best[0]
+img.data[i+1]=best[1]
+img.data[i+2]=best[2]
+}
+
+pctx.putImageData(img,0,0)
+}
+
+function rgbToHex(c){
+return "#"+((1<<24)+(c[0]<<16)+(c[1]<<8)+c[2]).toString(16).slice(1)
+}
+
+document.getElementById("download").onclick=()=>{
+const link=document.createElement("a")
+link.download="quantized.png"
+link.href=preview.toDataURL()
+link.click()
+}
 </script>
 
 </body>
