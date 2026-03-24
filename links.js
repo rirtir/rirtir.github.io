@@ -33,6 +33,10 @@ const data = [
         category: "ImageProcessing",
         links: [
             {
+                title: "画像処理ツール",
+                url: "https://rirtir.com/Image/ImageEffectLayerTool/",
+                desc: "様々なエフェクトを重ねることができるツール。ベータ版"
+            },{
                 title: "輝度値→アルファ変換",
                 url: "https://rirtir.com/Image/Line2AlphaConverter/",
                 desc: "グレースケール画像を透過画像にする。線画を線だけにするなど。"

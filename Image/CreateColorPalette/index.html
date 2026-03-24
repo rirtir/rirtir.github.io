@@ -79,6 +79,8 @@ const label=document.getElementById("countLabel")
 const methodSelect=document.getElementById("method")
 
 let imgData=null
+let originalImage=null
+let currentPalette=[]
 
 dropArea.onclick=()=>file.click()
 dropArea.ondragover=e=>e.preventDefault()
@@ -99,6 +101,9 @@ methodSelect.onchange=process
 function load(f){
 const img=new Image()
 img.onload=()=>{
+
+originalImage=img
+
 const max=300
 let w=img.width
 let h=img.height
@@ -111,6 +116,7 @@ preview.height=h
 
 ctx.drawImage(img,0,0,w,h)
 imgData=ctx.getImageData(0,0,w,h)
+
 process()
 }
 img.src=URL.createObjectURL(f)
@@ -131,16 +137,19 @@ else{
 palette=kmeansAdvanced(imgData,slider.value)
 }
 
-// 距離制約で似た色を削除
-palette=mergeSimilarColors(palette,30)
+// LABベースで融合
+palette=mergeSimilarColorsLAB(palette,15)
+
+// 足りない分補充
+palette=refillPalette(imgData,palette,slider.value)
+
+currentPalette=palette
 
 drawPalette(palette)
 drawPreview(palette)
 }
 
-/* ======================
-   RGB量子化
-====================== */
+/* RGB量子化 */
 function rgbQuant(data,count){
 const map={}
 const step=Math.floor(256/Math.cbrt(count))
@@ -159,9 +168,7 @@ return Object.entries(map)
 .map(e=>e[0].split(",").map(Number))
 }
 
-/* ======================
-   MedianCut
-====================== */
+/* MedianCut */
 function medianCut(data,k){
 let pixels=samplePixels(data,0.2)
 
@@ -188,17 +195,11 @@ return [r/box.length,g/box.length,b/box.length]
 })
 }
 
-/* ======================
-   K-means++ + LAB + 彩度
-====================== */
+/* K-means LAB */
 function kmeansAdvanced(data,k){
-
 let pixels=samplePixels(data,0.1)
-
-// LAB変換
 let labPixels=pixels.map(p=>rgb2lab(p))
 
-// k-means++
 let centers=[labPixels[Math.floor(Math.random()*labPixels.length)]]
 
 while(centers.length<k){
@@ -224,7 +225,6 @@ break
 }
 }
 
-// iteration
 for(let iter=0;iter<6;iter++){
 let groups=Array.from({length:k},()=>[])
 
@@ -235,7 +235,6 @@ let d=labDistance(p,c)
 if(d<min){min=d;idx=j}
 })
 
-// 彩度重み
 let sat=saturation(pixels[i])
 groups[idx].push({p,weight:1+sat/128})
 })
@@ -244,7 +243,6 @@ centers=groups.map(g=>{
 if(g.length===0)return [0,0,0]
 
 let L=0,a=0,b=0,wSum=0
-
 g.forEach(o=>{
 L+=o.p[0]*o.weight
 a+=o.p[1]*o.weight
@@ -256,13 +254,9 @@ return [L/wSum,a/wSum,b/wSum]
 })
 }
 
-// RGB戻す
 return centers.map(c=>lab2rgb(c))
 }
 
-/* ======================
-   サンプリング
-====================== */
 function samplePixels(data,rate){
 let arr=[]
 for(let i=0;i<data.data.length;i+=4){
@@ -273,16 +267,45 @@ arr.push([data.data[i],data.data[i+1],data.data[i+2]])
 return arr
 }
 
-/* ======================
-   距離制約（色まとめ）
-====================== */
-function mergeSimilarColors(palette,threshold){
+/* 補充 */
+function refillPalette(data,palette,target){
+while(palette.length<target){
+
+let bestPixel=null
+let bestDist=-1
+
+for(let i=0;i<data.data.length;i+=4){
+let p=[data.data[i],data.data[i+1],data.data[i+2]]
+
+let minDist=1e9
+palette.forEach(c=>{
+let d=colorDistanceLAB(p,c)
+if(d<minDist)minDist=d
+})
+
+if(minDist>bestDist){
+bestDist=minDist
+bestPixel=p
+}
+}
+
+if(bestPixel) palette.push(bestPixel)
+else break
+}
+return palette
+}
+
+/* LAB融合 */
+function mergeSimilarColorsLAB(palette,threshold){
 let result=[]
 
 palette.forEach(c=>{
 let found=false
 for(let r of result){
-if(colorDistance(c,r)<threshold){
+if(colorDistanceLAB(c,r)<threshold){
+r[0]=(r[0]+c[0])/2
+r[1]=(r[1]+c[1])/2
+r[2]=(r[2]+c[2])/2
 found=true
 break
 }
@@ -293,24 +316,13 @@ if(!found) result.push(c)
 return result
 }
 
-/* ======================
-   色距離
-====================== */
-function colorDistance(a,b){
-return Math.sqrt(
-(a[0]-b[0])**2+
-(a[1]-b[1])**2+
-(a[2]-b[2])**2
-)
+/* 距離 */
+function colorDistanceLAB(a,b){
+return labDistance(rgb2lab(a),rgb2lab(b))
 }
 
-/* ======================
-   彩度
-====================== */
 function saturation(rgb){
-let max=Math.max(...rgb)
-let min=Math.min(...rgb)
-return max-min
+return Math.max(...rgb)-Math.min(...rgb)
 }
 
 /* ======================
@@ -376,14 +388,11 @@ return Math.sqrt(
 )
 }
 
-/* ======================
-   UI描画
-====================== */
+/* UI */
 function drawPalette(p){
 paletteDiv.innerHTML=""
 p.forEach(c=>{
 const hex=rgbToHex(c)
-
 const div=document.createElement("div")
 div.className="color"
 div.style.background=hex
@@ -405,7 +414,7 @@ let img=new ImageData(new Uint8ClampedArray(imgData.data),imgData.width,imgData.
 for(let i=0;i<img.data.length;i+=4){
 let best,dist=1e9
 palette.forEach(c=>{
-let d=colorDistance([img.data[i],img.data[i+1],img.data[i+2]],c)
+let d=colorDistanceLAB([img.data[i],img.data[i+1],img.data[i+2]],c)
 if(d<dist){dist=d;best=c}
 })
 img.data[i]=clamp(best[0])
@@ -414,6 +423,39 @@ img.data[i+2]=clamp(best[2])
 }
 
 pctx.putImageData(img,0,0)
+}
+
+/* フル解像度生成 */
+function generateFullResImage(palette){
+const w=originalImage.width
+const h=originalImage.height
+
+const off=document.createElement("canvas")
+off.width=w
+off.height=h
+const octx=off.getContext("2d")
+
+octx.drawImage(originalImage,0,0)
+
+let data=octx.getImageData(0,0,w,h)
+
+for(let i=0;i<data.data.length;i+=4){
+let best,dist=1e9
+palette.forEach(c=>{
+let d=colorDistanceLAB(
+[data.data[i],data.data[i+1],data.data[i+2]],
+c
+)
+if(d<dist){dist=d;best=c}
+})
+
+data.data[i]=clamp(best[0])
+data.data[i+1]=clamp(best[1])
+data.data[i+2]=clamp(best[2])
+}
+
+octx.putImageData(data,0,0)
+return off.toDataURL()
 }
 
 function clamp(v){
@@ -428,9 +470,12 @@ return "#"+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1)
 }
 
 document.getElementById("download").onclick=()=>{
+if(!originalImage)return
+const url=generateFullResImage(currentPalette)
+
 const link=document.createElement("a")
-link.download="quantized.png"
-link.href=preview.toDataURL()
+link.download="quantized_full.png"
+link.href=url
 link.click()
 }
 </script>
