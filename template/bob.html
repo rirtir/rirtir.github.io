@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ボブジテン</title>
+
+<style>
+
+body{
+  font-family:sans-serif;
+  height:85vh;
+  width:100%;
+  margin:0;
+  padding:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#f0f0f0;
+  text-align:center;
+}
+
+button{
+  border:none;
+  background:#4CAF50;
+  color:white;
+  cursor:pointer;
+  transition:background 0.2s;
+}
+
+button:hover{
+  background:#45a049;
+}
+
+.hidden{
+  display:none;
+}
+
+/* タイトルサイズを安全に制御 */
+h1{
+  font-size:clamp(40px,12vw,120px);
+  margin:0 0 20px 0;
+}
+
+/* 縦画面 */
+
+@media screen and (orientation: portrait){
+
+  h2{
+    font-size:7vw;
+  }
+
+  p{
+    font-size:4vw;
+  }
+
+  #word{
+    font-size:12vw;
+    margin:4vh 0;
+  }
+
+  button{
+    padding:1vh 2vh;
+    margin:1vh;
+    font-size:2.5vh;
+    border-radius:1vh;
+  }
+
+}
+
+/* 横画面 */
+
+@media screen and (orientation: landscape){
+
+  h2{
+    font-size:3vw;
+  }
+
+  p{
+    font-size:1.5vw;
+  }
+
+  #word{
+    font-size:6vw;
+    margin:4vh 0;
+  }
+
+  button{
+    padding:1vw 2vw;
+    margin:1vh;
+    font-size:2.5vw;
+    border-radius:1vw;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="setup">
+
+<h1>ボブジテン</h1>
+
+<button onclick="startGame()">開始</button>
+
+</div>
+
+
+<div id="game" class="hidden">
+
+<h2>お題</h2>
+
+<div id="showButtons">
+<button onclick="showWord()">単語を見る</button>
+</div>
+
+<div id="word"></div>
+
+<div id="nextButtons" class="hidden">
+
+<button onclick="nextWord()">次のお題</button>
+
+<button onclick="stopGame()">やめる</button>
+
+</div>
+
+</div>
+
+
+<script>
+
+const words = [
+"アイスクリーム",
+"アイコン",
+"ワード",
+"ワールド"
+]
+
+function randomWord(){
+
+  return words[Math.floor(Math.random()*words.length)]
+
+}
+
+function startGame(){
+
+  document.getElementById("setup").classList.add("hidden")
+  document.getElementById("game").classList.remove("hidden")
+
+  document.getElementById("word").textContent=""
+  document.getElementById("nextButtons").classList.add("hidden")
+  document.getElementById("showButtons").classList.remove("hidden")
+
+}
+
+function showWord(){
+
+  const word=randomWord()
+
+  document.getElementById("word").textContent=word
+  document.getElementById("nextButtons").classList.remove("hidden")
+  document.getElementById("showButtons").classList.add("hidden")
+
+}
+
+function nextWord(){
+
+  document.getElementById("word").textContent=""
+  document.getElementById("nextButtons").classList.add("hidden")
+  document.getElementById("showButtons").classList.remove("hidden")
+
+}
+
+function stopGame(){
+
+  document.getElementById("game").classList.add("hidden")
+  document.getElementById("setup").classList.remove("hidden")
+
+}
+
+</script>
+
+</body>
+</html>

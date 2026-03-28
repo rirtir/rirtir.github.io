@@ -18,6 +18,11 @@ const data = [
                 desc: "それぞれのスマホで遊べる"
             },
             {
+                title: "ブレインビータ",
+                url: "https://rirtir.com/Game/BrainBeater/",
+                desc: "一人でやりこめるゲーム"
+            },
+            {
                 title: "ぽっちゃりタイガー",
                 url: "https://pochari-tiger.onrender.com/",
                 desc: "制作中（ベータ版）"

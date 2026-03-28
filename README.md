@@ -36,8 +36,6 @@ Aviutlの方は自然なのに、今のやつは境界線が見えてて論外
 
 ブレインビータ
 
-ブレインビータ
-
 ---
 
 This site distributes a WebAssembly build of FFmpeg (ffmpeg-core) which includes FFmpeg components.
