@@ -1,6 +1,6 @@
 const data = [
     {
-        category: "Game",
+        category: "ゲーム",
         links: [
             {
                 title: "ito",
@@ -35,7 +35,7 @@ const data = [
         ]
     },
     {
-        category: "ImageProcessing",
+        category: "画像処理",
         links: [
             {
                 title: "画像処理ツール",
@@ -69,7 +69,7 @@ const data = [
         ]
     },
     {
-        category: "AudioProcessing",
+        category: "音声処理",
         links: [
             {
                 title: "動画から音声抽出",
@@ -94,7 +94,7 @@ const data = [
         ]
     },
     {
-        category: "Utility",
+        category: "ユーティリティ",
         links: [
             {
                 title: "CSS重複削除ツール",
@@ -109,13 +109,28 @@ const data = [
         ]
     },
     {
-        category: "Links",
+        category: "リンク",
         links: [
             {
                 title: "GitHub",
                 url: "https://github.com/rirtir/rirtir.github.io",
                 desc: "このページのリポジトリ"
             }
+        ]
+    },
+    {
+        category: "おすすめサイト",
+        links: [
+            {
+                title: "Squoosh",
+                url: "https://squoosh.app/",
+                desc: "画像圧縮ツール"
+            },
+            {
+                title: "TinyPNG",
+                url: "https://tinypng.com/",
+                desc: "画像圧縮ツール"
+            },
         ]
     }
 ]

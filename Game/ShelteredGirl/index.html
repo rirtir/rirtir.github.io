@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>箱入り娘</title>
+
+<style>
+
+/* ===== Base ===== */
+body{
+font-family:sans-serif;
+margin:0;
+padding:20px;
+background:#f5f5f5;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+h1{
+margin-bottom:10px;
+}
+
+/* ===== UI ===== */
+#controls{
+display:flex;
+flex-direction:column;
+gap:10px;
+width:100%;
+max-width:400px;
+margin-bottom:15px;
+}
+
+button, select{
+padding:10px;
+font-size:14px;
+border-radius:8px;
+border:none;
+cursor:pointer;
+}
+
+button{
+background:#007bff;
+color:white;
+}
+
+#board{
+display:grid;
+gap:4px;
+background:#333;
+padding:4px;
+touch-action:none;
+}
+
+.cell{
+background:#ddd;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:12px;
+}
+
+/* piece colors */
+.piece{
+width:100%;
+height:100%;
+display:flex;
+align-items:center;
+justify-content:center;
+color:white;
+font-weight:bold;
+}
+
+.musume{ background:#e74c3c; }
+.tate{ background:#3498db; }
+.yoko{ background:#2ecc71; }
+.small{ background:#f1c40f; color:black; }
+
+</style>
+</head>
+
+<body>
+
+<h1>箱入り娘</h1>
+
+<div id="controls">
+<select id="mode">
+<option value="classic">クラシック</option>
+<option value="auto">自動生成</option>
+</select>
+
+<select id="stageSelect"></select>
+
+<select id="sizeSelect">
+<option value="4x5">4×5</option>
+<option value="5x5">5×5</option>
+</select>
+
+<button id="resetBtn">リセット</button>
+</div>
+
+<div id="board"></div>
+
+<script>
+
+/* =====================
+   Global State
+===================== */
+
+let width=4
+let height=5
+let board=[]
+let pieces={}
+let selectedPiece=null
+
+const boardEl=document.getElementById("board")
+
+/* =====================
+   Piece Definitions
+===================== */
+
+function createPiece(id,type,w,h){
+return {id,type,w,h}
+}
+
+/* =====================
+   Board Utilities
+===================== */
+
+// Convert board to string
+function boardToString(b){
+return b.join(",")
+}
+
+// Deep copy board
+function cloneBoard(b){
+return [...b]
+}
+
+// Get cells occupied by a piece
+function getPieceCells(board,pieceId){
+const cells=[]
+for(let i=0;i<board.length;i++){
+if(board[i]===pieceId){
+cells.push(i)
+}
+}
+return cells
+}
+
+// Get top-left of piece
+function getTopLeft(board,pieceId){
+const cells=getPieceCells(board,pieceId)
+let minX=999,minY=999
+
+for(const idx of cells){
+const x=idx%width
+const y=Math.floor(idx/width)
+if(x<minX) minX=x
+if(y<minY) minY=y
+}
+return {x:minX,y:minY}
+}
+
+/* =====================
+   Move Logic
+===================== */
+
+// Check if piece can move
+function canMove(board,pieceId,dx,dy){
+const piece=pieces[pieceId]
+const {x,y}=getTopLeft(board,pieceId)
+
+for(let py=0;py<piece.h;py++){
+for(let px=0;px<piece.w;px++){
+const nx=x+px+dx
+const ny=y+py+dy
+
+if(nx<0||ny<0||nx>=width||ny>=height) return false
+
+const idx=ny*width+nx
+if(board[idx]!==null && board[idx]!==pieceId) return false
+}
+}
+return true
+}
+
+// Apply move
+function applyMove(board,pieceId,dx,dy){
+const newBoard=Array(board.length).fill(null)
+const piece=pieces[pieceId]
+
+for(let i=0;i<board.length;i++){
+if(board[i]!==pieceId){
+newBoard[i]=board[i]
+}
+}
+
+const {x,y}=getTopLeft(board,pieceId)
+
+for(let py=0;py<piece.h;py++){
+for(let px=0;px<piece.w;px++){
+const nx=x+px+dx
+const ny=y+py+dy
+newBoard[ny*width+nx]=pieceId
+}
+}
+
+return newBoard
+}
+
+// Get all legal moves
+function getLegalMoves(board){
+const moves=[]
+
+for(const id in pieces){
+for(const dir of [[0,-1],[0,1],[-1,0],[1,0]]){
+if(canMove(board,id,...dir)){
+moves.push({id,dx:dir[0],dy:dir[1]})
+}
+}
+}
+return moves
+}
+
+/* =====================
+   Goal / Shuffle
+===================== */
+
+function createGoalState(w,h){
+width=w
+height=h
+board=Array(w*h).fill(null)
+pieces={}
+
+let id=1
+
+// Musume
+const mx=Math.floor((w-2)/2)
+const my=h-2
+pieces[id]=createPiece(id,"musume",2,2)
+
+for(let y=0;y<2;y++){
+for(let x=0;x<2;x++){
+board[(my+y)*w+(mx+x)]=id
+}
+}
+id++
+
+// Fill others simple
+for(let i=0;i<board.length;i++){
+if(board[i]===null){
+pieces[id]=createPiece(id,"small",1,1)
+board[i]=id
+id++
+}
+}
+
+return cloneBoard(board)
+}
+
+// Shuffle until musume top
+function shuffleUntilTop(startBoard,maxSteps=300){
+
+let current=startBoard
+let visited=new Set()
+visited.add(boardToString(current))
+
+let prevMove=null
+
+for(let i=0;i<maxSteps;i++){
+
+let moves=getLegalMoves(current)
+
+// Remove reverse move
+if(prevMove){
+moves=moves.filter(m=>{
+return !(m.id===prevMove.id && m.dx===-prevMove.dx && m.dy===-prevMove.dy)
+})
+}
+
+if(moves.length===0) break
+
+const move=moves[Math.floor(Math.random()*moves.length)]
+const next=applyMove(current,move.id,move.dx,move.dy)
+const key=boardToString(next)
+
+if(visited.has(key)) continue
+
+visited.add(key)
+current=next
+prevMove=move
+
+// Check musume at top
+const musumePos=getTopLeft(current,1)
+if(musumePos.y===0){
+return current
+}
+}
+
+return current
+}
+
+/* =====================
+   Render
+===================== */
+
+function render(){
+
+boardEl.style.gridTemplateColumns=`repeat(${width},60px)`
+
+boardEl.innerHTML=""
+
+for(let i=0;i<board.length;i++){
+
+const cell=document.createElement("div")
+cell.className="cell"
+
+const id=board[i]
+
+if(id!==null){
+const p=pieces[id]
+const div=document.createElement("div")
+div.className="piece "+p.type
+div.textContent=id
+
+div.onclick=()=>{
+handleClick(id)
+}
+
+cell.appendChild(div)
+}
+
+boardEl.appendChild(cell)
+}
+
+}
+
+/* =====================
+   Interaction
+===================== */
+
+function handleClick(id){
+
+const moves=getLegalMoves(board).filter(m=>m.id==id)
+
+if(moves.length===0) return
+
+const move=moves[0]
+board=applyMove(board,id,move.dx,move.dy)
+
+checkClear()
+render()
+}
+
+/* =====================
+   Clear Check
+===================== */
+
+function checkClear(){
+const pos=getTopLeft(board,1)
+const targetY=height-2
+const targetX=Math.floor((width-2)/2)
+
+if(pos.x===targetX && pos.y===targetY){
+setTimeout(()=>alert("クリア！"),100)
+}
+}
+
+/* =====================
+   Modes
+===================== */
+
+function startClassic(){
+
+width=4
+height=5
+
+board=Array(width*height).fill(null)
+pieces={}
+
+// Simple fixed stage
+pieces[1]=createPiece(1,"musume",2,2)
+pieces[2]=createPiece(2,"tate",1,2)
+pieces[3]=createPiece(3,"tate",1,2)
+pieces[4]=createPiece(4,"yoko",2,1)
+
+// layout
+board=[
+2,1,1,3,
+2,1,1,3,
+4,4,null,null,
+null,null,null,null,
+null,null,null,null
+]
+
+render()
+}
+
+function startAuto(){
+const size=document.getElementById("sizeSelect").value
+const [w,h]=size.split("x").map(Number)
+
+const goal=createGoalState(w,h)
+board=shuffleUntilTop(goal,300)
+
+render()
+}
+
+/* =====================
+   UI
+===================== */
+
+document.getElementById("mode").onchange=()=>{
+updateMode()
+}
+
+document.getElementById("resetBtn").onclick=()=>{
+updateMode()
+}
+
+function updateMode(){
+const mode=document.getElementById("mode").value
+
+if(mode==="classic"){
+startClassic()
+}else{
+startAuto()
+}
+}
+
+// init
+updateMode()
+
+</script>
+
+</body>
+</html>
