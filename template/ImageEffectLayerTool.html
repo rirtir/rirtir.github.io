@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image Effect Layer Tool</title>
+
+<link rel="stylesheet" href="./../../css/common-style.css">
+<style>
+
+.container{
+display:flex;
+height:100vh;
+}
+
+/* 左 */
+.controls{
+flex:1;
+padding:10px;
+box-sizing:border-box;
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+/* 右 */
+.preview{
+flex:1;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#ddd;
+position:relative;
+}
+
+/* キャンバス */
+canvas{
+max-width:90%;
+max-height:90%;
+border:1px solid #888;
+background:#fff;
+}
+
+/* スクロール領域 */
+.scrollBox{
+flex:1;
+overflow:auto;
+border:1px solid #aaa;
+padding:5px;
+}
+
+/* レイヤー */
+.layer{
+border:1px solid #666;
+padding:5px;
+margin-bottom:5px;
+background:#eee;
+cursor:pointer;
+}
+
+.layer.active{
+background:#cce5ff;
+}
+
+.layerRow{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.row{
+display:flex;
+gap:10px; /* 要素間の余白 */
+align-items:center; /* 縦位置揃え */
+}
+
+.row label{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+#effectSelect{
+height:100%;
+}
+
+#histMode{
+height:50%;
+}
+
+#histCanvas{
+width: 100%;
+max-height: 200px;
+}
+
+#loading{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.5);
+color:white;
+display:none;
+align-items:center;
+justify-content:center;
+z-index:999;
+}
+
+input[type="checkbox"]{
+width:18px;
+height:18px;
+transform:scale(1.2);
+margin-right:5px;
+}
+
+/* スマホ */
+@media (max-width:800px){
+.container{
+flex-direction:column;
+height:auto;
+}
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- 左 -->
+<div class="controls">
+
+<div id="dropArea">
+画像をドラッグ&ドロップ<br>
+またはクリックして選択
+<input type="file" id="fileInput" style="display:none">
+</div>
+
+<div class="row">
+<select id="effectSelect">
+<option value="invert">反転</option>
+<option value="shadowhighlight">シャドウ・ハイライト</option>
+</select>
+
+<button id="addEffect">Add Effect</button>
+<button id="download">Download</button>
+</div>
+
+<div class="scrollBox" id="layerList"></div>
+
+<div id="layerControls" class="row">
+<button id="moveUp">↑</button>
+<button id="moveDown">↓</button>
+<button id="copyLayer">Copy</button>
+<button id="deleteLayer">Delete</button>
+</div>
+
+<div class="scrollBox" id="paramPanel">
+Select Layer
+</div>
+
+<div class="row">
+<select id="histMode">
+<option value="rgb">RGB</option>
+<option value="r">R</option>
+<option value="g">G</option>
+<option value="b">B</option>
+<option value="gray">Gray</option>
+</select>
+
+<canvas id="histCanvas" width="256" height="100"></canvas>
+</div>
+
+</div>
+
+<!-- 右 -->
+<div class="preview">
+
+<select id="resolution" style="position:absolute; top:10px; right:10px;">
+<option value="1">Original</option>
+<option value="0.5">1/2</option>
+<option value="0.25">1/4</option>
+<option value="0.125">1/8</option>
+</select>
+
+<canvas id="canvas"></canvas>
+
+</div>
+
+</div>
+
+<div id="loading">
+Downloading...
+</div>
+
+<script>
+
+// =========================
+// 基本
+// =========================
+
+const canvas = document.getElementById("canvas")
+const ctx = canvas.getContext("2d")
+
+const histCanvas = document.getElementById("histCanvas")
+const histCtx = histCanvas.getContext("2d")
+
+let originalImageData = null
+let layers = []
+let selectedLayerIndex = -1
+
+document.getElementById("moveUp").onclick = moveLayerUp
+document.getElementById("moveDown").onclick = moveLayerDown
+document.getElementById("copyLayer").onclick = copyLayer
+document.getElementById("deleteLayer").onclick = deleteLayer
+
+// =========================
+// UIヘルパー
+// =========================
+
+function createCheckbox(container, label, value, onChange){
+
+  const wrapper = document.createElement("label")
+  wrapper.style.display = "flex"
+  wrapper.style.alignItems = "center"
+  wrapper.style.gap = "4px"
+
+  const input = document.createElement("input")
+  input.type = "checkbox"
+  input.checked = value
+
+  input.onchange = (e)=>{
+    e.stopPropagation()
+    onChange(e.target.checked)
+  }
+
+  wrapper.appendChild(input)
+  wrapper.appendChild(document.createTextNode(label))
+
+  container.appendChild(wrapper)
+}
+
+function createSlider(container, label, value, min, max, step, onChange){
+
+  const wrapper = document.createElement("div")
+  wrapper.style.display = "flex"
+  wrapper.style.flexDirection = "column"
+  wrapper.style.marginBottom = "6px"
+
+  const topRow = document.createElement("div")
+  topRow.style.display = "flex"
+  topRow.style.justifyContent = "space-between"
+
+  const labelEl = document.createElement("span")
+  labelEl.textContent = label
+
+  const numberInput = document.createElement("input")
+  numberInput.type = "number"
+  numberInput.value = value
+  numberInput.min = min
+  numberInput.max = max
+  numberInput.step = step
+  numberInput.style.width = "60px"
+
+  topRow.appendChild(labelEl)
+  topRow.appendChild(numberInput)
+
+  const slider = document.createElement("input")
+  slider.type = "range"
+  slider.min = min
+  slider.max = max
+  slider.step = step
+  slider.value = value
+
+  // 双方向同期
+  slider.oninput = ()=>{
+    numberInput.value = slider.value
+    onChange(parseFloat(slider.value))
+  }
+
+  numberInput.oninput = ()=>{
+    let v = parseFloat(numberInput.value)
+    if(isNaN(v)) return
+
+    v = Math.max(min, Math.min(max, v))
+
+    slider.value = v
+    numberInput.value = v
+
+    onChange(v)
+  }
+
+  wrapper.appendChild(topRow)
+  wrapper.appendChild(slider)
+
+  container.appendChild(wrapper)
+}
+
+// =========================
+// エフェクト定義
+// =========================
+
+class BaseEffect{
+
+constructor(){
+this.enabled = true
+}
+
+apply(imageData){
+return imageData
+}
+
+getUI(container){
+container.innerHTML = "No params"
+}
+
+}
+
+class InvertEffect extends BaseEffect{
+
+constructor(){
+  super()
+  this.r = true
+  this.g = true
+  this.b = true
+}
+
+apply(imageData){
+
+  const d = imageData.data
+
+  for(let i=0;i<d.length;i+=4){
+
+    if(this.r) d[i]   = 255 - d[i]
+    if(this.g) d[i+1] = 255 - d[i+1]
+    if(this.b) d[i+2] = 255 - d[i+2]
+
+  }
+
+  return imageData
+}
+
+getUI(container){
+
+  container.innerHTML = ""
+
+  const row = document.createElement("div")
+//   row.className = "row"
+
+  createCheckbox(row, "R", this.r, v=>{
+    this.r = v
+    update()
+  })
+  createCheckbox(row, "G", this.g, v=>{
+    this.g = v
+    update()
+  })
+  createCheckbox(row, "B", this.b, v=>{
+    this.b = v
+    update()
+  })
+
+  container.appendChild(row)
+
+}
+
+}
+
+class ShadowHighlightEffect extends BaseEffect{
+  constructor(){
+    super()
+
+    this.shadow = 100
+    this.highlight = 100
+    this.radius = 10
+    this.highQuality = true
+  }
+
+  apply(imageData){
+  const w = imageData.width
+  const h = imageData.height
+  const d = imageData.data
+  const size = w*h
+
+  // --- パラメータ ---
+  const shadow = this.shadow / 500
+  const highlight = this.highlight / 500
+
+  // ★ 完全無効時は即return
+  if(shadow === 0 && highlight === 0){
+    return imageData
+  }
+
+  const Larr = new Float32Array(size)
+
+  // --- 輝度 ---
+  for(let i=0;i<size;i++){
+    const idx = i*4
+
+    let r = d[idx]/255
+    let g = d[idx+1]/255
+    let b = d[idx+2]/255
+
+    r = r<=0.04045 ? r/12.92 : Math.pow((r+0.055)/1.055,2.4)
+    g = g<=0.04045 ? g/12.92 : Math.pow((g+0.055)/1.055,2.4)
+    b = b<=0.04045 ? b/12.92 : Math.pow((b+0.055)/1.055,2.4)
+
+    Larr[i] = (r*0.2126 + g*0.7152 + b*0.0722) * 100
+  }
+
+  const blur = this.highQuality
+    ? this.gaussianBlurEdgeSafe(Larr, w, h, this.radius)
+    : this.fastBoxBlur(Larr, w, h, this.radius)
+
+  for(let i=0;i<size;i++){
+    const idx = i*4
+
+    const L = Larr[i]
+    const B = blur[i]
+
+    const norm = L / 100
+
+    // --- マスク ---
+    const shadowMask = Math.pow(1 - norm, 2.0)
+    const highlightMask = Math.pow(norm, 2.0)
+
+    // --- ローカル ---
+    const local =
+      (B - L) * shadow * shadowMask +
+      (B - L) * highlight * highlightMask
+
+    // --- 弱いグローバル（ここが重要） ---
+    const global =
+      shadow * 5 * (1 - norm) -
+      highlight * 5 * norm
+
+    let newL = L + local + global
+
+    // --- 範囲制限 ---
+    newL = Math.max(0, Math.min(100, newL))
+
+    const ratio = (newL + 1e-5) / (L + 1e-5)
+
+    d[idx]   = Math.min(255, d[idx]*ratio)
+    d[idx+1] = Math.min(255, d[idx+1]*ratio)
+    d[idx+2] = Math.min(255, d[idx+2]*ratio)
+  }
+
+  return imageData
+}
+
+  // --- 高速BoxBlur（積分画像） ---
+  fastBoxBlur(src, w, h, r){
+    const dst = new Float32Array(w*h)
+    const integral = new Float32Array(w*h)
+
+    for(let y=0;y<h;y++){
+      let sum = 0
+      for(let x=0;x<w;x++){
+        sum += src[y*w+x]
+        integral[y*w+x] = sum
+      }
+    }
+
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const x0 = Math.max(0, x-r)
+        const x1 = Math.min(w-1, x+r)
+        const y0 = Math.max(0, y-r)
+        const y1 = Math.min(h-1, y+r)
+
+        let sum = 0
+        for(let yy=y0;yy<=y1;yy++){
+          sum += integral[yy*w+x1] - (x0>0 ? integral[yy*w+x0-1] : 0)
+        }
+
+        const count = (x1-x0+1)*(y1-y0+1)
+        dst[y*w+x] = sum / count
+      }
+    }
+
+    return dst
+  }
+
+  // --- Gaussian（境界クランプ） ---
+  gaussianBlurEdgeSafe(src, w, h, r){
+    const sigma = Math.max(0.1, r * 0.5)
+    const size = Math.floor(r)*2+1
+    const half = Math.floor(size/2)
+
+    const kernel = new Float32Array(size)
+    let sum = 0
+
+    for(let i=0;i<size;i++){
+      const x = i - half
+      const v = Math.exp(-(x*x)/(2*sigma*sigma))
+      kernel[i] = v
+      sum += v
+    }
+
+    for(let i=0;i<size;i++) kernel[i] /= sum
+
+    const temp = new Float32Array(w*h)
+
+    // 横
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        let val = 0
+        for(let k=0;k<size;k++){
+          let ix = x + k - half
+          ix = Math.max(0, Math.min(w-1, ix))
+          val += src[y*w+ix] * kernel[k]
+        }
+        temp[y*w+x] = val
+      }
+    }
+
+    const dst = new Float32Array(w*h)
+
+    // 縦
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        let val = 0
+        for(let k=0;k<size;k++){
+          let iy = y + k - half
+          iy = Math.max(0, Math.min(h-1, iy))
+          val += temp[iy*w+x] * kernel[k]
+        }
+        dst[y*w+x] = val
+      }
+    }
+
+    return dst
+  }
+
+  getUI(container){
+    container.innerHTML = ""
+
+    createSlider(container, "黒潰補正", this.shadow, -1000, 1000, 1, v=>{
+      this.shadow = v
+      update()
+    })
+
+    createSlider(container, "白飛補正", this.highlight, -1000, 1000, 1, v=>{
+      this.highlight = v
+      update()
+    })
+
+    createSlider(container, "範囲", this.radius, 1, 100, 1, v=>{
+      this.radius = v
+      update()
+    })
+
+    createCheckbox(container, "高精度", this.highQuality, v=>{
+      this.highQuality = v
+      update()
+    })
+  }
+}
+
+// 登録
+const effectRegistry = {
+invert: ()=>new InvertEffect(),
+shadowhighlight: ()=>new ShadowHighlightEffect()
+}
+
+// =========================
+// レイヤー管理
+// =========================
+
+function addLayer(type){
+
+layers.push({
+effect: effectRegistry[type](),
+name: type
+})
+
+selectedLayerIndex = layers.length-1
+renderLayerList()
+renderParams()
+update()
+
+}
+
+function renderLayerList(){
+
+const list = document.getElementById("layerList")
+list.innerHTML=""
+
+layers.forEach((layer,i)=>{
+
+const div=document.createElement("div")
+div.className="layer"+(i===selectedLayerIndex?" active":"")
+
+div.innerHTML=`
+<div class="layerRow">
+<span>${layer.name}</span>
+<input type="checkbox" ${layer.effect.enabled?"checked":""}>
+</div>
+`
+
+// select
+div.querySelector(".layerRow").onclick=()=>{
+selectedLayerIndex=i
+renderLayerList()
+renderParams()
+}
+
+// enable toggle
+div.querySelector("input").onchange=(e)=>{
+e.stopPropagation() // ← これ追加
+layer.effect.enabled=e.target.checked
+update()
+}
+
+div.querySelector("input").onclick=(e)=>{
+e.stopPropagation()
+}
+
+list.appendChild(div)
+
+})
+
+}
+
+function moveLayerUp(){
+  if(selectedLayerIndex <= 0) return
+
+  const i = selectedLayerIndex
+  ;[layers[i], layers[i-1]] = [layers[i-1], layers[i]]
+
+  selectedLayerIndex--
+  renderLayerList()
+  update()
+}
+
+function moveLayerDown(){
+  if(selectedLayerIndex >= layers.length-1) return
+
+  const i = selectedLayerIndex
+  ;[layers[i], layers[i+1]] = [layers[i+1], layers[i]]
+
+  selectedLayerIndex++
+  renderLayerList()
+  update()
+}
+
+function copyLayer(){
+  if(selectedLayerIndex < 0) return
+
+  const src = layers[selectedLayerIndex]
+
+  // shallow copy（基本これでOK）
+  const newLayer = {
+    name: src.name,
+    effect: Object.assign(
+      Object.create(Object.getPrototypeOf(src.effect)),
+      src.effect
+    )
+  }
+
+  layers.splice(selectedLayerIndex+1, 0, newLayer)
+
+  selectedLayerIndex++
+  renderLayerList()
+  update()
+}
+
+function deleteLayer(){
+  if(selectedLayerIndex < 0) return
+
+  if(!confirm("このレイヤーを削除しますか？")) return
+
+  layers.splice(selectedLayerIndex,1)
+
+  selectedLayerIndex = Math.min(
+    selectedLayerIndex,
+    layers.length-1
+  )
+
+  renderLayerList()
+  renderParams()
+  update()
+}
+
+// =========================
+// パラメータUI
+// =========================
+
+function renderParams(){
+
+const panel = document.getElementById("paramPanel")
+
+if(selectedLayerIndex<0){
+panel.innerHTML="No selection"
+return
+}
+
+layers[selectedLayerIndex].effect.getUI(panel)
+
+}
+
+// =========================
+// 画像ロード
+// =========================
+
+const dropArea = document.getElementById("dropArea")
+const fileInput = document.getElementById("fileInput")
+
+dropArea.onclick=()=>fileInput.click()
+
+fileInput.onchange=e=>{
+loadFile(e.target.files[0])
+}
+
+dropArea.ondragover=e=>e.preventDefault()
+dropArea.ondrop=e=>{
+e.preventDefault()
+loadFile(e.dataTransfer.files[0])
+}
+
+function loadFile(file){
+
+const reader=new FileReader()
+
+reader.onload=ev=>{
+const img=new Image()
+
+img.onload=()=>{
+
+canvas.width=img.width
+canvas.height=img.height
+
+ctx.drawImage(img,0,0)
+
+originalImageData = ctx.getImageData(0,0,img.width,img.height)
+
+update()
+
+}
+
+img.src=ev.target.result
+}
+
+reader.readAsDataURL(file)
+
+}
+
+// =========================
+// 処理パイプライン
+// =========================
+
+let requestId=null
+
+function update(){
+
+if(!originalImageData) return
+
+if(requestId) cancelAnimationFrame(requestId)
+
+requestId = requestAnimationFrame(processPreview)
+
+}
+
+function process(){
+
+let scale = parseFloat(document.getElementById("resolution").value)
+
+let w = originalImageData.width * scale
+let h = originalImageData.height * scale
+
+canvas.width = w
+canvas.height = h
+
+let tempCanvas = document.createElement("canvas")
+tempCanvas.width = w
+tempCanvas.height = h
+let tctx = tempCanvas.getContext("2d")
+
+// 縮小
+tctx.putImageData(originalImageData,0,0)
+tctx.drawImage(tempCanvas,0,0,w,h)
+
+let imageData = tctx.getImageData(0,0,w,h)
+
+// レイヤー適用（上から順）
+layers.forEach(layer=>{
+if(layer.effect.enabled){
+imageData = layer.effect.apply(imageData)
+}
+})
+
+ctx.putImageData(imageData,0,0)
+
+drawHistogram(imageData)
+
+}
+
+function createScaledImageData(scale){
+
+const srcCanvas = document.createElement("canvas")
+srcCanvas.width = originalImageData.width
+srcCanvas.height = originalImageData.height
+srcCanvas.getContext("2d").putImageData(originalImageData,0,0)
+
+const dstCanvas = document.createElement("canvas")
+dstCanvas.width = Math.floor(originalImageData.width * scale)
+dstCanvas.height = Math.floor(originalImageData.height * scale)
+
+const dctx = dstCanvas.getContext("2d")
+
+// ★ここが重要（縮小）
+dctx.drawImage(srcCanvas, 0, 0, dstCanvas.width, dstCanvas.height)
+
+return dctx.getImageData(0,0,dstCanvas.width,dstCanvas.height)
+}
+
+function processPreview(){
+
+let scale = parseFloat(document.getElementById("resolution").value)
+
+// 縮小版を作る
+let imageData = createScaledImageData(scale)
+
+// エフェクト適用
+layers.forEach(layer=>{
+  if(layer.effect.enabled){
+    imageData = layer.effect.apply(imageData)
+  }
+})
+
+// 表示
+canvas.width = imageData.width
+canvas.height = imageData.height
+ctx.putImageData(imageData,0,0)
+
+fitCanvasToContainer()
+
+drawHistogram(imageData)
+}
+
+function processFull(){
+
+let imageData = new ImageData(
+  new Uint8ClampedArray(originalImageData.data),
+  originalImageData.width,
+  originalImageData.height
+)
+
+layers.forEach(layer=>{
+  if(layer.effect.enabled){
+    imageData = layer.effect.apply(imageData)
+  }
+})
+
+return imageData
+}
+
+function fitCanvasToContainer(){
+
+const container = canvas.parentElement
+
+const maxW = container.clientWidth * 0.9
+const maxH = container.clientHeight * 0.9
+
+const aspect = canvas.width / canvas.height
+
+let drawW = maxW
+let drawH = drawW / aspect
+
+if(drawH > maxH){
+  drawH = maxH
+  drawW = drawH * aspect
+}
+
+// ★表示サイズだけ変更
+canvas.style.width = drawW + "px"
+canvas.style.height = drawH + "px"
+}
+
+// =========================
+// ヒストグラム
+// =========================
+
+function drawHistogram(imageData){
+
+const mode = document.getElementById("histMode").value
+
+const d = imageData.data
+
+// RGB個別
+if(mode === "rgb"){
+
+let histR = new Array(256).fill(0)
+let histG = new Array(256).fill(0)
+let histB = new Array(256).fill(0)
+
+for(let i=0;i<d.length;i+=4){
+
+histR[d[i]]++
+histG[d[i+1]]++
+histB[d[i+2]]++
+
+}
+
+// 最大値（3つまとめて）
+let max = 0
+for(let i=0;i<256;i++){
+max = Math.max(max, histR[i], histG[i], histB[i])
+}
+
+histCtx.clearRect(0,0,256,100)
+
+// 重ね描き
+for(let i=0;i<256;i++){
+
+let hR = histR[i]/max*100
+let hG = histG[i]/max*100
+let hB = histB[i]/max*100
+
+// 半透明で重ねる
+histCtx.fillStyle = "rgba(255,0,0,0.5)"
+histCtx.fillRect(i,100-hR,1,hR)
+
+histCtx.fillStyle = "rgba(0,255,0,0.5)"
+histCtx.fillRect(i,100-hG,1,hG)
+
+histCtx.fillStyle = "rgba(0,0,255,0.5)"
+histCtx.fillRect(i,100-hB,1,hB)
+
+}
+
+return
+}
+
+// ===== 単一モード =====
+
+let hist = new Array(256).fill(0)
+
+for(let i=0;i<d.length;i+=4){
+
+let v
+
+if(mode==="r") v=d[i]
+else if(mode==="g") v=d[i+1]
+else if(mode==="b") v=d[i+2]
+else{
+v = (d[i]+d[i+1]+d[i+2])/3
+}
+
+hist[Math.floor(v)]++
+
+}
+
+histCtx.clearRect(0,0,256,100)
+
+let max = Math.max(...hist)
+
+for(let i=0;i<256;i++){
+let h = hist[i]/max*100
+histCtx.fillStyle = "#000"
+histCtx.fillRect(i,100-h,1,h)
+}
+
+}
+
+// =========================
+// ダウンロード
+// =========================
+
+document.getElementById("download").onclick = async ()=>{
+
+if(!originalImageData) return
+
+const loading = document.getElementById("loading")
+loading.style.display = "flex"
+
+// UI更新させるため少し待つ
+await new Promise(r=>setTimeout(r,50))
+
+// フル処理
+const imageData = processFull()
+
+// 一時canvas
+const tempCanvas = document.createElement("canvas")
+tempCanvas.width = imageData.width
+tempCanvas.height = imageData.height
+tempCanvas.getContext("2d").putImageData(imageData,0,0)
+
+// ダウンロード
+const link = document.createElement("a")
+link.download = "image.png"
+link.href = tempCanvas.toDataURL()
+link.click()
+
+loading.style.display = "none"
+}
+
+// =========================
+// UI
+// =========================
+
+document.getElementById("addEffect").onclick=()=>{
+addLayer(document.getElementById("effectSelect").value)
+}
+
+document.getElementById("resolution").onchange=update
+document.getElementById("histMode").onchange=update
+
+</script>
+
+</body>
+</html>
