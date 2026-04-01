@@ -51,6 +51,7 @@ button{
 #icon{
   width:40px;
   height:40px;
+  background:none;
   padding:0;
   display:flex;
   align-items:center;
@@ -59,6 +60,10 @@ button{
 
 button.danger{
   background:#d9534f;
+}
+
+button:active{
+transform:scale(0.98);
 }
 
 /* ===== ゲーム ===== */
@@ -83,6 +88,10 @@ button.danger{
   max-width:420px;
   aspect-ratio:1;
   margin-top:10px;
+  background:url("./../../assets/img/wood02.jpg");
+  background-size:cover;
+  padding:10px;
+  border-radius:12px;
 }
 
 .cell{
@@ -92,13 +101,10 @@ button.danger{
 }
 
 .hole{
-  background:
-    radial-gradient(circle at center,
-      rgba(0,0,0,0.6) 0%,
-      rgba(0,0,0,0.4) 40%,
-      rgba(0,0,0,0.2) 60%,
-      transparent 70%
-    );
+  background:url("./../../assets/img/brainvita_01.png");
+  background-size:contain;
+  background-position:center;
+  background-repeat:no-repeat;
 }
 
 .invalid{
@@ -193,17 +199,17 @@ button.danger{
   <div id="topBar">
     <div id="score">スコア: 0</div>
     <div id="buttons">
-      <button id="icon" onclick="toggleHint()">ヒント</button>
-      <button id="icon" onclick="undo()">Undo</button>
+      <button id="icon" onclick="toggleHint()">
+        <img id="hintIcon" src="./../../assets/icons/hint2.svg">
+      </button>
+      <button id="icon" onclick="undo()">
+        <img src="./../../assets/icons/undo2.svg">
+      </button>
       <button id="icon" onclick="confirmAction('restart')">
-        <svg viewBox="0 0 24 24">
-          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-        </svg>
+        <img src="./../../assets/icons/reload.svg">
       </button>
       <button id="icon" onclick="confirmAction('title')">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 6V3L8 7l4 4V8c2.8 0 5 2.2 5 5a5 5 0 11-5-5z"/>
-        </svg>
+        <img src="./../../assets/icons/home.svg">
       </button>
     </div>
   </div>
@@ -463,6 +469,14 @@ function undo(){
 
 function toggleHint(){
   showHints = !showHints
+
+  const img = document.getElementById("hintIcon");
+
+  if (showHints) {
+    img.src = "./../../assets/icons/hint2_2.svg";
+  } else {
+    img.src = "./../../assets/icons/hint2.svg";
+  }
   render()
 }
 

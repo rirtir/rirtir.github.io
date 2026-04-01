@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SVG Editor</title>
+
+<link rel="stylesheet" href="./../../css/common-style.css">
+
+<style>
+
+/* layout (ImageEffectLayerToolベース) */
+.container{
+display:flex;
+height:100vh;
+}
+
+.controls{
+flex:1;
+padding:10px;
+display:flex;
+flex-direction:column;
+gap:10px;
+box-sizing:border-box;
+}
+
+.preview{
+flex:1;
+background:#ddd;
+display:flex;
+align-items:center;
+justify-content:center;
+position:relative;
+overflow:hidden;
+}
+
+/* レイヤー */
+.layer{
+border:1px solid #666;
+padding:5px;
+background:#eee;
+cursor:pointer;
+margin-bottom:5px;
+}
+
+.layer.active{
+background:#cce5ff;
+}
+
+.scrollBox{
+flex:1;
+overflow:auto;
+border:1px solid #aaa;
+padding:5px;
+}
+
+/* SVG */
+#svgCanvas{
+width:100%;
+height:100%;
+}
+
+/* bbox */
+.bbox{
+fill:none;
+stroke:#00f;
+stroke-dasharray:4;
+pointer-events:none;
+}
+
+.handle{
+fill:white;
+stroke:#00f;
+cursor:pointer;
+}
+
+.rotateHandle{
+fill:red;
+cursor:pointer;
+}
+
+.moveHandle{
+fill:green;
+cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- 左 -->
+<div class="controls">
+
+<div id="dropArea">
+SVGをドラッグ&ドロップ<br>
+またはクリック
+<input type="file" id="fileInput" accept=".svg" hidden>
+</div>
+
+<button id="download">Download SVG</button>
+
+<div class="scrollBox" id="layerList"></div>
+
+</div>
+
+<!-- 右 -->
+<div class="preview">
+<svg id="svgCanvas"></svg>
+</div>
+
+</div>
+
+<script>
+
+// =====================
+// 基本
+// =====================
+
+const dropArea = document.getElementById("dropArea")
+const fileInput = document.getElementById("fileInput")
+const svgCanvas = document.getElementById("svgCanvas")
+const layerList = document.getElementById("layerList")
+
+let elements = []
+let selected = null
+
+let transformState = {
+x:0,
+y:0,
+scaleX:1,
+scaleY:1,
+rotation:0
+}
+
+let viewBoxState = {
+x: 0,
+y: 0,
+width: 1000,
+height: 1000
+}
+
+let isPanning = false
+let lastPan = {x:0, y:0}
+
+// =====================
+// Drag & Drop（完全再現）
+// =====================
+
+dropArea.onclick = ()=>fileInput.click()
+
+fileInput.onchange = e=>{
+loadSVG(e.target.files[0])
+}
+
+dropArea.ondragover = e=>{
+e.preventDefault()
+dropArea.classList.add("dragover")
+}
+
+dropArea.ondrop = e=>{
+e.preventDefault()
+dropArea.classList.remove("dragover")
+loadSVG(e.dataTransfer.files[0])
+}
+
+// =====================
+// SVG読み込み
+// =====================
+
+function loadSVG(file){
+
+const reader = new FileReader()
+
+reader.onload = e=>{
+
+svgCanvas.innerHTML = ""
+svgCanvas.setAttribute("width", "100%")
+svgCanvas.setAttribute("height", "100%")
+svgCanvas.setAttribute("preserveAspectRatio", "xMidYMid meet")
+
+const parser = new DOMParser()
+const doc = parser.parseFromString(e.target.result,"image/svg+xml")
+
+const imported = doc.documentElement
+
+// 子要素だけ使う
+elements = Array.from(imported.children)
+
+elements.forEach(el=>{
+el.onclick = (ev)=>{
+ev.stopPropagation()
+selectElement(el)
+}
+svgCanvas.appendChild(el)
+})
+
+renderLayerList()
+initViewBox()
+}
+
+reader.readAsText(file)
+
+}
+
+// =====================
+// レイヤー
+// =====================
+
+function renderLayerList(){
+
+layerList.innerHTML=""
+
+elements.forEach((el,i)=>{
+
+const div=document.createElement("div")
+div.className="layer"+(el===selected?" active":"")
+
+div.innerText = el.tagName
+
+div.onclick=()=>{
+selectElement(el)
+}
+
+div.draggable=true
+
+div.ondragstart=e=>{
+e.dataTransfer.setData("index",i)
+}
+
+div.ondragover=e=>e.preventDefault()
+
+div.ondrop=e=>{
+const from=e.dataTransfer.getData("index")
+const to=i
+
+const tmp=elements[from]
+elements.splice(from,1)
+elements.splice(to,0,tmp)
+
+svgCanvas.innerHTML=""
+elements.forEach(el=>svgCanvas.appendChild(el))
+
+renderLayerList()
+initViewBox()
+}
+
+layerList.appendChild(div)
+
+})
+
+}
+
+function initViewBox(){
+
+// 初期は全部収まるようにする
+const items = Array.from(svgCanvas.children)
+
+let minX = Infinity
+let minY = Infinity
+let maxX = -Infinity
+let maxY = -Infinity
+
+items.forEach(el=>{
+if(!el.getBBox) return
+
+const box = el.getBBox()
+
+minX = Math.min(minX, box.x)
+minY = Math.min(minY, box.y)
+maxX = Math.max(maxX, box.x + box.width)
+maxY = Math.max(maxY, box.y + box.height)
+})
+
+viewBoxState = {
+x: minX,
+y: minY,
+width: maxX - minX,
+height: maxY - minY
+}
+
+applyViewBox()
+}
+
+function applyViewBox(){
+svgCanvas.setAttribute(
+"viewBox",
+`${viewBoxState.x} ${viewBoxState.y} ${viewBoxState.width} ${viewBoxState.height}`
+)
+}
+
+// =====================
+// 選択
+// =====================
+
+function selectElement(el){
+
+selected = el
+
+// ★ 追加（毎回リセット）
+transformState = {
+x:0,
+y:0,
+scaleX:1,
+scaleY:1,
+rotation:0
+}
+
+renderLayerList()
+initViewBox()
+drawBBox()
+
+}
+
+svgCanvas.addEventListener("wheel", e=>{
+
+e.preventDefault()
+
+const zoomFactor = 1.1
+const scale = e.deltaY > 0 ? zoomFactor : 1/zoomFactor
+
+// マウス位置をSVG座標に変換
+const pt = getSVGPoint(e)
+
+// ズーム前の位置比率
+const rx = (pt.x - viewBoxState.x) / viewBoxState.width
+const ry = (pt.y - viewBoxState.y) / viewBoxState.height
+
+// サイズ変更
+viewBoxState.width *= scale
+viewBoxState.height *= scale
+
+// 中心補正（マウス位置固定ズーム）
+viewBoxState.x = pt.x - viewBoxState.width * rx
+viewBoxState.y = pt.y - viewBoxState.height * ry
+
+applyViewBox()
+
+})
+
+svgCanvas.onmousedown = e=>{
+
+if(selected) return // 選択中は無効
+
+isPanning = true
+lastPan = getSVGPoint(e)
+
+document.onmousemove = panMove
+document.onmouseup = stopPan
+
+}
+
+function panMove(e){
+
+if(!isPanning) return
+
+const p = getSVGPoint(e)
+
+viewBoxState.x -= (p.x - lastPan.x)
+viewBoxState.y -= (p.y - lastPan.y)
+
+lastPan = p
+
+applyViewBox()
+
+}
+
+function stopPan(){
+isPanning = false
+document.onmousemove = null
+document.onmouseup = null
+}
+
+let lastDist = null
+
+svgCanvas.addEventListener("touchmove", e=>{
+
+if(e.touches.length === 2){
+
+e.preventDefault()
+
+const t1 = e.touches[0]
+const t2 = e.touches[1]
+
+const dx = t1.clientX - t2.clientX
+const dy = t1.clientY - t2.clientY
+
+const dist = Math.sqrt(dx*dx + dy*dy)
+
+if(lastDist){
+
+const scale = lastDist / dist
+
+viewBoxState.width *= scale
+viewBoxState.height *= scale
+
+applyViewBox()
+}
+
+lastDist = dist
+
+}
+
+}, {passive:false})
+
+svgCanvas.addEventListener("touchend", ()=>{
+lastDist = null
+})
+
+// =====================
+// バウンディングボックス
+// =====================
+
+let bboxRect, handles=[]
+
+function drawBBox(){
+
+svgCanvas.querySelectorAll(".bbox,.handle,.rotateHandle,.moveHandle").forEach(e=>e.remove())
+
+if(!selected) return
+
+// 元のBBox
+const box = selected.getBBox()
+
+// 変換行列
+const matrix =
+selected.transform.baseVal.consolidate()?.matrix
+|| svgCanvas.createSVGMatrix()
+
+// 4点を変換
+const points = [
+svgPoint(box.x, box.y),
+svgPoint(box.x + box.width, box.y),
+svgPoint(box.x, box.y + box.height),
+svgPoint(box.x + box.width, box.y + box.height)
+].map(p => p.matrixTransform(matrix))
+
+// 範囲計算
+const xs = points.map(p=>p.x)
+const ys = points.map(p=>p.y)
+
+const minX = Math.min(...xs)
+const maxX = Math.max(...xs)
+const minY = Math.min(...ys)
+const maxY = Math.max(...ys)
+
+// ★ここが新しいbox
+const fixedBox = {
+x: minX,
+y: minY,
+width: maxX - minX,
+height: maxY - minY
+}
+
+// rect
+bboxRect = document.createElementNS("http://www.w3.org/2000/svg","rect")
+bboxRect.setAttribute("x",fixedBox.x)
+bboxRect.setAttribute("y",fixedBox.y)
+bboxRect.setAttribute("width",fixedBox.width)
+bboxRect.setAttribute("height",fixedBox.height)
+bboxRect.setAttribute("class","bbox")
+
+svgCanvas.appendChild(bboxRect)
+
+// ハンドルも全部 fixedBox に変更
+createHandle(fixedBox.x, fixedBox.y,"nw")
+createHandle(fixedBox.x+fixedBox.width, fixedBox.y,"ne")
+createHandle(fixedBox.x, fixedBox.y+fixedBox.height,"sw")
+createHandle(fixedBox.x+fixedBox.width, fixedBox.y+fixedBox.height,"se")
+
+createMoveHandle(
+fixedBox.x + fixedBox.width/2,
+fixedBox.y + fixedBox.height + 20
+)
+
+createRotateHandle(
+fixedBox.x + fixedBox.width/2,
+fixedBox.y - 20
+)
+
+}
+
+// =====================
+// ハンドル生成
+// =====================
+
+function createHandle(x,y,type){
+
+const h = document.createElementNS("http://www.w3.org/2000/svg","circle")
+h.setAttribute("cx",x)
+h.setAttribute("cy",y)
+h.setAttribute("r",5)
+h.setAttribute("class","handle")
+
+h.onmousedown = e=>{
+startResize(e,type)
+}
+
+svgCanvas.appendChild(h)
+handles.push(h)
+
+}
+
+function createMoveHandle(x,y){
+
+const h = document.createElementNS("http://www.w3.org/2000/svg","circle")
+h.setAttribute("cx",x)
+h.setAttribute("cy",y)
+h.setAttribute("r",6)
+h.setAttribute("class","moveHandle")
+
+h.onmousedown = startMove
+
+svgCanvas.appendChild(h)
+
+}
+
+function createRotateHandle(x,y){
+
+const h = document.createElementNS("http://www.w3.org/2000/svg","circle")
+h.setAttribute("cx",x)
+h.setAttribute("cy",y)
+h.setAttribute("r",6)
+h.setAttribute("class","rotateHandle")
+
+h.onmousedown = startRotate
+
+svgCanvas.appendChild(h)
+
+}
+
+// =====================
+// 変形処理
+// =====================
+
+let startX, startY
+
+function applyTransform(){
+
+const box = selected.getBBox()
+
+const cx = box.x + box.width/2
+const cy = box.y + box.height/2
+
+selected.setAttribute(
+"transform",
+`
+translate(${transformState.x + cx},${transformState.y + cy})
+rotate(${transformState.rotation})
+scale(${transformState.scaleX},${transformState.scaleY})
+translate(${-cx},${-cy})
+`.replace(/\s+/g," ")
+)
+
+drawBBox()
+
+}
+
+function startMove(e){
+startX = e.clientX
+startY = e.clientY
+
+document.onmousemove = move
+document.onmouseup = stopAction
+}
+
+function move(e){
+
+const p = getSVGPoint(e)
+const s = getSVGPoint({clientX:startX, clientY:startY})
+
+transformState.x += p.x - s.x
+transformState.y += p.y - s.y
+
+startX = e.clientX
+startY = e.clientY
+
+applyTransform()
+
+}
+
+function startResize(e,type){
+startX = e.clientX
+startY = e.clientY
+
+document.onmousemove = ev=>resize(ev,type)
+document.onmouseup = stopAction
+}
+
+function resize(e){
+
+const dx = e.clientX - startX
+const dy = e.clientY - startY
+
+transformState.scaleX += dx * 0.01
+transformState.scaleY += dy * 0.01
+
+startX = e.clientX
+startY = e.clientY
+
+applyTransform()
+
+}
+
+function getSVGPoint(evt){
+const pt = svgCanvas.createSVGPoint()
+pt.x = evt.clientX
+pt.y = evt.clientY
+return pt.matrixTransform(svgCanvas.getScreenCTM().inverse())
+}
+
+function svgPoint(x,y){
+const pt = svgCanvas.createSVGPoint()
+pt.x = x
+pt.y = y
+return pt
+}
+
+function startRotate(e){
+
+// ★ transform後のbboxを使う
+const box = selected.getBBox()
+const matrix =
+selected.transform.baseVal.consolidate()?.matrix
+|| svgCanvas.createSVGMatrix()
+
+const points = [
+svgPoint(box.x, box.y),
+svgPoint(box.x + box.width, box.y),
+svgPoint(box.x, box.y + box.height),
+svgPoint(box.x + box.width, box.y + box.height)
+].map(p => p.matrixTransform(matrix))
+
+const xs = points.map(p=>p.x)
+const ys = points.map(p=>p.y)
+
+const cx = (Math.min(...xs) + Math.max(...xs)) / 2
+const cy = (Math.min(...ys) + Math.max(...ys)) / 2
+
+document.onmousemove = ev=>{
+
+const p = getSVGPoint(ev)
+
+const angle = Math.atan2(p.y - cy, p.x - cx) * 180/Math.PI
+
+transformState.rotation = angle
+applyTransform()
+
+}
+
+document.onmouseup = stopAction
+
+}
+
+function stopAction(){
+document.onmousemove = null
+document.onmouseup = null
+}
+
+// =====================
+// ダウンロード
+// =====================
+
+function svgPointFrom(svg, x, y){
+  const pt = svg.createSVGPoint()
+  pt.x = x
+  pt.y = y
+  return pt
+}
+
+document.getElementById("download").onclick = ()=>{
+
+// ★ 実DOMでbbox計算（これが本質）
+const items = Array.from(svgCanvas.children)
+
+let minX = Infinity
+let minY = Infinity
+let maxX = -Infinity
+let maxY = -Infinity
+
+items.forEach(el=>{
+
+if(!el.getBBox) return
+
+const box = el.getBBox()
+const matrix = el.getCTM()
+
+const points = [
+svgPointFrom(svgCanvas, box.x, box.y),
+svgPointFrom(svgCanvas, box.x + box.width, box.y),
+svgPointFrom(svgCanvas, box.x, box.y + box.height),
+svgPointFrom(svgCanvas, box.x + box.width, box.y + box.height)
+].map(p => p.matrixTransform(matrix))
+
+const xs = points.map(p=>p.x)
+const ys = points.map(p=>p.y)
+
+minX = Math.min(minX, ...xs)
+minY = Math.min(minY, ...ys)
+maxX = Math.max(maxX, ...xs)
+maxY = Math.max(maxY, ...ys)
+
+})
+
+const clone = svgCanvas.cloneNode(true)
+
+// 不要要素削除
+clone.querySelectorAll(".bbox,.handle,.rotateHandle,.moveHandle")
+.forEach(e=>e.remove())
+
+const g = document.createElementNS("http://www.w3.org/2000/svg","g")
+
+while(clone.firstChild){
+g.appendChild(clone.firstChild)
+}
+
+clone.appendChild(g)
+
+const padding = 10
+
+g.setAttribute(
+"transform",
+`translate(${-minX + padding}, ${-minY + padding})`
+)
+
+const width = (maxX - minX) + padding*2
+const height = (maxY - minY) + padding*2
+
+clone.setAttribute("viewBox", `0 0 ${width} ${height}`)
+clone.setAttribute("width", width)
+clone.setAttribute("height", height)
+
+// ★ ダウンロード
+const data = new XMLSerializer().serializeToString(clone)
+const blob = new Blob([data],{type:"image/svg+xml"})
+
+const a=document.createElement("a")
+a.href = URL.createObjectURL(blob)
+a.download="edited.svg"
+a.click()
+
+}
+
+</script>
+
+</body>
+</html>
