@@ -113,14 +113,11 @@ transform:scale(0.98);
 
 .ball{
   position:absolute;
-  width:70%;
-  height:70%;
-  top:15%;
-  left:15%;
+  width:90%;
+  height:90%;
+  top:5%;
+  left:5%;
   border-radius:50%;
-  background:
-    radial-gradient(circle at 30% 30%, #fff, #aaa 40%, #444 80%),
-    radial-gradient(circle at 70% 70%, rgba(255,255,255,0.3), transparent);
 }
 
 .hint{
@@ -169,9 +166,10 @@ transform:scale(0.98);
   position:absolute;
   width:40px;
   height:40px;
-  border-radius:50%;
-  background:radial-gradient(circle at 30% 30%, #fff, #888);
-  transition:all 0.25s ease;
+  pointer-events:none;
+  transition: transform 0.3s ease; /* ←時間もここで調整 */
+
+  transform: translate(-50%, -50%);
 }
 
 .fadeOut{
@@ -275,8 +273,36 @@ function startStage(stage){
   showScreen("gameScreen")
 }
 
+const ballImages = [
+  "./../../assets/img/brainvita_02.png",
+  "./../../assets/img/brainvita_03.png",
+  "./../../assets/img/brainvita_04.png",
+  "./../../assets/img/brainvita_05.png",
+]
+
+const preloadedImages = []
+
+ballImages.forEach(src=>{
+  const img = new Image()
+  img.src = src
+  preloadedImages.push(img)
+})
+
 function initGame(){
-  board = JSON.parse(JSON.stringify(stages[currentStage]))
+  const raw = stages[currentStage]
+
+  board = raw.map(row =>
+    row.map(v=>{
+      if(v===1){
+        return {
+          type:"ball",
+          img: Math.floor(Math.random()*ballImages.length)
+        }
+      }
+      return v // 0 or -1
+    })
+  )
+
   selected = null
   highlights = []
   score = 0
@@ -303,15 +329,22 @@ function render(){
         cell.classList.add("hole")
 
         // ヒント表示
-        if(showHints && board[y][x] === 1){
+        if(showHints && board[y][x]?.type === "ball"){
           if(getMoves(x,y).length > 0){
             cell.classList.add("hint")
           }
         }
 
-        if(board[y][x] === 1){
-          const ball = document.createElement("div")
+        if(board[y][x]?.type === "ball"){
+          const ball = document.createElement("img")
           ball.className="ball"
+
+          const imgIndex = board[y][x].img
+          ball.src = ballImages[imgIndex]
+          ball.style.backgroundSize = "contain"
+          ball.style.backgroundPosition = "center"
+          ball.style.backgroundRepeat = "no-repeat"
+
           cell.appendChild(ball)
         }
 
@@ -345,7 +378,7 @@ function onCellClick(x,y){
     return
   }
 
-  if(board[y][x]===1){
+  if(board[y][x]?.type === "ball"){
 
     if(selected && selected.x===x && selected.y===y){
       selected=null
@@ -378,7 +411,7 @@ function getMoves(x,y){
     const mx = x + d.dx/2
     const my = y + d.dy/2
 
-    if(inBounds(nx,ny) && board[ny][nx]===0 && board[my][mx]===1){
+    if(inBounds(nx,ny) && board[ny][nx]===0 && board[my][mx]?.type === "ball"){
       moves.push({x:nx,y:ny})
     }
   }
@@ -392,14 +425,16 @@ function inBounds(x,y){
 
 function move(x,y,nx,ny){
 
-  animateMove(x,y,nx,ny)
+  animateMove(x,y,nx,ny, board[y][x].img)
 
   const mx = (x+nx)/2
   const my = (y+ny)/2
 
-  board[y][x]=0
-  board[my][mx]=0
-  board[ny][nx]=1
+  const movingBall = board[y][x]
+
+  board[y][x] = 0
+  board[my][mx] = 0
+  board[ny][nx] = movingBall
 
   score++
 }
@@ -414,36 +449,32 @@ function getCellCenter(x,y){
   }
 }
 
-function animateMove(x,y,nx,ny){
+function animateMove(x,y,nx,ny,imgIndex){
 
   const from = getCellCenter(x,y)
   const to = getCellCenter(nx,ny)
   const mid = getCellCenter((x+nx)/2,(y+ny)/2)
 
-  const ball = document.createElement("div")
+  const ball = document.createElement("img")
   ball.className="animBall"
+  ball.src = ballImages[imgIndex]
+
+  // 初期位置（transformで置く）
   ball.style.left = from.x + "px"
   ball.style.top = from.y + "px"
-
-  const jump = document.createElement("div")
-  jump.className="animBall"
-  jump.style.left = mid.x + "px"
-  jump.style.top = mid.y + "px"
+  ball.style.transform = "translate(-50%, -50%)"
 
   document.getElementById("animLayer").appendChild(ball)
-  document.getElementById("animLayer").appendChild(jump)
 
   requestAnimationFrame(()=>{
-    ball.style.left = to.x + "px"
-    ball.style.top = to.y + "px"
-
-    jump.classList.add("fadeOut")
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    ball.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`
   })
 
   setTimeout(()=>{
     ball.remove()
-    jump.remove()
-  },250)
+  },300) // ← CSSと合わせる
 }
 
 // ===== Undo =====
@@ -485,7 +516,7 @@ function toggleHint(){
 function hasMoves(){
   for(let y=0;y<7;y++){
     for(let x=0;x<7;x++){
-      if(board[y][x]===1){
+      if(board[y][x]?.type === "ball"){
         if(getMoves(x,y).length>0) return true
       }
     }
@@ -497,7 +528,7 @@ function countBalls(){
   let c=0
   for(let row of board){
     for(let v of row){
-      if(v===1) c++
+      if(v?.type === "ball") c++
     }
   }
   return c
