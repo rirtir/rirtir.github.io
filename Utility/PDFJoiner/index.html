@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>PDF結合ツール</title>
+
+<link rel="stylesheet" href="./../../css/common-style.css">
+<link rel="stylesheet" href="./../../css/common-style2.css">
+
+<style>
+#pages{display:flex;flex-wrap:wrap;gap:10px}
+.page{border:1px solid #ccc;padding:5px;width:120px;background:#fff}
+.page canvas{width:100%;height:auto}
+</style>
+
+</head>
+<body>
+<h1>PDF結合ツール</h1>
+<div id="dropArea">PDFをドラッグ&ドロップ or クリック</div>
+<input type="file" id="fileInput" accept="application/pdf" multiple hidden>
+<div id="pages"></div>
+<button id="downloadBtn">PDFをダウンロード</button>
+
+<script type="module">
+import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs";
+import { PDFDocument } from "https://cdn.jsdelivr.net/npm/pdf-lib/+esm";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs";
+
+const dropArea=document.getElementById("dropArea")
+const fileInput=document.getElementById("fileInput")
+const pagesDiv=document.getElementById("pages")
+const downloadBtn=document.getElementById("downloadBtn")
+
+let pages=[]
+
+// {pdfBytes, pageIndex, rotation}
+
+function render(){
+pagesDiv.innerHTML=""
+
+pages.forEach((p,i)=>{
+const div=document.createElement("div")
+div.className="page"
+div.draggable=true
+
+const canvas=document.createElement("canvas")
+div.appendChild(canvas)
+
+const ctrl=document.createElement("div")
+ctrl.className="controls"
+
+const rotBtn=document.createElement("button")
+rotBtn.textContent="回転"
+rotBtn.onclick=()=>{
+p.rotation=(p.rotation+90)%360
+render()
+}
+
+const delBtn=document.createElement("button")
+delBtn.textContent="削除"
+delBtn.onclick=()=>{
+pages.splice(i,1)
+render()
+}
+
+ctrl.appendChild(rotBtn)
+ctrl.appendChild(delBtn)
+
+div.appendChild(ctrl)
+
+// drag
+
+div.ondragstart=e=>e.dataTransfer.setData("i",i)
+div.ondragover=e=>e.preventDefault()
+div.ondrop=e=>{
+const from=e.dataTransfer.getData("i")
+const temp=pages[from]
+pages.splice(from,1)
+pages.splice(i,0,temp)
+render()
+}
+
+pagesDiv.appendChild(div)
+
+// preview
+renderPage(p,canvas)
+})
+}
+
+async function renderPage(p,canvas){
+const pdf=await pdfjsLib.getDocument({data:p.pdfBytes}).promise
+const page=await pdf.getPage(p.pageIndex+1)
+
+const viewport=page.getViewport({scale:0.5,rotation:p.rotation})
+canvas.width=viewport.width
+canvas.height=viewport.height
+
+await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise
+}
+
+async function addFile(file){
+const bytes=new Uint8Array(await file.arrayBuffer())
+const pdf=await pdfjsLib.getDocument({data:bytes}).promise
+
+for(let i=0;i<pdf.numPages;i++){
+pages.push({pdfBytes:bytes,pageIndex:i,rotation:0})
+}
+
+render()
+}
+
+// UI
+
+dropArea.onclick=()=>fileInput.click()
+fileInput.onchange=e=>{
+for(const f of e.target.files) addFile(f)
+}
+
+dropArea.ondragover=e=>e.preventDefault()
+dropArea.ondrop=e=>{
+e.preventDefault()
+for(const f of e.dataTransfer.files) addFile(f)
+}
+
+// export
+
+downloadBtn.onclick=async()=>{
+const out=await PDFDocument.create()
+
+for(const p of pages){
+const src=await PDFDocument.load(p.pdfBytes)
+const [copied]=await out.copyPages(src,[p.pageIndex])
+
+copied.setRotation(p.rotation)
+out.addPage(copied)
+}
+
+const pdfBytes=await out.save()
+const blob=new Blob([pdfBytes],{type:"application/pdf"})
+const url=URL.createObjectURL(blob)
+
+const a=document.createElement("a")
+a.href=url
+a.download="merged.pdf"
+a.click()
+URL.revokeObjectURL(url)
+}
+
+</script>
+</body>
+</html>

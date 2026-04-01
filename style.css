@@ -33,6 +33,18 @@ margin:0;
 font-size:var(--font-title);
 }
 
+/* ===== Footer ===== */
+
+footer{
+width: 100%;
+height: 100px;
+background-color: #000000;
+margin: 0 auto;
+display: flex;
+justify-content: center;
+align-items: center;
+}
+
 /* ===== Container ===== */
 
 #container{
@@ -41,6 +53,83 @@ margin:auto;
 padding:var(--space-l);
 }
 
+/* ===== Toolbar ===== */
+
+.toolbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+margin-bottom:24px;
+flex-wrap:wrap;
+}
+
+/* ===== Toggle Buttons ===== */
+
+.filter-toggle{
+display:flex;
+background:#1a1d25;
+border-radius:999px;
+padding:4px;
+border:1px solid #333;
+}
+
+.filter-toggle button{
+background:transparent;
+border:none;
+color:#aaa;
+padding:6px 14px;
+border-radius:999px;
+cursor:pointer;
+font-size:13px;
+transition:0.2s;
+}
+
+/* hover */
+.filter-toggle button:hover{
+color:#fff;
+}
+
+/* active */
+.filter-toggle button.active{
+background:#4da3ff;
+color:#fff;
+box-shadow:0 0 10px rgba(77,163,255,0.3);
+}
+
+/* ===== Search Box ===== */
+
+.search-box{
+position:relative;
+flex:1;
+max-width:320px;
+}
+
+.search-box .icon{
+position:absolute;
+left:12px;
+top:50%;
+transform:translateY(-50%);
+opacity:0.5;
+}
+
+#search{
+width:100%;
+padding:10px 14px 10px 36px;
+border-radius:999px;
+border:1px solid #333;
+background:#1a1d25;
+color:#fff;
+font-size:14px;
+border-color:#4da3ff;
+outline:none;
+transition:0.2s;
+}
+
+#search:focus{
+border-color:#ffffff;
+box-shadow:0 0 0 2px rgba(77,163,255,0.2);
+}
 /* ===== Category ===== */
 
 .category{
@@ -82,6 +171,15 @@ transform:translateY(-2px);
 .card p{
 margin:5px 0 0 0;
 font-size:var(--font-small);
+opacity:0.7;
+}
+
+.tag{
+font-size:10px;
+background:#333;
+padding:2px 6px;
+border-radius:6px;
+margin-right:4px;
 opacity:0.7;
 }
 
