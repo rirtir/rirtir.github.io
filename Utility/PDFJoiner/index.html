@@ -102,11 +102,20 @@ await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise
 }
 
 async function addFile(file){
-const bytes=new Uint8Array(await file.arrayBuffer())
-const pdf=await pdfjsLib.getDocument({data:bytes}).promise
+const buf = await file.arrayBuffer()
+
+const bytesForPdfJs = new Uint8Array(buf.slice(0))
+const bytesForLib = new Uint8Array(buf)
+
+const pdf = await pdfjsLib.getDocument({data:bytesForPdfJs}).promise
 
 for(let i=0;i<pdf.numPages;i++){
-pages.push({pdfBytes:bytes,pageIndex:i,rotation:0})
+pages.push({
+pdfBytes: bytesForPdfJs,
+libBytes: bytesForLib,
+pageIndex: i,
+rotation: 0
+})
 }
 
 render()
@@ -131,7 +140,7 @@ downloadBtn.onclick=async()=>{
 const out=await PDFDocument.create()
 
 for(const p of pages){
-const src=await PDFDocument.load(p.pdfBytes)
+const src = await PDFDocument.load(p.libBytes)
 const [copied]=await out.copyPages(src,[p.pageIndex])
 
 copied.setRotation(p.rotation)

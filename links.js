@@ -25,8 +25,8 @@ const data = [
             },
             {
                 title: "ブレインビータ",
-                url: "https://rirtir.com/Game/BrainBeater/",
-                desc: "玉を飛び越して消していくゲーム",
+                url: "https://rirtir.com/Game/BrainVita/",
+                desc: "玉を飛び越して消していくゲーム。楽しいよ",
                 tags: ["ソロ", "やり込み", "ゲーム"],
                 main: true,
             },

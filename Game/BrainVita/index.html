@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ブレインビータ</title>
+
+<style>
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:#f5f5f5;
+  display:flex;
+  justify-content:center;
+}
+
+/* ===== 共通画面 ===== */
+
+.screen{
+  width:100%;
+  max-width:500px;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  padding:20px;
+  box-sizing:border-box;
+}
+
+.active{
+  display:flex;
+}
+
+/* ===== タイトル ===== */
+
+h1{
+  font-size:clamp(32px,10vw,60px);
+}
+
+/* ===== ボタン ===== */
+
+button{
+  border:none;
+  background:#007bff;
+  color:white;
+  padding:10px 14px;
+  border-radius:8px;
+  font-size:16px;
+  margin:5px;
+}
+
+button.danger{
+  background:#d9534f;
+}
+
+/* ===== ゲーム ===== */
+
+#topBar{
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+#buttons{
+  display:flex;
+  gap:5px;
+}
+
+#board{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:6px;
+  width:90vw;
+  max-width:420px;
+  aspect-ratio:1;
+  margin-top:10px;
+}
+
+.cell{
+  position:relative;
+  border-radius:50%;
+  background:#ddd;
+}
+
+.hole{
+  background:#bbb;
+}
+
+.invalid{
+  visibility:hidden;
+}
+
+.ball{
+  position:absolute;
+  width:70%;
+  height:70%;
+  top:15%;
+  left:15%;
+  border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, #fff, #888);
+}
+
+.selected{
+  outline:3px solid #007bff;
+}
+
+.highlight{
+  background:#aaf;
+}
+
+/* ===== ポップアップ ===== */
+
+#popup{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.4);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+#popupContent{
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  text-align:center;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- ===== スタート ===== -->
+<div id="startScreen" class="screen active">
+  <h1>ブレインビータ</h1>
+  <h2>ステージ選択</h2>
+  <button onclick="startStage(1)">ステージ1</button>
+</div>
+
+<!-- ===== ゲーム ===== -->
+<div id="gameScreen" class="screen">
+
+  <div id="topBar">
+    <div id="score">スコア: 0</div>
+    <div id="buttons">
+      <button onclick="undo()">Undo</button>
+      <button onclick="confirmAction('restart')">リスタート</button>
+      <button onclick="confirmAction('title')">タイトル</button>
+    </div>
+  </div>
+
+  <div id="board"></div>
+
+</div>
+
+<!-- ===== リザルト ===== -->
+<div id="resultScreen" class="screen">
+  <h2 id="resultText"></h2>
+  <p id="resultScore"></p>
+  <button onclick="retry()">もう一度</button>
+  <button onclick="goTitle()">タイトルへ</button>
+</div>
+
+<!-- ===== ポップアップ ===== -->
+<div id="popup">
+  <div id="popupContent">
+    <p id="popupText"></p>
+    <button onclick="doConfirm()">はい</button>
+    <button onclick="closePopup()">いいえ</button>
+  </div>
+</div>
+
+<script>
+
+// ===== ステージ管理 =====
+const stages = {
+  1: [
+    [-1,-1,1,1,1,-1,-1],
+    [-1,-1,1,1,1,-1,-1],
+    [1,1,1,1,1,1,1],
+    [1,1,1,0,1,1,1],
+    [1,1,1,1,1,1,1],
+    [-1,-1,1,1,1,-1,-1],
+    [-1,-1,1,1,1,-1,-1],
+  ]
+}
+
+let currentStage = 1
+let board, selected, highlights, score
+let history = []
+let showHints = false
+
+let pendingAction = null
+
+const boardEl = document.getElementById("board")
+const scoreEl = document.getElementById("score")
+
+// ===== 画面切り替え =====
+
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"))
+  document.getElementById(id).classList.add("active")
+}
+
+// ===== ゲーム開始 =====
+
+function startStage(stage){
+  currentStage = stage
+  initGame()
+  showScreen("gameScreen")
+}
+
+function initGame(){
+  board = JSON.parse(JSON.stringify(stages[currentStage]))
+  selected = null
+  highlights = []
+  score = 0
+  history = []
+  render()
+}
+
+// ===== 描画 =====
+
+function render(){
+
+  boardEl.innerHTML=""
+  scoreEl.textContent = "スコア: " + score
+
+  for(let y=0;y<7;y++){
+    for(let x=0;x<7;x++){
+
+      const cell = document.createElement("div")
+      cell.className="cell"
+
+      if(board[y][x] === -1){
+        cell.classList.add("invalid")
+      }else{
+        cell.classList.add("hole")
+
+        if(board[y][x] === 1){
+          const ball = document.createElement("div")
+          ball.className="ball"
+          cell.appendChild(ball)
+        }
+
+        if(selected && selected.x===x && selected.y===y){
+          cell.classList.add("selected")
+        }
+
+        if(highlights.some(h=>h.x===x && h.y===y)){
+          cell.classList.add("highlight")
+        }
+
+        cell.onclick=()=>onCellClick(x,y)
+      }
+
+      boardEl.appendChild(cell)
+    }
+  }
+}
+
+// ===== クリック処理 =====
+
+function onCellClick(x,y){
+
+  if(highlights.some(h=>h.x===x && h.y===y)){
+    saveHistory()
+    move(selected.x, selected.y, x, y)
+    selected=null
+    highlights=[]
+    render()
+    checkGameEnd()
+    return
+  }
+
+  if(board[y][x]===1){
+
+    if(selected && selected.x===x && selected.y===y){
+      selected=null
+      highlights=[]
+    }else{
+      selected={x,y}
+      highlights = getMoves(x,y)
+    }
+
+    render()
+  }
+}
+
+// ===== 移動 =====
+
+function getMoves(x,y){
+
+  const dirs = [
+    {dx:2, dy:0},
+    {dx:-2, dy:0},
+    {dx:0, dy:2},
+    {dx:0, dy:-2},
+  ]
+
+  const moves=[]
+
+  for(const d of dirs){
+    const nx = x + d.dx
+    const ny = y + d.dy
+    const mx = x + d.dx/2
+    const my = y + d.dy/2
+
+    if(inBounds(nx,ny) && board[ny][nx]===0 && board[my][mx]===1){
+      moves.push({x:nx,y:ny})
+    }
+  }
+
+  return moves
+}
+
+function inBounds(x,y){
+  return y>=0 && y<7 && x>=0 && x<7 && board[y][x]!==-1
+}
+
+function move(x,y,nx,ny){
+  const mx = (x+nx)/2
+  const my = (y+ny)/2
+
+  board[y][x]=0
+  board[my][mx]=0
+  board[ny][nx]=1
+
+  score++
+}
+
+// ===== Undo =====
+
+function saveHistory(){
+  history.push({
+    board: JSON.parse(JSON.stringify(board)),
+    score
+  })
+}
+
+function undo(){
+  if(history.length===0) return
+  const prev = history.pop()
+  board = prev.board
+  score = prev.score
+  selected=null
+  highlights=[]
+  render()
+}
+
+// ===== 詰み判定 =====
+
+function hasMoves(){
+  for(let y=0;y<7;y++){
+    for(let x=0;x<7;x++){
+      if(board[y][x]===1){
+        if(getMoves(x,y).length>0) return true
+      }
+    }
+  }
+  return false
+}
+
+function countBalls(){
+  let c=0
+  for(let row of board){
+    for(let v of row){
+      if(v===1) c++
+    }
+  }
+  return c
+}
+
+function checkGameEnd(){
+  const balls = countBalls()
+
+  if(balls===1){
+    showResult(true)
+  }else if(!hasMoves()){
+    showResult(false)
+  }
+}
+
+// ===== リザルト =====
+
+function showResult(clear){
+  document.getElementById("resultText").textContent =
+    clear ? "クリア！" : "詰み…"
+
+  document.getElementById("resultScore").textContent =
+    "スコア: " + score + " / 残り: " + countBalls()
+
+  showScreen("resultScreen")
+}
+
+function retry(){
+  initGame()
+  showScreen("gameScreen")
+}
+
+function goTitle(){
+  showScreen("startScreen")
+}
+
+// ===== ポップアップ =====
+
+function confirmAction(type){
+  pendingAction = type
+
+  document.getElementById("popupText").textContent =
+    type==="restart" ? "リスタートしますか？" : "タイトルに戻りますか？"
+
+  document.getElementById("popup").style.display="flex"
+}
+
+function closePopup(){
+  document.getElementById("popup").style.display="none"
+}
+
+function doConfirm(){
+  closePopup()
+
+  if(pendingAction==="restart"){
+    initGame()
+  }else if(pendingAction==="title"){
+    showScreen("startScreen")
+  }
+}
+
+</script>
+
+</body>
+</html>
