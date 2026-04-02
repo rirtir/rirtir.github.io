@@ -181,6 +181,13 @@ const data = [
                 tags: ["画像", "圧縮"],
                 main: true,
             },
+            {
+                title: "Gravit Designer",
+                url: "https://gravitdesign.com/index.html",
+                desc: "ブラウザでSVG編集が可能",
+                tags: ["画像", "SVG"],
+                main: true,
+            },
         ]
     }
 ]
