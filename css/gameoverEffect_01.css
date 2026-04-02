@@ -1,0 +1,22 @@
+/* テキスト */
+.gameoverText {
+  font-size: 56px;
+  font-weight: bold;
+  color: #fff;
+
+  text-shadow:
+    0 0 12px rgba(88, 30, 182, 0.877),
+    0 0 24px rgba(158, 65, 85, 0.514);
+
+  opacity: 0;
+  transform: translateY(-40px);
+
+  animation: fadeIn 1s forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

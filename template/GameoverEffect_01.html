@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Over Effect</title>
+
+<style>
+body {
+  margin: 0;
+  height: 100vh;
+  background: #222;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: sans-serif;
+  color: #fff;
+}
+
+/* ボタン */
+button {
+  padding: 12px 24px;
+  font-size: 18px;
+  background: #555;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* オーバーレイ */
+#overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* テキスト */
+.gameOverText {
+  font-size: 56px;
+  font-weight: bold;
+  color: #fff;
+
+  text-shadow:
+    0 0 12px rgba(88, 30, 182, 0.877),
+    0 0 24px rgba(241, 84, 84, 0.514);
+
+  opacity: 0;
+  transform: translateY(-40px);
+
+  animation: fadeIn 1s forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ライン */
+.line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255,255,255,0.8),
+    transparent
+  );
+
+  opacity: 0.8;
+}
+
+/* パーティクル */
+.particle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.7);
+}
+</style>
+</head>
+
+<body>
+
+<button id="btn">ゲームオーバー再生</button>
+<div id="overlay"></div>
+
+<script>
+const btn = document.getElementById('btn');
+const overlay = document.getElementById('overlay');
+
+btn.addEventListener('click', () => {
+  showGameOver();
+});
+
+function showGameOver() {
+  overlay.innerHTML = '';
+
+  // ===== ラッパー =====
+  const wrapper = document.createElement('div');
+  wrapper.style.position = 'absolute';
+  wrapper.style.left = '50%';
+  wrapper.style.top = '50%';
+  wrapper.style.transform = 'translate(-50%, -50%)';
+  wrapper.style.textAlign = 'center';
+  overlay.appendChild(wrapper);
+
+  // ===== テキスト =====
+  const text = document.createElement('div');
+  text.className = 'gameOverText';
+  text.innerText = 'GAME OVER';
+  wrapper.appendChild(text);
+
+  const duration = 1400;
+}
+</script>
+
+</body>
+</html>

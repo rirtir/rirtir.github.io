@@ -1,0 +1,56 @@
+/* テキスト */
+.clearText {
+  font-size: 48px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow:
+    0 0 8px #fff,
+    0 0 16px #ff0,
+    0 0 24px #f0f;
+  transform: scale(0);
+  opacity: 0;
+  animation: popText 1s forwards;
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes popText {
+  0% { transform: scale(0); opacity: 0; }
+  1% { transform: scale(2); opacity: 1; }
+  15% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 横ライン */
+.clearLine {
+  position: absolute;
+  left: 0;
+  height: 0px;
+  width: 100%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    #fff,
+    rgb(255, 255, 148),
+    #fff,
+    transparent
+  );
+  /* filter: blur(2px); */
+  top: 100%;
+  margin-top: -18px; /* ← 微調整用（例: -24px） */
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+/* パーティクル */
+.particle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: rgb(255, 243, 174);
+  clip-path: polygon(
+    50% 0%, 55% 45%, 75% 50%, 55% 55%, 50% 100%, 45% 55%, 25% 50%, 45% 45%
+  );
+  transform: translate(0,0) scale(1);
+  opacity: 1;
+}
