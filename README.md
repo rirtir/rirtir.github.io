@@ -59,3 +59,5 @@ https://unpkg.com/@ffmpeg/core@0.12.6/dist/, https://unpkg.com/@ffmpeg/ffmpeg@0.
 
 一部アイコン利用  
 https://icooon-mono.com/
+
+<a target="_blank" href="https://icons8.com/icon/8169/paste">Paste</a> アイコン by <a target="_blank" href="https://icons8.com">Icons8</a>

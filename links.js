@@ -149,6 +149,13 @@ const data = [
                 desc: "jsonlの学習結果をグラフに起こすだけのツール",
                 tags: ["個人用"],
                 main: false,
+            },
+            {
+                title: "文字列の総当たりツール",
+                url: "https://rirtir.com/Utility/RoundRobinString/",
+                desc: "総当たり的に文字列の組み合わせを生成するツール",
+                tags: ["個人用"],
+                main: true,
             }
         ]
     },

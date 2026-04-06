@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>変数展開ツール</title>
+
+<style>
+
+/* =========================
+  全体スクロール制御
+========================= */
+
+html, body{
+height:100%;
+margin:0;
+overflow:hidden; /* ★ 不要な全体スクロール防止 */
+font-family:sans-serif;
+}
+
+.container{
+display:flex;
+height:100%;
+}
+
+/* =========================
+  左
+========================= */
+
+.controls{
+flex:1;
+padding:10px;
+box-sizing:border-box;
+
+display:flex;
+flex-direction:column;
+gap:10px;
+
+overflow-y:auto;   /* ★ 縦だけスクロール */
+overflow-x:hidden; /* ★ 横スクロール禁止 */
+}
+
+/* =========================
+  右
+========================= */
+
+.preview{
+flex:1;
+padding:10px;
+background:#eee;
+
+overflow-y:auto;
+overflow-x:hidden;
+}
+
+/* =========================
+  出力
+========================= */
+
+.result{
+background:white;
+padding:10px;
+border:1px solid #ccc;
+
+white-space:pre-wrap;
+word-break:break-word;
+overflow-wrap:anywhere;
+}
+
+/* =========================
+  変数
+========================= */
+
+.varBox{
+border:1px solid #aaa;
+padding:8px;
+background:white;
+}
+
+.varHeader{
+display:flex;
+gap:5px;
+margin-bottom:5px;
+}
+
+.itemList{
+display:flex;
+flex-direction:column;
+gap:4px;
+}
+
+/* 横いっぱい */
+.itemRow{
+display:flex;
+gap:5px;
+width:100%;
+align-items:flex-start;
+}
+
+/* ★ 自動高さテキスト */
+.itemInput{
+flex:1;
+resize:none;         /* 手動リサイズ禁止 */
+min-height:28px;     /* ★ 初期高さ */
+line-height:1.4;
+padding:4px;
+
+/* 折り返し */
+white-space:pre-wrap;
+word-break:break-word;
+overflow:hidden;     /* ★ 高さ制御用 */
+}
+
+/* =========================
+  テンプレート
+========================= */
+
+#template{
+width:100%;
+min-height:120px;  /* ★ 最低高さを保証 */
+resize:vertical;
+}
+
+/* =========================
+  ボタン
+========================= */
+
+button{
+padding:8px;
+border:none;
+background:#007bff;
+color:white;
+border-radius:5px;
+cursor:pointer;
+}
+
+button:hover{
+background:#0056b3;
+}
+
+.checkbox{
+transform: scale(1.5);
+}
+
+#toast {
+position: fixed;
+top: 20px;
+right: 20px;
+background: #333;
+color: white;
+padding: 10px 16px;
+border-radius: 6px;
+opacity: 0;
+transform: translateY(-20px);
+transition: all 0.3s ease;
+pointer-events: none;
+}
+
+#toast.show {
+opacity: 1;
+transform: translateY(0);
+}
+
+/* スマホ */
+@media (max-width:800px){
+.container{
+flex-direction:column;
+height:auto;
+}
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- 左 -->
+<div class="controls">
+
+<button id="addVar">変数追加</button>
+
+<div id="varList"></div>
+
+<textarea id="template" placeholder="例：買い物：{hoge}を{fuga}個"></textarea>
+
+<button id="generate">生成</button>
+<button id="copyAll">結果をコピー</button>
+
+<div id="toast">コピーしました</div>
+
+</div>
+
+<!-- 右 -->
+<div class="preview">
+<div id="output" class="result"></div>
+</div>
+
+</div>
+
+<script>
+
+// =========================
+// データ
+// =========================
+
+let variables = []
+
+// =========================
+// 自動高さ調整
+// =========================
+
+function autoResize(el){
+
+el.style.height = "auto"
+el.style.height = el.scrollHeight + "px"
+
+}
+
+// =========================
+// 変数追加
+// =========================
+
+document.getElementById("addVar").onclick = ()=>{
+
+variables.push({
+name:"",
+items:[]
+})
+
+renderVars()
+
+}
+
+// =========================
+// UI描画
+// =========================
+
+function renderVars(){
+
+const container = document.getElementById("varList")
+container.innerHTML = ""
+
+variables.forEach((v,vi)=>{
+
+const box = document.createElement("div")
+box.className = "varBox"
+
+// ヘッダー
+const header = document.createElement("div")
+header.className = "varHeader"
+
+const nameInput = document.createElement("input")
+nameInput.placeholder = "変数名"
+nameInput.value = v.name
+
+nameInput.oninput = e=>{
+v.name = e.target.value
+}
+
+// ＋
+const addItemBtn = document.createElement("button")
+addItemBtn.textContent = "+"
+
+addItemBtn.onclick = ()=>{
+v.items.push({text:"", enabled:true})
+renderVars()
+}
+
+// ペースト
+const pasteBtn = document.createElement("button")
+
+const img = document.createElement("img")
+img.src = "./../../assets/icons/paste.png"
+img.width = 20
+img.height = 20
+img.alt = "paste"
+
+pasteBtn.appendChild(img)
+
+pasteBtn.onclick = async ()=>{
+
+try{
+const text = await navigator.clipboard.readText()
+
+const lines = text.split(/\r?\n/).filter(l=>l.trim()!=="")
+
+lines.forEach(l=>{
+v.items.push({text:l, enabled:true})
+})
+
+renderVars()
+
+}catch{
+alert("クリップボード取得失敗")
+}
+
+}
+
+header.appendChild(nameInput)
+header.appendChild(addItemBtn)
+header.appendChild(pasteBtn)
+
+box.appendChild(header)
+
+// アイテム
+const list = document.createElement("div")
+list.className = "itemList"
+
+v.items.forEach((item,ii)=>{
+
+const row = document.createElement("div")
+row.className = "itemRow"
+
+// チェック
+const checkbox = document.createElement("input")
+checkbox.type = "checkbox"
+checkbox.className = "checkbox"
+checkbox.checked = item.enabled
+
+checkbox.onchange = e=>{
+item.enabled = e.target.checked
+}
+
+// テキスト
+const input = document.createElement("textarea")
+input.className = "itemInput"
+input.value = item.text
+
+// ★ 入力時に自動伸長
+input.oninput = e=>{
+item.text = e.target.value
+autoResize(input)
+}
+
+// 初期サイズ調整
+setTimeout(()=>autoResize(input),0)
+
+// 削除
+const del = document.createElement("button")
+del.textContent = "×"
+
+del.onclick = ()=>{
+v.items.splice(ii,1)
+renderVars()
+}
+
+row.appendChild(checkbox)
+row.appendChild(input)
+row.appendChild(del)
+
+list.appendChild(row)
+
+})
+
+box.appendChild(list)
+container.appendChild(box)
+
+})
+
+}
+
+// =========================
+// 総当たり
+// =========================
+
+function generateCombinations(vars){
+
+if(vars.length === 0) return [{}]
+
+const [first, ...rest] = vars
+const restComb = generateCombinations(rest)
+
+const result = []
+
+first.items
+.filter(i=>i.enabled && i.text!=="")
+.forEach(item=>{
+
+restComb.forEach(r=>{
+result.push({
+...r,
+[first.name]: item.text
+})
+})
+
+})
+
+return result
+
+}
+
+// =========================
+// テンプレ
+// =========================
+
+function applyTemplate(template, data){
+
+let str = template
+
+for(const key in data){
+const reg = new RegExp(`\\{${key}\\}`, "g")
+str = str.replace(reg, data[key])
+}
+
+return str
+
+}
+
+// =========================
+// 生成
+// =========================
+
+document.getElementById("generate").onclick = ()=>{
+
+const template = document.getElementById("template").value
+
+const validVars = variables.filter(v=>v.name)
+
+const combos = generateCombinations(validVars)
+
+const results = combos.map(c=>applyTemplate(template,c))
+
+document.getElementById("output").textContent = results.join("\n")
+
+}
+
+// =========================
+// コピー
+// =========================
+
+document.getElementById("copyAll").onclick = ()=>{
+
+const text = document.getElementById("output").textContent
+
+navigator.clipboard.writeText(text)
+.then(()=>{
+showToast("コピーしました")
+})
+.catch(()=>{
+showToast("コピー失敗")
+})
+
+}
+
+// Show toast notification
+function showToast(message){
+const toast = document.getElementById("toast")
+toast.textContent = message
+toast.classList.add("show")
+
+setTimeout(()=>{
+toast.classList.remove("show")
+}, 2000)
+}
+
+</script>
+
+</body>
+</html>
