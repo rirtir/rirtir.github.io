@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画像リサイズツール</title>
+
+<link rel="stylesheet" href="./../../css/common-style.css">
+<link rel="stylesheet" href="./../../css/common-style2.css">
+
+<style>
+#controls{
+display:none;
+}
+
+.row{
+display:flex;
+gap:10px;
+align-items:center;
+flex-wrap:wrap;
+}
+
+input[type="number"]{
+width:100px;
+padding:5px;
+}
+
+.section{
+background:white;
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc;
+}
+</style>
+
+</head>
+<body>
+
+<h1>画像リサイズツール</h1>
+
+<div id="dropArea">
+画像をドラッグ&ドロップ<br>
+またはクリックして選択
+</div>
+
+<input type="file" id="fileInput" accept="image/*" hidden>
+
+<div id="controls">
+
+<div id="info" class="section"></div>
+
+<div class="section">
+<div>サイズ倍率</div>
+
+<label><input type="radio" name="scale" value="2.0"> 2倍</label>
+<label><input type="radio" name="scale" value="1.0"> 1倍</label>
+<label><input type="radio" name="scale" value="0.5"> 1/2</label>
+<label><input type="radio" name="scale" value="0.25"> 1/4</label>
+<label><input type="radio" name="scale" value="0.125"> 1/8</label>
+<label><input type="radio" name="scale" value="custom" checked> カスタム</label>
+
+<div class="row">
+幅: <input type="number" id="widthInput">
+高さ: <input type="number" id="heightInput">
+</div>
+</div>
+
+<div class="section">
+<div>リサイズ品質</div>
+
+<label><input type="radio" name="interp" value="average"> low</label>
+<label><input type="radio" name="interp" value="bilinear" checked> medium</label>
+<label><input type="radio" name="interp" value="bicubic"> high</label>
+<label><input type="radio" name="interp" value="lanczos"> lanczos</label>
+</div>
+
+<button id="downloadBtn">ダウンロード</button>
+
+<canvas id="canvas"></canvas>
+
+</div>
+
+<script>
+const dropArea = document.getElementById("dropArea")
+const fileInput = document.getElementById("fileInput")
+const info = document.getElementById("info")
+const controls = document.getElementById("controls")
+const canvas = document.getElementById("canvas")
+const ctx = canvas.getContext("2d")
+
+const widthInput = document.getElementById("widthInput")
+const heightInput = document.getElementById("heightInput")
+
+let originalWidth = 0
+let originalHeight = 0
+let image = null
+
+// =========================
+// Drag & Drop（Image2Videoベース）
+// =========================
+
+dropArea.onclick = () => fileInput.click()
+
+fileInput.onchange = e => {
+loadFile(e.target.files[0])
+}
+
+dropArea.ondragover = e => {
+e.preventDefault()
+dropArea.classList.add("dragover")
+}
+
+dropArea.ondrop = e => {
+e.preventDefault()
+dropArea.classList.remove("dragover")
+loadFile(e.dataTransfer.files[0])
+}
+
+// =========================
+// 画像ロード
+// =========================
+
+function loadFile(file){
+
+if(!file || !file.type.startsWith("image")) return
+
+const reader = new FileReader()
+
+reader.onload = ev => {
+const img = new Image()
+
+img.onload = () => {
+
+image = img
+originalWidth = img.width
+originalHeight = img.height
+
+info.textContent = `元解像度: ${originalWidth} x ${originalHeight}`
+
+widthInput.value = originalWidth
+heightInput.value = originalHeight
+
+controls.style.display = "flex"
+
+drawPreview()
+
+}
+
+img.src = ev.target.result
+}
+
+reader.readAsDataURL(file)
+
+}
+
+// =========================
+// スケール操作
+// =========================
+
+document.querySelectorAll('input[name="scale"]').forEach(r => {
+r.onchange = () => {
+
+if(r.value === "custom") return
+
+const scale = parseFloat(r.value)
+
+const w = Math.round(originalWidth * scale)
+const h = Math.round(originalHeight * scale)
+
+widthInput.value = w
+heightInput.value = h
+
+drawPreview()
+
+}
+})
+
+// カスタム変更時 → ラジオをcustomに
+widthInput.oninput = heightInput.oninput = () => {
+
+document.querySelector('input[value="custom"]').checked = true
+drawPreview()
+
+}
+
+// =========================
+// 補間設定
+// =========================
+
+function applyInterpolation(ctx){
+
+const mode = document.querySelector('input[name="interp"]:checked').value
+
+ctx.imageSmoothingEnabled = true
+
+if(mode === "average"){
+ctx.imageSmoothingQuality = "low"
+}
+else if(mode === "bilinear"){
+ctx.imageSmoothingQuality = "medium"
+}
+else if(mode === "bicubic"){
+ctx.imageSmoothingQuality = "high"
+}
+
+}
+
+// Lanczos kernel
+function lanczosKernel(x, a) {
+if (x === 0) return 1
+if (Math.abs(x) > a) return 0
+
+x *= Math.PI
+return (a * Math.sin(x) * Math.sin(x / a)) / (x * x)
+}
+
+// Lanczos resize
+function resizeLanczos(srcCanvas, dstCanvas, a = 3) {
+
+const srcCtx = srcCanvas.getContext("2d")
+const dstCtx = dstCanvas.getContext("2d")
+
+const srcData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height)
+const dstData = dstCtx.createImageData(dstCanvas.width, dstCanvas.height)
+
+const sw = srcCanvas.width
+const sh = srcCanvas.height
+const dw = dstCanvas.width
+const dh = dstCanvas.height
+
+const sx = sw / dw
+const sy = sh / dh
+
+for (let y = 0; y < dh; y++) {
+for (let x = 0; x < dw; x++) {
+
+const srcX = x * sx
+const srcY = y * sy
+
+const ix = Math.floor(srcX)
+const iy = Math.floor(srcY)
+
+let r = 0, g = 0, b = 0, aSum = 0
+let weightSum = 0
+
+for (let j = -a; j <= a; j++) {
+for (let i = -a; i <= a; i++) {
+
+const px = ix + i
+const py = iy + j
+
+if (px < 0 || px >= sw || py < 0 || py >= sh) continue
+
+const dx = (srcX - px) / sx
+const dy = (srcY - py) / sy
+
+const weight =
+lanczosKernel(dx, a) *
+lanczosKernel(dy, a)
+
+const idx = (py * sw + px) * 4
+
+r += srcData.data[idx] * weight
+g += srcData.data[idx + 1] * weight
+b += srcData.data[idx + 2] * weight
+aSum += srcData.data[idx + 3] * weight
+
+weightSum += weight
+}
+}
+
+const di = (y * dw + x) * 4
+
+if(weightSum === 0){
+continue
+}
+
+dstData.data[di]     = r / weightSum
+dstData.data[di + 1] = g / weightSum
+dstData.data[di + 2] = b / weightSum
+dstData.data[di + 3] = aSum / weightSum
+}
+}
+
+dstCtx.putImageData(dstData, 0, 0)
+}
+
+// =========================
+// 描画
+// =========================
+
+function drawPreview(){
+
+if(!image) return
+
+const w = parseInt(widthInput.value)
+const h = parseInt(heightInput.value)
+
+canvas.width = w
+canvas.height = h
+
+const mode = document.querySelector('input[name="interp"]:checked').value
+
+if(mode === "lanczos"){
+
+// 一旦元サイズで描画
+const tempCanvas = document.createElement("canvas")
+tempCanvas.width = originalWidth
+tempCanvas.height = originalHeight
+const tctx = tempCanvas.getContext("2d")
+tctx.drawImage(image, 0, 0)
+
+// Lanczosで縮小
+resizeLanczos(tempCanvas, canvas)
+
+}else{
+
+applyInterpolation(ctx)
+ctx.clearRect(0,0,w,h)
+ctx.drawImage(image, 0, 0, w, h)
+
+}
+
+}
+
+// 補間変更でも再描画
+document.querySelectorAll('input[name="interp"]').forEach(r=>{
+r.onchange = drawPreview
+})
+
+// =========================
+// ダウンロード
+// =========================
+
+document.getElementById("downloadBtn").onclick = () => {
+
+if(!image) return
+
+const link = document.createElement("a")
+link.download = "resized.png"
+link.href = canvas.toDataURL()
+link.click()
+
+}
+
+</script>
+
+</body>
+</html>

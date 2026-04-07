@@ -71,6 +71,13 @@ const data = [
                 main: true,
             },
             {
+                title: "画像リサイズツール",
+                url: "https://rirtir.com/Image/Resize/",
+                desc: "画像のサイズを自由に変更できるツール",
+                tags: ["画像", "画像処理", "オフライン"],
+                main: true,
+            },
+            {
                 title: "動画から画像抽出",
                 url: "https://rirtir.com/Image/Video2Image/",
                 desc: "動画から任意のフレームを抜き出す。",
