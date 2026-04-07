@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>FOV → RE10K Generator</title>
+
+<link rel="stylesheet" href="./../../css/common-style.css">
+<link rel="stylesheet" href="./../../css/common-style2.css">
+<style>
+/* body { font-family: sans-serif; padding: 20px; } */
+label { display: block; margin-top: 10px; }
+textarea { width: 100%; height: 300px; margin-top: 15px; }
+/* .controls { margin-bottom: 20px; } */
+</style>
+</head>
+<body>
+
+<h2>RE10K テキスト生成ツール</h2>
+
+<div class="controls">
+
+  <label>
+    基準距離 (fov=開始値)
+    <input type="range" id="distSlider" min="0.01" max="5" step="0.01" value="0.15">
+  </label>
+  <input type="number" id="distInput" step="0.01" value="0.15">
+
+  <label>開始 FOV</label>
+  <input type="number" id="fovStart" value="120">
+
+  <label>終了 FOV</label>
+  <input type="number" id="fovEnd" value="30">
+
+  <label>FOV ステップ（負値推奨）</label>
+  <input type="number" id="fovStep" value="-0.5">
+
+  <br><br>
+  <button onclick="generate()">生成</button>
+  <button onclick="download()">ダウンロード</button>
+
+</div>
+
+<textarea id="output"></textarea>
+
+<script>
+const WIDTH = 1024;
+const HEIGHT = 1024;
+
+// =========================
+// スライダーと入力の同期
+// =========================
+const slider = document.getElementById("distSlider");
+const input = document.getElementById("distInput");
+
+slider.addEventListener("input", () => {
+  input.value = slider.value;
+});
+
+input.addEventListener("input", () => {
+  slider.value = input.value;
+});
+
+// =========================
+// 焦点距離計算
+// =========================
+function computeF(fov_deg) {
+  const fov_rad = fov_deg * Math.PI / 180;
+  return 0.5 * HEIGHT / Math.tan(fov_rad / 2);
+}
+
+// =========================
+// メイン生成
+// =========================
+function generate() {
+  const baseDistance = parseFloat(input.value);
+  const fovStart = parseFloat(document.getElementById("fovStart").value);
+  const fovEnd = parseFloat(document.getElementById("fovEnd").value);
+  const fovStep = parseFloat(document.getElementById("fovStep").value);
+
+  let f_base = computeF(fovStart);
+
+  let fov = fovStart;
+  let ts = 1;
+
+  let lines = [];
+
+  while ((fovStep < 0 && fov >= fovEnd) || (fovStep > 0 && fov <= fovEnd)) {
+
+    let f = computeF(fov);
+
+    let fx = f / WIDTH;
+    let fy = f / HEIGHT;
+
+    // d のみ変化
+    let d = baseDistance * (f / f_base);
+
+    // ===== ts を4桁ゼロ埋め =====
+    let ts_str = String(ts).padStart(4, "0");
+
+    let row = [
+      ts_str,
+      fx, fy, 0.5, 0.5, 0.0, 0.0,
+
+      1.0, 0.0, 0.0, 0.0,
+      0.0, 1.0, 0.0, 0.0,
+      0.0, 0.0, 1.0, -d
+    ];
+
+    let line = row.map(v =>
+      (typeof v === "string") ? v : Number(v).toFixed(9)
+    ).join(" ");
+
+    lines.push(line);
+
+    ts++;
+    fov += fovStep;
+  }
+
+  document.getElementById("output").value = lines.join("\n");
+}
+
+// =========================
+// ダウンロード
+// =========================
+function download() {
+  const text = document.getElementById("output").value;
+
+  const blob = new Blob([text], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "re10k.txt";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>

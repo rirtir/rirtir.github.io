@@ -187,6 +187,7 @@ height:auto;
 <textarea id="template" placeholder="例：買い物：{hoge}を{fuga}個"></textarea>
 
 <button id="generate">生成</button>
+<button id="generateWithCalc">生成（式を計算）</button>
 <button id="copyAll">結果をコピー</button>
 
 <div id="toast">コピーしました</div>
@@ -409,6 +410,37 @@ return str
 
 }
 
+function applyTemplateWithCalc(template, data){
+
+return template.replace(/\{([^}]+)\}/g, (_, expr)=>{
+
+try{
+
+// 変数をローカルに展開
+const args = Object.keys(data)
+const values = Object.values(data).map(v => Number(v))
+
+// 式を評価
+const result = new Function(...args, `return ${expr}`)(...values)
+
+return result
+
+}catch(e){
+
+// 式じゃない場合（普通の文字列用）
+if(data[expr] !== undefined){
+return data[expr]
+}
+
+// どっちでもないならそのまま
+return `{${expr}}`
+
+}
+
+})
+
+}
+
 // =========================
 // 生成
 // =========================
@@ -422,6 +454,20 @@ const validVars = variables.filter(v=>v.name)
 const combos = generateCombinations(validVars)
 
 const results = combos.map(c=>applyTemplate(template,c))
+
+document.getElementById("output").textContent = results.join("\n")
+
+}
+
+document.getElementById("generateWithCalc").onclick = ()=>{
+
+const template = document.getElementById("template").value
+
+const validVars = variables.filter(v=>v.name)
+
+const combos = generateCombinations(validVars)
+
+const results = combos.map(c=>applyTemplateWithCalc(template,c))
 
 document.getElementById("output").textContent = results.join("\n")
 

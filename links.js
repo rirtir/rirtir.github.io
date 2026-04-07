@@ -137,6 +137,13 @@ const data = [
                 main: true,
             },
             {
+                title: "文字列の総当たりツール",
+                url: "https://rirtir.com/Utility/RoundRobinString/",
+                desc: "総当たり的に文字列の組み合わせを生成するツール",
+                tags: ["個人用"],
+                main: true,
+            },
+            {
                 title: "CSS重複削除ツール",
                 url: "https://rirtir.com/Utility/CSSDiffRemovalTool/",
                 desc: "CSSの被りをなくすためのツール",
@@ -151,11 +158,11 @@ const data = [
                 main: false,
             },
             {
-                title: "文字列の総当たりツール",
-                url: "https://rirtir.com/Utility/RoundRobinString/",
-                desc: "総当たり的に文字列の組み合わせを生成するツール",
+                title: "RE10Kメタデータ作成ツール",
+                url: "https://rirtir.com/Utility/RealEstate10Kcreatemeta/",
+                desc: "RE10Kのメタデータを作成するツール",
                 tags: ["個人用"],
-                main: true,
+                main: false,
             }
         ]
     },
