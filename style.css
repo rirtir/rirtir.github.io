@@ -103,6 +103,8 @@ box-shadow:0 0 10px rgba(77,163,255,0.3);
 position:relative;
 flex:1;
 max-width:320px;
+margin-right:12px;   /* ← 右側に余裕を作る */
+min-width:120px;    /* ← 小さい画面で潰れすぎ防止 */
 }
 
 .search-box .icon{
@@ -124,6 +126,8 @@ font-size:14px;
 border-color:#4da3ff;
 outline:none;
 transition:0.2s;
+
+box-sizing:border-box; /* ← これを追加 */
 }
 
 #search:focus{
