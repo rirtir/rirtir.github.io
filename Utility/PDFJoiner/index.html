@@ -92,7 +92,7 @@ renderPage(p,canvas)
 
 async function renderPage(p,canvas){
 const pdf = await pdfjsLib.getDocument({
-data: new Uint8Array(p.fileBytes) // 毎回 fresh
+data: p.fileBytes
 }).promise
 const page=await pdf.getPage(p.pageIndex+1)
 
@@ -107,7 +107,7 @@ async function addFile(file){
 const buf = await file.arrayBuffer()
 
 // ★ 先にコピーを作る（これが最重要）
-const safeBuffer = structuredClone(buf)
+const uint8 = new Uint8Array(buf)
 
 // pdf.jsにはコピーを渡す
 const pdf = await pdfjsLib.getDocument({
@@ -116,7 +116,7 @@ data: new Uint8Array(safeBuffer)
 
 for(let i=0;i<pdf.numPages;i++){
 pages.push({
-fileBytes: structuredClone(safeBuffer),
+fileBytes: new Uint8Array(uint8),
 pageIndex: i,
 rotation: 0
 })
