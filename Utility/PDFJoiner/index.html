@@ -182,17 +182,27 @@ scale = maxWidth / width
 scale = maxHeight / height
 }
 
-const newWidth = width * scale
-const newHeight = height * scale
+let drawWidth = width * scale
+let drawHeight = height * scale
 
-const page = out.addPage([newWidth, newHeight])
+let x = 0
+let y = 0
+
+if(p.rotation === 90){
+  x = newWidth
+}else if(p.rotation === 180){
+  x = newWidth
+  y = newHeight
+}else if(p.rotation === 270){
+  y = newHeight
+}
 
 page.drawPage(embedded, {
-x: 0,
-y: 0,
-width: newWidth,
-height: newHeight,
-rotate: degrees(p.rotation)
+  x,
+  y,
+  width: drawWidth,
+  height: drawHeight,
+  rotate: degrees(p.rotation)
 })
 }
 
