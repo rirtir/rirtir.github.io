@@ -92,7 +92,7 @@ renderPage(p,canvas)
 
 async function renderPage(p,canvas){
 const pdf = await pdfjsLib.getDocument({
-data: p.fileBytes
+data: new Uint8Array(p.fileBytes.slice())
 }).promise
 const page=await pdf.getPage(p.pageIndex+1)
 
@@ -117,7 +117,7 @@ data: forPdfjs
 
 for(let i=0;i<pdf.numPages;i++){
 pages.push({
-fileBytes: new Uint8Array(forStore), // ← 常にクリーンなコピー
+fileBytes: new Uint8Array(forStore.slice()), // ← 常にクリーンなコピー
 pageIndex: i,
 rotation: 0
 })
