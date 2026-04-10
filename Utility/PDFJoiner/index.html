@@ -190,6 +190,8 @@ if(p.rotation === 90 || p.rotation === 270){
   [newWidth, newHeight] = [newHeight, newWidth]
 }
 
+const page = out.addPage([newWidth, newHeight])
+
 let drawWidth = width * scale
 let drawHeight = height * scale
 
