@@ -106,17 +106,18 @@ await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise
 async function addFile(file){
 const buf = await file.arrayBuffer()
 
-// ★ 先にコピーを作る（これが最重要）
-const uint8 = new Uint8Array(buf)
+// ★ 完全に別コピーを2つ作る
+const view = new Uint8Array(buf)
+const forPdfjs = new Uint8Array(view)   // ← pdf.js用
+const forStore = new Uint8Array(view)   // ← 保存用（絶対触らせない）
 
-// pdf.jsにはコピーを渡す
 const pdf = await pdfjsLib.getDocument({
-data: uint8
+data: forPdfjs
 }).promise
 
 for(let i=0;i<pdf.numPages;i++){
 pages.push({
-fileBytes: new Uint8Array(uint8),
+fileBytes: new Uint8Array(forStore), // ← 常にクリーンなコピー
 pageIndex: i,
 rotation: 0
 })
