@@ -21,6 +21,11 @@
 <div id="dropArea">PDFをドラッグ&ドロップ or クリック</div>
 <input type="file" id="fileInput" accept="application/pdf" multiple hidden>
 <div id="pages"></div>
+<div>
+<label><input type="radio" name="sizeMode" value="original" checked> そのまま</label>
+<label><input type="radio" name="sizeMode" value="fitWidth"> 幅を統一</label>
+<label><input type="radio" name="sizeMode" value="fitHeight"> 高さを統一</label>
+</div>
 <button id="downloadBtn">PDFをダウンロード</button>
 
 <script type="module">
@@ -90,6 +95,10 @@ renderPage(p,canvas)
 })
 }
 
+function getSizeMode(){
+return document.querySelector('input[name="sizeMode"]:checked').value
+}
+
 async function renderPage(p,canvas){
 const pdf = await pdfjsLib.getDocument({
 data: new Uint8Array(p.fileBytes.slice())
@@ -143,13 +152,48 @@ for(const f of e.dataTransfer.files) addFile(f)
 
 downloadBtn.onclick=async()=>{
 const out=await PDFDocument.create()
+const sizeMode = getSizeMode()
 
+let maxWidth = 0
+let maxHeight = 0
+
+// 1回目：最大サイズ取得
 for(const p of pages){
 const src = await PDFDocument.load(p.fileBytes)
-const [copied]=await out.copyPages(src,[p.pageIndex])
+const page = src.getPage(p.pageIndex)
+const { width, height } = page.getSize()
 
-copied.setRotation(degrees(p.rotation))
-out.addPage(copied)
+if(width > maxWidth) maxWidth = width
+if(height > maxHeight) maxHeight = height
+}
+
+// 2回目：描画
+for(const p of pages){
+const src = await PDFDocument.load(p.fileBytes)
+const [embedded] = await out.embedPages([src.getPage(p.pageIndex)])
+
+let { width, height } = embedded.size()
+
+let scale = 1
+
+if(sizeMode === "fitWidth"){
+scale = maxWidth / width
+}else if(sizeMode === "fitHeight"){
+scale = maxHeight / height
+}
+
+const newWidth = width * scale
+const newHeight = height * scale
+
+const page = out.addPage([newWidth, newHeight])
+
+page.drawPage(embedded, {
+x: 0,
+y: 0,
+width: newWidth,
+height: newHeight,
+rotate: degrees(p.rotation)
+})
 }
 
 const pdfBytes=await out.save()
