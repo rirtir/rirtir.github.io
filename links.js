@@ -146,7 +146,7 @@ const data = [
             {
                 title: "文字列の総当たりツール",
                 url: "https://rirtir.com/Utility/RoundRobinString/",
-                desc: "総当たり的に文字列の組み合わせを生成するツール",
+                desc: "複数の変数と候補を登録し、テンプレートに埋め込んで全パターンの文章を自動生成できるツール。数式にも対応",
                 tags: ["個人用"],
                 main: true,
             },
@@ -160,14 +160,14 @@ const data = [
             {
                 title: "jsonlをグラフ化",
                 url: "https://rirtir.com/Utility/jsonl2graph/",
-                desc: "jsonlの学習結果をグラフに起こすだけのツール",
+                desc: "jsonlの学習結果をグラフに起こすだけのツール。完全に研究用",
                 tags: ["個人用"],
                 main: false,
             },
             {
                 title: "RE10Kメタデータ作成ツール",
                 url: "https://rirtir.com/Utility/RealEstate10Kcreatemeta/",
-                desc: "RE10Kのメタデータを作成するツール",
+                desc: "RE10Kのメタデータを作成するツール。完全に研究用",
                 tags: ["個人用"],
                 main: false,
             }
@@ -191,7 +191,7 @@ const data = [
             {
                 title: "Squoosh",
                 url: "https://squoosh.app/",
-                desc: "PNG/JPEG/WebP/AVIFなどへ変換",
+                desc: "PNG/JPEG/WebP/AVIFなどへ変換。リサイズも可能",
                 tags: ["画像", "圧縮"],
                 main: true,
             },
@@ -206,6 +206,13 @@ const data = [
                 title: "Gravit Designer",
                 url: "https://gravitdesign.com/index.html",
                 desc: "ブラウザでSVG編集が可能",
+                tags: ["画像", "SVG"],
+                main: true,
+            },
+            {
+                title: "Blob Maker",
+                url: "https://www.blobmaker.app/",
+                desc: "ブラウザで流体シェイプのSVGが作れる",
                 tags: ["画像", "SVG"],
                 main: true,
             },

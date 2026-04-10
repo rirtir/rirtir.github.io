@@ -25,9 +25,9 @@
 
 <script type="module">
 import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs";
-import { PDFDocument } from "https://cdn.jsdelivr.net/npm/pdf-lib/+esm";
+import { PDFDocument, degrees } from "https://cdn.jsdelivr.net/npm/pdf-lib/+esm";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.min.mjs";
 
 const dropArea=document.getElementById("dropArea")
 const fileInput=document.getElementById("fileInput")
@@ -91,7 +91,9 @@ renderPage(p,canvas)
 }
 
 async function renderPage(p,canvas){
-const pdf=await pdfjsLib.getDocument({data:p.pdfBytes}).promise
+const pdf = await pdfjsLib.getDocument({
+data: new Uint8Array(p.fileBytes) // 毎回 fresh
+}).promise
 const page=await pdf.getPage(p.pageIndex+1)
 
 const viewport=page.getViewport({scale:0.5,rotation:p.rotation})
@@ -104,15 +106,17 @@ await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise
 async function addFile(file){
 const buf = await file.arrayBuffer()
 
-const bytesForPdfJs = new Uint8Array(buf.slice(0))
-const bytesForLib = new Uint8Array(buf)
+// ★ 先にコピーを作る（これが最重要）
+const safeBuffer = structuredClone(buf)
 
-const pdf = await pdfjsLib.getDocument({data:bytesForPdfJs}).promise
+// pdf.jsにはコピーを渡す
+const pdf = await pdfjsLib.getDocument({
+data: new Uint8Array(safeBuffer)
+}).promise
 
 for(let i=0;i<pdf.numPages;i++){
 pages.push({
-pdfBytes: bytesForPdfJs,
-libBytes: bytesForLib,
+fileBytes: structuredClone(safeBuffer),
 pageIndex: i,
 rotation: 0
 })
@@ -140,10 +144,10 @@ downloadBtn.onclick=async()=>{
 const out=await PDFDocument.create()
 
 for(const p of pages){
-const src = await PDFDocument.load(p.libBytes)
+const src = await PDFDocument.load(p.fileBytes)
 const [copied]=await out.copyPages(src,[p.pageIndex])
 
-copied.setRotation(p.rotation)
+copied.setRotation(degrees(p.rotation))
 out.addPage(copied)
 }
 
