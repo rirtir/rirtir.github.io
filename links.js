@@ -139,7 +139,7 @@ const data = [
             {
                 title: "PDF結合・分割ツール",
                 url: "https://rirtir.com/Utility/PDFJoiner/",
-                desc: "PDFファイルを結合したり分割したりするツール",
+                desc: "PDFを結合・分割するツール。完全ローカル処理なのでセキュリティ面も安心",
                 tags: ["PDF", "結合", "分割", "オフライン"],
                 main: true,
             },

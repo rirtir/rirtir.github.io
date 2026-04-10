@@ -182,6 +182,14 @@ scale = maxWidth / width
 scale = maxHeight / height
 }
 
+let newWidth = width * scale
+let newHeight = height * scale
+
+// ★ 追加：回転対応
+if(p.rotation === 90 || p.rotation === 270){
+  [newWidth, newHeight] = [newHeight, newWidth]
+}
+
 let drawWidth = width * scale
 let drawHeight = height * scale
 
