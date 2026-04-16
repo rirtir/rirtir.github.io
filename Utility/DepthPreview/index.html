@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Depth Map Tool (Preview + Batch ZIP)</title>
+
+<link rel="stylesheet" href="./../../css/common-style.css">
+<link rel="stylesheet" href="./../../css/common-style2.css">
+<style>
+</style>
+</head>
+<body>
+
+<h2>Depth Map Tool (.npy → Preview + PNG + ZIP)</h2>
+
+<div id="dropArea">ここに .npy ファイルをドラッグ＆ドロップ</div>
+
+<canvas id="canvas"></canvas>
+
+<br>
+<button id="downloadBtn" disabled>ZIPをダウンロード</button>
+
+<!-- JSZip -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script>
+// =========================
+// グローバル
+// =========================
+let generatedZipBlob = null;
+
+// =========================
+// ドラッグ＆ドロップ
+// =========================
+const dropArea = document.getElementById("dropArea");
+
+dropArea.addEventListener("dragover", e => {
+e.preventDefault();
+});
+
+dropArea.addEventListener("dropArea", async e => {
+e.preventDefault();
+
+const files = Array.from(e.dataTransfer.files)
+.filter(f => f.name.endsWith(".npy"));
+
+if (files.length === 0) return;
+
+const zip = new JSZip();
+
+let isFirst = true;
+
+for (const file of files) {
+const buffer = await file.arrayBuffer();
+const {data, shape} = parseNPY(buffer);
+
+// ===== 最初の1枚だけプレビュー =====
+if (isFirst) {
+renderDepth(data, shape);
+isFirst = false;
+}
+
+// ===== PNG変換してZIPへ =====
+const blob = await depthToPNG(data, shape);
+const filename = file.name.replace(".npy", ".png");
+zip.file(filename, blob);
+}
+
+// ZIP生成
+generatedZipBlob = await zip.generateAsync({
+type: "blob",
+mimeType: "application/zip"
+});
+
+document.getElementById("downloadBtn").disabled = false;
+});
+
+// =========================
+// ダウンロード
+// =========================
+document.getElementById("downloadBtn").addEventListener("click", () => {
+if (!generatedZipBlob) return;
+
+const url = URL.createObjectURL(generatedZipBlob);
+
+const a = document.createElement("a");
+a.href = url;
+a.download = "depth_maps.zip";
+a.click();
+
+setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+// =========================
+// npy パーサ
+// =========================
+function parseNPY(buffer) {
+const view = new DataView(buffer);
+
+const magic = String.fromCharCode(...new Uint8Array(buffer, 0, 6));
+if (!magic.includes("NUMPY")) {
+throw new Error("npyファイルではない");
+}
+
+const headerLen = view.getUint16(8, true);
+const headerText = new TextDecoder().decode(
+new Uint8Array(buffer, 10, headerLen)
+);
+
+const shapeMatch = headerText.match(/\(([^)]*)\)/);
+const shape = shapeMatch[1]
+.split(",")
+.map(s => parseInt(s.trim()))
+.filter(n => !isNaN(n));
+
+const offset = 10 + headerLen;
+const data = new Float32Array(buffer, offset);
+
+return {data, shape};
+}
+
+// =========================
+// 正規化
+// =========================
+function normalize(depth) {
+let min = Infinity;
+let max = -Infinity;
+
+for (let v of depth) {
+if (!Number.isFinite(v)) continue;
+if (v < min) min = v;
+if (v > max) max = v;
+}
+
+const norm = new Float32Array(depth.length);
+
+for (let i = 0; i < depth.length; i++) {
+let v = depth[i];
+if (!Number.isFinite(v)) v = min;
+norm[i] = (v - min) / (max - min + 1e-8);
+}
+
+return norm;
+}
+
+// =========================
+// カラーマップ（Jet風）
+// =========================
+function colormap(v) {
+const r = Math.min(1, Math.max(0, 1.5 - Math.abs(4 * v - 3)));
+const g = Math.min(1, Math.max(0, 1.5 - Math.abs(4 * v - 2)));
+const b = Math.min(1, Math.max(0, 1.5 - Math.abs(4 * v - 1)));
+
+return [
+Math.floor(r * 255),
+Math.floor(g * 255),
+Math.floor(b * 255)
+];
+}
+
+// =========================
+// プレビュー描画
+// =========================
+function renderDepth(depth, shape) {
+const height = shape[0];
+const width = shape[1];
+
+const canvas = document.getElementById("canvas");
+canvas.width = width;
+canvas.height = height;
+
+const ctx = canvas.getContext("2d");
+const img = ctx.createImageData(width, height);
+
+const norm = normalize(depth);
+
+for (let i = 0; i < norm.length; i++) {
+const [r, g, b] = colormap(norm[i]);
+
+img.data[i * 4 + 0] = r;
+img.data[i * 4 + 1] = g;
+img.data[i * 4 + 2] = b;
+img.data[i * 4 + 3] = 255;
+}
+
+ctx.putImageData(img, 0, 0);
+}
+
+// =========================
+// depth → PNG
+// =========================
+async function depthToPNG(depth, shape) {
+const height = shape[0];
+const width = shape[1];
+
+const canvas = document.createElement("canvas");
+canvas.width = width;
+canvas.height = height;
+
+const ctx = canvas.getContext("2d");
+const img = ctx.createImageData(width, height);
+
+const norm = normalize(depth);
+
+for (let i = 0; i < norm.length; i++) {
+const [r, g, b] = colormap(norm[i]);
+
+img.data[i * 4 + 0] = r;
+img.data[i * 4 + 1] = g;
+img.data[i * 4 + 2] = b;
+img.data[i * 4 + 3] = 255;
+}
+
+ctx.putImageData(img, 0, 0);
+
+return new Promise((resolve, reject) => {
+canvas.toBlob(blob => {
+if (!blob) {
+reject(new Error("Blob生成失敗"));
+} else {
+resolve(blob);
+}
+}, "image/png");
+});
+}
+</script>
+
+</body>
+</html>

@@ -165,6 +165,13 @@ const data = [
                 main: false,
             },
             {
+                title: "深度マッププレビュー＆一括ZIPツール",
+                url: "https://rirtir.com/Utility/DepthPreview/",
+                desc: "深度マップをプレビューし、複数のファイルを一括でZIP形式でダウンロードするツール。完全に研究用",
+                tags: ["個人用", "画像処理"],
+                main: false,
+            },
+            {
                 title: "RE10Kメタデータ作成ツール",
                 url: "https://rirtir.com/Utility/RealEstate10Kcreatemeta/",
                 desc: "RE10Kのメタデータを作成するツール。完全に研究用",
