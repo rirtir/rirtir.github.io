@@ -38,7 +38,7 @@ dropArea.addEventListener("dragover", e => {
 e.preventDefault();
 });
 
-dropArea.addEventListener("dropArea", async e => {
+dropArea.addEventListener("drop", async e => {
 e.preventDefault();
 
 const files = Array.from(e.dataTransfer.files)
