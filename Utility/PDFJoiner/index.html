@@ -197,13 +197,26 @@ const drawHeight = height * scale
 
 const page = out.addPage([drawWidth, drawHeight])
 
-// ★ 回転方向補正（ここ重要）
+let x = 0
+let y = 0
+
+if(p.rotation === 90){
+  x = drawWidth
+  y = 0
+}else if(p.rotation === 180){
+  x = drawWidth
+  y = drawHeight
+}else if(p.rotation === 270){
+  x = 0
+  y = drawHeight
+}
+
 page.drawPage(embedded, {
-x: 0,
-y: 0,
-width: drawWidth,
-height: drawHeight,
-rotate: degrees(-p.rotation)
+  x,
+  y,
+  width: drawWidth,
+  height: drawHeight,
+  rotate: degrees(-p.rotation)
 })
 }
 
