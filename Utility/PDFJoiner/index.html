@@ -149,86 +149,115 @@ for(const f of e.dataTransfer.files) addFile(f)
 }
 
 // export
+downloadBtn.onclick = async () => {
+  const out = await PDFDocument.create()
+  const sizeMode = getSizeMode()
 
-downloadBtn.onclick=async()=>{
-const out=await PDFDocument.create()
-const sizeMode = getSizeMode()
+  let maxWidth = 0
+  let maxHeight = 0
 
-let maxWidth = 0
-let maxHeight = 0
+  // =========================
+  // 1回目：回転後サイズで最大値取得
+  // =========================
+  for (const p of pages) {
+    const src = await PDFDocument.load(p.fileBytes)
+    const page = src.getPage(p.pageIndex)
 
-// 1回目：最大サイズ取得（回転考慮）
-for(const p of pages){
-const src = await PDFDocument.load(p.fileBytes)
-const page = src.getPage(p.pageIndex)
-let { width, height } = page.getSize()
+    let { width, height } = page.getSize()
 
-// ★ 回転考慮
-if(p.rotation === 90 || p.rotation === 270){
-[width, height] = [height, width]
-}
+    // ★ rotation：回転後サイズに変換
+    if (p.rotation === 90 || p.rotation === 270) {
+      ;[width, height] = [height, width]
+    }
 
-if(width > maxWidth) maxWidth = width
-if(height > maxHeight) maxHeight = height
-}
+    if (width > maxWidth) maxWidth = width
+    if (height > maxHeight) maxHeight = height
+  }
 
-// 2回目：描画
-for(const p of pages){
-const src = await PDFDocument.load(p.fileBytes)
-const srcPage = src.getPage(p.pageIndex)
-const [embedded] = await out.embedPages([srcPage])
+  // =========================
+  // 2回目：描画
+  // =========================
+  for (const p of pages) {
+    const src = await PDFDocument.load(p.fileBytes)
+    const srcPage = src.getPage(p.pageIndex)
+    const [embedded] = await out.embedPages([srcPage])
 
-let { width, height } = srcPage.getSize()
+    // 元サイズ
+    let { width, height } = srcPage.getSize()
 
-// ★ 回転考慮（ここでも）
-if(p.rotation === 90 || p.rotation === 270){
-[width, height] = [height, width]
-}
+    // ★ rotation：回転後サイズを別で作る
+    let rotatedWidth = width
+    let rotatedHeight = height
 
-let scale = 1
-if(sizeMode === "fitWidth"){
-scale = maxWidth / width
-}else if(sizeMode === "fitHeight"){
-scale = maxHeight / height
-}
+    if (p.rotation === 90 || p.rotation === 270) {
+      ;[rotatedWidth, rotatedHeight] = [height, width]
+    }
 
-const drawWidth = width * scale
-const drawHeight = height * scale
+    // =========================
+    // scale（回転後サイズ基準）
+    // =========================
+    let scale = 1
 
-const page = out.addPage([drawWidth, drawHeight])
+    if (sizeMode === "fitWidth") {
+      scale = maxWidth / rotatedWidth
+    } else if (sizeMode === "fitHeight") {
+      scale = maxHeight / rotatedHeight
+    }
 
-let x = 0
-let y = 0
+    // =========================
+    // ページサイズ（回転後）
+    // =========================
+    const newWidth = rotatedWidth * scale
+    const newHeight = rotatedHeight * scale
 
-if(p.rotation === 90){
-  x = drawWidth
-  y = 0
-}else if(p.rotation === 180){
-  x = drawWidth
-  y = drawHeight
-}else if(p.rotation === 270){
-  x = 0
-  y = drawHeight
-}
+    const page = out.addPage([newWidth, newHeight])
 
-page.drawPage(embedded, {
-  x,
-  y,
-  width: drawWidth,
-  height: drawHeight,
-  rotate: degrees(-p.rotation)
-})
-}
+    // =========================
+    // 描画サイズ（元サイズ基準）
+    // =========================
+    const drawWidth = width * scale
+    const drawHeight = height * scale
 
-const pdfBytes=await out.save()
-const blob=new Blob([pdfBytes],{type:"application/pdf"})
-const url=URL.createObjectURL(blob)
+    // =========================
+    // ★ rotation：位置補正（これがないと白くなる）
+    // =========================
+    let x = 0
+    let y = 0
 
-const a=document.createElement("a")
-a.href=url
-a.download="merged.pdf"
-a.click()
-URL.revokeObjectURL(url)
+    if (p.rotation === 90) {
+      x = newWidth
+    } else if (p.rotation === 180) {
+      x = newWidth
+      y = newHeight
+    } else if (p.rotation === 270) {
+      y = newHeight
+    }
+
+    // =========================
+    // 描画
+    // =========================
+    page.drawPage(embedded, {
+      x,
+      y,
+      width: drawWidth,
+      height: drawHeight,
+      rotate: degrees(-p.rotation) // ← ここはそのままでOK（あなたの仕様）
+    })
+  }
+
+  // =========================
+  // 保存
+  // =========================
+  const pdfBytes = await out.save()
+  const blob = new Blob([pdfBytes], { type: "application/pdf" })
+  const url = URL.createObjectURL(blob)
+
+  const a = document.createElement("a")
+  a.href = url
+  a.download = "merged.pdf"
+  a.click()
+
+  URL.revokeObjectURL(url)
 }
 
 </script>
