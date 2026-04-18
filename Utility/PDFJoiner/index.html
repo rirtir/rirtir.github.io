@@ -157,11 +157,16 @@ const sizeMode = getSizeMode()
 let maxWidth = 0
 let maxHeight = 0
 
-// 1回目：最大サイズ取得
+// 1回目：最大サイズ取得（回転考慮）
 for(const p of pages){
 const src = await PDFDocument.load(p.fileBytes)
 const page = src.getPage(p.pageIndex)
-const { width, height } = page.getSize()
+let { width, height } = page.getSize()
+
+// ★ 回転考慮
+if(p.rotation === 90 || p.rotation === 270){
+[width, height] = [height, width]
+}
 
 if(width > maxWidth) maxWidth = width
 if(height > maxHeight) maxHeight = height
@@ -170,49 +175,35 @@ if(height > maxHeight) maxHeight = height
 // 2回目：描画
 for(const p of pages){
 const src = await PDFDocument.load(p.fileBytes)
-const [embedded] = await out.embedPages([src.getPage(p.pageIndex)])
+const srcPage = src.getPage(p.pageIndex)
+const [embedded] = await out.embedPages([srcPage])
 
-let { width, height } = embedded.size()
+let { width, height } = srcPage.getSize()
+
+// ★ 回転考慮（ここでも）
+if(p.rotation === 90 || p.rotation === 270){
+[width, height] = [height, width]
+}
 
 let scale = 1
-
 if(sizeMode === "fitWidth"){
 scale = maxWidth / width
 }else if(sizeMode === "fitHeight"){
 scale = maxHeight / height
 }
 
-let newWidth = width * scale
-let newHeight = height * scale
+const drawWidth = width * scale
+const drawHeight = height * scale
 
-// ★ 追加：回転対応
-if(p.rotation === 90 || p.rotation === 270){
-  [newWidth, newHeight] = [newHeight, newWidth]
-}
+const page = out.addPage([drawWidth, drawHeight])
 
-const page = out.addPage([newWidth, newHeight])
-
-let drawWidth = width * scale
-let drawHeight = height * scale
-
-let x = 0
-let y = 0
-
-if(p.rotation === 90){
-  x = newWidth
-}else if(p.rotation === 180){
-  x = newWidth
-  y = newHeight
-}else if(p.rotation === 270){
-  y = newHeight
-}
-
+// ★ 回転方向補正（ここ重要）
 page.drawPage(embedded, {
-  x,
-  y,
-  width: drawWidth,
-  height: drawHeight,
-  rotate: degrees(p.rotation)
+x: 0,
+y: 0,
+width: drawWidth,
+height: drawHeight,
+rotate: degrees(-p.rotation)
 })
 }
 
