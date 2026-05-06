@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Puzzle</title>
+
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  touch-action: none; /* disable browser gestures */
+}
+
+#viewport {
+  width: 100vw;
+  height: 100vh;
+  background: #eee;
+  overflow: hidden;
+  position: relative;
+}
+
+#world {
+  position: absolute;
+  transform-origin: 0 0;
+}
+
+.draggable {
+  width: 80px;
+  height: 80px;
+  background: red;
+  position: absolute;
+  touch-action: none;
+}
+</style>
+</head>
+<body>
+
+<div id="viewport">
+  <div id="world">
+    <div class="draggable" style="left:100px; top:100px;"></div>
+    <div class="draggable" style="left:300px; top:200px;"></div>
+  </div>
+</div>
+
+<script>
+const world = document.getElementById("world");
+
+let pointers = new Map();
+
+let camera = { x: 0, y: 0, scale: 1 };
+let lastDist = null;
+let draggingElement = null;
+
+// Update transform
+function updateTransform() {
+  world.style.transform =
+    `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`;
+}
+
+// Distance between two touches
+function getDistance(p1, p2) {
+  return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+}
+
+document.addEventListener("pointerdown", (e) => {
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (e.target.classList.contains("draggable")) {
+    draggingElement = {
+      el: e.target,
+      offsetX: e.offsetX,
+      offsetY: e.offsetY
+    };
+  }
+});
+
+document.addEventListener("pointermove", (e) => {
+  if (!pointers.has(e.pointerId)) return;
+
+  const prev = pointers.get(e.pointerId);
+  const dx = e.clientX - prev.x;
+  const dy = e.clientY - prev.y;
+
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  // --- 2 fingers = zoom ---
+  if (pointers.size === 2) {
+    const pts = Array.from(pointers.values());
+    const dist = getDistance(pts[0], pts[1]);
+
+    if (lastDist !== null) {
+      const scaleChange = dist / lastDist;
+      camera.scale *= scaleChange;
+    }
+    lastDist = dist;
+    updateTransform();
+    return;
+  }
+
+  lastDist = null;
+
+  // --- dragging element ---
+  if (draggingElement) {
+    const el = draggingElement.el;
+
+    const x = parseFloat(el.style.left || 0) + dx / camera.scale;
+    const y = parseFloat(el.style.top || 0) + dy / camera.scale;
+
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+  } else {
+    // --- camera move ---
+    camera.x += dx;
+    camera.y += dy;
+    updateTransform();
+  }
+});
+
+document.addEventListener("pointerup", (e) => {
+  pointers.delete(e.pointerId);
+  draggingElement = null;
+  if (pointers.size < 2) lastDist = null;
+});
+
+document.addEventListener("pointercancel", (e) => {
+  pointers.delete(e.pointerId);
+});
+
+</script>
+</body>
+</html>
