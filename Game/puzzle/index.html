@@ -2,25 +2,41 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Puzzle</title>
 <style>
-body { margin: 0; overflow: hidden; background: #222; }
-canvas { display: block; }
+body { margin:0; overflow:hidden; background:#222; }
+#ui {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    background: rgba(0,0,0,0.5);
+    padding: 10px;
+    color: white;
+}
+canvas { display:block; }
 </style>
 </head>
 <body>
-<input type="file" id="fileInput">
+
+<div id="ui">
+<input type="file" id="fileInput"><br>
+横:<input type="number" id="cols" value="4" style="width:50px">
+縦:<input type="number" id="rows" value="4" style="width:50px">
+<button id="start">開始</button>
+</div>
+
 <canvas id="canvas"></canvas>
 
 <script>
 // =========================
-// Canvas setup
+// Setup
 // =========================
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-function resize() {
+function resize(){
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
@@ -30,64 +46,94 @@ resize();
 // =========================
 // Camera
 // =========================
-let camera = {
-    x: 0,
-    y: 0,
-    scale: 1
-};
+let camera = { x:0, y:0, scale:1 };
 
 // =========================
-// Puzzle settings
+// Puzzle
 // =========================
-const ROWS = 4;
-const COLS = 4;
+let image;
 let pieces = [];
 let groups = {};
-let image = null;
+let ROWS = 4, COLS = 4;
+
+let board = { x:0, y:0, w:0, h:0 };
 
 // =========================
-// Load image
+// Load
 // =========================
-document.getElementById("fileInput").addEventListener("change", e => {
-    const file = e.target.files[0];
+document.getElementById("start").onclick = () => {
+    const file = document.getElementById("fileInput").files[0];
+    if (!file) return;
+
+    COLS = parseInt(document.getElementById("cols").value);
+    ROWS = parseInt(document.getElementById("rows").value);
+
     const img = new Image();
     img.onload = () => {
         image = img;
-        createPieces();
+        setupPuzzle();
     };
     img.src = URL.createObjectURL(file);
-});
+};
 
 // =========================
-// Create pieces
+// Create puzzle
 // =========================
-function createPieces() {
+function setupPuzzle(){
     pieces = [];
     groups = {};
 
-    const pw = image.width / COLS;
-    const ph = image.height / ROWS;
+    // fit board to screen
+    const maxW = canvas.width * 0.6;
+    const maxH = canvas.height * 0.6;
+
+    const scale = Math.min(maxW / image.width, maxH / image.height);
+
+    board.w = image.width * scale;
+    board.h = image.height * scale;
+    board.x = (canvas.width - board.w)/2;
+    board.y = (canvas.height - board.h)/2;
+
+    const pw = board.w / COLS;
+    const ph = board.h / ROWS;
 
     let id = 0;
 
-    for (let y = 0; y < ROWS; y++) {
-        for (let x = 0; x < COLS; x++) {
+    let tabs = [];
 
-            const piece = {
-                id: id,
-                sx: x * pw,
-                sy: y * ph,
-                x: Math.random() * 800 - 400,
-                y: Math.random() * 600 - 300,
-                correctX: x * pw,
-                correctY: y * ph,
+    for(let y=0;y<ROWS;y++){
+        tabs[y]=[];
+        for(let x=0;x<COLS;x++){
+            tabs[y][x]={
+                top: y===0?0:(-tabs[y-1][x].bottom),
+                left: x===0?0:(-tabs[y][x-1].right),
+                right: x===COLS-1?0:(Math.random()>0.5?1:-1),
+                bottom: y===ROWS-1?0:(Math.random()>0.5?1:-1)
+            };
+        }
+    }
+
+    for(let y=0;y<ROWS;y++){
+        for(let x=0;x<COLS;x++){
+
+            let piece = {
+                id,
+                x: Math.random()*canvas.width,
+                y: Math.random()*canvas.height,
+                correctX: board.x + x*pw,
+                correctY: board.y + y*ph,
                 w: pw,
                 h: ph,
-                fixed: false,
-                group: id
+                sx: x*(image.width/COLS),
+                sy: y*(image.height/ROWS),
+                sw: image.width/COLS,
+                sh: image.height/ROWS,
+                tab: tabs[y][x],
+                group:id,
+                fixed:false
             };
 
-            groups[id] = [piece];
+            groups[id]=[piece];
             pieces.push(piece);
             id++;
         }
@@ -95,93 +141,163 @@ function createPieces() {
 }
 
 // =========================
+// Path generator
+// =========================
+function createPath(p){
+    const path = new Path2D();
+    const t = p.tab;
+    const w = p.w, h = p.h;
+    const tabSize = Math.min(w,h)*0.25;
+
+    path.moveTo(0,0);
+
+    // top
+    if(t.top===0) path.lineTo(w,0);
+    else{
+        path.lineTo(w/2 - tabSize,0);
+        path.bezierCurveTo(w/2 - tabSize/2, t.top*tabSize, w/2 + tabSize/2, t.top*tabSize, w/2 + tabSize,0);
+        path.lineTo(w,0);
+    }
+
+    // right
+    if(t.right===0) path.lineTo(w,h);
+    else{
+        path.lineTo(w,h/2 - tabSize);
+        path.bezierCurveTo(w + t.right*tabSize, h/2 - tabSize/2, w + t.right*tabSize, h/2 + tabSize/2, w, h/2 + tabSize);
+        path.lineTo(w,h);
+    }
+
+    // bottom
+    if(t.bottom===0) path.lineTo(0,h);
+    else{
+        path.lineTo(w/2 + tabSize,h);
+        path.bezierCurveTo(w/2 + tabSize/2, h + t.bottom*tabSize, w/2 - tabSize/2, h + t.bottom*tabSize, w/2 - tabSize, h);
+        path.lineTo(0,h);
+    }
+
+    // left
+    if(t.left===0) path.closePath();
+    else{
+        path.lineTo(0,h/2 + tabSize);
+        path.bezierCurveTo(t.left*tabSize, h/2 + tabSize/2, t.left*tabSize, h/2 - tabSize/2, 0, h/2 - tabSize);
+        path.closePath();
+    }
+
+    return path;
+}
+
+// =========================
 // Draw
 // =========================
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // board silhouette
+    ctx.fillStyle = "#444";
+    ctx.fillRect(board.x, board.y, board.w, board.h);
 
     ctx.save();
-    ctx.translate(camera.x, camera.y);
-    ctx.scale(camera.scale, camera.scale);
 
-    for (let p of pieces) {
+    for(let p of pieces){
+        ctx.save();
+        ctx.translate(p.x, p.y);
+
+        const path = createPath(p);
+        ctx.clip(path);
+
         ctx.drawImage(
             image,
-            p.sx, p.sy, p.w, p.h,
-            p.x, p.y, p.w, p.h
+            p.sx,p.sy,p.sw,p.sh,
+            0,0,p.w,p.h
         );
 
-        ctx.strokeStyle = "black";
-        ctx.strokeRect(p.x, p.y, p.w, p.h);
+        ctx.restore();
     }
 
     ctx.restore();
 }
 
 // =========================
-// Utility
+// Interaction
 // =========================
-function screenToWorld(x, y) {
-    return {
-        x: (x - camera.x) / camera.scale,
-        y: (y - camera.y) / camera.scale
-    };
-}
-
-// =========================
-// Drag logic
-// =========================
+let pointers = new Map();
 let draggingGroup = null;
 let lastPos = null;
 
-canvas.addEventListener("pointerdown", e => {
-    const pos = screenToWorld(e.clientX, e.clientY);
+function getDist(a,b){
+    return Math.hypot(a.x-b.x, a.y-b.y);
+}
 
-    for (let p of [...pieces].reverse()) {
-        if (
-            pos.x > p.x && pos.x < p.x + p.w &&
-            pos.y > p.y && pos.y < p.y + p.h &&
-            !p.fixed
-        ) {
-            draggingGroup = p.group;
-            lastPos = pos;
-            return;
+canvas.addEventListener("pointerdown", e=>{
+    pointers.set(e.pointerId, {x:e.clientX,y:e.clientY});
+
+    if(pointers.size===1){
+        const pos = {x:e.clientX,y:e.clientY};
+
+        for(let p of [...pieces].reverse()){
+            if(
+                pos.x>p.x && pos.x<p.x+p.w &&
+                pos.y>p.y && pos.y<p.y+p.h &&
+                !p.fixed
+            ){
+                draggingGroup = p.group;
+                lastPos = pos;
+                break;
+            }
         }
     }
 });
 
-canvas.addEventListener("pointermove", e => {
-    if (!draggingGroup) return;
+canvas.addEventListener("pointermove", e=>{
+    if(!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, {x:e.clientX,y:e.clientY});
 
-    const pos = screenToWorld(e.clientX, e.clientY);
-    const dx = pos.x - lastPos.x;
-    const dy = pos.y - lastPos.y;
+    if(pointers.size===1 && draggingGroup!==null){
+        const pos = pointers.values().next().value;
+        const dx = pos.x - lastPos.x;
+        const dy = pos.y - lastPos.y;
 
-    for (let p of groups[draggingGroup]) {
-        p.x += dx;
-        p.y += dy;
+        for(let p of groups[draggingGroup]){
+            p.x += dx;
+            p.y += dy;
+        }
+
+        lastPos = pos;
     }
 
-    lastPos = pos;
+    if(pointers.size===2){
+        const pts = Array.from(pointers.values());
+        const d = getDist(pts[0], pts[1]);
+
+        if(!canvas.lastDist) canvas.lastDist = d;
+        const scale = d / canvas.lastDist;
+
+        camera.scale *= scale;
+        canvas.lastDist = d;
+    }
 });
 
-canvas.addEventListener("pointerup", () => {
-    if (draggingGroup !== null) {
-        checkSnap(draggingGroup);
-        checkMerge(draggingGroup);
+canvas.addEventListener("pointerup", e=>{
+    pointers.delete(e.pointerId);
+
+    if(draggingGroup!==null){
+        snapGroup(draggingGroup);
+        mergeCheck(draggingGroup);
     }
+
     draggingGroup = null;
+    canvas.lastDist = null;
 });
 
 // =========================
-// Snap to correct position
+// Snap (correct placement)
 // =========================
-function checkSnap(groupId) {
-    for (let p of groups[groupId]) {
+function snapGroup(groupId){
+    for(let p of groups[groupId]){
         const dx = p.x - p.correctX;
         const dy = p.y - p.correctY;
 
-        if (Math.hypot(dx, dy) < 20) {
+        if(Math.hypot(dx,dy) < 30){
             p.x = p.correctX;
             p.y = p.correctY;
             p.fixed = true;
@@ -190,23 +306,34 @@ function checkSnap(groupId) {
 }
 
 // =========================
-// Merge pieces
+// Merge
 // =========================
-function checkMerge(groupId) {
-    const threshold = 20;
+function mergeCheck(groupId){
+    const threshold = 30;
 
-    for (let p of groups[groupId]) {
-        for (let other of pieces) {
-            if (p.group === other.group) continue;
+    for(let p of groups[groupId]){
+        for(let other of pieces){
+            if(p.group===other.group) continue;
 
             const dx = (p.x - other.x);
             const dy = (p.y - other.y);
 
-            const correctDx = p.correctX - other.correctX;
-            const correctDy = p.correctY - other.correctY;
+            const cdx = p.correctX - other.correctX;
+            const cdy = p.correctY - other.correctY;
 
-            if (Math.abs(dx - correctDx) < threshold &&
-                Math.abs(dy - correctDy) < threshold) {
+            if(Math.abs(dx-cdx)<threshold && Math.abs(dy-cdy)<threshold){
+
+                // align exactly before merge
+                const offsetX = other.x + cdx;
+                const offsetY = other.y + cdy;
+
+                const moveX = offsetX - p.x;
+                const moveY = offsetY - p.y;
+
+                for(let gp of groups[groupId]){
+                    gp.x += moveX;
+                    gp.y += moveY;
+                }
 
                 mergeGroups(p.group, other.group);
                 return;
@@ -215,64 +342,22 @@ function checkMerge(groupId) {
     }
 }
 
-// =========================
-// Merge group
-// =========================
-function mergeGroups(a, b) {
-    const groupA = groups[a];
-    const groupB = groups[b];
+function mergeGroups(a,b){
+    const A = groups[a];
+    const B = groups[b];
 
-    for (let p of groupB) {
+    for(let p of B){
         p.group = a;
-        groupA.push(p);
+        A.push(p);
     }
 
     delete groups[b];
 }
 
 // =========================
-// Zoom & Pan (two finger)
-// =========================
-let pointers = [];
-
-canvas.addEventListener("pointerdown", e => {
-    pointers.push(e);
-});
-
-canvas.addEventListener("pointermove", e => {
-    for (let i = 0; i < pointers.length; i++) {
-        if (pointers[i].pointerId === e.pointerId) {
-            pointers[i] = e;
-        }
-    }
-
-    if (pointers.length === 2) {
-        const p1 = pointers[0];
-        const p2 = pointers[1];
-
-        const dx = p1.clientX - p2.clientX;
-        const dy = p1.clientY - p2.clientY;
-
-        const dist = Math.hypot(dx, dy);
-
-        if (!canvas.lastDist) canvas.lastDist = dist;
-
-        const scaleChange = dist / canvas.lastDist;
-        camera.scale *= scaleChange;
-
-        canvas.lastDist = dist;
-    }
-});
-
-canvas.addEventListener("pointerup", e => {
-    pointers = pointers.filter(p => p.pointerId !== e.pointerId);
-    canvas.lastDist = null;
-});
-
-// =========================
 // Loop
 // =========================
-function loop() {
+function loop(){
     draw();
     requestAnimationFrame(loop);
 }
