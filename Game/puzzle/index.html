@@ -70,12 +70,43 @@ canvas.height = 3000;
 let camera = { x: 0, y: 0, scale: 1 };
 
 function updateTransform(){
+  // clamp camera（画面外に行きすぎない）
+  const minScale = 0.3;
+  const maxScale = 3;
+
+  camera.scale = Math.max(minScale, Math.min(maxScale, camera.scale));
+
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  const maxX = 0;
+  const maxY = 0;
+  const minX = vw - canvas.width * camera.scale;
+  const minY = vh - canvas.height * camera.scale;
+
+  camera.x = Math.min(maxX, Math.max(minX, camera.x));
+  camera.y = Math.min(maxY, Math.max(minY, camera.y));
+
   world.style.transform =
     `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`;
 }
 
 // =========================
-// Puzzle data
+// Utils
+// =========================
+function screenToWorld(x,y){
+  return {
+    x: (x - camera.x)/camera.scale,
+    y: (y - camera.y)/camera.scale
+  };
+}
+
+function getDistance(p1,p2){
+  return Math.hypot(p1.x-p2.x,p1.y-p2.y);
+}
+
+// =========================
+// Puzzle
 // =========================
 let image;
 let pieces = [];
@@ -122,6 +153,8 @@ function setup(){
   const ph = board.h/ROWS;
   const tabSize = Math.min(pw,ph)*0.3;
 
+  const marginImg = tabSize / scale; // ★修正ポイント
+
   let tabs=[];
 
   for(let y=0;y<ROWS;y++){
@@ -143,10 +176,20 @@ function setup(){
 
       const margin = tabSize;
 
+      // 初期位置（盤面外＆キャンバス内）
+      let px, py;
+      do{
+        px = Math.random()*(canvas.width-200)+100;
+        py = Math.random()*(canvas.height-200)+100;
+      }while(
+        px > board.x-100 && px < board.x+board.w+100 &&
+        py > board.y-100 && py < board.y+board.h+100
+      );
+
       const piece={
         id,
-        x: Math.random()*canvas.width,
-        y: Math.random()*canvas.height,
+        x: px,
+        y: py,
 
         correctX: board.x + x*pw - margin,
         correctY: board.y + y*ph - margin,
@@ -154,10 +197,10 @@ function setup(){
         w: pw + margin*2,
         h: ph + margin*2,
 
-        sx: x*(image.width/COLS) - (margin/scale),
-        sy: y*(image.height/ROWS) - (margin/scale),
-        sw: (image.width/COLS) + (margin/scale)*2,
-        sh: (image.height/ROWS) + (margin/scale)*2,
+        sx: x*(image.width/COLS) - marginImg,
+        sy: y*(image.height/ROWS) - marginImg,
+        sw: (image.width/COLS) + marginImg*2,
+        sh: (image.height/ROWS) + marginImg*2,
 
         tab: tabs[y][x],
         group:id,
@@ -181,7 +224,7 @@ function setup(){
 }
 
 // =========================
-// Path
+// Draw
 // =========================
 function createPath(p){
   const path = new Path2D();
@@ -224,9 +267,6 @@ function createPath(p){
   return path;
 }
 
-// =========================
-// Draw
-// =========================
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -247,23 +287,11 @@ function draw(){
 }
 
 // =========================
-// Pointer system
+// Pointer
 // =========================
 let pointers = new Map();
 let lastDist = null;
 let draggingGroup = null;
-
-// 座標補正（カメラ考慮）
-function screenToWorld(x,y){
-  return {
-    x: (x - camera.x)/camera.scale,
-    y: (y - camera.y)/camera.scale
-  };
-}
-
-function getDistance(p1,p2){
-  return Math.hypot(p1.x-p2.x,p1.y-p2.y);
-}
 
 document.addEventListener("pointerdown",(e)=>{
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -291,29 +319,39 @@ document.addEventListener("pointermove",(e)=>{
 
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
 
-  // 2本指ズーム
+  // --- pinch zoom（中心固定） ---
   if(pointers.size===2){
     const pts = Array.from(pointers.values());
-    const dist = getDistance(pts[0],pts[1]);
+    const center = {
+      x:(pts[0].x+pts[1].x)/2,
+      y:(pts[0].y+pts[1].y)/2
+    };
 
+    const before = screenToWorld(center.x, center.y);
+
+    const dist = getDistance(pts[0],pts[1]);
     if(lastDist!==null){
       camera.scale *= dist/lastDist;
     }
     lastDist = dist;
+
+    const after = screenToWorld(center.x, center.y);
+
+    camera.x += (after.x - before.x) * camera.scale;
+    camera.y += (after.y - before.y) * camera.scale;
+
     updateTransform();
     return;
   }
 
   lastDist=null;
 
-  // ピース移動
   if(draggingGroup!==null){
     for(let p of groups[draggingGroup]){
       p.x += dx / camera.scale;
       p.y += dy / camera.scale;
     }
   }else{
-    // カメラ移動
     camera.x += dx;
     camera.y += dy;
     updateTransform();
@@ -330,10 +368,6 @@ document.addEventListener("pointerup",(e)=>{
 
   draggingGroup=null;
   if(pointers.size<2) lastDist=null;
-});
-
-document.addEventListener("pointercancel",(e)=>{
-  pointers.delete(e.pointerId);
 });
 
 // =========================
