@@ -50,6 +50,12 @@ Gravit Designerってやつでいいかも
 ### 2026年4月8日
 PDF結合・分割ツールが動いてないよ
 
+### 2026年4月21日
+PDFまだ動いてないよ
+回転すると崩れるよ、ちょっとまえのやつは回転した後のスケール調整が変なだけで回転もスケール調整もできてたから、そっちを直した方が速そう、チャッピーゴミ
+あと、npy連続実行ページで、npy投入後ZIP作成までポップアップ表示、投入されたファイル数の表示
+画像から動画のやつも、画像読み込み完了までポップアップ
+
 ---
 
 This site distributes a WebAssembly build of FFmpeg (ffmpeg-core) which includes FFmpeg components.

@@ -43,6 +43,13 @@ const data = [
                 desc: "制作中（デモ版）",
                 tags: ["ソロ", "やり込み", "ゲーム"],
                 main: false,
+            },
+            {
+                title: "パズル",
+                url: "https://rirtir.com/Game/puzzle/",
+                desc: "パズルゲーム（制作中）",
+                tags: ["ソロ", "ゲーム"],
+                main: false,
             }
         ]
     },

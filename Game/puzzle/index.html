@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Puzzle</title>
+<style>
+body { margin: 0; overflow: hidden; background: #222; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<input type="file" id="fileInput">
+<canvas id="canvas"></canvas>
+
+<script>
+// =========================
+// Canvas setup
+// =========================
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+// =========================
+// Camera
+// =========================
+let camera = {
+    x: 0,
+    y: 0,
+    scale: 1
+};
+
+// =========================
+// Puzzle settings
+// =========================
+const ROWS = 4;
+const COLS = 4;
+let pieces = [];
+let groups = {};
+let image = null;
+
+// =========================
+// Load image
+// =========================
+document.getElementById("fileInput").addEventListener("change", e => {
+    const file = e.target.files[0];
+    const img = new Image();
+    img.onload = () => {
+        image = img;
+        createPieces();
+    };
+    img.src = URL.createObjectURL(file);
+});
+
+// =========================
+// Create pieces
+// =========================
+function createPieces() {
+    pieces = [];
+    groups = {};
+
+    const pw = image.width / COLS;
+    const ph = image.height / ROWS;
+
+    let id = 0;
+
+    for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+
+            const piece = {
+                id: id,
+                sx: x * pw,
+                sy: y * ph,
+                x: Math.random() * 800 - 400,
+                y: Math.random() * 600 - 300,
+                correctX: x * pw,
+                correctY: y * ph,
+                w: pw,
+                h: ph,
+                fixed: false,
+                group: id
+            };
+
+            groups[id] = [piece];
+            pieces.push(piece);
+            id++;
+        }
+    }
+}
+
+// =========================
+// Draw
+// =========================
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.translate(camera.x, camera.y);
+    ctx.scale(camera.scale, camera.scale);
+
+    for (let p of pieces) {
+        ctx.drawImage(
+            image,
+            p.sx, p.sy, p.w, p.h,
+            p.x, p.y, p.w, p.h
+        );
+
+        ctx.strokeStyle = "black";
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
+    }
+
+    ctx.restore();
+}
+
+// =========================
+// Utility
+// =========================
+function screenToWorld(x, y) {
+    return {
+        x: (x - camera.x) / camera.scale,
+        y: (y - camera.y) / camera.scale
+    };
+}
+
+// =========================
+// Drag logic
+// =========================
+let draggingGroup = null;
+let lastPos = null;
+
+canvas.addEventListener("pointerdown", e => {
+    const pos = screenToWorld(e.clientX, e.clientY);
+
+    for (let p of [...pieces].reverse()) {
+        if (
+            pos.x > p.x && pos.x < p.x + p.w &&
+            pos.y > p.y && pos.y < p.y + p.h &&
+            !p.fixed
+        ) {
+            draggingGroup = p.group;
+            lastPos = pos;
+            return;
+        }
+    }
+});
+
+canvas.addEventListener("pointermove", e => {
+    if (!draggingGroup) return;
+
+    const pos = screenToWorld(e.clientX, e.clientY);
+    const dx = pos.x - lastPos.x;
+    const dy = pos.y - lastPos.y;
+
+    for (let p of groups[draggingGroup]) {
+        p.x += dx;
+        p.y += dy;
+    }
+
+    lastPos = pos;
+});
+
+canvas.addEventListener("pointerup", () => {
+    if (draggingGroup !== null) {
+        checkSnap(draggingGroup);
+        checkMerge(draggingGroup);
+    }
+    draggingGroup = null;
+});
+
+// =========================
+// Snap to correct position
+// =========================
+function checkSnap(groupId) {
+    for (let p of groups[groupId]) {
+        const dx = p.x - p.correctX;
+        const dy = p.y - p.correctY;
+
+        if (Math.hypot(dx, dy) < 20) {
+            p.x = p.correctX;
+            p.y = p.correctY;
+            p.fixed = true;
+        }
+    }
+}
+
+// =========================
+// Merge pieces
+// =========================
+function checkMerge(groupId) {
+    const threshold = 20;
+
+    for (let p of groups[groupId]) {
+        for (let other of pieces) {
+            if (p.group === other.group) continue;
+
+            const dx = (p.x - other.x);
+            const dy = (p.y - other.y);
+
+            const correctDx = p.correctX - other.correctX;
+            const correctDy = p.correctY - other.correctY;
+
+            if (Math.abs(dx - correctDx) < threshold &&
+                Math.abs(dy - correctDy) < threshold) {
+
+                mergeGroups(p.group, other.group);
+                return;
+            }
+        }
+    }
+}
+
+// =========================
+// Merge group
+// =========================
+function mergeGroups(a, b) {
+    const groupA = groups[a];
+    const groupB = groups[b];
+
+    for (let p of groupB) {
+        p.group = a;
+        groupA.push(p);
+    }
+
+    delete groups[b];
+}
+
+// =========================
+// Zoom & Pan (two finger)
+// =========================
+let pointers = [];
+
+canvas.addEventListener("pointerdown", e => {
+    pointers.push(e);
+});
+
+canvas.addEventListener("pointermove", e => {
+    for (let i = 0; i < pointers.length; i++) {
+        if (pointers[i].pointerId === e.pointerId) {
+            pointers[i] = e;
+        }
+    }
+
+    if (pointers.length === 2) {
+        const p1 = pointers[0];
+        const p2 = pointers[1];
+
+        const dx = p1.clientX - p2.clientX;
+        const dy = p1.clientY - p2.clientY;
+
+        const dist = Math.hypot(dx, dy);
+
+        if (!canvas.lastDist) canvas.lastDist = dist;
+
+        const scaleChange = dist / canvas.lastDist;
+        camera.scale *= scaleChange;
+
+        canvas.lastDist = dist;
+    }
+});
+
+canvas.addEventListener("pointerup", e => {
+    pointers = pointers.filter(p => p.pointerId !== e.pointerId);
+    canvas.lastDist = null;
+});
+
+// =========================
+// Loop
+// =========================
+function loop() {
+    draw();
+    requestAnimationFrame(loop);
+}
+loop();
+
+</script>
+</body>
+</html>
