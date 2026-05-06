@@ -2,14 +2,22 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Puzzle</title>
+
 <style>
 body {
     margin:0;
     overflow:auto;
     background:#222;
+    overscroll-behavior: none;
 }
+
+canvas {
+    display:block;
+    touch-action: pan-x pan-y;
+}
+
 #ui {
     position:fixed;
     top:10px;
@@ -18,9 +26,6 @@ body {
     background:rgba(0,0,0,0.6);
     color:white;
     padding:10px;
-}
-canvas {
-    display:block;
 }
 </style>
 </head>
@@ -39,25 +44,28 @@ canvas {
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
+canvas.width = 3000;
+canvas.height = 3000;
+
 let image;
 let pieces = [];
 let groups = {};
 let neighbors = {};
-
 let ROWS = 4, COLS = 4;
 
-let board = {x:800, y:600, w:0, h:0}; // 中央寄せっぽい位置
-
-// canvasを広くする
-canvas.width = 3000;
-canvas.height = 3000;
+let board = {
+    x: canvas.width/2 - 400,
+    y: canvas.height/2 - 300,
+    w: 800,
+    h: 600
+};
 
 // =========================
 // 初期化
 // =========================
-document.getElementById("start").onclick = () => {
-    const file = document.getElementById("fileInput").files[0];
-    if (!file) return;
+start.onclick = ()=>{
+    const file = fileInput.files[0];
+    if(!file) return;
 
     ROWS = parseInt(rows.value);
     COLS = parseInt(cols.value);
@@ -74,29 +82,30 @@ document.getElementById("start").onclick = () => {
 // セットアップ
 // =========================
 function setup(){
-    pieces = [];
-    groups = {};
-    neighbors = {};
 
-    const scale = Math.min(800 / image.width, 600 / image.height);
+    pieces=[];
+    groups={};
+    neighbors={};
 
+    const scale = Math.min(board.w/image.width, board.h/image.height);
     board.w = image.width * scale;
     board.h = image.height * scale;
 
-    const pw = board.w / COLS;
-    const ph = board.h / ROWS;
+    const pw = board.w/COLS;
+    const ph = board.h/ROWS;
 
-    let tabs = [];
+    const tabSize = Math.min(pw,ph)*0.3;
 
-    // 凹凸生成（逆になる保証あり）
+    let tabs=[];
+
     for(let y=0;y<ROWS;y++){
         tabs[y]=[];
         for(let x=0;x<COLS;x++){
-            tabs[y][x] = {
-                top: y===0 ? 0 : -tabs[y-1][x].bottom,
-                left: x===0 ? 0 : -tabs[y][x-1].right,
-                right: x===COLS-1 ? 0 : (Math.random()>0.5?1:-1),
-                bottom: y===ROWS-1 ? 0 : (Math.random()>0.5?1:-1)
+            tabs[y][x]={
+                top: y===0?0:-tabs[y-1][x].bottom,
+                left: x===0?0:-tabs[y][x-1].right,
+                right: x===COLS-1?0:(Math.random()>0.5?1:-1),
+                bottom: y===ROWS-1?0:(Math.random()>0.5?1:-1)
             };
         }
     }
@@ -106,34 +115,38 @@ function setup(){
     for(let y=0;y<ROWS;y++){
         for(let x=0;x<COLS;x++){
 
-            const piece = {
+            const margin = tabSize;
+
+            const piece={
                 id,
                 x: Math.random()*canvas.width,
                 y: Math.random()*canvas.height,
-                correctX: board.x + x*pw,
-                correctY: board.y + y*ph,
-                w: pw,
-                h: ph,
-                sx: x*(image.width/COLS),
-                sy: y*(image.height/ROWS),
-                sw: image.width/COLS,
-                sh: image.height/ROWS,
+
+                correctX: board.x + x*pw - margin,
+                correctY: board.y + y*ph - margin,
+
+                w: pw + margin*2,
+                h: ph + margin*2,
+
+                sx: x*(image.width/COLS) - (margin/scale),
+                sy: y*(image.height/ROWS) - (margin/scale),
+                sw: (image.width/COLS) + (margin/scale)*2,
+                sh: (image.height/ROWS) + (margin/scale)*2,
+
                 tab: tabs[y][x],
                 group:id,
                 fixed:false,
-                gx:x,
-                gy:y
+                margin
             };
 
             pieces.push(piece);
-            groups[id] = [piece];
+            groups[id]=[piece];
 
-            // 隣接マップ
-            neighbors[id] = {
-                top: y>0 ? id-COLS : null,
-                bottom: y<ROWS-1 ? id+COLS : null,
-                left: x>0 ? id-1 : null,
-                right: x<COLS-1 ? id+1 : null
+            neighbors[id]={
+                top: y>0?id-COLS:null,
+                bottom: y<ROWS-1?id+COLS:null,
+                left: x>0?id-1:null,
+                right: x<COLS-1?id+1:null
             };
 
             id++;
@@ -142,46 +155,47 @@ function setup(){
 }
 
 // =========================
-// パス生成
+// パス
 // =========================
 function createPath(p){
     const path = new Path2D();
     const t = p.tab;
-    const w = p.w, h = p.h;
-    const s = Math.min(w,h)*0.3;
+    const w = p.w;
+    const h = p.h;
+    const s = p.margin;
 
-    path.moveTo(0,0);
+    path.moveTo(s,s);
 
     // top
-    if(t.top===0) path.lineTo(w,0);
+    if(t.top===0) path.lineTo(w-s,s);
     else{
-        path.lineTo(w/2 - s,0);
-        path.bezierCurveTo(w/2 - s/2, t.top*s, w/2 + s/2, t.top*s, w/2 + s,0);
-        path.lineTo(w,0);
+        path.lineTo(w/2 - s, s);
+        path.bezierCurveTo(w/2 - s/2, s - t.top*s, w/2 + s/2, s - t.top*s, w/2 + s, s);
+        path.lineTo(w-s, s);
     }
 
     // right
-    if(t.right===0) path.lineTo(w,h);
+    if(t.right===0) path.lineTo(w-s,h-s);
     else{
-        path.lineTo(w,h/2 - s);
-        path.bezierCurveTo(w + t.right*s, h/2 - s/2, w + t.right*s, h/2 + s/2, w, h/2 + s);
-        path.lineTo(w,h);
+        path.lineTo(w-s, h/2 - s);
+        path.bezierCurveTo(w - s + t.right*s, h/2 - s/2, w - s + t.right*s, h/2 + s/2, w-s, h/2 + s);
+        path.lineTo(w-s,h-s);
     }
 
     // bottom
-    if(t.bottom===0) path.lineTo(0,h);
+    if(t.bottom===0) path.lineTo(s,h-s);
     else{
-        path.lineTo(w/2 + s,h);
-        path.bezierCurveTo(w/2 + s/2, h + t.bottom*s, w/2 - s/2, h + t.bottom*s, w/2 - s, h);
-        path.lineTo(0,h);
+        path.lineTo(w/2 + s, h-s);
+        path.bezierCurveTo(w/2 + s/2, h - s + t.bottom*s, w/2 - s/2, h - s + t.bottom*s, w/2 - s, h-s);
+        path.lineTo(s,h-s);
     }
 
     // left
     if(t.left===0){
         path.closePath();
     }else{
-        path.lineTo(0,h/2 + s);
-        path.bezierCurveTo(t.left*s, h/2 + s/2, t.left*s, h/2 - s/2, 0, h/2 - s);
+        path.lineTo(s, h/2 + s);
+        path.bezierCurveTo(s - t.left*s, h/2 + s/2, s - t.left*s, h/2 - s/2, s, h/2 - s);
         path.closePath();
     }
 
@@ -194,7 +208,6 @@ function createPath(p){
 function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    // ボード
     ctx.fillStyle="#444";
     ctx.fillRect(board.x, board.y, board.w, board.h);
 
@@ -214,12 +227,12 @@ function draw(){
 // =========================
 // 操作
 // =========================
-let dragging = null;
-let last = null;
+let dragging=null;
+let last=null;
 
 canvas.addEventListener("pointerdown", e=>{
-    const x = e.offsetX;
-    const y = e.offsetY;
+    const x=e.offsetX;
+    const y=e.offsetY;
 
     for(let p of [...pieces].reverse()){
         if(
@@ -227,28 +240,32 @@ canvas.addEventListener("pointerdown", e=>{
             y>p.y && y<p.y+p.h &&
             !p.fixed
         ){
-            dragging = p.group;
-            last = {x,y};
-            break;
+            dragging=p.group;
+            last={x,y};
+            e.preventDefault();
+            return;
         }
     }
+
+    dragging=null;
 });
 
 canvas.addEventListener("pointermove", e=>{
     if(dragging===null) return;
 
-    const x = e.offsetX;
-    const y = e.offsetY;
+    const x=e.offsetX;
+    const y=e.offsetY;
 
-    const dx = x-last.x;
-    const dy = y-last.y;
+    const dx=x-last.x;
+    const dy=y-last.y;
 
     for(let p of groups[dragging]){
-        p.x += dx;
-        p.y += dy;
+        p.x+=dx;
+        p.y+=dy;
     }
 
-    last = {x,y};
+    last={x,y};
+    e.preventDefault();
 });
 
 canvas.addEventListener("pointerup", ()=>{
@@ -264,13 +281,13 @@ canvas.addEventListener("pointerup", ()=>{
 // =========================
 function snap(gid){
     for(let p of groups[gid]){
-        const dx = p.x - p.correctX;
-        const dy = p.y - p.correctY;
+        const dx=p.x-p.correctX;
+        const dy=p.y-p.correctY;
 
         if(Math.hypot(dx,dy)<30){
-            p.x = p.correctX;
-            p.y = p.correctY;
-            p.fixed = true;
+            p.x=p.correctX;
+            p.y=p.correctY;
+            p.fixed=true;
         }
     }
 }
@@ -279,37 +296,32 @@ function snap(gid){
 // マージ（隣接のみ）
 // =========================
 function merge(gid){
-    const threshold = 30;
+    const threshold=30;
 
     for(let p of groups[gid]){
-
-        const n = neighbors[p.id];
+        const n=neighbors[p.id];
 
         for(let dir of ["top","bottom","left","right"]){
-            const nid = n[dir];
+            const nid=n[dir];
             if(nid===null) continue;
 
-            const other = pieces[nid];
-            if(other.group === p.group) continue;
+            const other=pieces[nid];
+            if(other.group===p.group) continue;
 
-            const dx = p.x - other.x;
-            const dy = p.y - other.y;
+            const dx=p.x-other.x;
+            const dy=p.y-other.y;
 
-            const cdx = p.correctX - other.correctX;
-            const cdy = p.correctY - other.correctY;
+            const cdx=p.correctX-other.correctX;
+            const cdy=p.correctY-other.correctY;
 
             if(Math.abs(dx-cdx)<threshold && Math.abs(dy-cdy)<threshold){
 
-                // 位置補正
-                const offsetX = other.x + cdx;
-                const offsetY = other.y + cdy;
-
-                const moveX = offsetX - p.x;
-                const moveY = offsetY - p.y;
+                const moveX = other.x + cdx - p.x;
+                const moveY = other.y + cdy - p.y;
 
                 for(let gp of groups[gid]){
-                    gp.x += moveX;
-                    gp.y += moveY;
+                    gp.x+=moveX;
+                    gp.y+=moveY;
                 }
 
                 mergeGroups(p.group, other.group);
@@ -320,11 +332,11 @@ function merge(gid){
 }
 
 function mergeGroups(a,b){
-    const A = groups[a];
-    const B = groups[b];
+    const A=groups[a];
+    const B=groups[b];
 
     for(let p of B){
-        p.group = a;
+        p.group=a;
         A.push(p);
     }
 
