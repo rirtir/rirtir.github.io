@@ -61,8 +61,18 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const world = document.getElementById("world");
 
-canvas.width = 3000;
-canvas.height = 3000;
+// =========================
+// DPR Fix
+// =========================
+const dpr = window.devicePixelRatio || 1;
+
+canvas.width = 3000 * dpr;
+canvas.height = 3000 * dpr;
+
+canvas.style.width = "3000px";
+canvas.style.height = "3000px";
+
+ctx.scale(dpr, dpr);
 
 // =========================
 // Camera
@@ -82,8 +92,8 @@ function clampCamera(){
   const maxX = 0;
   const maxY = 0;
 
-  const minX = vw - canvas.width * camera.scale;
-  const minY = vh - canvas.height * camera.scale;
+  const minX = vw - 3000 * camera.scale;
+  const minY = vh - 3000 * camera.scale;
 
   camera.x = Math.min(maxX, Math.max(minX, camera.x));
   camera.y = Math.min(maxY, Math.max(minY, camera.y));
@@ -127,8 +137,8 @@ let ROWS = 4;
 let COLS = 4;
 
 let board = {
-  x: canvas.width/2 - 400,
-  y: canvas.height/2 - 300,
+  x: 3000/2 - 400,
+  y: 3000/2 - 300,
   w: 800,
   h: 600
 };
@@ -162,17 +172,26 @@ function setup(){
   groups = {};
   neighbors = {};
 
-  const scale = Math.min(board.w/image.width, board.h/image.height);
+  // =========================
+  // Display Scale
+  // =========================
+  const displayScale = Math.min(
+    board.w / image.width,
+    board.h / image.height
+  );
 
-  board.w = image.width * scale;
-  board.h = image.height * scale;
+  const actualW = image.width * displayScale;
+  const actualH = image.height * displayScale;
 
-  const pw = board.w / COLS;
-  const ph = board.h / ROWS;
+  board.w = actualW;
+  board.h = actualH;
+
+  const pw = actualW / COLS;
+  const ph = actualH / ROWS;
 
   const tabSize = Math.min(pw,ph) * 0.3;
 
-  const marginImg = tabSize / scale;
+  const marginImg = tabSize / displayScale;
 
   let tabs = [];
 
@@ -217,8 +236,8 @@ function setup(){
       let px, py;
 
       do{
-        px = Math.random()*(canvas.width-200)+100;
-        py = Math.random()*(canvas.height-200)+100;
+        px = Math.random()*(3000-200)+100;
+        py = Math.random()*(3000-200)+100;
 
       }while(
         px > board.x-100 &&
@@ -239,6 +258,14 @@ function setup(){
 
         w: pw + margin*2,
         h: ph + margin*2,
+
+        drawW:
+          (image.width / COLS) * displayScale
+          + margin*2,
+
+        drawH:
+          (image.height / ROWS) * displayScale
+          + margin*2,
 
         sx: x*(image.width/COLS) - marginImg,
         sy: y*(image.height/ROWS) - marginImg,
@@ -283,8 +310,8 @@ function createPath(p){
 
   const t = p.tab;
 
-  const w = p.w;
-  const h = p.h;
+  const w = p.drawW;
+  const h = p.drawH;
 
   const s = p.margin;
 
@@ -383,7 +410,7 @@ function createPath(p){
 
 function draw(){
 
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.clearRect(0,0,3000,3000);
 
   ctx.fillStyle = "#444";
   ctx.fillRect(board.x, board.y, board.w, board.h);
@@ -406,8 +433,8 @@ function draw(){
       p.sh,
       0,
       0,
-      p.w,
-      p.h
+      p.drawW,
+      p.drawH
     );
 
     ctx.restore();
