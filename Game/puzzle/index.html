@@ -71,21 +71,16 @@ let camera = { x: 0, y: 0, scale: 1 };
 
 function updateTransform(){
 
-  // Clamp camera scale
   const minScale = 0.3;
   const maxScale = 3;
 
-  camera.scale = Math.max(
-    minScale,
-    Math.min(maxScale, camera.scale)
-  );
+  camera.scale = Math.max(minScale, Math.min(maxScale, camera.scale));
 
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
   const maxX = 0;
   const maxY = 0;
-
   const minX = vw - canvas.width * camera.scale;
   const minY = vh - canvas.height * camera.scale;
 
@@ -107,10 +102,7 @@ function screenToWorld(x,y){
 }
 
 function getDistance(p1,p2){
-  return Math.hypot(
-    p1.x-p2.x,
-    p1.y-p2.y
-  );
+  return Math.hypot(p1.x-p2.x,p1.y-p2.y);
 }
 
 // =========================
@@ -133,7 +125,6 @@ let board = {
 // Setup
 // =========================
 start.onclick = ()=>{
-
   const file = fileInput.files[0];
   if(!file) return;
 
@@ -141,32 +132,25 @@ start.onclick = ()=>{
   COLS = parseInt(cols.value);
 
   const img = new Image();
-
   img.onload = ()=>{
     image = img;
     setup();
   };
-
   img.src = URL.createObjectURL(file);
 };
 
 function setup(){
 
-  pieces = [];
-  groups = {};
-  neighbors = {};
+  pieces=[];
+  groups={};
+  neighbors={};
 
-  const scale = Math.min(
-    board.w/image.width,
-    board.h/image.height
-  );
-
+  const scale = Math.min(board.w/image.width, board.h/image.height);
   board.w = image.width * scale;
   board.h = image.height * scale;
 
   const pw = board.w/COLS;
   const ph = board.h/ROWS;
-
   const tabSize = Math.min(pw,ph)*0.3;
 
   const marginImg = tabSize / scale;
@@ -174,16 +158,13 @@ function setup(){
   let tabs=[];
 
   for(let y=0;y<ROWS;y++){
-
     tabs[y]=[];
-
     for(let x=0;x<COLS;x++){
-
       tabs[y][x]={
-        top: y===0 ? 0 : -tabs[y-1][x].bottom,
-        left: x===0 ? 0 : -tabs[y][x-1].right,
-        right: x===COLS-1 ? 0 : (Math.random()>0.5 ? 1 : -1),
-        bottom: y===ROWS-1 ? 0 : (Math.random()>0.5 ? 1 : -1)
+        top: y===0?0:-tabs[y-1][x].bottom,
+        left: x===0?0:-tabs[y][x-1].right,
+        right: x===COLS-1?0:(Math.random()>0.5?1:-1),
+        bottom: y===ROWS-1?0:(Math.random()>0.5?1:-1)
       };
     }
   }
@@ -195,27 +176,19 @@ function setup(){
 
       const margin = tabSize;
 
-      // Initial position
       let px, py;
-
       do{
-
         px = Math.random()*(canvas.width-200)+100;
         py = Math.random()*(canvas.height-200)+100;
-
       }while(
-        px > board.x-100 &&
-        px < board.x+board.w+100 &&
-        py > board.y-100 &&
-        py < board.y+board.h+100
+        px > board.x-100 && px < board.x+board.w+100 &&
+        py > board.y-100 && py < board.y+board.h+100
       );
 
-      const piece = {
-
+      const piece={
         id,
-
-        x:px,
-        y:py,
+        x: px,
+        y: py,
 
         correctX: board.x + x*pw - margin,
         correctY: board.y + y*ph - margin,
@@ -225,27 +198,23 @@ function setup(){
 
         sx: x*(image.width/COLS) - marginImg,
         sy: y*(image.height/ROWS) - marginImg,
-
         sw: (image.width/COLS) + marginImg*2,
         sh: (image.height/ROWS) + marginImg*2,
 
         tab: tabs[y][x],
-
         group:id,
         fixed:false,
-
         margin
       };
 
       pieces.push(piece);
-
       groups[id]=[piece];
 
       neighbors[id]={
-        top: y>0 ? id-COLS : null,
-        bottom: y<ROWS-1 ? id+COLS : null,
-        left: x>0 ? id-1 : null,
-        right: x<COLS-1 ? id+1 : null
+        top: y>0?id-COLS:null,
+        bottom: y<ROWS-1?id+COLS:null,
+        left: x>0?id-1:null,
+        right: x<COLS-1?id+1:null
       };
 
       id++;
@@ -257,9 +226,7 @@ function setup(){
 // Draw
 // =========================
 function createPath(p){
-
   const path = new Path2D();
-
   const t = p.tab;
   const w = p.w;
   const h = p.h;
@@ -267,87 +234,32 @@ function createPath(p){
 
   path.moveTo(s,s);
 
-  // Top
-  if(t.top===0){
-
-    path.lineTo(w-s,s);
-
-  }else{
-
+  if(t.top===0) path.lineTo(w-s,s);
+  else{
     path.lineTo(w/2 - s, s);
-
-    path.bezierCurveTo(
-      w/2 - s/2,
-      s - t.top*s,
-      w/2 + s/2,
-      s - t.top*s,
-      w/2 + s,
-      s
-    );
-
+    path.bezierCurveTo(w/2 - s/2, s - t.top*s, w/2 + s/2, s - t.top*s, w/2 + s, s);
     path.lineTo(w-s, s);
   }
 
-  // Right
-  if(t.right===0){
-
-    path.lineTo(w-s,h-s);
-
-  }else{
-
+  if(t.right===0) path.lineTo(w-s,h-s);
+  else{
     path.lineTo(w-s, h/2 - s);
-
-    path.bezierCurveTo(
-      w - s + t.right*s,
-      h/2 - s/2,
-      w - s + t.right*s,
-      h/2 + s/2,
-      w-s,
-      h/2 + s
-    );
-
+    path.bezierCurveTo(w - s + t.right*s, h/2 - s/2, w - s + t.right*s, h/2 + s/2, w-s, h/2 + s);
     path.lineTo(w-s,h-s);
   }
 
-  // Bottom
-  if(t.bottom===0){
-
-    path.lineTo(s,h-s);
-
-  }else{
-
+  if(t.bottom===0) path.lineTo(s,h-s);
+  else{
     path.lineTo(w/2 + s, h-s);
-
-    path.bezierCurveTo(
-      w/2 + s/2,
-      h - s + t.bottom*s,
-      w/2 - s/2,
-      h - s + t.bottom*s,
-      w/2 - s,
-      h-s
-    );
-
+    path.bezierCurveTo(w/2 + s/2, h - s + t.bottom*s, w/2 - s/2, h - s + t.bottom*s, w/2 - s, h-s);
     path.lineTo(s,h-s);
   }
 
-  // Left
   if(t.left===0){
-
     path.closePath();
-
   }else{
-
     path.lineTo(s, h/2 + s);
-
-    path.bezierCurveTo(
-      s - t.left*s,
-      h/2 + s/2,
-      s - t.left*s,
-      h/2 - s/2,
-      s,
-      h/2 - s
-    );
-
+    path.bezierCurveTo(s - t.left*s, h/2 + s/2, s - t.left*s, h/2 - s/2, s, h/2 - s);
     path.closePath();
   }
 
@@ -355,107 +267,67 @@ function createPath(p){
 }
 
 function draw(){
-
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   ctx.fillStyle="#444";
-
-  ctx.fillRect(
-    board.x,
-    board.y,
-    board.w,
-    board.h
-  );
+  ctx.fillRect(board.x, board.y, board.w, board.h);
 
   for(let p of pieces){
 
     ctx.save();
-
     ctx.translate(p.x, p.y);
 
     const path = createPath(p);
-
     ctx.clip(path);
 
-    ctx.drawImage(
-      image,
-      p.sx,
-      p.sy,
-      p.sw,
-      p.sh,
-      0,
-      0,
-      p.w,
-      p.h
-    );
+    ctx.drawImage(image,p.sx,p.sy,p.sw,p.sh,0,0,p.w,p.h);
 
     ctx.restore();
   }
 }
 
 // =========================
-// Layer Control
+// Layer Helpers
 // =========================
-function bringGroupToFront(groupId){
+function bringGroupToFront(gid){
 
-  const target =
-    pieces.filter(p=>p.group===groupId);
+  const groupPieces = pieces.filter(p=>p.group===gid);
+  pieces = pieces.filter(p=>p.group!==gid);
 
-  const others =
-    pieces.filter(p=>p.group!==groupId);
-
-  pieces = [...others, ...target];
+  pieces.push(...groupPieces);
 }
 
-function sendGroupToBack(groupId){
+function sendPieceToBack(piece){
 
-  const target =
-    pieces.filter(p=>p.group===groupId);
-
-  const others =
-    pieces.filter(p=>p.group!==groupId);
-
-  pieces = [...target, ...others];
+  pieces = pieces.filter(p=>p!==piece);
+  pieces.unshift(piece);
 }
 
 // =========================
 // Pointer
 // =========================
 let pointers = new Map();
-
 let lastDist = null;
-
 let draggingGroup = null;
 
 document.addEventListener("pointerdown",(e)=>{
 
-  pointers.set(
-    e.pointerId,
-    {
-      x:e.clientX,
-      y:e.clientY
-    }
-  );
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
 
-  const pos = screenToWorld(
-    e.clientX,
-    e.clientY
-  );
+  const pos = screenToWorld(e.clientX,e.clientY);
 
   for(let p of [...pieces].reverse()){
 
     if(
-      pos.x>p.x &&
-      pos.x<p.x+p.w &&
-      pos.y>p.y &&
-      pos.y<p.y+p.h &&
+      pos.x>p.x && pos.x<p.x+p.w &&
+      pos.y>p.y && pos.y<p.y+p.h &&
       !p.fixed
     ){
 
       draggingGroup = p.group;
 
-      // Bring group to front
-      bringGroupToFront(draggingGroup);
+      // Bring selected group to front
+      bringGroupToFront(p.group);
 
       return;
     }
@@ -467,21 +339,12 @@ document.addEventListener("pointermove",(e)=>{
   if(!pointers.has(e.pointerId)) return;
 
   const prev = pointers.get(e.pointerId);
-
   const dx = e.clientX - prev.x;
   const dy = e.clientY - prev.y;
 
-  pointers.set(
-    e.pointerId,
-    {
-      x:e.clientX,
-      y:e.clientY
-    }
-  );
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
 
-  // =========================
-  // Pinch Zoom
-  // =========================
+  // --- pinch zoom ---
   if(pointers.size===2){
 
     const pts = Array.from(pointers.values());
@@ -491,67 +354,45 @@ document.addEventListener("pointermove",(e)=>{
       y:(pts[0].y+pts[1].y)/2
     };
 
-    const before = screenToWorld(
-      center.x,
-      center.y
-    );
-
-    const dist = getDistance(
-      pts[0],
-      pts[1]
-    );
+    const dist = getDistance(pts[0],pts[1]);
 
     if(lastDist!==null){
 
+      const before = screenToWorld(center.x, center.y);
+
       const oldScale = camera.scale;
+      let newScale = camera.scale * (dist/lastDist);
 
-      let newScale =
-        camera.scale * (dist / lastDist);
+      const minScale = 0.3;
+      const maxScale = 3;
 
-      newScale = Math.max(
-        0.3,
-        Math.min(3, newScale)
-      );
+      newScale = Math.max(minScale, Math.min(maxScale, newScale));
 
-      // Prevent camera jump at zoom limits
-      if(newScale !== oldScale){
+      camera.scale = newScale;
 
-        camera.scale = newScale;
+      const after = screenToWorld(center.x, center.y);
 
-        const after = screenToWorld(
-          center.x,
-          center.y
-        );
+      camera.x += (after.x - before.x) * camera.scale;
+      camera.y += (after.y - before.y) * camera.scale;
 
-        camera.x +=
-          (after.x - before.x) * camera.scale;
-
-        camera.y +=
-          (after.y - before.y) * camera.scale;
-
-        updateTransform();
-      }
+      updateTransform();
     }
 
     lastDist = dist;
-
     return;
   }
 
-  lastDist = null;
+  lastDist=null;
 
-  // Piece drag
   if(draggingGroup!==null){
 
     for(let p of groups[draggingGroup]){
-
       p.x += dx / camera.scale;
       p.y += dy / camera.scale;
     }
 
   }else{
 
-    // Camera move
     camera.x += dx;
     camera.y += dy;
 
@@ -564,17 +405,13 @@ document.addEventListener("pointerup",(e)=>{
   pointers.delete(e.pointerId);
 
   if(draggingGroup!==null){
-
     snap(draggingGroup);
-
     merge(draggingGroup);
   }
 
-  draggingGroup = null;
+  draggingGroup=null;
 
-  if(pointers.size<2){
-    lastDist = null;
-  }
+  if(pointers.size<2) lastDist=null;
 });
 
 // =========================
@@ -582,76 +419,58 @@ document.addEventListener("pointerup",(e)=>{
 // =========================
 function snap(gid){
 
-  let fixedAny = false;
-
   for(let p of groups[gid]){
 
-    const dx = p.x - p.correctX;
-    const dy = p.y - p.correctY;
+    const dx=p.x-p.correctX;
+    const dy=p.y-p.correctY;
 
     if(Math.hypot(dx,dy)<30){
 
-      p.x = p.correctX;
-      p.y = p.correctY;
+      p.x=p.correctX;
+      p.y=p.correctY;
 
-      p.fixed = true;
+      p.fixed=true;
 
-      fixedAny = true;
+      // Send fixed piece to back
+      sendPieceToBack(p);
     }
-  }
-
-  // Send fixed group to back
-  if(fixedAny){
-    sendGroupToBack(gid);
   }
 }
 
 function merge(gid){
 
-  const threshold = 30;
+  const threshold=30;
 
   for(let p of groups[gid]){
 
-    const n = neighbors[p.id];
+    const n=neighbors[p.id];
 
     for(let dir of ["top","bottom","left","right"]){
 
-      const nid = n[dir];
-
+      const nid=n[dir];
       if(nid===null) continue;
 
-      const other = pieces[nid];
+      const other=pieces[nid];
 
       if(other.group===p.group) continue;
 
-      const dx = p.x - other.x;
-      const dy = p.y - other.y;
+      const dx=p.x-other.x;
+      const dy=p.y-other.y;
 
-      const cdx = p.correctX - other.correctX;
-      const cdy = p.correctY - other.correctY;
+      const cdx=p.correctX-other.correctX;
+      const cdy=p.correctY-other.correctY;
 
-      if(
-        Math.abs(dx-cdx)<threshold &&
-        Math.abs(dy-cdy)<threshold
-      ){
+      if(Math.abs(dx-cdx)<threshold && Math.abs(dy-cdy)<threshold){
 
-        const moveX =
-          other.x + cdx - p.x;
-
-        const moveY =
-          other.y + cdy - p.y;
+        const moveX = other.x + cdx - p.x;
+        const moveY = other.y + cdy - p.y;
 
         for(let gp of groups[gid]){
-
-          gp.x += moveX;
-          gp.y += moveY;
+          gp.x+=moveX;
+          gp.y+=moveY;
         }
 
-        mergeGroups(
-          p.group,
-          other.group
-        );
-
+        mergeGroups(p.group, other.group);
         return;
       }
     }
@@ -660,13 +479,11 @@ function merge(gid){
 
 function mergeGroups(a,b){
 
-  const A = groups[a];
-  const B = groups[b];
+  const A=groups[a];
+  const B=groups[b];
 
   for(let p of B){
-
-    p.group = a;
-
+    p.group=a;
     A.push(p);
   }
 
@@ -677,14 +494,11 @@ function mergeGroups(a,b){
 // Loop
 // =========================
 function loop(){
-
   draw();
-
   requestAnimationFrame(loop);
 }
-
 loop();
-</script>
 
+</script>
 </body>
 </html>
