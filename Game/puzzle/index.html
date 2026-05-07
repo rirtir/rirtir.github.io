@@ -34,7 +34,7 @@ canvas {
   position:fixed;
   top:10px;
   left:10px;
-  z-index:10;
+  z-index:1000;
   background:rgba(0,0,0,0.6);
   color:white;
   padding:10px;
@@ -67,25 +67,49 @@ canvas.height = 3000;
 // =========================
 // Camera
 // =========================
-let camera = { x: 0, y: 0, scale: 1 };
+const MIN_SCALE = 0.3;
+const MAX_SCALE = 3;
 
-function updateTransform(){
-  // clamp camera（画面外に行きすぎない）
-  const minScale = 0.3;
-  const maxScale = 3;
+let camera = {
+  x: 0,
+  y: 0,
+  scale: 1
+};
 
-  camera.scale = Math.max(minScale, Math.min(maxScale, camera.scale));
+function clampCamera(){
+
+  camera.scale = Math.max(
+    MIN_SCALE,
+    Math.min(MAX_SCALE, camera.scale)
+  );
 
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  const maxX = 0;
-  const maxY = 0;
-  const minX = vw - canvas.width * camera.scale;
-  const minY = vh - canvas.height * camera.scale;
+  const scaledWidth = canvas.width * camera.scale;
+  const scaledHeight = canvas.height * camera.scale;
+
+  let minX = vw - scaledWidth;
+  let minY = vh - scaledHeight;
+
+  if(scaledWidth < vw){
+    minX = maxX = (vw - scaledWidth) / 2;
+  }else{
+    maxX = 0;
+  }
+
+  if(scaledHeight < vh){
+    minY = maxY = (vh - scaledHeight) / 2;
+  }else{
+    maxY = 0;
+  }
 
   camera.x = Math.min(maxX, Math.max(minX, camera.x));
   camera.y = Math.min(maxY, Math.max(minY, camera.y));
+}
+
+function updateTransform(){
+  clampCamera();
 
   world.style.transform =
     `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`;
@@ -102,7 +126,10 @@ function screenToWorld(x,y){
 }
 
 function getDistance(p1,p2){
-  return Math.hypot(p1.x-p2.x,p1.y-p2.y);
+  return Math.hypot(
+    p1.x-p2.x,
+    p1.y-p2.y
+  );
 }
 
 // =========================
@@ -112,7 +139,8 @@ let image;
 let pieces = [];
 let groups = {};
 let neighbors = {};
-let ROWS = 4, COLS = 4;
+let ROWS = 4;
+let COLS = 4;
 
 let board = {
   x: canvas.width/2 - 400,
@@ -125,6 +153,7 @@ let board = {
 // Setup
 // =========================
 start.onclick = ()=>{
+
   const file = fileInput.files[0];
   if(!file) return;
 
@@ -132,39 +161,49 @@ start.onclick = ()=>{
   COLS = parseInt(cols.value);
 
   const img = new Image();
+
   img.onload = ()=>{
     image = img;
     setup();
   };
+
   img.src = URL.createObjectURL(file);
 };
 
 function setup(){
 
-  pieces=[];
-  groups={};
-  neighbors={};
+  pieces = [];
+  groups = {};
+  neighbors = {};
 
-  const scale = Math.min(board.w/image.width, board.h/image.height);
+  const scale = Math.min(
+    board.w/image.width,
+    board.h/image.height
+  );
+
   board.w = image.width * scale;
   board.h = image.height * scale;
 
-  const pw = board.w/COLS;
-  const ph = board.h/ROWS;
+  const pw = board.w / COLS;
+  const ph = board.h / ROWS;
+
   const tabSize = Math.min(pw,ph)*0.3;
 
-  const marginImg = tabSize / scale; // ★修正ポイント
+  const marginImg = tabSize / scale;
 
-  let tabs=[];
+  let tabs = [];
 
   for(let y=0;y<ROWS;y++){
+
     tabs[y]=[];
+
     for(let x=0;x<COLS;x++){
+
       tabs[y][x]={
-        top: y===0?0:-tabs[y-1][x].bottom,
-        left: x===0?0:-tabs[y][x-1].right,
-        right: x===COLS-1?0:(Math.random()>0.5?1:-1),
-        bottom: y===ROWS-1?0:(Math.random()>0.5?1:-1)
+        top: y===0 ? 0 : -tabs[y-1][x].bottom,
+        left: x===0 ? 0 : -tabs[y][x-1].right,
+        right: x===COLS-1 ? 0 : (Math.random()>0.5 ? 1 : -1),
+        bottom: y===ROWS-1 ? 0 : (Math.random()>0.5 ? 1 : -1)
       };
     }
   }
@@ -176,20 +215,25 @@ function setup(){
 
       const margin = tabSize;
 
-      // 初期位置（盤面外＆キャンバス内）
       let px, py;
+
       do{
         px = Math.random()*(canvas.width-200)+100;
         py = Math.random()*(canvas.height-200)+100;
+
       }while(
-        px > board.x-100 && px < board.x+board.w+100 &&
-        py > board.y-100 && py < board.y+board.h+100
+        px > board.x-100 &&
+        px < board.x+board.w+100 &&
+        py > board.y-100 &&
+        py < board.y+board.h+100
       );
 
-      const piece={
+      const piece = {
+
         id,
-        x: px,
-        y: py,
+
+        x:px,
+        y:py,
 
         correctX: board.x + x*pw - margin,
         correctY: board.y + y*ph - margin,
@@ -199,23 +243,27 @@ function setup(){
 
         sx: x*(image.width/COLS) - marginImg,
         sy: y*(image.height/ROWS) - marginImg,
+
         sw: (image.width/COLS) + marginImg*2,
         sh: (image.height/ROWS) + marginImg*2,
 
         tab: tabs[y][x],
+
         group:id,
         fixed:false,
+
         margin
       };
 
       pieces.push(piece);
-      groups[id]=[piece];
 
-      neighbors[id]={
-        top: y>0?id-COLS:null,
-        bottom: y<ROWS-1?id+COLS:null,
-        left: x>0?id-1:null,
-        right: x<COLS-1?id+1:null
+      groups[id] = [piece];
+
+      neighbors[id] = {
+        top: y>0 ? id-COLS : null,
+        bottom: y<ROWS-1 ? id+COLS : null,
+        left: x>0 ? id-1 : null,
+        right: x<COLS-1 ? id+1 : null
       };
 
       id++;
@@ -227,40 +275,98 @@ function setup(){
 // Draw
 // =========================
 function createPath(p){
+
   const path = new Path2D();
+
   const t = p.tab;
+
   const w = p.w;
   const h = p.h;
   const s = p.margin;
 
   path.moveTo(s,s);
 
-  if(t.top===0) path.lineTo(w-s,s);
-  else{
+  // Top
+  if(t.top===0){
+
+    path.lineTo(w-s,s);
+
+  }else{
+
     path.lineTo(w/2 - s, s);
-    path.bezierCurveTo(w/2 - s/2, s - t.top*s, w/2 + s/2, s - t.top*s, w/2 + s, s);
+
+    path.bezierCurveTo(
+      w/2 - s/2,
+      s - t.top*s,
+      w/2 + s/2,
+      s - t.top*s,
+      w/2 + s,
+      s
+    );
+
     path.lineTo(w-s, s);
   }
 
-  if(t.right===0) path.lineTo(w-s,h-s);
-  else{
+  // Right
+  if(t.right===0){
+
+    path.lineTo(w-s,h-s);
+
+  }else{
+
     path.lineTo(w-s, h/2 - s);
-    path.bezierCurveTo(w - s + t.right*s, h/2 - s/2, w - s + t.right*s, h/2 + s/2, w-s, h/2 + s);
+
+    path.bezierCurveTo(
+      w - s + t.right*s,
+      h/2 - s/2,
+      w - s + t.right*s,
+      h/2 + s/2,
+      w-s,
+      h/2 + s
+    );
+
     path.lineTo(w-s,h-s);
   }
 
-  if(t.bottom===0) path.lineTo(s,h-s);
-  else{
+  // Bottom
+  if(t.bottom===0){
+
+    path.lineTo(s,h-s);
+
+  }else{
+
     path.lineTo(w/2 + s, h-s);
-    path.bezierCurveTo(w/2 + s/2, h - s + t.bottom*s, w/2 - s/2, h - s + t.bottom*s, w/2 - s, h-s);
+
+    path.bezierCurveTo(
+      w/2 + s/2,
+      h - s + t.bottom*s,
+      w/2 - s/2,
+      h - s + t.bottom*s,
+      w/2 - s,
+      h-s
+    );
+
     path.lineTo(s,h-s);
   }
 
+  // Left
   if(t.left===0){
+
     path.closePath();
+
   }else{
+
     path.lineTo(s, h/2 + s);
-    path.bezierCurveTo(s - t.left*s, h/2 + s/2, s - t.left*s, h/2 - s/2, s, h/2 - s);
+
+    path.bezierCurveTo(
+      s - t.left*s,
+      h/2 + s/2,
+      s - t.left*s,
+      h/2 - s/2,
+      s,
+      h/2 - s
+    );
+
     path.closePath();
   }
 
@@ -268,154 +374,310 @@ function createPath(p){
 }
 
 function draw(){
+
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  ctx.fillStyle="#444";
-  ctx.fillRect(board.x, board.y, board.w, board.h);
+  // Puzzle board
+  ctx.fillStyle = "#444";
+  ctx.fillRect(
+    board.x,
+    board.y,
+    board.w,
+    board.h
+  );
 
+  // Draw pieces
   for(let p of pieces){
+
     ctx.save();
+
     ctx.translate(p.x, p.y);
 
     const path = createPath(p);
+
     ctx.clip(path);
 
-    ctx.drawImage(image,p.sx,p.sy,p.sw,p.sh,0,0,p.w,p.h);
+    ctx.drawImage(
+      image,
+      p.sx,
+      p.sy,
+      p.sw,
+      p.sh,
+      0,
+      0,
+      p.w,
+      p.h
+    );
 
     ctx.restore();
   }
 }
 
 // =========================
+// Layer Control
+// =========================
+function bringGroupToFront(groupId){
+
+  const groupPieces = pieces.filter(
+    p => p.group === groupId
+  );
+
+  pieces = pieces.filter(
+    p => p.group !== groupId
+  );
+
+  pieces.push(...groupPieces);
+}
+
+function sendFixedGroupToBack(groupId){
+
+  const groupPieces = pieces.filter(
+    p => p.group === groupId
+  );
+
+  pieces = pieces.filter(
+    p => p.group !== groupId
+  );
+
+  pieces.unshift(...groupPieces);
+}
+
+// =========================
 // Pointer
 // =========================
 let pointers = new Map();
+
 let lastDist = null;
+
 let draggingGroup = null;
 
 document.addEventListener("pointerdown",(e)=>{
-  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
 
-  const pos = screenToWorld(e.clientX,e.clientY);
+  pointers.set(
+    e.pointerId,
+    {
+      x:e.clientX,
+      y:e.clientY
+    }
+  );
+
+  const pos = screenToWorld(
+    e.clientX,
+    e.clientY
+  );
 
   for(let p of [...pieces].reverse()){
+
     if(
-      pos.x>p.x && pos.x<p.x+p.w &&
-      pos.y>p.y && pos.y<p.y+p.h &&
+      pos.x > p.x &&
+      pos.x < p.x + p.w &&
+      pos.y > p.y &&
+      pos.y < p.y + p.h &&
       !p.fixed
     ){
+
       draggingGroup = p.group;
+
+      // Bring selected group to front
+      bringGroupToFront(draggingGroup);
+
       return;
     }
   }
 });
 
 document.addEventListener("pointermove",(e)=>{
+
   if(!pointers.has(e.pointerId)) return;
 
   const prev = pointers.get(e.pointerId);
+
   const dx = e.clientX - prev.x;
   const dy = e.clientY - prev.y;
 
-  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  pointers.set(
+    e.pointerId,
+    {
+      x:e.clientX,
+      y:e.clientY
+    }
+  );
 
-  // --- pinch zoom（中心固定） ---
+  // =========================
+  // Pinch Zoom
+  // =========================
   if(pointers.size===2){
+
     const pts = Array.from(pointers.values());
+
     const center = {
-      x:(pts[0].x+pts[1].x)/2,
-      y:(pts[0].y+pts[1].y)/2
+      x:(pts[0].x + pts[1].x)/2,
+      y:(pts[0].y + pts[1].y)/2
     };
 
-    const before = screenToWorld(center.x, center.y);
+    const before = screenToWorld(
+      center.x,
+      center.y
+    );
 
-    const dist = getDistance(pts[0],pts[1]);
+    const dist = getDistance(
+      pts[0],
+      pts[1]
+    );
+
     if(lastDist!==null){
-      camera.scale *= dist/lastDist;
+
+      const oldScale = camera.scale;
+
+      let newScale =
+        camera.scale * (dist / lastDist);
+
+      newScale = Math.max(
+        MIN_SCALE,
+        Math.min(MAX_SCALE, newScale)
+      );
+
+      // Only apply when scale actually changed
+      if(newScale !== oldScale){
+
+        camera.scale = newScale;
+
+        const after = screenToWorld(
+          center.x,
+          center.y
+        );
+
+        camera.x +=
+          (after.x - before.x) * camera.scale;
+
+        camera.y +=
+          (after.y - before.y) * camera.scale;
+
+        updateTransform();
+      }
     }
+
     lastDist = dist;
 
-    const after = screenToWorld(center.x, center.y);
-
-    camera.x += (after.x - before.x) * camera.scale;
-    camera.y += (after.y - before.y) * camera.scale;
-
-    updateTransform();
     return;
   }
 
-  lastDist=null;
+  lastDist = null;
 
+  // =========================
+  // Piece Drag
+  // =========================
   if(draggingGroup!==null){
+
     for(let p of groups[draggingGroup]){
+
       p.x += dx / camera.scale;
       p.y += dy / camera.scale;
     }
+
   }else{
+
+    // Camera move
     camera.x += dx;
     camera.y += dy;
+
     updateTransform();
   }
 });
 
 document.addEventListener("pointerup",(e)=>{
+
   pointers.delete(e.pointerId);
 
   if(draggingGroup!==null){
+
     snap(draggingGroup);
+
     merge(draggingGroup);
   }
 
-  draggingGroup=null;
-  if(pointers.size<2) lastDist=null;
+  draggingGroup = null;
+
+  if(pointers.size < 2){
+    lastDist = null;
+  }
 });
 
 // =========================
 // Snap & Merge
 // =========================
 function snap(gid){
-  for(let p of groups[gid]){
-    const dx=p.x-p.correctX;
-    const dy=p.y-p.correctY;
 
-    if(Math.hypot(dx,dy)<30){
-      p.x=p.correctX;
-      p.y=p.correctY;
-      p.fixed=true;
+  let fixedAny = false;
+
+  for(let p of groups[gid]){
+
+    const dx = p.x - p.correctX;
+    const dy = p.y - p.correctY;
+
+    if(Math.hypot(dx,dy) < 30){
+
+      p.x = p.correctX;
+      p.y = p.correctY;
+
+      p.fixed = true;
+
+      fixedAny = true;
     }
+  }
+
+  // Send fixed group to back
+  if(fixedAny){
+    sendFixedGroupToBack(gid);
   }
 }
 
 function merge(gid){
-  const threshold=30;
+
+  const threshold = 30;
 
   for(let p of groups[gid]){
-    const n=neighbors[p.id];
+
+    const n = neighbors[p.id];
 
     for(let dir of ["top","bottom","left","right"]){
-      const nid=n[dir];
+
+      const nid = n[dir];
+
       if(nid===null) continue;
 
-      const other=pieces[nid];
+      const other = pieces[nid];
+
       if(other.group===p.group) continue;
 
-      const dx=p.x-other.x;
-      const dy=p.y-other.y;
+      const dx = p.x - other.x;
+      const dy = p.y - other.y;
 
-      const cdx=p.correctX-other.correctX;
-      const cdy=p.correctY-other.correctY;
+      const cdx = p.correctX - other.correctX;
+      const cdy = p.correctY - other.correctY;
 
-      if(Math.abs(dx-cdx)<threshold && Math.abs(dy-cdy)<threshold){
+      if(
+        Math.abs(dx-cdx)<threshold &&
+        Math.abs(dy-cdy)<threshold
+      ){
 
-        const moveX = other.x + cdx - p.x;
-        const moveY = other.y + cdy - p.y;
+        const moveX =
+          other.x + cdx - p.x;
+
+        const moveY =
+          other.y + cdy - p.y;
 
         for(let gp of groups[gid]){
-          gp.x+=moveX;
-          gp.y+=moveY;
+
+          gp.x += moveX;
+          gp.y += moveY;
         }
 
-        mergeGroups(p.group, other.group);
+        mergeGroups(
+          p.group,
+          other.group
+        );
+
         return;
       }
     }
@@ -423,11 +685,14 @@ function merge(gid){
 }
 
 function mergeGroups(a,b){
-  const A=groups[a];
-  const B=groups[b];
+
+  const A = groups[a];
+  const B = groups[b];
 
   for(let p of B){
-    p.group=a;
+
+    p.group = a;
+
     A.push(p);
   }
 
@@ -438,11 +703,16 @@ function mergeGroups(a,b){
 // Loop
 // =========================
 function loop(){
+
   draw();
+
   requestAnimationFrame(loop);
 }
-loop();
 
+updateTransform();
+
+loop();
 </script>
+
 </body>
 </html>
