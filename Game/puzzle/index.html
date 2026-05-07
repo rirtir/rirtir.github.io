@@ -70,7 +70,7 @@ canvas.height = 3000;
 let camera = { x: 0, y: 0, scale: 1 };
 
 function updateTransform(){
-
+  // clamp camera（画面外に行きすぎない）
   const minScale = 0.3;
   const maxScale = 3;
 
@@ -153,7 +153,7 @@ function setup(){
   const ph = board.h/ROWS;
   const tabSize = Math.min(pw,ph)*0.3;
 
-  const marginImg = tabSize / scale;
+  const marginImg = tabSize / scale; // ★修正ポイント
 
   let tabs=[];
 
@@ -176,6 +176,7 @@ function setup(){
 
       const margin = tabSize;
 
+      // 初期位置（盤面外＆キャンバス内）
       let px, py;
       do{
         px = Math.random()*(canvas.width-200)+100;
@@ -273,7 +274,6 @@ function draw(){
   ctx.fillRect(board.x, board.y, board.w, board.h);
 
   for(let p of pieces){
-
     ctx.save();
     ctx.translate(p.x, p.y);
 
@@ -287,23 +287,6 @@ function draw(){
 }
 
 // =========================
-// Layer Helpers
-// =========================
-function bringGroupToFront(gid){
-
-  const groupPieces = pieces.filter(p=>p.group===gid);
-  pieces = pieces.filter(p=>p.group!==gid);
-
-  pieces.push(...groupPieces);
-}
-
-function sendPieceToBack(piece){
-
-  pieces = pieces.filter(p=>p!==piece);
-  pieces.unshift(piece);
-}
-
-// =========================
 // Pointer
 // =========================
 let pointers = new Map();
@@ -311,31 +294,23 @@ let lastDist = null;
 let draggingGroup = null;
 
 document.addEventListener("pointerdown",(e)=>{
-
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
 
   const pos = screenToWorld(e.clientX,e.clientY);
 
   for(let p of [...pieces].reverse()){
-
     if(
       pos.x>p.x && pos.x<p.x+p.w &&
       pos.y>p.y && pos.y<p.y+p.h &&
       !p.fixed
     ){
-
       draggingGroup = p.group;
-
-      // Bring selected group to front
-      bringGroupToFront(p.group);
-
       return;
     }
   }
 });
 
 document.addEventListener("pointermove",(e)=>{
-
   if(!pointers.has(e.pointerId)) return;
 
   const prev = pointers.get(e.pointerId);
@@ -344,64 +319,46 @@ document.addEventListener("pointermove",(e)=>{
 
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
 
-  // --- pinch zoom ---
+  // --- pinch zoom（中心固定） ---
   if(pointers.size===2){
-
     const pts = Array.from(pointers.values());
-
     const center = {
       x:(pts[0].x+pts[1].x)/2,
       y:(pts[0].y+pts[1].y)/2
     };
 
+    const before = screenToWorld(center.x, center.y);
+
     const dist = getDistance(pts[0],pts[1]);
-
     if(lastDist!==null){
-
-      const before = screenToWorld(center.x, center.y);
-
-      const oldScale = camera.scale;
-      let newScale = camera.scale * (dist/lastDist);
-
-      const minScale = 0.3;
-      const maxScale = 3;
-
-      newScale = Math.max(minScale, Math.min(maxScale, newScale));
-
-      camera.scale = newScale;
-
-      const after = screenToWorld(center.x, center.y);
-
-      camera.x += (after.x - before.x) * camera.scale;
-      camera.y += (after.y - before.y) * camera.scale;
-
-      updateTransform();
+      camera.scale *= dist/lastDist;
     }
-
     lastDist = dist;
+
+    const after = screenToWorld(center.x, center.y);
+
+    camera.x += (after.x - before.x) * camera.scale;
+    camera.y += (after.y - before.y) * camera.scale;
+
+    updateTransform();
     return;
   }
 
   lastDist=null;
 
   if(draggingGroup!==null){
-
     for(let p of groups[draggingGroup]){
       p.x += dx / camera.scale;
       p.y += dy / camera.scale;
     }
-
   }else{
-
     camera.x += dx;
     camera.y += dy;
-
     updateTransform();
   }
 });
 
 document.addEventListener("pointerup",(e)=>{
-
   pointers.delete(e.pointerId);
 
   if(draggingGroup!==null){
@@ -410,7 +367,6 @@ document.addEventListener("pointerup",(e)=>{
   }
 
   draggingGroup=null;
-
   if(pointers.size<2) lastDist=null;
 });
 
@@ -418,40 +374,29 @@ document.addEventListener("pointerup",(e)=>{
 // Snap & Merge
 // =========================
 function snap(gid){
-
   for(let p of groups[gid]){
-
     const dx=p.x-p.correctX;
     const dy=p.y-p.correctY;
 
     if(Math.hypot(dx,dy)<30){
-
       p.x=p.correctX;
       p.y=p.correctY;
-
       p.fixed=true;
-
-      // Send fixed piece to back
-      sendPieceToBack(p);
     }
   }
 }
 
 function merge(gid){
-
   const threshold=30;
 
   for(let p of groups[gid]){
-
     const n=neighbors[p.id];
 
     for(let dir of ["top","bottom","left","right"]){
-
       const nid=n[dir];
       if(nid===null) continue;
 
       const other=pieces[nid];
-
       if(other.group===p.group) continue;
 
       const dx=p.x-other.x;
@@ -478,7 +423,6 @@ function merge(gid){
 }
 
 function mergeGroups(a,b){
-
   const A=groups[a];
   const B=groups[b];
 
