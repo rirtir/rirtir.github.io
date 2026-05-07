@@ -47,9 +47,9 @@ const data = [
             {
                 title: "パズル",
                 url: "https://rirtir.com/Game/puzzle/",
-                desc: "パズルゲーム（制作中）",
+                desc: "任意の画像、任意の難易度で遊べるパズルゲーム",
                 tags: ["ソロ", "ゲーム"],
-                main: false,
+                main: true,
             }
         ]
     },
@@ -196,6 +196,13 @@ const data = [
                 desc: "このページのリポジトリ",
                 tags: [],
                 main: false,
+            },
+            {
+                title: "バグ報告・要望送信フォーム",
+                url: "https://forms.gle/FKudrSHsjtNdhamq9",
+                desc: "バグ報告や要望を送信するフォーム",
+                tags: [],
+                main: false
             }
         ]
     },
