@@ -64,13 +64,14 @@ const world = document.getElementById("world");
 // =========================
 // DPR Fix
 // =========================
-const dpr = window.devicePixelRatio || 1;
+const dpr = Math.min(devicePixelRatio, 1.5);
+const WORLD_SIZE = 2000;
 
-canvas.width = 3000 * dpr;
-canvas.height = 3000 * dpr;
+canvas.width = WORLD_SIZE * dpr;
+canvas.height = WORLD_SIZE * dpr;
 
-canvas.style.width = "3000px";
-canvas.style.height = "3000px";
+canvas.style.width = WORLD_SIZE + "px";
+canvas.style.height = WORLD_SIZE + "px";
 
 ctx.scale(dpr, dpr);
 
@@ -92,8 +93,8 @@ function clampCamera(){
   const maxX = 0;
   const maxY = 0;
 
-  const minX = vw - 3000 * camera.scale;
-  const minY = vh - 3000 * camera.scale;
+  const minX = vw - WORLD_SIZE * camera.scale;
+  const minY = vh - WORLD_SIZE * camera.scale;
 
   camera.x = Math.min(maxX, Math.max(minX, camera.x));
   camera.y = Math.min(maxY, Math.max(minY, camera.y));
@@ -137,8 +138,8 @@ let ROWS = 4;
 let COLS = 4;
 
 let board = {
-  x: 3000/2 - 400,
-  y: 3000/2 - 300,
+  x: WORLD_SIZE/2 - 400,
+  y: WORLD_SIZE/2 - 300,
   w: 800,
   h: 600
 };
@@ -236,8 +237,8 @@ function setup(){
       let px, py;
 
       do{
-        px = Math.random()*(3000-200)+100;
-        py = Math.random()*(3000-200)+100;
+        px = Math.random()*(WORLD_SIZE-200)+100;
+        py = Math.random()*(WORLD_SIZE-200)+100;
 
       }while(
         px > board.x-100 &&
@@ -410,7 +411,7 @@ function createPath(p){
 
 function draw(){
 
-  ctx.clearRect(0,0,3000,3000);
+  ctx.clearRect(0,0,WORLD_SIZE,WORLD_SIZE);
 
   ctx.fillStyle = "#444";
   ctx.fillRect(board.x, board.y, board.w, board.h);
