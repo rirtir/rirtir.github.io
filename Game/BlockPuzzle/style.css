@@ -178,11 +178,11 @@ body {
 }
 
 .cell.highlight-valid {
-    background: #4caf50 !important;
+    background: #74ee78 !important;
 }
 
 .cell.highlight-invalid {
-    background: #ef5350 !important;
+    background: #ec4845 !important;
 }
 
 /* =========================================================

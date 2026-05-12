@@ -4,14 +4,19 @@
 const BOARD_SIZE = 9;
 const BASE_SCORE = 100;
 
+const POINTER_OFFSET_X_RIGHT = 60;
+const POINTER_OFFSET_X_LEFT = -60;
+const POINTER_OFFSET_Y = -80;
+
 const NORMAL_COLORS = [
     "#4cc9f0",
     "#f72585",
     "#b5179e",
     "#7209b7",
     "#4361ee",
-    "#4caf50",
-    "#ff9800"
+    "#44a56c",
+    "#ff9800",
+    "#fffb00"
 ];
 
 const PLAYER_COLOR = "#4cc9f0";
@@ -371,19 +376,26 @@ function moveDrag(e) {
     if (!dragging) return;
 
     let left, top;
+    let logicalX, logicalY;
 
     if (rightHandMode) {
         left = e.clientX + 30;
+
+        logicalX = e.clientX + POINTER_OFFSET_X_RIGHT;
     } else {
         left = e.clientX - dragging.width - 30;
+
+        logicalX = e.clientX + POINTER_OFFSET_X_LEFT;
     }
 
     top = e.clientY - dragging.height - 30;
 
+    logicalY = e.clientY + POINTER_OFFSET_Y;
+
     dragCanvas.style.left = `${left}px`;
     dragCanvas.style.top = `${top}px`;
 
-    highlightPlacement(e.clientX, e.clientY);
+    highlightPlacement(logicalX, logicalY);
 }
 
 function onPointerUp(e) {
@@ -391,7 +403,17 @@ function onPointerUp(e) {
 
     if (!dragging) return;
 
-    const pos = getBoardCellFromPoint(e.clientX, e.clientY);
+    let logicalX, logicalY;
+
+    if (rightHandMode) {
+        logicalX = e.clientX + POINTER_OFFSET_X_RIGHT;
+    } else {
+        logicalX = e.clientX + POINTER_OFFSET_X_LEFT;
+    }
+
+    logicalY = e.clientY + POINTER_OFFSET_Y;
+
+    const pos = getBoardCellFromPoint(logicalX, logicalY);
 
     if (pos && canPlace(dragging.piece, pos.x, pos.y)) {
         undoState = cloneState();
