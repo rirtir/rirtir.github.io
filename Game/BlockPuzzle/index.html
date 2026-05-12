@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>9x9 Block Puzzle</title>
+
+<style>
+/* =========================================================
+   Basic Layout
+========================================================= */
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none; /* Disable pull-to-refresh */
+    touch-action: none;        /* Disable browser gestures */
+    background: #1f2430;
+    color: #ffffff;
+    font-family: sans-serif;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game {
+    width: min(100vw, 480px);
+    height: 100vh;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* =========================================================
+   Header
+========================================================= */
+#header {
+    text-align: center;
+    flex-shrink: 0;
+}
+
+#title {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+#score {
+    margin-top: 6px;
+    font-size: 20px;
+}
+
+#combo {
+    margin-top: 4px;
+    font-size: 14px;
+    color: #ffd166;
+    min-height: 18px;
+}
+
+#message {
+    margin-top: 4px;
+    font-size: 14px;
+    color: #ff8080;
+    min-height: 18px;
+}
+
+/* =========================================================
+   Board
+========================================================= */
+#board {
+    position: relative;
+    width: min(90vw, 450px);
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    gap: 2px;
+    background: #394150;
+    padding: 2px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.cell {
+    background: #2c3443;
+    border-radius: 4px;
+}
+
+.cell.filled {
+    background: #4cc9f0;
+}
+
+.cell.highlight-valid {
+    background: #4caf50 !important;
+}
+
+.cell.highlight-invalid {
+    background: #ef5350 !important;
+}
+
+/* =========================================================
+   Piece Area
+========================================================= */
+#pieceArea {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    flex: 1;
+    min-height: 140px;
+}
+
+.pieceSlot {
+    flex: 1;
+    background: #2b3140;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.pieceCanvas {
+    touch-action: none;
+}
+
+.pieceSlot.used {
+    opacity: 0.15;
+    pointer-events: none;
+}
+
+/* =========================================================
+   Drag Piece
+========================================================= */
+#dragLayer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+#dragPiece {
+    position: absolute;
+    opacity: 0.9;
+    display: none;
+}
+
+/* =========================================================
+   Button
+========================================================= */
+#restartButton {
+    border: none;
+    background: #ff6b6b;
+    color: white;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* =========================================================
+   Responsive
+========================================================= */
+@media (max-height: 700px) {
+    #title { font-size: 20px; }
+    #score { font-size: 18px; }
+    #pieceArea { min-height: 110px; }
+}
+</style>
+</head>
+<body>
+<div id="game">
+    <div id="header">
+        <div id="title">9×9 Block Puzzle</div>
+        <div id="score">Score: 0</div>
+        <div id="combo"></div>
+        <div id="message"></div>
+        <button id="restartButton">Restart</button>
+    </div>
+
+    <div id="board"></div>
+
+    <div id="pieceArea">
+        <div class="pieceSlot" id="slot0"></div>
+        <div class="pieceSlot" id="slot1"></div>
+        <div class="pieceSlot" id="slot2"></div>
+    </div>
+</div>
+
+<div id="dragLayer">
+    <canvas id="dragPiece"></canvas>
+</div>
+
+<script>
+/* =========================================================
+   Constants
+========================================================= */
+const BOARD_SIZE = 9;
+const BASE_SCORE = 100;
+const COLORS = [
+    "#4cc9f0",
+    "#f72585",
+    "#b5179e",
+    "#7209b7",
+    "#4361ee",
+    "#4caf50",
+    "#ff9800"
+];
+
+/* =========================================================
+   Piece Definitions
+   Coordinates are [x, y]
+========================================================= */
+const PIECE_SHAPES = [
+    [[0,0]],
+    [[0,0],[1,0]],
+    [[0,0],[1,0],[2,0]],
+    [[0,0],[1,0],[2,0],[3,0],[4,0]],
+    [[0,0],[0,1]],
+    [[0,0],[0,1],[0,2]],
+    [[0,0],[1,0],[0,1],[1,1]],           // 2x2
+    [[0,0],[1,0],[2,0],[0,1]],           // L
+    [[0,0],[1,0],[2,0],[2,1]],           // reverse L
+    [[1,0],[0,1],[1,1],[2,1]],           // T
+    [[0,0],[1,0],[2,0],[0,1],[2,1]],     // U
+    [[0,0],[1,0],[2,0],[0,1],[1,1],[2,1],[0,2],[1,2],[2,2]] // 3x3
+];
+
+/* =========================================================
+   Game State
+========================================================= */
+let board = [];
+let currentPieces = [];
+let score = 0;
+let comboMultiplier = 1;
+let gameOver = false;
+
+let boardElement = document.getElementById("board");
+let scoreElement = document.getElementById("score");
+let comboElement = document.getElementById("combo");
+let messageElement = document.getElementById("message");
+
+let dragCanvas = document.getElementById("dragPiece");
+let dragCtx = dragCanvas.getContext("2d");
+
+let dragging = null;
+
+/* =========================================================
+   Initialization
+========================================================= */
+function init() {
+    board = Array.from({ length: BOARD_SIZE }, () =>
+        Array(BOARD_SIZE).fill(null)
+    );
+
+    score = 0;
+    comboMultiplier = 1;
+    gameOver = false;
+
+    createBoard();
+    generatePieces();
+    updateScore();
+    messageElement.textContent = "";
+}
+
+document.getElementById("restartButton").addEventListener("click", init);
+
+/* =========================================================
+   Board Rendering
+========================================================= */
+function createBoard() {
+    boardElement.innerHTML = "";
+
+    for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < BOARD_SIZE; x++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+            boardElement.appendChild(cell);
+        }
+    }
+
+    renderBoard();
+}
+
+function renderBoard() {
+    const cells = boardElement.children;
+
+    for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < BOARD_SIZE; x++) {
+            const index = y * BOARD_SIZE + x;
+            const cell = cells[index];
+
+            cell.className = "cell";
+
+            if (board[y][x]) {
+                cell.classList.add("filled");
+                cell.style.background = board[y][x];
+            } else {
+                cell.style.background = "";
+            }
+        }
+    }
+}
+
+/* =========================================================
+   Piece Generation
+========================================================= */
+function randomPiece() {
+    const shape =
+        PIECE_SHAPES[Math.floor(Math.random() * PIECE_SHAPES.length)];
+
+    return {
+        shape,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)]
+    };
+}
+
+function generatePieces() {
+    currentPieces = [randomPiece(), randomPiece(), randomPiece()];
+
+    for (let i = 0; i < 3; i++) {
+        renderPieceSlot(i);
+    }
+
+    checkGameOver();
+}
+
+function renderPieceSlot(index) {
+    const slot = document.getElementById(`slot${index}`);
+    slot.className = "pieceSlot";
+    slot.innerHTML = "";
+
+    const piece = currentPieces[index];
+    if (!piece) {
+        slot.classList.add("used");
+        return;
+    }
+
+    const size = getShapeSize(piece.shape);
+    const cellSize = Math.min(24, (slot.clientWidth - 20) / Math.max(size.w, size.h));
+    const canvas = document.createElement("canvas");
+    canvas.className = "pieceCanvas";
+
+    canvas.width = size.w * cellSize;
+    canvas.height = size.h * cellSize;
+
+    drawPiece(canvas.getContext("2d"), piece, cellSize);
+
+    slot.appendChild(canvas);
+
+    canvas.addEventListener("pointerdown", (e) => {
+        startDrag(e, index, cellSize);
+    });
+}
+
+function getShapeSize(shape) {
+    let maxX = 0;
+    let maxY = 0;
+    for (const [x, y] of shape) {
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+    }
+    return { w: maxX + 1, h: maxY + 1 };
+}
+
+function drawPiece(ctx, piece, cellSize) {
+    const size = getShapeSize(piece.shape);
+
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+    for (const [x, y] of piece.shape) {
+        ctx.fillStyle = piece.color;
+        ctx.fillRect(
+            x * cellSize + 1,
+            y * cellSize + 1,
+            cellSize - 2,
+            cellSize - 2
+        );
+    }
+}
+
+/* =========================================================
+   Drag Handling
+========================================================= */
+function startDrag(event, pieceIndex, cellSize) {
+    if (gameOver) return;
+
+    event.preventDefault();
+
+    const piece = currentPieces[pieceIndex];
+    if (!piece) return;
+
+    const size = getShapeSize(piece.shape);
+
+    dragCanvas.width = size.w * cellSize;
+    dragCanvas.height = size.h * cellSize;
+    drawPiece(dragCtx, piece, cellSize);
+
+    dragging = {
+        pieceIndex,
+        piece,
+        cellSize,
+        offsetX: dragCanvas.width / 2,
+        offsetY: dragCanvas.height / 2
+    };
+
+    dragCanvas.style.display = "block";
+
+    moveDrag(event);
+
+    window.addEventListener("pointermove", onPointerMove, { passive: false });
+    window.addEventListener("pointerup", onPointerUp, { passive: false });
+}
+
+function onPointerMove(event) {
+    event.preventDefault();
+    moveDrag(event);
+}
+
+function moveDrag(event) {
+    if (!dragging) return;
+
+    dragCanvas.style.left =
+        (event.clientX - dragging.offsetX) + "px";
+    dragCanvas.style.top =
+        (event.clientY - dragging.offsetY) + "px";
+
+    highlightPlacement(event.clientX, event.clientY);
+}
+
+function onPointerUp(event) {
+    event.preventDefault();
+
+    if (!dragging) return;
+
+    const pos = getBoardCellFromPoint(event.clientX, event.clientY);
+
+    if (pos && canPlace(dragging.piece, pos.x, pos.y)) {
+        placePiece(dragging.piece, pos.x, pos.y);
+        currentPieces[dragging.pieceIndex] = null;
+        renderPieceSlot(dragging.pieceIndex);
+
+        if (currentPieces.every(p => p === null)) {
+            generatePieces();
+        } else {
+            checkGameOver();
+        }
+    }
+
+    clearHighlights();
+
+    dragging = null;
+    dragCanvas.style.display = "none";
+
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+}
+
+/* =========================================================
+   Placement Logic
+========================================================= */
+function canPlace(piece, baseX, baseY) {
+    for (const [dx, dy] of piece.shape) {
+        const x = baseX + dx;
+        const y = baseY + dy;
+
+        if (
+            x < 0 || x >= BOARD_SIZE ||
+            y < 0 || y >= BOARD_SIZE ||
+            board[y][x] !== null
+        ) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function placePiece(piece, baseX, baseY) {
+    for (const [dx, dy] of piece.shape) {
+        board[baseY + dy][baseX + dx] = piece.color;
+    }
+
+    renderBoard();
+    resolveClears();
+}
+
+function resolveClears() {
+    let chain = 0;
+
+    while (true) {
+        const cellsToClear = findClearCells();
+
+        if (cellsToClear.length === 0) break;
+
+        chain++;
+
+        for (const [x, y] of cellsToClear) {
+            board[y][x] = null;
+        }
+
+        const gained =
+            BASE_SCORE *
+            cellsToClear.length / 9 *
+            Math.pow(2, chain - 1) *
+            comboMultiplier;
+
+        score += Math.floor(gained);
+
+        comboMultiplier *= 2;
+
+        renderBoard();
+    }
+
+    if (chain === 0) {
+        comboMultiplier = 1;
+        comboElement.textContent = "";
+    } else {
+        comboElement.textContent =
+            `Combo x${comboMultiplier}`;
+    }
+
+    updateScore();
+}
+
+function findClearCells() {
+    const result = new Set();
+
+    // Rows
+    for (let y = 0; y < BOARD_SIZE; y++) {
+        let full = true;
+        for (let x = 0; x < BOARD_SIZE; x++) {
+            if (board[y][x] === null) {
+                full = false;
+                break;
+            }
+        }
+        if (full) {
+            for (let x = 0; x < BOARD_SIZE; x++) {
+                result.add(`${x},${y}`);
+            }
+        }
+    }
+
+    // Columns
+    for (let x = 0; x < BOARD_SIZE; x++) {
+        let full = true;
+        for (let y = 0; y < BOARD_SIZE; y++) {
+            if (board[y][x] === null) {
+                full = false;
+                break;
+            }
+        }
+        if (full) {
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                result.add(`${x},${y}`);
+            }
+        }
+    }
+
+    // 3x3 Blocks
+    for (let by = 0; by < 3; by++) {
+        for (let bx = 0; bx < 3; bx++) {
+            let full = true;
+
+            for (let y = 0; y < 3; y++) {
+                for (let x = 0; x < 3; x++) {
+                    if (board[by * 3 + y][bx * 3 + x] === null) {
+                        full = false;
+                    }
+                }
+            }
+
+            if (full) {
+                for (let y = 0; y < 3; y++) {
+                    for (let x = 0; x < 3; x++) {
+                        result.add(`${bx * 3 + x},${by * 3 + y}`);
+                    }
+                }
+            }
+        }
+    }
+
+    return [...result].map(s => s.split(",").map(Number));
+}
+
+/* =========================================================
+   Highlight
+========================================================= */
+function getBoardCellFromPoint(clientX, clientY) {
+    const rect = boardElement.getBoundingClientRect();
+
+    if (
+        clientX < rect.left || clientX > rect.right ||
+        clientY < rect.top || clientY > rect.bottom
+    ) {
+        return null;
+    }
+
+    const cellSize = rect.width / BOARD_SIZE;
+    const x = Math.floor((clientX - rect.left) / cellSize);
+    const y = Math.floor((clientY - rect.top) / cellSize);
+
+    return { x, y };
+}
+
+function highlightPlacement(clientX, clientY) {
+    clearHighlights();
+
+    if (!dragging) return;
+
+    const pos = getBoardCellFromPoint(clientX, clientY);
+    if (!pos) return;
+
+    const valid = canPlace(dragging.piece, pos.x, pos.y);
+    const className = valid
+        ? "highlight-valid"
+        : "highlight-invalid";
+
+    for (const [dx, dy] of dragging.piece.shape) {
+        const x = pos.x + dx;
+        const y = pos.y + dy;
+
+        if (
+            x < 0 || x >= BOARD_SIZE ||
+            y < 0 || y >= BOARD_SIZE
+        ) {
+            continue;
+        }
+
+        const index = y * BOARD_SIZE + x;
+        boardElement.children[index].classList.add(className);
+    }
+}
+
+function clearHighlights() {
+    for (const cell of boardElement.children) {
+        cell.classList.remove(
+            "highlight-valid",
+            "highlight-invalid"
+        );
+    }
+}
+
+/* =========================================================
+   Score
+========================================================= */
+function updateScore() {
+    scoreElement.textContent = `Score: ${score}`;
+}
+
+/* =========================================================
+   Game Over
+========================================================= */
+function checkGameOver() {
+    if (currentPieces.every(p => p === null)) return;
+
+    for (const piece of currentPieces) {
+        if (!piece) continue;
+
+        for (let y = 0; y < BOARD_SIZE; y++) {
+            for (let x = 0; x < BOARD_SIZE; x++) {
+                if (canPlace(piece, x, y)) {
+                    return;
+                }
+            }
+        }
+    }
+
+    gameOver = true;
+    messageElement.textContent = "Game Over!";
+}
+
+/* =========================================================
+   Disable Browser Gestures
+========================================================= */
+document.addEventListener("touchmove", (e) => {
+    if (dragging) {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+document.addEventListener("gesturestart", (e) => {
+    e.preventDefault();
+});
+
+document.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+});
+
+/* =========================================================
+   Start Game
+========================================================= */
+init();
+</script>
+</body>
+</html>

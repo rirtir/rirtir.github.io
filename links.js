@@ -50,6 +50,13 @@ const data = [
                 desc: "任意の画像、任意の難易度で遊べるパズルゲーム",
                 tags: ["ソロ", "ゲーム"],
                 main: true,
+            },
+            {
+                title: "ブロックパズル",
+                url: "https://rirtir.com/Game/BlockPuzzle/",
+                desc: "ブロックを並べ替えて完成させるゲーム（制作中）",
+                tags: ["ソロ", "ゲーム"],
+                main: false,
             }
         ]
     },
