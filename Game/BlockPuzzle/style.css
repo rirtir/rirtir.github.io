@@ -192,8 +192,8 @@ body {
     display: flex;
     justify-content: space-between;
     gap: 8px;
-    flex: 1;
     min-height: 140px;
+    flex-shrink: 0;
 }
 
 .pieceSlot {
