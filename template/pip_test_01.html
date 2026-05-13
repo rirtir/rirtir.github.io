@@ -236,35 +236,35 @@ async function startPiP() {
     try {
         startButton.disabled = true;
 
-        // Create stream
+        // Create video stream from canvas
         const stream = canvas.captureStream(30);
         video.srcObject = stream;
 
-        // Setup media session handlers
+        // Setup media controls
         setupMediaSession();
 
-        // Start playback immediately (do not await)
-        video.play().catch(() => {});
+        // Start playback
+        await video.play();
 
-        // Wait until metadata is available, then request PiP
-        const requestPiP = async () => {
-            try {
-                await video.requestPictureInPicture();
-            } catch (error) {
-                console.error(error);
-                alert("Failed to start Picture-in-Picture: " + error.message);
-                startButton.disabled = false;
-            }
-        };
-
-        if (video.readyState >= 1) {
-            // Metadata already loaded
-            requestPiP();
-        } else {
-            // Wait for metadata
-            video.addEventListener("loadedmetadata", requestPiP, { once: true });
+        // iPhone Safari specific fullscreen API
+        if (typeof video.webkitEnterFullscreen === "function") {
+            // Enter native fullscreen video player.
+            // After this, swipe home or switch apps to trigger PiP automatically.
+            video.webkitEnterFullscreen();
+            return;
         }
 
+        // Other browsers (desktop Chrome, Android, etc.)
+        if (document.pictureInPictureEnabled) {
+            await video.requestPictureInPicture();
+            return;
+        }
+
+        alert(
+            "Picture-in-Picture is not supported in this browser.\n" +
+            "On iPhone, the video will enter fullscreen. " +
+            "Then return to the Home screen to let iOS move it into PiP."
+        );
     } catch (error) {
         console.error(error);
         alert("Failed to start Picture-in-Picture: " + error.message);
