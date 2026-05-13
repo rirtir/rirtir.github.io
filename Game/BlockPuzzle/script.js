@@ -769,24 +769,24 @@ function onPointerMove(e) {
 function moveDrag(e) {
     if (!dragging) return;
 
-    let left, top;
-    let logicalX, logicalY;
-
     const offsetX = getDynamicOffsetX(e.clientX);
+
+    // ハイライトと共通の論理位置
+    const logicalX = e.clientX + offsetX;
+    const logicalY = e.clientY + POINTER_OFFSET_Y;
+
+    let left;
+
     if (rightHandMode) {
-        // 右利き:
-        // ピースを指の左側へ表示
-        left = e.clientX - dragging.width - 30;
+        // 論理位置の左側に配置
+        left = logicalX - dragging.width;
     } else {
-        // 左利き:
-        // ピースを指の右側へ表示
-        left = e.clientX + 30;
+        // 論理位置の右側に配置
+        left = logicalX;
     }
 
-    top = e.clientY - dragging.height - 30;
-
-    logicalX = e.clientX + offsetX;
-    logicalY = e.clientY + POINTER_OFFSET_Y;
+    // 論理位置の上側に配置
+    const top = logicalY - dragging.height;
 
     dragCanvas.style.left = `${left}px`;
     dragCanvas.style.top = `${top}px`;
