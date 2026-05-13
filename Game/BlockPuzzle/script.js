@@ -794,7 +794,7 @@ function moveDrag(e) {
     highlightPlacement(logicalX, logicalY);
 }
 
-function onPointerUp(e) {
+async function onPointerUp(e) {
     e.preventDefault();
 
     if (!dragging) return;
@@ -817,13 +817,13 @@ function onPointerUp(e) {
         if (canPlace(dragging.piece, origin.x, origin.y)) {
             undoState = cloneState();
 
-            placePiece(dragging.piece, origin.x, origin.y);
+            await placePiece(dragging.piece, origin.x, origin.y);
 
             currentPieces[dragging.pieceIndex] = null;
             renderAllPieces();
 
             if (gameMode === "battle") {
-                enemyTurn();
+                await enemyTurn();
             }
 
             if (currentPieces.every(p => p === null)) {
@@ -865,13 +865,15 @@ function canPlace(piece, baseX, baseY) {
     return true;
 }
 
-function placePiece(piece, baseX, baseY) {
+async function placePiece(piece, baseX, baseY) {
+
     for (const [dx, dy] of piece.shape) {
         board[baseY + dy][baseX + dx] = piece.color;
     }
 
     renderBoard();
-    resolveClears();
+
+    await resolveClears();
 }
 
 function playClearAnimation(cells) {
@@ -884,49 +886,60 @@ function playClearAnimation(cells) {
 }
 
 function resolveClears() {
-    const cellsToClear = findClearCells();
 
-    if (cellsToClear.length === 0) {
-        comboMultiplier = 1;
-        lastPlayerCleared = false;
+    return new Promise((resolve) => {
+
+        const cellsToClear = findClearCells();
+
+        if (cellsToClear.length === 0) {
+
+            comboMultiplier = 1;
+            lastPlayerCleared = false;
+
+            updateUI();
+
+            resolve();
+            return;
+        }
+
+        // combo処理
+        if (lastPlayerCleared) {
+            comboMultiplier *= 2;
+        } else {
+            comboMultiplier = 2;
+        }
+
+        lastPlayerCleared = true;
+
+        playClearAnimation(cellsToClear);
+
+        const gained = Math.floor(
+            BASE_SCORE * (cellsToClear.length / 9) * comboMultiplier
+        );
+
+        score += gained;
+
         updateUI();
-        return;
-    }
 
-    // combo処理
-    if (lastPlayerCleared) {
-        comboMultiplier *= 2;
-    } else {
-        comboMultiplier = 2;
-    }
+        setTimeout(() => {
 
-    lastPlayerCleared = true;
+            for (const [x, y] of cellsToClear) {
+                board[y][x] = null;
+            }
 
-    // ★ここでアニメーション先に再生
-    playClearAnimation(cellsToClear);
+            renderBoard();
 
-    const gained = Math.floor(
-        BASE_SCORE * (cellsToClear.length / 9) * comboMultiplier
-    );
+            const elements = boardElement.children;
 
-    score += gained;
-    updateUI();
+            for (const [x, y] of cellsToClear) {
+                const cell = elements[y * BOARD_SIZE + x];
+                cell.classList.remove("clear-anim");
+            }
 
-    // ★少し遅れて実際に消す
-    setTimeout(() => {
-        for (const [x, y] of cellsToClear) {
-            board[y][x] = null;
-        }
+            resolve();
 
-        renderBoard();
-
-        // クラス掃除
-        const elements = boardElement.children;
-        for (const [x, y] of cellsToClear) {
-            const cell = elements[y * BOARD_SIZE + x];
-            cell.classList.remove("clear-anim");
-        }
-    }, 200);
+        }, 200);
+    });
 }
 
 function findClearCells() {
@@ -986,7 +999,7 @@ function findClearCells() {
 /* =========================================================
    Enemy Turn
 ========================================================= */
-function enemyTurn() {
+async function enemyTurn() {
     const available = enemyPieces
         .map((piece, index) => ({ piece, index }))
         .filter(v => v.piece);
@@ -1013,7 +1026,7 @@ function enemyTurn() {
     const savedLastCleared = lastPlayerCleared;
     const savedScore = score;
 
-    placePiece(selected.piece, pos.x, pos.y);
+    await placePiece(selected.piece, pos.x, pos.y);
 
     // Count enemy score roughly as occupied block count
     enemyScore += selected.piece.shape.length * 10;
@@ -1099,12 +1112,24 @@ function clearHighlights() {
    Game Over
 ========================================================= */
 function checkGameOver() {
+
     for (const piece of currentPieces) {
+
         if (!piece) continue;
 
-        for (let y = 0; y < BOARD_SIZE; y++) {
-            for (let x = 0; x < BOARD_SIZE; x++) {
-                if (canPlace(piece, x, y)) {
+        // 「アンカーセル」を全探索
+        for (let anchorY = 0; anchorY < BOARD_SIZE; anchorY++) {
+
+            for (let anchorX = 0; anchorX < BOARD_SIZE; anchorX++) {
+
+                // 実際の配置時と同じ原点計算を使う
+                const origin = getPlacementOrigin(
+                    piece,
+                    anchorX,
+                    anchorY
+                );
+
+                if (canPlace(piece, origin.x, origin.y)) {
                     return;
                 }
             }
