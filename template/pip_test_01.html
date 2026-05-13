@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PiP Interactive Demo</title>
+<title>PiP Interactive Demo (iPhone Compatible)</title>
 <style>
     body {
         margin: 0;
@@ -52,17 +52,18 @@
 </style>
 </head>
 <body>
-<h1>Picture-in-Picture Interactive Demo</h1>
+<h1>Picture-in-Picture Interactive Demo (iPhone Compatible)</h1>
 
 <p>
-「Start PiP」を押すとCanvasの内容をPicture-in-Pictureで表示します。<br>
-PiPのメディアコントロールを使って図形を操作できます。
+Start PiP を押すと、Canvas の内容を Picture-in-Picture に表示します。<br>
+iPhone では <strong>requestPictureInPicture()</strong> をユーザー操作の
+コールスタック内で直接実行する必要があります。
 </p>
 
 <ul style="display:inline-block; text-align:left; color:#cccccc;">
     <li>Play / Pause: ランダムな図形を生成</li>
-    <li>10 seconds backward: 左へ移動</li>
-    <li>10 seconds forward: 右へ移動</li>
+    <li>10 seconds backward: 左へ移動（対応ブラウザのみ）</li>
+    <li>10 seconds forward: 右へ移動（対応ブラウザのみ）</li>
 </ul>
 
 <br>
@@ -72,7 +73,7 @@ PiPのメディアコントロールを使って図形を操作できます。
 <canvas id="canvas" width="320" height="180"></canvas>
 
 <!-- Hidden video used for PiP -->
-<video id="video" playsinline muted style="display:none;"></video>
+<video id="video" playsinline muted autoplay style="display:none;"></video>
 
 <script>
 /* =========================================================
@@ -135,7 +136,6 @@ function drawBackground() {
     ctx.fillStyle = "#101010";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Grid
     ctx.strokeStyle = "#222";
     ctx.lineWidth = 1;
 
@@ -185,9 +185,6 @@ function render() {
     drawText();
 }
 
-/* =========================================================
-   Animation Loop
-========================================================= */
 function animationLoop() {
     render();
     requestAnimationFrame(animationLoop);
@@ -198,37 +195,37 @@ function animationLoop() {
 ========================================================= */
 function setupMediaSession() {
     if (!("mediaSession" in navigator)) {
-        alert("Media Session API is not supported in this browser.");
         return;
     }
 
-    // Metadata is optional but helps browsers treat this as media content.
     navigator.mediaSession.metadata = new MediaMetadata({
         title: "PiP Interactive Demo",
         artist: "ChatGPT"
     });
 
-    // Play button
     navigator.mediaSession.setActionHandler("play", () => {
         createRandomShape();
+        navigator.mediaSession.playbackState = "playing";
     });
 
-    // Pause button
     navigator.mediaSession.setActionHandler("pause", () => {
         createRandomShape();
+        navigator.mediaSession.playbackState = "paused";
     });
 
-    // 10 seconds backward button
-    navigator.mediaSession.setActionHandler("seekbackward", () => {
-        moveShape(-20);
-    });
+    // Some browsers (especially desktop) may ignore these buttons.
+    try {
+        navigator.mediaSession.setActionHandler("seekbackward", () => {
+            moveShape(-20);
+        });
+    } catch (e) {}
 
-    // 10 seconds forward button
-    navigator.mediaSession.setActionHandler("seekforward", () => {
-        moveShape(20);
-    });
+    try {
+        navigator.mediaSession.setActionHandler("seekforward", () => {
+            moveShape(20);
+        });
+    } catch (e) {}
 
-    // Set initial playback state
     navigator.mediaSession.playbackState = "playing";
 }
 
@@ -239,22 +236,22 @@ async function startPiP() {
     try {
         startButton.disabled = true;
 
-        // Convert canvas to video stream
+        // Create stream before any await
         const stream = canvas.captureStream(30);
         video.srcObject = stream;
 
-        // Start video playback
-        await video.play();
-
-        // Setup media control handlers
+        // Setup handlers before any await
         setupMediaSession();
 
-        // Request PiP
-        if (document.pictureInPictureEnabled) {
-            await video.requestPictureInPicture();
-        } else {
-            alert("Picture-in-Picture is not supported in this browser.");
-        }
+        // IMPORTANT:
+        // On iPhone Safari, requestPictureInPicture() must be called
+        // directly inside the user gesture call stack.
+        const pipPromise = video.requestPictureInPicture();
+
+        // These can complete afterward.
+        video.play().catch(() => {});
+
+        await pipPromise;
     } catch (error) {
         console.error(error);
         alert("Failed to start Picture-in-Picture: " + error.message);
