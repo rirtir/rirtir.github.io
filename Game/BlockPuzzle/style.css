@@ -22,7 +22,7 @@ html, body {
 body {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
 }
 
 /* =========================================================
@@ -71,7 +71,7 @@ body {
 ========================================================= */
 #game {
     width: min(100vw, 480px);
-    height: 100vh;
+    height: 100dvh;
     padding: 12px;
     display: flex;
     flex-direction: column;

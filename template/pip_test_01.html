@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PiP Interactive Demo</title>
+<style>
+    body {
+        margin: 0;
+        padding: 24px;
+        font-family: sans-serif;
+        background: #1e1e1e;
+        color: #ffffff;
+        text-align: center;
+    }
+
+    h1 {
+        margin-top: 0;
+        font-size: 24px;
+    }
+
+    p {
+        line-height: 1.8;
+        color: #cccccc;
+    }
+
+    button {
+        font-size: 18px;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        background: #4caf50;
+        color: white;
+        cursor: pointer;
+        margin: 16px 0;
+    }
+
+    button:disabled {
+        background: #666666;
+        cursor: not-allowed;
+    }
+
+    canvas {
+        display: block;
+        margin: 24px auto;
+        border: 2px solid #555;
+        background: #000;
+        width: 320px;
+        height: 180px;
+        max-width: 100%;
+    }
+</style>
+</head>
+<body>
+<h1>Picture-in-Picture Interactive Demo</h1>
+
+<p>
+「Start PiP」を押すとCanvasの内容をPicture-in-Pictureで表示します。<br>
+PiPのメディアコントロールを使って図形を操作できます。
+</p>
+
+<ul style="display:inline-block; text-align:left; color:#cccccc;">
+    <li>Play / Pause: ランダムな図形を生成</li>
+    <li>10 seconds backward: 左へ移動</li>
+    <li>10 seconds forward: 右へ移動</li>
+</ul>
+
+<br>
+
+<button id="startButton">Start PiP</button>
+
+<canvas id="canvas" width="320" height="180"></canvas>
+
+<!-- Hidden video used for PiP -->
+<video id="video" playsinline muted style="display:none;"></video>
+
+<script>
+/* =========================================================
+   Canvas Setup
+========================================================= */
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const video = document.getElementById("video");
+const startButton = document.getElementById("startButton");
+
+/* =========================================================
+   Shape State
+========================================================= */
+let shape = {
+    type: "circle",
+    x: 160,
+    y: 90,
+    size: 30,
+    color: "#4cc9f0"
+};
+
+/* =========================================================
+   Utility Functions
+========================================================= */
+function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomColor() {
+    const hue = randomInt(0, 359);
+    return `hsl(${hue}, 80%, 60%)`;
+}
+
+function createRandomShape() {
+    const types = ["circle", "square"];
+    shape.type = types[randomInt(0, types.length - 1)];
+    shape.x = randomInt(40, canvas.width - 40);
+    shape.y = randomInt(40, canvas.height - 40);
+    shape.size = randomInt(20, 50);
+    shape.color = randomColor();
+}
+
+function moveShape(dx) {
+    shape.x += dx;
+
+    const margin = shape.size;
+    if (shape.x < margin) {
+        shape.x = margin;
+    }
+    if (shape.x > canvas.width - margin) {
+        shape.x = canvas.width - margin;
+    }
+}
+
+/* =========================================================
+   Drawing
+========================================================= */
+function drawBackground() {
+    ctx.fillStyle = "#101010";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Grid
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = 1;
+
+    for (let x = 0; x < canvas.width; x += 20) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+
+    for (let y = 0; y < canvas.height; y += 20) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+}
+
+function drawShape() {
+    ctx.fillStyle = shape.color;
+
+    if (shape.type === "circle") {
+        ctx.beginPath();
+        ctx.arc(shape.x, shape.y, shape.size, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        ctx.fillRect(
+            shape.x - shape.size,
+            shape.y - shape.size,
+            shape.size * 2,
+            shape.size * 2
+        );
+    }
+}
+
+function drawText() {
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Play/Pause = New Shape", 10, 20);
+    ctx.fillText("<< 10s = Left", 10, 40);
+    ctx.fillText("10s >> = Right", 10, 60);
+}
+
+function render() {
+    drawBackground();
+    drawShape();
+    drawText();
+}
+
+/* =========================================================
+   Animation Loop
+========================================================= */
+function animationLoop() {
+    render();
+    requestAnimationFrame(animationLoop);
+}
+
+/* =========================================================
+   Media Session Controls
+========================================================= */
+function setupMediaSession() {
+    if (!("mediaSession" in navigator)) {
+        alert("Media Session API is not supported in this browser.");
+        return;
+    }
+
+    // Metadata is optional but helps browsers treat this as media content.
+    navigator.mediaSession.metadata = new MediaMetadata({
+        title: "PiP Interactive Demo",
+        artist: "ChatGPT"
+    });
+
+    // Play button
+    navigator.mediaSession.setActionHandler("play", () => {
+        createRandomShape();
+    });
+
+    // Pause button
+    navigator.mediaSession.setActionHandler("pause", () => {
+        createRandomShape();
+    });
+
+    // 10 seconds backward button
+    navigator.mediaSession.setActionHandler("seekbackward", () => {
+        moveShape(-20);
+    });
+
+    // 10 seconds forward button
+    navigator.mediaSession.setActionHandler("seekforward", () => {
+        moveShape(20);
+    });
+
+    // Set initial playback state
+    navigator.mediaSession.playbackState = "playing";
+}
+
+/* =========================================================
+   Start Picture-in-Picture
+========================================================= */
+async function startPiP() {
+    try {
+        startButton.disabled = true;
+
+        // Convert canvas to video stream
+        const stream = canvas.captureStream(30);
+        video.srcObject = stream;
+
+        // Start video playback
+        await video.play();
+
+        // Setup media control handlers
+        setupMediaSession();
+
+        // Request PiP
+        if (document.pictureInPictureEnabled) {
+            await video.requestPictureInPicture();
+        } else {
+            alert("Picture-in-Picture is not supported in this browser.");
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Failed to start Picture-in-Picture: " + error.message);
+        startButton.disabled = false;
+    }
+}
+
+/* =========================================================
+   Event Listeners
+========================================================= */
+startButton.addEventListener("click", startPiP);
+
+video.addEventListener("leavepictureinpicture", () => {
+    startButton.disabled = false;
+});
+
+/* =========================================================
+   Initialize
+========================================================= */
+createRandomShape();
+animationLoop();
+</script>
+</body>
+</html>
