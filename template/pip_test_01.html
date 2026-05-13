@@ -236,22 +236,35 @@ async function startPiP() {
     try {
         startButton.disabled = true;
 
-        // Create stream before any await
+        // Create stream
         const stream = canvas.captureStream(30);
         video.srcObject = stream;
 
-        // Setup handlers before any await
+        // Setup media session handlers
         setupMediaSession();
 
-        // IMPORTANT:
-        // On iPhone Safari, requestPictureInPicture() must be called
-        // directly inside the user gesture call stack.
-        const pipPromise = video.requestPictureInPicture();
-
-        // These can complete afterward.
+        // Start playback immediately (do not await)
         video.play().catch(() => {});
 
-        await pipPromise;
+        // Wait until metadata is available, then request PiP
+        const requestPiP = async () => {
+            try {
+                await video.requestPictureInPicture();
+            } catch (error) {
+                console.error(error);
+                alert("Failed to start Picture-in-Picture: " + error.message);
+                startButton.disabled = false;
+            }
+        };
+
+        if (video.readyState >= 1) {
+            // Metadata already loaded
+            requestPiP();
+        } else {
+            // Wait for metadata
+            video.addEventListener("loadedmetadata", requestPiP, { once: true });
+        }
+
     } catch (error) {
         console.error(error);
         alert("Failed to start Picture-in-Picture: " + error.message);
