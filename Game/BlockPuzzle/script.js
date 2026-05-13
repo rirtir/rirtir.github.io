@@ -335,8 +335,20 @@ function renderBoard() {
     for (let y = 0; y < BOARD_SIZE; y++) {
         for (let x = 0; x < BOARD_SIZE; x++) {
             const cell = cells[y * BOARD_SIZE + x];
+
+            // Reset class
             cell.className = "cell";
 
+            // Add thick borders every 3 cells
+            if (x === 3 || x === 6) {
+                cell.classList.add("subgrid-left");
+            }
+
+            if (y === 3 || y === 6) {
+                cell.classList.add("subgrid-top");
+            }
+
+            // Filled state
             if (board[y][x]) {
                 cell.classList.add("filled");
                 cell.style.background = board[y][x];

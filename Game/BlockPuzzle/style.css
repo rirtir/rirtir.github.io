@@ -173,6 +173,14 @@ body {
     border-radius: 4px;
 }
 
+.cell.subgrid-left {
+    margin-left: 3px;
+}
+
+.cell.subgrid-top {
+    margin-top: 3px;
+}
+
 .cell.filled {
     background: #4cc9f0;
 }
