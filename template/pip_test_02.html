@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+/>
+<title>iPhone PiP Interactive Canvas</title>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #111;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    font-family: sans-serif;
+    touch-action: manipulation;
+  }
+
+  #container {
+    position: fixed;
+    inset: 0;
+    background: #111;
+  }
+
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: black;
+  }
+
+  #overlay {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 14px;
+    background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0));
+    color: white;
+    z-index: 10;
+  }
+
+  button {
+    appearance: none;
+    border: none;
+    background: #2d7ef7;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 16px;
+    margin-right: 8px;
+    margin-bottom: 8px;
+  }
+
+  .small {
+    font-size: 13px;
+    opacity: 0.9;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div id="container">
+  <video
+    id="video"
+    autoplay
+    muted
+    playsinline
+    controls
+  ></video>
+
+  <div id="overlay">
+    <button id="startBtn">開始</button>
+    <button id="fullscreenBtn">全画面</button>
+
+    <div class="small">
+      iPhoneでのPiP手順:<br>
+      1. 「開始」→「全画面」<br>
+      2. 動画プレイヤーを全画面表示<br>
+      3. そのままホームへ戻る / 別アプリへ移動<br>
+      4. PiPになる<br><br>
+
+      PiP操作:<br>
+      ・再生/停止 → 図形変更<br>
+      ・10秒戻る → 左移動<br>
+      ・10秒進む → 右移動
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+
+  // =========================
+  // Canvas
+  // =========================
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  canvas.width = 1280;
+  canvas.height = 720;
+
+  // =========================
+  // Video
+  // =========================
+
+  const video = document.getElementById('video');
+
+  const stream = canvas.captureStream(30);
+
+  video.srcObject = stream;
+
+  // =========================
+  // State
+  // =========================
+
+  let x = canvas.width / 2;
+  let y = canvas.height / 2;
+
+  let shapeType = 'circle';
+  let color = '#ff5050';
+
+  let fakeVideoTime = 0;
+
+  let lastCurrentTime = 0;
+
+  const shapes = [
+    'circle',
+    'square',
+    'triangle',
+    'diamond',
+    'star'
+  ];
+
+  const colors = [
+    '#ff5050',
+    '#50ff90',
+    '#5090ff',
+    '#fff050',
+    '#ff50ff',
+    '#50ffff'
+  ];
+
+  // =========================
+  // Utility
+  // =========================
+
+  function randomItem(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function randomizeShape() {
+    shapeType = randomItem(shapes);
+    color = randomItem(colors);
+  }
+
+  // =========================
+  // Draw Shape
+  // =========================
+
+  function drawShape() {
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // background
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // decorative particles
+    for (let i = 0; i < 30; i++) {
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.beginPath();
+      ctx.arc(
+        (i * 97) % canvas.width,
+        (i * 57 + fakeVideoTime * 10) % canvas.height,
+        3,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+
+    ctx.save();
+
+    ctx.translate(x, y);
+
+    ctx.fillStyle = color;
+
+    const size = 120;
+
+    switch (shapeType) {
+
+      case 'circle':
+        ctx.beginPath();
+        ctx.arc(0, 0, size, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case 'square':
+        ctx.fillRect(-size, -size, size * 2, size * 2);
+        break;
+
+      case 'triangle':
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size, size);
+        ctx.lineTo(-size, size);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case 'diamond':
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size, 0);
+        ctx.lineTo(0, size);
+        ctx.lineTo(-size, 0);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case 'star':
+        drawStar(ctx, 0, 0, 5, size, size / 2);
+        ctx.fill();
+        break;
+    }
+
+    ctx.restore();
+
+    // label
+    ctx.fillStyle = 'white';
+    ctx.font = '48px sans-serif';
+    ctx.textAlign = 'center';
+
+    ctx.fillText(
+      'PiP Interactive Demo',
+      canvas.width / 2,
+      80
+    );
+
+    ctx.font = '34px sans-serif';
+
+    ctx.fillText(
+      'Shape: ' + shapeType,
+      canvas.width / 2,
+      140
+    );
+  }
+
+  function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+
+    let rot = Math.PI / 2 * 3;
+    let step = Math.PI / spikes;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - outerRadius);
+
+    for (let i = 0; i < spikes; i++) {
+
+      let x = cx + Math.cos(rot) * outerRadius;
+      let y = cy + Math.sin(rot) * outerRadius;
+
+      ctx.lineTo(x, y);
+
+      rot += step;
+
+      x = cx + Math.cos(rot) * innerRadius;
+      y = cy + Math.sin(rot) * innerRadius;
+
+      ctx.lineTo(x, y);
+
+      rot += step;
+    }
+
+    ctx.lineTo(cx, cy - outerRadius);
+    ctx.closePath();
+  }
+
+  // =========================
+  // Animation
+  // =========================
+
+  function animate() {
+
+    fakeVideoTime += 1 / 60;
+
+    drawShape();
+
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+
+  // =========================
+  // iPhone PiP Hack
+  // =========================
+  //
+  // ポイント:
+  // iPhone Safariでは requestPictureInPicture()
+  // がかなり制限される。
+  //
+  // そのため:
+  // ・video.controls = true
+  // ・実際のvideoタグを使う
+  // ・fullscreen再生
+  // ・ホームへ戻る
+  //
+  // というYouTube系と同じ導線を使う。
+  //
+  // =========================
+
+  async function startVideo() {
+
+    try {
+
+      await video.play();
+
+      console.log('video playing');
+
+    } catch (e) {
+
+      console.error(e);
+    }
+  }
+
+  async function enterFullscreen() {
+
+    try {
+
+      // iPhone Safari向け
+      if (video.webkitEnterFullscreen) {
+
+        video.webkitEnterFullscreen();
+        return;
+      }
+
+      // その他
+      if (video.requestFullscreen) {
+
+        await video.requestFullscreen();
+      }
+
+    } catch (e) {
+
+      console.error(e);
+    }
+  }
+
+  document
+    .getElementById('startBtn')
+    .addEventListener('click', startVideo);
+
+  document
+    .getElementById('fullscreenBtn')
+    .addEventListener('click', enterFullscreen);
+
+  // =========================
+  // Detect Playback State
+  // =========================
+  //
+  // PiPの再生停止ボタンを使う
+  //
+  // =========================
+
+  video.addEventListener('pause', () => {
+
+    randomizeShape();
+
+    // pauseすると止まるので再開
+    setTimeout(() => {
+      video.play().catch(() => {});
+    }, 50);
+  });
+
+  video.addEventListener('play', () => {
+
+    randomizeShape();
+  });
+
+  // =========================
+  // Detect Skip / Rewind
+  // =========================
+  //
+  // currentTimeの差分で判定
+  //
+  // =========================
+
+  setInterval(() => {
+
+    const t = video.currentTime;
+
+    const delta = t - lastCurrentTime;
+
+    // 10秒スキップ
+    if (delta > 5) {
+
+      x += 80;
+
+      if (x > canvas.width - 100) {
+        x = canvas.width - 100;
+      }
+    }
+
+    // 10秒巻き戻し
+    if (delta < -5) {
+
+      x -= 80;
+
+      if (x < 100) {
+        x = 100;
+      }
+    }
+
+    lastCurrentTime = t;
+
+  }, 100);
+
+  // =========================
+  // 初期化
+  // =========================
+
+  randomizeShape();
+  drawShape();
+
+})();
+</script>
+
+</body>
+</html>
