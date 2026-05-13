@@ -477,6 +477,41 @@ function getShapeSize(shape) {
     return { w: maxX + 1, h: maxY + 1 };
 }
 
+function getPieceAnchor(shape) {
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (const [x, y] of shape) {
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+    }
+
+    if (rightHandMode) {
+        // 右利き: 右下
+        return {
+            x: maxX,
+            y: maxY
+        };
+    } else {
+        // 左利き: 左下
+        return {
+            x: minX,
+            y: maxY
+        };
+    }
+}
+
+function getPlacementOrigin(piece, anchorCellX, anchorCellY) {
+    const anchor = getPieceAnchor(piece.shape);
+
+    return {
+        x: anchorCellX - anchor.x,
+        y: anchorCellY - anchor.y
+    };
+}
+
 function getDynamicOffsetX(clientX) {
     const rect = boardElement.getBoundingClientRect();
 
@@ -489,12 +524,13 @@ function getDynamicOffsetX(clientX) {
     const MAX_OFFSET = 80;
 
     if (rightHandMode) {
-        // 左端=0 → 右端=MAX_OFFSET
-        return t * MAX_OFFSET;
-    } else {
-        // 左手モード:
-        // 右端=0 → 左端=-MAX_OFFSET
+        // 右利き:
+        // 指より少し左に補正
         return -(1 - t) * MAX_OFFSET;
+    } else {
+        // 左利き:
+        // 指より少し右に補正
+        return t * MAX_OFFSET;
     }
 }
 
@@ -738,9 +774,13 @@ function moveDrag(e) {
 
     const offsetX = getDynamicOffsetX(e.clientX);
     if (rightHandMode) {
-        left = e.clientX + 30;
-    } else {
+        // 右利き:
+        // ピースを指の左側へ表示
         left = e.clientX - dragging.width - 30;
+    } else {
+        // 左利き:
+        // ピースを指の右側へ表示
+        left = e.clientX + 30;
     }
 
     top = e.clientY - dragging.height - 30;
@@ -765,29 +805,37 @@ function onPointerUp(e) {
     logicalX = e.clientX + offsetX;
     logicalY = e.clientY + POINTER_OFFSET_Y;
 
-    const pos = getBoardCellFromPoint(logicalX, logicalY);
+    const anchorPos = getBoardCellFromPoint(logicalX, logicalY);
 
-    if (pos && canPlace(dragging.piece, pos.x, pos.y)) {
-        undoState = cloneState();
+    if (anchorPos) {
+        const origin = getPlacementOrigin(
+            dragging.piece,
+            anchorPos.x,
+            anchorPos.y
+        );
 
-        placePiece(dragging.piece, pos.x, pos.y);
+        if (canPlace(dragging.piece, origin.x, origin.y)) {
+            undoState = cloneState();
 
-        currentPieces[dragging.pieceIndex] = null;
-        renderAllPieces();
+            placePiece(dragging.piece, origin.x, origin.y);
 
-        if (gameMode === "battle") {
-            enemyTurn();
+            currentPieces[dragging.pieceIndex] = null;
+            renderAllPieces();
+
+            if (gameMode === "battle") {
+                enemyTurn();
+            }
+
+            if (currentPieces.every(p => p === null)) {
+                generatePlayerPieces();
+            }
+
+            if (gameMode === "battle" && enemyPieces.every(p => p === null)) {
+                generateEnemyPieces();
+            }
+
+            checkGameOver();
         }
-
-        if (currentPieces.every(p => p === null)) {
-            generatePlayerPieces();
-        }
-
-        if (gameMode === "battle" && enemyPieces.every(p => p === null)) {
-            generateEnemyPieces();
-        }
-
-        checkGameOver();
     }
 
     clearHighlights();
@@ -1008,15 +1056,28 @@ function highlightPlacement(clientX, clientY) {
 
     if (!dragging) return;
 
-    const pos = getBoardCellFromPoint(clientX, clientY);
-    if (!pos) return;
+    const anchorPos = getBoardCellFromPoint(clientX, clientY);
+    if (!anchorPos) return;
 
-    const valid = canPlace(dragging.piece, pos.x, pos.y);
-    const className = valid ? "highlight-valid" : "highlight-invalid";
+    const origin = getPlacementOrigin(
+        dragging.piece,
+        anchorPos.x,
+        anchorPos.y
+    );
+
+    const valid = canPlace(
+        dragging.piece,
+        origin.x,
+        origin.y
+    );
+
+    const className = valid
+        ? "highlight-valid"
+        : "highlight-invalid";
 
     for (const [dx, dy] of dragging.piece.shape) {
-        const x = pos.x + dx;
-        const y = pos.y + dy;
+        const x = origin.x + dx;
+        const y = origin.y + dy;
 
         if (
             x < 0 || x >= BOARD_SIZE ||

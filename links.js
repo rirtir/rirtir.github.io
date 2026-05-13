@@ -54,9 +54,9 @@ const data = [
             {
                 title: "ブロックパズル",
                 url: "https://rirtir.com/Game/BlockPuzzle/",
-                desc: "ブロックを並べ替えて完成させるゲーム（制作中）",
+                desc: "ブロックを並べ替えて完成させるゲーム",
                 tags: ["ソロ", "ゲーム"],
-                main: false,
+                main: true,
             }
         ]
     },
