@@ -826,6 +826,15 @@ function placePiece(piece, baseX, baseY) {
     resolveClears();
 }
 
+function playClearAnimation(cells) {
+    const elements = boardElement.children;
+
+    for (const [x, y] of cells) {
+        const cell = elements[y * BOARD_SIZE + x];
+        cell.classList.add("clear-anim");
+    }
+}
+
 function resolveClears() {
     const cellsToClear = findClearCells();
 
@@ -836,6 +845,7 @@ function resolveClears() {
         return;
     }
 
+    // combo処理
     if (lastPlayerCleared) {
         comboMultiplier *= 2;
     } else {
@@ -844,18 +854,31 @@ function resolveClears() {
 
     lastPlayerCleared = true;
 
-    for (const [x, y] of cellsToClear) {
-        board[y][x] = null;
-    }
+    // ★ここでアニメーション先に再生
+    playClearAnimation(cellsToClear);
 
     const gained = Math.floor(
         BASE_SCORE * (cellsToClear.length / 9) * comboMultiplier
     );
 
     score += gained;
-
-    renderBoard();
     updateUI();
+
+    // ★少し遅れて実際に消す
+    setTimeout(() => {
+        for (const [x, y] of cellsToClear) {
+            board[y][x] = null;
+        }
+
+        renderBoard();
+
+        // クラス掃除
+        const elements = boardElement.children;
+        for (const [x, y] of cellsToClear) {
+            const cell = elements[y * BOARD_SIZE + x];
+            cell.classList.remove("clear-anim");
+        }
+    }, 200);
 }
 
 function findClearCells() {

@@ -245,6 +245,33 @@ body {
     opacity: 0.95;
 }
 
+/* =========================
+   Clear Animation Effect
+========================= */
+
+.cell.clear-anim {
+    animation: clearFlash 0.25s ease-out forwards;
+    z-index: 10;
+}
+
+@keyframes clearFlash {
+    0% {
+        transform: scale(1);
+        filter: brightness(1.5);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.15);
+        filter: brightness(2);
+        opacity: 0.9;
+    }
+    100% {
+        transform: scale(0.2);
+        filter: brightness(3);
+        opacity: 0;
+    }
+}
+
 /* =========================================================
    Responsive
 ========================================================= */
