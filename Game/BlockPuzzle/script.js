@@ -367,6 +367,7 @@ const backButton = document.getElementById("backButton");
 const undoButton = document.getElementById("undoButton");
 const restartButton = document.getElementById("restartButton");
 const handButton = document.getElementById("handButton");
+const faceButton = document.getElementById("faceButton");
 
 const handIcon = document.getElementById("handIcon");
 
@@ -403,6 +404,7 @@ let lastPlayerCleared = false;
 let gameOver = false;
 let dragging = null;
 let rightHandMode = true;
+let faceToFaceMode = false;
 
 let undoState = null;
 
@@ -496,26 +498,35 @@ function getShapeSize(shape) {
 function getPieceAnchor(shape) {
     let minX = Infinity;
     let maxX = -Infinity;
+    let minY = Infinity;
     let maxY = -Infinity;
 
     for (const [x, y] of shape) {
         minX = Math.min(minX, x);
         maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y);
         maxY = Math.max(maxY, y);
     }
 
-    if (rightHandMode) {
-        // 右利き: 右下
-        return {
-            x: maxX,
-            y: maxY
-        };
+    const reversed = isReverseViewActive();
+
+    if (!reversed) {
+
+        if (rightHandMode) {
+            return { x: maxX, y: maxY };
+        } else {
+            return { x: minX, y: maxY };
+        }
+
     } else {
-        // 左利き: 左下
-        return {
-            x: minX,
-            y: maxY
-        };
+
+        if (rightHandMode) {
+            // 左上
+            return { x: minX, y: minY };
+        } else {
+            // 右上
+            return { x: maxX, y: minY };
+        }
     }
 }
 
@@ -528,26 +539,66 @@ function getPlacementOrigin(piece, anchorCellX, anchorCellY) {
     };
 }
 
-function getDynamicOffsetX(clientX) {
+function isReverseViewActive() {
+    return (
+        faceToFaceMode &&
+        gameMode === "battle_2p" &&
+        currentTurn === "player2"
+    );
+}
+
+function getDynamicOffsets(clientX, clientY) {
+
     const rect = boardElement.getBoundingClientRect();
 
-    // 盤面内の0〜1
-    let t = (clientX - rect.left) / rect.width;
+    let tx = (clientX - rect.left) / rect.width;
+    let ty = (clientY - rect.top) / rect.height;
 
-    // clamp
-    t = Math.max(0, Math.min(1, t));
+    tx = Math.max(0, Math.min(1, tx));
+    ty = Math.max(0, Math.min(1, ty));
 
-    const MAX_OFFSET = 80;
+    const MAX_OFFSET_X = 80;
+    const MAX_OFFSET_Y = 80;
 
-    if (rightHandMode) {
-        // 右利き:
-        // 指より少し左に補正
-        return -(1 - t) * MAX_OFFSET;
+    const reversed = isReverseViewActive();
+
+    let offsetX;
+    let offsetY;
+
+    // ===== X =====
+
+    if (!reversed) {
+
+        if (rightHandMode) {
+            offsetX = -(1 - tx) * MAX_OFFSET_X;
+        } else {
+            offsetX = tx * MAX_OFFSET_X;
+        }
+
     } else {
-        // 左利き:
-        // 指より少し右に補正
-        return t * MAX_OFFSET;
+
+        if (rightHandMode) {
+            offsetX = (1 - tx) * MAX_OFFSET_X;
+        } else {
+            offsetX = -tx * MAX_OFFSET_X;
+        }
     }
+
+    // ===== Y =====
+
+    if (!reversed) {
+
+        offsetY = POINTER_OFFSET_Y;
+
+    } else {
+
+        offsetY = -POINTER_OFFSET_Y;
+    }
+
+    return {
+        offsetX,
+        offsetY
+    };
 }
 
 /* =========================================================
@@ -613,6 +664,11 @@ function initGame() {
         gameMode === "battle_2p"
     ) {
         generateEnemyPieces();
+    }
+    if (gameMode === "battle_2p") {
+        faceButton.classList.remove("hidden");
+    } else {
+        faceButton.classList.add("hidden");
     }
 
     updateUI();
@@ -864,24 +920,36 @@ function onPointerMove(e) {
 function moveDrag(e) {
     if (!dragging) return;
 
-    const offsetX = getDynamicOffsetX(e.clientX);
+    const { offsetX, offsetY } =
+        getDynamicOffsets(e.clientX, e.clientY);
 
-    // ハイライトと共通の論理位置
     const logicalX = e.clientX + offsetX;
-    const logicalY = e.clientY + POINTER_OFFSET_Y;
+    const logicalY = e.clientY + offsetY;
+
+    const reversed = isReverseViewActive();
 
     let left;
 
-    if (rightHandMode) {
-        // 論理位置の左側に配置
-        left = logicalX - dragging.width;
+    if (!reversed) {
+
+        if (rightHandMode) {
+            left = logicalX - dragging.width;
+        } else {
+            left = logicalX;
+        }
+
     } else {
-        // 論理位置の右側に配置
-        left = logicalX;
+
+        if (rightHandMode) {
+            left = logicalX;
+        } else {
+            left = logicalX - dragging.width;
+        }
     }
 
-    // 論理位置の上側に配置
-    const top = logicalY - dragging.height;
+    const top = reversed
+        ? logicalY
+        : logicalY - dragging.height;
 
     dragCanvas.style.left = `${left}px`;
     dragCanvas.style.top = `${top}px`;
@@ -896,9 +964,11 @@ async function onPointerUp(e) {
 
     let logicalX, logicalY;
 
-    const offsetX = getDynamicOffsetX(e.clientX);
+    const { offsetX, offsetY } =
+        getDynamicOffsets(e.clientX, e.clientY);
+
     logicalX = e.clientX + offsetX;
-    logicalY = e.clientY + POINTER_OFFSET_Y;
+    logicalY = e.clientY + offsetY;
 
     const anchorPos = getBoardCellFromPoint(logicalX, logicalY);
 
@@ -1329,6 +1399,13 @@ handButton.addEventListener("click", () => {
     } else {
         handIcon.style.transform = "scale(-1, 1)";
     }
+});
+
+faceButton.addEventListener("click", () => {
+    faceToFaceMode = !faceToFaceMode;
+
+    faceButton.style.opacity =
+        faceToFaceMode ? "1" : "0.5";
 });
 
 document.addEventListener("touchmove", (e) => {
