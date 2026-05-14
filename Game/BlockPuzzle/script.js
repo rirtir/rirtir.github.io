@@ -1238,16 +1238,18 @@ function clearHighlights() {
 ========================================================= */
 function checkGameOver() {
 
-    for (const piece of currentPieces) {
+    const piecesToCheck =
+        gameMode === "battle_2p"
+            ? (currentTurn === "player1" ? currentPieces : enemyPieces)
+            : currentPieces;
+
+    for (const piece of piecesToCheck) {
 
         if (!piece) continue;
 
-        // 「アンカーセル」を全探索
         for (let anchorY = 0; anchorY < BOARD_SIZE; anchorY++) {
-
             for (let anchorX = 0; anchorX < BOARD_SIZE; anchorX++) {
 
-                // 実際の配置時と同じ原点計算を使う
                 const origin = getPlacementOrigin(
                     piece,
                     anchorX,
