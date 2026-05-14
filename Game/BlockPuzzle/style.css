@@ -118,6 +118,8 @@ body {
 #header {
     text-align: center;
     flex-shrink: 0;
+    margin: 0;
+    margin-top: -15px;
 }
 
 #title {
@@ -127,19 +129,17 @@ body {
 
 #score,
 #enemyScore {
-    margin-top: 4px;
+    margin: 0;
     font-size: 20px;
 }
 
 #combo {
-    margin-top: 4px;
     font-size: 14px;
     color: #ffd166;
     min-height: 18px;
 }
 
 #message {
-    margin-top: 4px;
     font-size: 14px;
     color: #ff8080;
     min-height: 18px;
@@ -175,7 +175,7 @@ body {
     display: flex;
     justify-content: space-between;
     gap: 8px;
-    min-height: 90px;
+    min-height: 120px;
     flex-shrink: 0;
 }
 
@@ -233,7 +233,7 @@ body {
     display: flex;
     justify-content: space-between;
     gap: 8px;
-    min-height: 140px;
+    min-height: 120px;
     flex-shrink: 0;
 }
 
@@ -369,11 +369,11 @@ body {
     }
 
     #pieceArea {
-        min-height: 110px;
+        min-height: 120px;
     }
 
     #enemyArea {
-        min-height: 70px;
+        min-height: 120px;
     }
 
     #topBar button {
