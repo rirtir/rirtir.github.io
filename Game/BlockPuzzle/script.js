@@ -693,10 +693,20 @@ function renderPieceSlot(slotElement, piece, isEnemy = false, index = -1) {
     }
 
     const size = getShapeSize(piece.shape);
-    const cellSize = Math.max(
-        10,
-        Math.min(24, (slotElement.clientWidth - 20) / Math.max(size.w, size.h))
-    );
+
+    // slotの実寸（padding考慮）
+    const rect = slotElement.getBoundingClientRect();
+    const padding = 20;
+
+    // 横・縦それぞれの収まりを計算
+    const maxCellW = (rect.width - padding) / size.w;
+    const maxCellH = (rect.height - padding) / size.h;
+
+    // 両方に収まるように小さい方を採用
+    let cellSize = Math.min(maxCellW, maxCellH);
+
+    // 最低・最大制限
+    cellSize = Math.max(8, Math.min(24, cellSize));
 
     const canvas = document.createElement("canvas");
     canvas.className = "pieceCanvas";

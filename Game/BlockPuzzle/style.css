@@ -369,11 +369,11 @@ body {
     }
 
     #pieceArea {
-        min-height: 120px;
+        min-height: 90px;
     }
 
     #enemyArea {
-        min-height: 120px;
+        min-height: 90px;
     }
 
     #topBar button {
