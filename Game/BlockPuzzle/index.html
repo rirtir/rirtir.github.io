@@ -16,7 +16,10 @@
     <div class="titleContainer">
         <h1>9×9 Block Puzzle</h1>
         <button id="normalModeButton" class="bigButton">通常モード</button>
-        <button id="battleModeButton" class="bigButton">対戦モード</button>
+
+        <button id="battleAIButton" class="bigButton">AI対戦モード</button>
+        <button id="battle2PButton" class="bigButton">2人で対戦モード</button>
+        </div>
     </div>
 </div>
 
@@ -28,17 +31,29 @@
 
         <!-- Top Buttons -->
         <div id="topBar">
-            <button id="backButton">タイトルへ</button>
-            <button id="undoButton">アンドゥ</button>
-            <button id="restartButton">リスタート</button>
-            <button id="handButton">左右変更</button>
+            <div id="scores">
+                <div id="score">Score: 0</div>
+                <div id="enemyScore" class="hidden">Enemy: 0</div>
+            </div>
+            <div class="topButtons">
+                <button id="handButton">
+                    <img id="handIcon" src="./../../assets/icons/hand_white.svg">
+                </button>
+                <button id="undoButton">
+                    <img id="undoIcon" src="./../../assets/icons/undo2_white.svg">
+                </button>
+                <button id="restartButton">
+                    <img id="restartIcon" src="./../../assets/icons/reload_white.svg">
+                </button>
+                <button id="backButton">
+                    <img id="backIcon" src="./../../assets/icons/home_white.svg">
+                </button>
+            </div>
         </div>
 
         <!-- Header -->
         <div id="header">
-            <div id="title">9×9 Block Puzzle</div>
-            <div id="score">Score: 0</div>
-            <div id="enemyScore" class="hidden">Enemy: 0</div>
+            <!-- <div id="score">Score: 0</div> -->
             <div id="combo"></div>
             <div id="message"></div>
         </div>
@@ -66,6 +81,20 @@
 <!-- Drag Layer -->
 <div id="dragLayer">
     <canvas id="dragPiece"></canvas>
+</div>
+
+<!-- =========================
+     Confirm Popup
+========================= -->
+<div id="confirmPopup" class="popup hidden">
+    <div class="popupInner">
+        <div id="popupMessage">実行しますか？</div>
+
+        <div class="popupButtons">
+            <button id="popupCancel">キャンセル</button>
+            <button id="popupOk">OK</button>
+        </div>
+    </div>
 </div>
 
 <script src="script.js"></script>

@@ -83,19 +83,27 @@ body {
 ========================================================= */
 #topBar {
     display: flex;
+    justify-content: space-between;
+}
+
+.topButtons {
+    display: flex;
     gap: 6px;
-    flex-shrink: 0;
 }
 
 #topBar button {
-    flex: 1;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 4px;
-    font-size: 14px;
-    background: #3a4254;
-    color: white;
-    cursor: pointer;
+  border:none;
+  color:white;
+  border-radius:8px;
+  font-size:16px;
+  margin:5px;
+  width:40px;
+  height:40px;
+  background:none;
+  padding:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
 /* =========================================================
@@ -133,6 +141,25 @@ body {
 
 .hidden {
     display: none !important;
+}
+
+/* =========================================================
+   Battle Mode Menu
+========================================================= */
+#battleMenu {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+/* =========================================================
+   Disabled Turn
+========================================================= */
+.pieceSlot.disabled-turn {
+    opacity: 0.25;
+    filter: grayscale(1);
+    pointer-events: none;
 }
 
 /* =========================================================
@@ -190,7 +217,7 @@ body {
 }
 
 .cell.highlight-invalid {
-    background: #ec4845 !important;
+    background: #ff1c1c !important;
 }
 
 /* =========================================================
@@ -270,6 +297,56 @@ body {
         filter: brightness(3);
         opacity: 0;
     }
+}
+
+/* =========================
+   Popup
+========================= */
+
+.popup {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.popup.hidden {
+    display: none;
+}
+
+.popupInner {
+    width: 260px;
+    background: #2b3140;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+
+.popupButtons {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.popupButtons button {
+    flex: 1;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+}
+
+#popupCancel {
+    background: #555;
+    color: white;
+}
+
+#popupOk {
+    background: #4cc9f0;
+    color: white;
 }
 
 /* =========================================================

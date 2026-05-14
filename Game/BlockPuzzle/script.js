@@ -20,7 +20,7 @@ const NORMAL_COLORS = [
 ];
 
 const PLAYER_COLOR = "#4cc9f0";
-const ENEMY_COLOR = "#ef5350";
+const ENEMY_COLOR = "#ec6359";
 
 const PIECE_SHAPES = [
 
@@ -360,15 +360,17 @@ const titleScreen = document.getElementById("titleScreen");
 const gameScreen = document.getElementById("gameScreen");
 
 const normalModeButton = document.getElementById("normalModeButton");
-const battleModeButton = document.getElementById("battleModeButton");
+const battleAIButton = document.getElementById("battleAIButton");
+const battle2PButton = document.getElementById("battle2PButton");
 
 const backButton = document.getElementById("backButton");
 const undoButton = document.getElementById("undoButton");
 const restartButton = document.getElementById("restartButton");
 const handButton = document.getElementById("handButton");
 
+const handIcon = document.getElementById("handIcon");
+
 const boardElement = document.getElementById("board");
-const titleElement = document.getElementById("title");
 const scoreElement = document.getElementById("score");
 const enemyScoreElement = document.getElementById("enemyScore");
 const comboElement = document.getElementById("combo");
@@ -378,6 +380,11 @@ const enemyArea = document.getElementById("enemyArea");
 const dragCanvas = document.getElementById("dragPiece");
 const dragCtx = dragCanvas.getContext("2d");
 
+const confirmPopup = document.getElementById("confirmPopup");
+const popupMessage = document.getElementById("popupMessage");
+const popupCancel = document.getElementById("popupCancel");
+const popupOk = document.getElementById("popupOk");
+
 /* =========================================================
    State
 ========================================================= */
@@ -386,7 +393,8 @@ let board = [];
 let currentPieces = [];
 let enemyPieces = [];
 
-let score = 0;
+let player1Score = 0;
+let player2Score = 0;
 let enemyScore = 0;
 
 let comboMultiplier = 1;
@@ -398,6 +406,8 @@ let rightHandMode = true;
 
 let undoState = null;
 
+let currentTurn = "player1";
+
 /* =========================================================
    Utility
 ========================================================= */
@@ -406,7 +416,8 @@ function cloneState() {
         board: board.map(row => [...row]),
         currentPieces: structuredClone(currentPieces),
         enemyPieces: structuredClone(enemyPieces),
-        score,
+        player1Score,
+        player2Score,
         enemyScore,
         comboMultiplier,
         lastPlayerCleared,
@@ -419,7 +430,8 @@ function restoreState(state) {
     board = state.board.map(row => [...row]);
     currentPieces = structuredClone(state.currentPieces);
     enemyPieces = structuredClone(state.enemyPieces);
-    score = state.score;
+    player1Score = state.player1Score;
+    player2Score = state.player2Score;
     enemyScore = state.enemyScore;
     comboMultiplier = state.comboMultiplier;
     lastPlayerCleared = state.lastPlayerCleared;
@@ -453,9 +465,13 @@ function weightedRandomItem(items) {
 }
 
 function getPieceColor(isEnemy = false) {
-    if (gameMode === "battle") {
+    if (
+        gameMode === "battle_ai" ||
+        gameMode === "battle_2p"
+    ) {
         return isEnemy ? ENEMY_COLOR : PLAYER_COLOR;
     }
+
     return randomItem(NORMAL_COLORS);
 }
 
@@ -548,11 +564,23 @@ function startGame(mode) {
     titleScreen.classList.remove("active");
     gameScreen.classList.add("active");
 
-    enemyArea.classList.toggle("hidden", mode !== "battle");
-    enemyScoreElement.classList.toggle("hidden", mode !== "battle");
-    titleElement.classList.toggle("hidden", mode === "battle");
+    const isBattle = (
+        mode === "battle_ai" ||
+        mode === "battle_2p"
+    );
+
+    const isAIBattle = (mode === "battle_ai");
+
+    enemyArea.classList.toggle("hidden", !isBattle);
+    enemyScoreElement.classList.toggle("hidden", !isBattle);
+
+    currentTurn = "player1";
 
     initGame();
+
+    if (mode === "battle_2p") {
+        messageElement.textContent = "Blue Turn";
+    }
 }
 
 /* =========================================================
@@ -566,7 +594,8 @@ function initGame() {
     currentPieces = [];
     enemyPieces = [];
 
-    score = 0;
+    player1Score = 0;
+    player2Score = 0;
     enemyScore = 0;
 
     comboMultiplier = 1;
@@ -579,7 +608,10 @@ function initGame() {
     createBoard();
     generatePlayerPieces();
 
-    if (gameMode === "battle") {
+    if (
+        gameMode === "battle_ai" ||
+        gameMode === "battle_2p"
+    ) {
         generateEnemyPieces();
     }
 
@@ -689,7 +721,10 @@ function renderAllPieces() {
             i
         );
 
-        if (gameMode === "battle") {
+        if (
+            gameMode === "battle_ai" ||
+            gameMode === "battle_2p"
+        ) {
             renderPieceSlot(
                 document.getElementById(`enemySlot${i}`),
                 enemyPieces[i],
@@ -698,11 +733,56 @@ function renderAllPieces() {
             );
         }
     }
+
+    if (gameMode === "battle_2p") {
+        const playerSlots = [
+            document.getElementById("slot0"),
+            document.getElementById("slot1"),
+            document.getElementById("slot2")
+        ];
+
+        const enemySlots = [
+            document.getElementById("enemySlot0"),
+            document.getElementById("enemySlot1"),
+            document.getElementById("enemySlot2")
+        ];
+
+        const playerDisabled = (currentTurn !== "player1");
+        const enemyDisabled = (currentTurn !== "player2");
+
+        for (const slot of playerSlots) {
+            if (playerDisabled) {
+                slot.classList.add("disabled-turn");
+            }
+        }
+
+        for (const slot of enemySlots) {
+            if (enemyDisabled) {
+                slot.classList.add("disabled-turn");
+            }
+        }
+
+        for (let i = 0; i < 3; i++) {
+            if (enemyPieces[i] && currentTurn === "player2") {
+                const slot = document.getElementById(`enemySlot${i}`);
+                slot.classList.remove("disabled-turn");
+                slot.classList.add("active");
+                slot.onpointerdown = (e) => {
+                    startDrag(e, i, 24, true);
+                };
+            }
+        }
+    }
 }
 
 function updateUI() {
-    scoreElement.textContent = `Score: ${score}`;
-    enemyScoreElement.textContent = `Enemy: ${enemyScore}`;
+    if (gameMode === "battle_2p") {
+        scoreElement.textContent = `Blue: ${player1Score}`;
+        enemyScoreElement.textContent = `Red: ${player2Score}`;
+    } else {
+        scoreElement.textContent = `Score: ${player1Score}`;
+        enemyScoreElement.textContent = `Enemy: ${enemyScore}`;
+    }
 
     comboElement.textContent =
         comboMultiplier > 1 ? `Combo x${comboMultiplier}` : "";
@@ -732,10 +812,14 @@ function generateEnemyPieces() {
 /* =========================================================
    Drag
 ========================================================= */
-function startDrag(event, pieceIndex, cellSize) {
+function startDrag(event, pieceIndex, cellSize, useEnemyPieces = false) {
     if (gameOver) return;
 
-    const piece = currentPieces[pieceIndex];
+    const pieces = useEnemyPieces
+        ? enemyPieces
+        : currentPieces;
+
+    const piece = pieces[pieceIndex];
     if (!piece) return;
 
     event.preventDefault();
@@ -750,7 +834,8 @@ function startDrag(event, pieceIndex, cellSize) {
         pieceIndex,
         piece,
         width: dragCanvas.width,
-        height: dragCanvas.height
+        height: dragCanvas.height,
+        useEnemyPieces
     };
 
     dragCanvas.style.display = "block";
@@ -819,10 +904,14 @@ async function onPointerUp(e) {
 
             await placePiece(dragging.piece, origin.x, origin.y);
 
-            currentPieces[dragging.pieceIndex] = null;
+            const activePieces = dragging.useEnemyPieces
+                ? enemyPieces
+                : currentPieces;
+
+            activePieces[dragging.pieceIndex] = null;
             renderAllPieces();
 
-            if (gameMode === "battle") {
+            if (gameMode === "battle_ai") {
                 await enemyTurn();
             }
 
@@ -830,8 +919,26 @@ async function onPointerUp(e) {
                 generatePlayerPieces();
             }
 
-            if (gameMode === "battle" && enemyPieces.every(p => p === null)) {
+            if (
+                (gameMode === "battle_ai" ||
+                gameMode === "battle_2p") &&
+                enemyPieces.every(p => p === null)
+            ) {
                 generateEnemyPieces();
+            }
+
+            if (gameMode === "battle_2p") {
+                currentTurn =
+                    (currentTurn === "player1")
+                        ? "player2"
+                        : "player1";
+
+                messageElement.textContent =
+                    (currentTurn === "player1")
+                        ? "Blue Turn"
+                        : "Red Turn";
+
+                renderAllPieces();
             }
 
             checkGameOver();
@@ -917,7 +1024,15 @@ function resolveClears() {
             BASE_SCORE * (cellsToClear.length / 9) * comboMultiplier
         );
 
-        score += gained;
+        if (gameMode === "battle_2p") {
+            if (currentTurn === "player1") {
+                player1Score += gained;
+            } else {
+                player2Score += gained;
+            }
+        } else {
+            player1Score += gained;
+        }
 
         updateUI();
 
@@ -1024,18 +1139,18 @@ async function enemyTurn() {
     // Enemy placement does not affect player combo state
     const savedCombo = comboMultiplier;
     const savedLastCleared = lastPlayerCleared;
-    const savedScore = score;
+    const savedScore = player1Score;
 
     await placePiece(selected.piece, pos.x, pos.y);
 
     // Count enemy score roughly as occupied block count
-    enemyScore += selected.piece.shape.length * 10;
+    // enemyScore += selected.piece.shape.length * 10;
 
     // Restore player's combo state and score changes caused by enemy clears
     comboMultiplier = savedCombo;
     lastPlayerCleared = savedLastCleared;
-    enemyScore += score - savedScore;
-    score = savedScore;
+    enemyScore += player1Score - savedScore;
+    player1Score = savedScore;
 
     enemyPieces[selected.index] = null;
 
@@ -1141,13 +1256,52 @@ function checkGameOver() {
 }
 
 /* =========================================================
+   ポップアップ
+========================================================= */
+
+function showConfirm(message, onOk) {
+    popupMessage.textContent = message;
+    confirmPopup.classList.remove("hidden");
+
+    const cleanup = () => {
+        confirmPopup.classList.add("hidden");
+        popupOk.onclick = null;
+        popupCancel.onclick = null;
+    };
+
+    popupOk.onclick = () => {
+        cleanup();
+        onOk?.();
+    };
+
+    popupCancel.onclick = cleanup;
+}
+
+/* =========================================================
    Event Listeners
 ========================================================= */
-normalModeButton.addEventListener("click", () => startGame("normal"));
-battleModeButton.addEventListener("click", () => startGame("battle"));
+normalModeButton.addEventListener("click", () => {
+    startGame("normal");
+});
 
-backButton.addEventListener("click", showTitle);
-restartButton.addEventListener("click", initGame);
+battleAIButton.addEventListener("click", () => {
+    startGame("battle_ai");
+});
+
+battle2PButton.addEventListener("click", () => {
+    startGame("battle_2p");
+});
+
+backButton.addEventListener("click", () => {
+    showConfirm("タイトルに戻りますか？", () => {
+        showTitle();
+    });
+});
+restartButton.addEventListener("click", () => {
+    showConfirm("リスタートしますか？", () => {
+        initGame();
+    });
+});
 
 undoButton.addEventListener("click", () => {
     if (undoState) {
@@ -1158,6 +1312,11 @@ undoButton.addEventListener("click", () => {
 
 handButton.addEventListener("click", () => {
     rightHandMode = !rightHandMode;
+    if (rightHandMode) {
+        handIcon.style.transform = "scale(1, 1)";
+    } else {
+        handIcon.style.transform = "scale(-1, 1)";
+    }
 });
 
 document.addEventListener("touchmove", (e) => {
