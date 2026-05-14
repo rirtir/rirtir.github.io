@@ -370,6 +370,7 @@ const handButton = document.getElementById("handButton");
 const faceButton = document.getElementById("faceButton");
 
 const handIcon = document.getElementById("handIcon");
+const faceIcon = document.getElementById("faceIcon");
 
 const boardElement = document.getElementById("board");
 const scoreElement = document.getElementById("score");
@@ -404,7 +405,7 @@ let lastPlayerCleared = false;
 let gameOver = false;
 let dragging = null;
 let rightHandMode = true;
-let faceToFaceMode = false;
+let faceToFaceMode = true;
 
 let undoState = null;
 
@@ -552,10 +553,8 @@ function getDynamicOffsets(clientX, clientY) {
     const rect = boardElement.getBoundingClientRect();
 
     let tx = (clientX - rect.left) / rect.width;
-    let ty = (clientY - rect.top) / rect.height;
 
     tx = Math.max(0, Math.min(1, tx));
-    ty = Math.max(0, Math.min(1, ty));
 
     const MAX_OFFSET_X = 80;
     const MAX_OFFSET_Y = 80;
@@ -564,6 +563,10 @@ function getDynamicOffsets(clientX, clientY) {
 
     let offsetX;
     let offsetY;
+
+    if (reversed) {
+        tx = 1 - tx;
+    }
 
     // ===== X =====
 
@@ -1404,8 +1407,11 @@ handButton.addEventListener("click", () => {
 faceButton.addEventListener("click", () => {
     faceToFaceMode = !faceToFaceMode;
 
-    faceButton.style.opacity =
-        faceToFaceMode ? "1" : "0.5";
+    if (faceToFaceMode) {
+        faceIcon.src = "./../../assets/icons/faceicon_01.png";
+    } else {
+        faceIcon.src = "./../../assets/icons/faceicon_02.png";
+    }
 });
 
 document.addEventListener("touchmove", (e) => {
