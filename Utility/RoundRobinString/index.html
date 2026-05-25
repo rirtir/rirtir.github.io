@@ -162,6 +162,19 @@ opacity: 1;
 transform: translateY(0);
 }
 
+/* =========================
+  ボタン横並び
+========================= */
+
+.buttonRow{
+display:flex;
+gap:10px;
+}
+
+.buttonRow button{
+flex:1;
+}
+
 /* スマホ */
 @media (max-width:800px){
 .container{
@@ -186,9 +199,43 @@ height:auto;
 
 <textarea id="template" placeholder="例：買い物：{hoge}を{fuga}個"></textarea>
 
-<button id="generate">生成</button>
-<button id="generateWithCalc">生成（式を計算）</button>
-<button id="copyAll">結果をコピー</button>
+<!-- JSON -->
+<div class="buttonRow">
+
+<button id="saveJson">
+JSONで保存
+</button>
+
+<button id="loadJson">
+JSONをロード
+</button>
+
+</div>
+
+<!-- Generate -->
+<div class="buttonRow">
+
+<button id="generate">
+生成
+</button>
+
+<button id="generateWithCalc">
+生成（式を計算）
+</button>
+
+</div>
+
+<button id="copyAll">
+結果をコピー
+</button>
+
+<!-- hidden -->
+<input
+type="file"
+id="jsonFileInput"
+accept=".json"
+style="display:none"
+>
 
 <div id="toast">コピーしました</div>
 
@@ -487,6 +534,90 @@ const combos = generateCombinations(validVars)
 const results = combos.map(c=>applyTemplateWithCalc(template,c))
 
 document.getElementById("output").textContent = results.join("\n")
+
+}
+
+// =========================
+// JSON保存
+// =========================
+
+document.getElementById("saveJson").onclick = ()=>{
+
+const data = {
+
+variables,
+
+template: document.getElementById("template").value
+
+}
+
+const json = JSON.stringify(data, null, 2)
+
+const blob = new Blob(
+[json],
+{type:"application/json"}
+)
+
+const url = URL.createObjectURL(blob)
+
+const a = document.createElement("a")
+
+a.href = url
+a.download = "variables.json"
+
+a.click()
+
+URL.revokeObjectURL(url)
+
+}
+
+// =========================
+// JSONロード
+// =========================
+
+document.getElementById("loadJson").onclick = ()=>{
+
+document
+.getElementById("jsonFileInput")
+.click()
+
+}
+
+document
+.getElementById("jsonFileInput")
+.onchange = async e=>{
+
+const file = e.target.files[0]
+
+if(!file) return
+
+try{
+
+const text = await file.text()
+
+const data = JSON.parse(text)
+
+// variables復元
+variables = data.variables || []
+
+// template復元
+document.getElementById("template").value =
+data.template || ""
+
+// UI更新
+renderVars()
+
+e.target.value = ""
+
+showToast("JSONをロードしました")
+
+}catch(err){
+
+console.error(err)
+
+showToast("JSONロード失敗")
+
+}
 
 }
 
