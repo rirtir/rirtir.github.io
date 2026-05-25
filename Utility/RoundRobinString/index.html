@@ -228,6 +228,7 @@ document.getElementById("addVar").onclick = ()=>{
 
 variables.push({
 name:"",
+order:variables.length + 1,
 items:[]
 })
 
@@ -259,6 +260,17 @@ nameInput.value = v.name
 
 nameInput.oninput = e=>{
 v.name = e.target.value
+}
+
+const orderInput = document.createElement("input")
+orderInput.type = "number"
+orderInput.min = 1
+orderInput.value = v.order
+
+orderInput.style.width = "60px"
+
+orderInput.oninput = e=>{
+v.order = Number(e.target.value)
 }
 
 // ＋
@@ -301,6 +313,7 @@ alert("クリップボード取得失敗")
 }
 
 header.appendChild(nameInput)
+header.appendChild(orderInput)
 header.appendChild(addItemBtn)
 header.appendChild(pasteBtn)
 
@@ -449,7 +462,9 @@ document.getElementById("generate").onclick = ()=>{
 
 const template = document.getElementById("template").value
 
-const validVars = variables.filter(v=>v.name)
+const validVars = variables
+    .filter(v=>v.name)
+    .sort((a,b)=>a.order - b.order)
 
 const combos = generateCombinations(validVars)
 
@@ -463,7 +478,9 @@ document.getElementById("generateWithCalc").onclick = ()=>{
 
 const template = document.getElementById("template").value
 
-const validVars = variables.filter(v=>v.name)
+const validVars = variables
+    .filter(v=>v.name)
+    .sort((a,b)=>a.order - b.order)
 
 const combos = generateCombinations(validVars)
 
