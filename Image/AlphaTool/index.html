@@ -133,6 +133,26 @@ or Click
 
 <br><br>
 
+<label>
+<input type="checkbox" id="edgeFix" checked>
+輪郭補正
+</label>
+
+<div id="edgeFixArea">
+
+補正強度
+<span class="valueBox" id="edgeStrengthVal">1.0</span>
+
+<input type="range" id="edgeStrength" min="0" max="1" step="0.01" value="1">
+
+補正半径
+<span class="valueBox" id="edgeRadiusVal">3</span>
+
+<input type="range" id="edgeRadius" min="1" max="20" value="3">
+</div>
+
+<br><br>
+
 背景色
 <input type="color" id="bgColor" value="#ffffff">
 
@@ -150,7 +170,39 @@ or Click
 
 <div class="preview checker" id="preview">
 
+<select
+id="viewMode"
+style="
+position:absolute;
+top:10px;
+right:10px;
+z-index:10;
+">
+
+<option value="result" selected>
+透過結果
+</option>
+
+<option value="original">
+元画像
+</option>
+
+<option value="alpha">
+アルファマップ
+</option>
+
+<option value="edge">
+輪郭領域（2値）
+</option>
+
+<option value="edge_color">
+輪郭領域（カラー）
+</option>
+
+</select>
+
 <canvas id="canvas"></canvas>
+
 <div id="marker"></div>
 
 </div>
@@ -169,6 +221,9 @@ let original=null
 let labData=null
 let clickPos=null
 let target=[255,255,255]
+let resultImageData=null
+let alphaMapData=null
+let edgeMaskData=null
 
 /* UI */
 
@@ -177,6 +232,14 @@ const smooth=document.getElementById("smooth")
 const thrVal=document.getElementById("thrVal")
 const smoothVal=document.getElementById("smoothVal")
 const targetColor=document.getElementById("targetColor")
+
+const edgeFix=document.getElementById("edgeFix")
+const edgeStrength=document.getElementById("edgeStrength")
+const edgeStrengthVal=document.getElementById("edgeStrengthVal")
+const edgeRadius=document.getElementById("edgeRadius")
+const edgeRadiusVal=document.getElementById("edgeRadiusVal")
+
+const viewMode=document.getElementById("viewMode")
 
 /* RGB→Lab */
 
@@ -239,6 +302,129 @@ let a=1/(0.1+s*10)
 let v=1/(1+Math.exp(-a*(thr-dist)))
 
 return 255*(1-v)
+
+}
+
+function repairEdgeColors(data,w,h){
+
+if(!edgeFix.checked) return
+
+let radius=parseInt(edgeRadius.value)
+let strength=parseFloat(edgeStrength.value)
+
+let copy=new Uint8ClampedArray(data)
+
+for(let y=0;y<h;y++){
+for(let x=0;x<w;x++){
+
+let idx=(y*w+x)*4
+
+let a=data[idx+3]
+
+if(a===0 || a===255)
+continue
+
+let rSum=0
+let gSum=0
+let bSum=0
+let count=0
+
+for(let dy=-radius;dy<=radius;dy++){
+for(let dx=-radius;dx<=radius;dx++){
+
+let distSq=dx*dx+dy*dy
+
+if(distSq>radius*radius)
+continue
+
+let nx=x+dx
+let ny=y+dy
+
+if(nx<0||ny<0||nx>=w||ny>=h)
+continue
+
+let nIdx=(ny*w+nx)*4
+
+if(data[nIdx+3]!==255)
+continue
+
+rSum+=data[nIdx]
+gSum+=data[nIdx+1]
+bSum+=data[nIdx+2]
+
+count++
+
+}
+}
+
+if(count===0)
+continue
+
+let rr=rSum/count
+let gg=gSum/count
+let bb=bSum/count
+
+copy[idx]=
+data[idx]*(1-strength)
++
+rr*strength
+
+copy[idx+1]=
+data[idx+1]*(1-strength)
++
+gg*strength
+
+copy[idx+2]=
+data[idx+2]*(1-strength)
++
+bb*strength
+
+}
+}
+
+data.set(copy)
+
+}
+
+function buildDebugImages(data,w,h){
+
+let alphaData=new Uint8ClampedArray(data.length)
+let edgeData=new Uint8ClampedArray(data.length)
+let edgeColorData=new Uint8ClampedArray(data.length)
+
+for(let i=0;i<w*h;i++){
+
+let a=data[i*4+3]
+
+alphaData[i*4]=a
+alphaData[i*4+1]=a
+alphaData[i*4+2]=a
+alphaData[i*4+3]=255
+
+let edge1=(a===0)?255:0
+let edge2=(a===255)?255:0
+let edge3=(a>0 && a<255)?255:0
+
+edgeData[i*4]=edge3
+edgeData[i*4+1]=edge3
+edgeData[i*4+2]=edge3
+edgeData[i*4+3]=255
+
+edgeColorData[i*4]=edge1
+edgeColorData[i*4+1]=edge2
+edgeColorData[i*4+2]=edge3
+edgeColorData[i*4+3]=255
+
+}
+
+alphaMapImageData=
+new ImageData(alphaData,w,h)
+
+edgeMaskImageData=
+new ImageData(edgeData,w,h)
+
+edgeColorMaskImageData=
+new ImageData(edgeColorData,w,h)
 
 }
 
@@ -307,7 +493,14 @@ stack.push([x,y-1])
 
 }
 
-ctx.putImageData(new ImageData(data,w,h),0,0)
+repairEdgeColors(data,w,h)
+
+resultImageData=
+new ImageData(data,w,h)
+
+buildDebugImages(data,w,h)
+
+updateView()
 
 drawMarker()
 
@@ -329,6 +522,37 @@ marker.style.top=(canvas.offsetTop + y)+"px"
 marker.style.display="block"
 
 }
+
+function updateView(){
+
+if(!resultImageData) return
+
+switch(viewMode.value){
+
+case "original":
+ctx.putImageData(original,0,0)
+break
+
+case "alpha":
+ctx.putImageData(alphaMapImageData,0,0)
+break
+
+case "edge":
+ctx.putImageData(edgeMaskImageData,0,0)
+break
+
+case "edge_color":
+ctx.putImageData(edgeColorMaskImageData,0,0)
+break
+
+default:
+ctx.putImageData(resultImageData,0,0)
+break
+
+}
+
+}
+
 /* クリック */
 
 canvas.onclick=e=>{
@@ -356,6 +580,13 @@ process()
 
 threshold.oninput=()=>{thrVal.textContent=threshold.value;process()}
 smooth.oninput=()=>{smoothVal.textContent=smooth.value;process()}
+
+edgeStrength.oninput=()=>{edgeStrengthVal.textContent=edgeStrength.value;process()}
+edgeRadius.oninput=()=>{edgeRadiusVal.textContent=edgeRadius.value;process()}
+
+edgeFix.onchange=process
+
+viewMode.onchange=updateView
 
 targetColor.oninput=()=>{
 

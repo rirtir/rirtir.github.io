@@ -66,6 +66,13 @@ body {
     cursor: pointer;
 }
 
+#highScoreDisplay {
+    margin-top: 10px;
+    margin-bottom: 20px;
+    font-size: 18px;
+    color: white;
+}
+
 /* =========================================================
    Game Layout
 ========================================================= */
@@ -134,6 +141,14 @@ body {
     font-size: 20px;
 }
 
+#score {
+    color: #7edcf8;
+}
+
+#enemyScore {
+    color: #ff9595;
+}
+
 #combo {
     font-size: 14px;
     color: #ffd166;
@@ -148,6 +163,11 @@ body {
 
 .hidden {
     display: none !important;
+}
+
+#undoButton.disabled {
+    opacity: 0.35;
+    pointer-events: none;
 }
 
 /* =========================================================

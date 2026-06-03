@@ -4,6 +4,9 @@
 const BOARD_SIZE = 9;
 const BASE_SCORE = 100;
 
+const SAVE_KEY = "blockPuzzleSave";
+const HIGH_SCORE_KEY = "blockPuzzleHighScore";
+
 const POINTER_OFFSET_X_RIGHT = 60;
 const POINTER_OFFSET_X_LEFT = -60;
 const POINTER_OFFSET_Y = -80;
@@ -358,6 +361,7 @@ const PIECE_SHAPES = [
 ========================================================= */
 const titleScreen = document.getElementById("titleScreen");
 const gameScreen = document.getElementById("gameScreen");
+const highScoreDisplay = document.getElementById("highScoreDisplay");
 
 const normalModeButton = document.getElementById("normalModeButton");
 const battleAIButton = document.getElementById("battleAIButton");
@@ -443,6 +447,7 @@ function restoreState(state) {
     renderBoard();
     renderAllPieces();
     updateUI();
+    updateUndoButtonState();
 }
 
 function randomItem(arr) {
@@ -604,10 +609,107 @@ function getDynamicOffsets(clientX, clientY) {
     };
 }
 
+function saveGame() {
+
+    if (gameMode !== "normal") return;
+
+    const data = {
+
+        board,
+
+        currentPieces,
+
+        player1Score,
+
+        comboMultiplier,
+        lastPlayerCleared,
+
+        gameOver,
+
+        undoState,
+
+        rightHandMode
+    };
+
+    localStorage.setItem(
+        SAVE_KEY,
+        JSON.stringify(data)
+    );
+
+    const currentHigh =
+        Number(localStorage.getItem(HIGH_SCORE_KEY) || 0);
+
+    if (player1Score > currentHigh) {
+
+        localStorage.setItem(
+            HIGH_SCORE_KEY,
+            player1Score
+        );
+
+        updateHighScoreDisplay();
+    }
+}
+
+function loadGame() {
+
+    const raw =
+        localStorage.getItem(SAVE_KEY);
+
+    if (!raw) return false;
+
+    const data = JSON.parse(raw);
+
+    board = data.board;
+
+    currentPieces = data.currentPieces;
+
+    player1Score = data.player1Score;
+
+    comboMultiplier =
+        data.comboMultiplier;
+
+    lastPlayerCleared =
+        data.lastPlayerCleared;
+
+    gameOver = data.gameOver;
+
+    undoState = data.undoState;
+
+    rightHandMode =
+        data.rightHandMode ?? true;
+
+    renderBoard();
+    renderAllPieces();
+
+    updateUI();
+    updateUndoButtonState();
+
+    return true;
+}
+
+function clearSave() {
+
+    localStorage.removeItem(SAVE_KEY);
+}
+
+function updateHighScoreDisplay() {
+
+    const score =
+        Number(
+            localStorage.getItem(HIGH_SCORE_KEY) || 0
+        );
+
+    highScoreDisplay.textContent =
+        `High Score: ${score}`;
+}
+
 /* =========================================================
    Screen
 ========================================================= */
 function showTitle() {
+
+    updateHighScoreDisplay();
+
     titleScreen.classList.add("active");
     gameScreen.classList.remove("active");
 }
@@ -630,7 +732,18 @@ function startGame(mode) {
 
     currentTurn = "player1";
 
-    initGame();
+    if (
+        mode === "normal" &&
+        loadGame()
+    ) {
+
+        // loaded
+
+    } else {
+
+        initGame();
+    }
+    updateUndoButtonState();
 
     if (mode === "battle_2p") {
         messageElement.textContent = "Blue Turn";
@@ -658,6 +771,7 @@ function initGame() {
     gameOver = false;
     dragging = null;
     undoState = null;
+    updateUndoButtonState();
 
     createBoard();
     generatePlayerPieces();
@@ -984,8 +1098,10 @@ async function onPointerUp(e) {
 
         if (canPlace(dragging.piece, origin.x, origin.y)) {
             undoState = cloneState();
+            updateUndoButtonState();
 
             await placePiece(dragging.piece, origin.x, origin.y);
+            saveGame();
 
             const activePieces = dragging.useEnemyPieces
                 ? enemyPieces
@@ -1000,6 +1116,8 @@ async function onPointerUp(e) {
 
             if (currentPieces.every(p => p === null)) {
                 generatePlayerPieces();
+                undoState = null;
+                updateUndoButtonState();
             }
 
             if (
@@ -1363,6 +1481,25 @@ function showConfirm(message, onOk) {
 }
 
 /* =========================================================
+   UI調整
+========================================================= */
+
+function updateUndoButtonState() {
+
+    const disabled =
+        gameMode === "battle_2p" ||
+        undoState === null;
+
+    undoButton.disabled = disabled;
+
+    if (disabled) {
+        undoButton.classList.add("disabled");
+    } else {
+        undoButton.classList.remove("disabled");
+    }
+}
+
+/* =========================================================
    Event Listeners
 ========================================================= */
 normalModeButton.addEventListener("click", () => {
@@ -1379,19 +1516,27 @@ battle2PButton.addEventListener("click", () => {
 
 backButton.addEventListener("click", () => {
     showConfirm("タイトルに戻りますか？", () => {
+        saveGame();
         showTitle();
     });
 });
 restartButton.addEventListener("click", () => {
     showConfirm("リスタートしますか？", () => {
+        clearSave();
         initGame();
+        saveGame();
     });
 });
 
 undoButton.addEventListener("click", () => {
     if (undoState) {
-        restoreState(undoState);
+        const state = undoState;
+
         undoState = null;
+        updateUndoButtonState();
+
+        restoreState(state);
+        saveGame();
     }
 });
 
@@ -1425,4 +1570,5 @@ document.addEventListener("contextmenu", (e) => {
 /* =========================================================
    Start
 ========================================================= */
+updateHighScoreDisplay();
 showTitle();
