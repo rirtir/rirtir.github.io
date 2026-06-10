@@ -57,6 +57,13 @@ const data = [
                 desc: "ブロックを並べ替えて完成させるゲーム",
                 tags: ["ソロ", "ゲーム"],
                 main: true,
+            },
+            {
+                title: "エアーホッケー",
+                url: "https://rirtir.com/Game/AirHockey/",
+                desc: "エアーホッケーゲーム。難易度選択可能。",
+                tags: ["ソロ", "ゲーム"],
+                main: true,
             }
         ]
     },
