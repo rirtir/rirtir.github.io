@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ご飯ルーレット</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14110E;
+    --bg2:#1B1611;
+    --panel:#211B15;
+    --panel2:#2A231B;
+    --line:rgba(245,236,221,0.10);
+    --line-strong:rgba(245,236,221,0.18);
+    --cream:#F5ECDD;
+    --muted:#A99A85;
+    --amber:#F4A52C;
+    --tomato:#E64B33;
+    --green:#9DBE4A;
+    --ink:#241C12;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(244,165,44,0.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(230,75,51,0.10), transparent 55%),
+      var(--bg);
+    color:var(--cream);
+    font-family:"Zen Kaku Gothic New", system-ui, sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:1080px;
+    margin:0 auto;
+    padding:28px 20px 64px;
+  }
+
+  /* ---------- header ---------- */
+  header{
+    text-align:center;
+    margin-bottom:26px;
+  }
+  .kicker{
+    font-size:12px;
+    letter-spacing:.42em;
+    color:var(--amber);
+    font-weight:700;
+    text-indent:.42em;
+    margin-bottom:8px;
+  }
+  h1{
+    font-family:"Zen Maru Gothic", sans-serif;
+    font-weight:900;
+    font-size:clamp(34px,7vw,58px);
+    line-height:1;
+    margin:0;
+    letter-spacing:.02em;
+  }
+  h1 .dot{color:var(--tomato);}
+  .sub{
+    margin-top:12px;
+    color:var(--muted);
+    font-size:14px;
+  }
+
+  /* ---------- layout ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 460px;
+    gap:26px;
+    align-items:start;
+  }
+  @media (max-width:880px){
+    .grid{grid-template-columns:1fr;}
+    .stage{order:-1;}
+  }
+
+  /* ---------- selection panel ---------- */
+  .panel{
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:14px;
+  }
+  .panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:6px 8px 14px;
+    gap:10px;
+  }
+  .panel-title{
+    font-family:"Zen Maru Gothic",sans-serif;
+    font-weight:700;
+    font-size:16px;
+  }
+  .bulk{display:flex;gap:8px;}
+  .bulk button{
+    font-family:inherit;
+    background:transparent;
+    color:var(--muted);
+    border:1px solid var(--line-strong);
+    border-radius:999px;
+    padding:6px 12px;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .bulk button:hover{color:var(--cream);border-color:var(--cream);}
+
+  .genre{
+    border-top:1px solid var(--line);
+  }
+  .genre:first-child{border-top:none;}
+  .genre-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:13px 8px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .genre-row:hover{background:rgba(245,236,221,0.03);border-radius:12px;}
+  .emoji{
+    width:34px;height:34px;
+    flex:none;
+    display:grid;place-items:center;
+    font-size:19px;
+    background:var(--bg2);
+    border-radius:10px;
+    border:1px solid var(--line);
+  }
+  .genre-name{
+    font-family:"Zen Maru Gothic",sans-serif;
+    font-weight:700;
+    font-size:16px;
+    flex:1;
+  }
+  .genre-count{
+    font-size:12px;
+    color:var(--muted);
+    font-variant-numeric:tabular-nums;
+  }
+  .chev{
+    width:18px;height:18px;flex:none;
+    color:var(--muted);
+    transition:transform .25s ease;
+  }
+  .genre.open .chev{transform:rotate(90deg);}
+
+  .dishes{
+    display:none;
+    padding:2px 6px 14px 52px;
+    grid-template-columns:1fr 1fr;
+    gap:4px 10px;
+  }
+  .genre.open .dishes{display:grid;}
+  @media (max-width:520px){ .dishes{grid-template-columns:1fr;} }
+
+  /* custom checkbox */
+  label.dish{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:7px 8px;
+    border-radius:9px;
+    cursor:pointer;
+    font-size:14px;
+    color:var(--cream);
+  }
+  label.dish:hover{background:rgba(245,236,221,0.04);}
+  .box{
+    width:19px;height:19px;flex:none;
+    border-radius:6px;
+    border:2px solid var(--line-strong);
+    background:var(--bg2);
+    display:grid;place-items:center;
+    transition:.13s;
+  }
+  .box svg{width:12px;height:12px;opacity:0;transform:scale(.5);transition:.13s;color:var(--ink);}
+  .genre-row .box{width:22px;height:22px;}
+  .genre-row .box svg{width:14px;height:14px;}
+
+  input{position:absolute;opacity:0;width:0;height:0;pointer-events:none;}
+  input:checked + .box{background:var(--amber);border-color:var(--amber);}
+  input:checked + .box svg{opacity:1;transform:scale(1);}
+  input.indet + .box{background:var(--amber);border-color:var(--amber);}
+  input.indet + .box svg{opacity:0;}
+  input.indet + .box::after{content:"";width:9px;height:3px;border-radius:2px;background:var(--ink);}
+  input:focus-visible + .box{outline:2px solid var(--cream);outline-offset:2px;}
+
+  /* ---------- stage (wheel) ---------- */
+  .stage{
+    position:sticky;
+    top:18px;
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:22px 22px 24px;
+    text-align:center;
+  }
+  .stage-count{
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:14px;
+    font-weight:500;
+  }
+  .stage-count b{color:var(--amber);font-variant-numeric:tabular-nums;font-size:15px;}
+
+  .wheel-box{
+    position:relative;
+    width:100%;
+    max-width:380px;
+    margin:0 auto;
+    aspect-ratio:1/1;
+  }
+  canvas{width:100%;height:100%;display:block;border-radius:50%;
+    filter:drop-shadow(0 16px 32px rgba(0,0,0,.45));}
+  .pointer{
+    position:absolute;
+    top:-6px;left:50%;
+    transform:translateX(-50%);
+    width:34px;height:40px;
+    z-index:3;
+    transform-origin:50% 80%;
+    transition:transform .05s ease-out;
+    filter:drop-shadow(0 3px 4px rgba(0,0,0,.5));
+  }
+  .hub{
+    position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    width:74px;height:74px;
+    border-radius:50%;
+    background:radial-gradient(circle at 38% 32%, #2f2820, #19140f);
+    border:3px solid var(--amber);
+    z-index:2;
+    display:grid;place-items:center;
+    font-size:30px;
+  }
+
+  .result{
+    min-height:30px;
+    margin-top:20px;
+    font-family:"Zen Maru Gothic",sans-serif;
+  }
+  .result .lead{font-size:12px;color:var(--muted);letter-spacing:.2em;font-weight:700;}
+  .result .pick{
+    font-size:clamp(24px,6vw,34px);
+    font-weight:900;
+    color:var(--cream);
+    margin-top:4px;
+    opacity:0;transform:translateY(8px);
+  }
+  .result.show .pick{opacity:1;transform:none;transition:.4s cubic-bezier(.2,.8,.2,1);}
+  .result .pick.pop{animation:pop .5s cubic-bezier(.2,1.3,.4,1);}
+  @keyframes pop{0%{transform:scale(.7);opacity:0;}60%{transform:scale(1.08);}100%{transform:scale(1);opacity:1;}}
+
+  .spin-btn{
+    margin-top:22px;
+    width:100%;
+    font-family:"Zen Maru Gothic",sans-serif;
+    font-weight:900;
+    font-size:19px;
+    color:var(--ink);
+    background:linear-gradient(180deg,#FFC056,var(--amber));
+    border:none;
+    border-radius:16px;
+    padding:17px;
+    cursor:pointer;
+    letter-spacing:.06em;
+    box-shadow:0 8px 0 #b6741a, 0 14px 26px rgba(244,165,44,.28);
+    transition:transform .08s, box-shadow .08s, filter .15s;
+  }
+  .spin-btn:hover{filter:brightness(1.04);}
+  .spin-btn:active{transform:translateY(4px);box-shadow:0 4px 0 #b6741a,0 8px 16px rgba(244,165,44,.25);}
+  .spin-btn:disabled{
+    background:var(--panel2);
+    color:var(--muted);
+    box-shadow:none;
+    cursor:not-allowed;
+    border:1px solid var(--line-strong);
+  }
+  .spin-btn:focus-visible{outline:3px solid var(--cream);outline-offset:3px;}
+
+  @media (prefers-reduced-motion:reduce){
+    .pointer,.result.show .pick{transition:none;}
+    .result .pick.pop{animation:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">WHAT TO EAT</div>
+    <h1>ご飯ルーレット<span class="dot">.</span></h1>
+    <div class="sub">食べたいジャンルを選んで、回して、運命にまかせる。</div>
+  </header>
+
+  <div class="grid">
+    <!-- selection -->
+    <section class="panel" aria-label="料理の選択">
+      <div class="panel-head">
+        <div class="panel-title">メニューを選ぶ</div>
+        <div class="bulk">
+          <button id="allOn" type="button">全部オン</button>
+          <button id="allOff" type="button">全部オフ</button>
+        </div>
+      </div>
+      <div id="genres"></div>
+    </section>
+
+    <!-- wheel -->
+    <section class="stage" aria-label="ルーレット">
+      <div class="stage-count">ルーレットに <b id="count">0</b> 品セット中</div>
+      <div class="wheel-box">
+        <svg class="pointer" id="pointer" viewBox="0 0 34 40" aria-hidden="true">
+          <path d="M17 40 L2 8 Q17 0 32 8 Z" fill="#E64B33"/>
+          <circle cx="17" cy="11" r="5" fill="#14110E"/>
+        </svg>
+        <canvas id="wheel" width="760" height="760"></canvas>
+        <div class="hub" aria-hidden="true">🍚</div>
+      </div>
+
+      <div class="result" id="result" aria-live="polite">
+        <div class="lead">きょうのごはん</div>
+        <div class="pick" id="pick">？？？</div>
+      </div>
+
+      <button class="spin-btn" id="spin" type="button">ルーレットを回す</button>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ---------------- データ：ジャンル別の料理（豊富に） ---------------- */
+const DATA = [
+  { name:"和食", emoji:"🍣", dishes:["寿司","刺身","天ぷら","すき焼き","しゃぶしゃぶ","とんかつ","焼き魚","親子丼","牛丼","天丼","うな重","おでん","茶碗蒸し","肉じゃが","豚の生姜焼き","唐揚げ","焼き鳥","お好み焼き","たこ焼き","海鮮丼","カツ丼","ちらし寿司","ぶり大根","だし巻き卵"] },
+  { name:"ラーメン・麺", emoji:"🍜", dishes:["醤油ラーメン","味噌ラーメン","豚骨ラーメン","塩ラーメン","つけ麺","担々麺","油そば","冷やし中華","ちゃんぽん","かけそば","ざるそば","きつねうどん","カレーうどん","焼きうどん","明太子パスタ"] },
+  { name:"中華", emoji:"🥟", dishes:["餃子","チャーハン","麻婆豆腐","青椒肉絲","酢豚","エビチリ","回鍋肉","春巻き","小籠包","八宝菜","中華丼","天津飯","麻婆茄子","よだれ鶏","棒棒鶏","焼売","ニラレバ炒め","北京ダック","ふかひれスープ","杏仁豆腐"] },
+  { name:"イタリアン", emoji:"🍝", dishes:["ペペロンチーノ","カルボナーラ","ミートソース","ペスカトーレ","アラビアータ","ジェノベーゼ","マルゲリータ","クアトロフォルマッジ","ラザニア","リゾット","ニョッキ","ボロネーゼ","カプレーゼ","ミネストローネ","アクアパッツァ","ティラミス"] },
+  { name:"フレンチ", emoji:"🥖", dishes:["ビーフシチュー","コンソメスープ","キッシュ","ラタトゥイユ","ガレット","ポトフ","ブイヤベース","エスカルゴ","鴨のコンフィ","仔羊のロースト","ニース風サラダ","クロックムッシュ"] },
+  { name:"洋食", emoji:"🍳", dishes:["オムライス","ハンバーグ","ナポリタン","エビフライ","ハヤシライス","コロッケ","ドリア","ロールキャベツ","クリームシチュー","ポークソテー","ミックスフライ","ビーフストロガノフ","グラタン"] },
+  { name:"カレー", emoji:"🍛", dishes:["カレーライス","カツカレー","キーマカレー","ドライカレー","スープカレー","欧風カレー","シーフードカレー","ハンバーグカレー"] },
+  { name:"韓国料理", emoji:"🌶️", dishes:["ビビンバ","石焼ビビンバ","キムチチゲ","スンドゥブ","チーズタッカルビ","サムギョプサル","チヂミ","プルコギ","冷麺","ヤンニョムチキン","トッポギ","カルビ","サムゲタン","ユッケジャンクッパ"] },
+  { name:"タイ料理", emoji:"🍤", dishes:["ガパオライス","トムヤムクン","パッタイ","グリーンカレー","カオマンガイ","トムカーガイ","ソムタム","カオパット","タイ風焼きそば"] },
+  { name:"インド料理", emoji:"🫓", dishes:["バターチキンカレー","ナンとカレー","タンドリーチキン","サグカレー","ダルカレー","ビリヤニ","チキンティッカ","サモサ","マサラドーサ"] },
+  { name:"メキシカン", emoji:"🌮", dishes:["タコス","ブリトー","ナチョス","ファヒータ","ケサディーヤ","エンチラーダ","タコライス","ワカモレ","チリコンカン"] },
+  { name:"アメリカン", emoji:"🍔", dishes:["ハンバーガー","ホットドッグ","BBQリブ","フライドチキン","バッファローウィング","Tボーンステーキ","パンケーキ","クラムチャウダー","コブサラダ","マカロニチーズ","ロコモコ"] },
+  { name:"ベトナム料理", emoji:"🍲", dishes:["フォー","生春巻き","バインミー","ブンチャー","ガーレモングラス","コムタム"] },
+  { name:"スペイン料理", emoji:"🥘", dishes:["パエリア","アヒージョ","ガスパチョ","スペイン風オムレツ","アヒージョバゲット","イベリコ豚のグリル"] },
+];
+
+/* セグメント用のおいしそうな配色 */
+const PALETTE = ["#E64B33","#F4A52C","#E0B23A","#9DBE4A","#3FA98C","#4C8FB5","#C0496B","#B5654C","#E0703A","#5BA199","#7C9A4E","#D98C5F"];
+
+/* ---------------- 状態 ---------------- */
+// checked[g] は Set（その料理indexがオン）
+const checked = DATA.map((g,gi)=> new Set(gi===0 ? g.dishes.map((_,i)=>i) : [])); // 初期は和食オン
+const genresEl = document.getElementById('genres');
+
+function checkIcon(){ return '<svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
+
+/* ---------------- UI 生成 ---------------- */
+DATA.forEach((g,gi)=>{
+  const genre = document.createElement('div');
+  genre.className = 'genre' + (gi===0?' open':'');
+  genre.innerHTML = `
+    <div class="genre-row" data-toggle="${gi}">
+      <span class="emoji">${g.emoji}</span>
+      <label class="gcheck" onclick="event.stopPropagation()">
+        <input type="checkbox" id="g${gi}">
+        <span class="box">${checkIcon()}</span>
+      </label>
+      <span class="genre-name">${g.name}</span>
+      <span class="genre-count" id="gc${gi}"></span>
+      <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="dishes" id="dishes${gi}"></div>`;
+  genresEl.appendChild(genre);
+
+  const dishesWrap = genre.querySelector('#dishes'+gi);
+  g.dishes.forEach((d,di)=>{
+    const lab = document.createElement('label');
+    lab.className = 'dish';
+    lab.innerHTML = `<input type="checkbox" data-g="${gi}" data-d="${di}"><span class="box">${checkIcon()}</span><span>${d}</span>`;
+    dishesWrap.appendChild(lab);
+  });
+
+  // 展開トグル（行クリック）
+  genre.querySelector('.genre-row').addEventListener('click', ()=> genre.classList.toggle('open'));
+  // ジャンルチェック
+  genre.querySelector('#g'+gi).addEventListener('change', e=>{
+    const on = e.target.checked;
+    checked[gi] = on ? new Set(g.dishes.map((_,i)=>i)) : new Set();
+    syncGenre(gi); refresh();
+  });
+});
+
+// 料理チェック
+genresEl.querySelectorAll('input[data-d]').forEach(inp=>{
+  inp.addEventListener('change', e=>{
+    const gi=+e.target.dataset.g, di=+e.target.dataset.d;
+    if(e.target.checked) checked[gi].add(di); else checked[gi].delete(di);
+    syncGenre(gi); refresh();
+  });
+});
+
+document.getElementById('allOn').addEventListener('click', ()=> setAll(true));
+document.getElementById('allOff').addEventListener('click', ()=> setAll(false));
+function setAll(on){
+  DATA.forEach((g,gi)=>{ checked[gi]= on ? new Set(g.dishes.map((_,i)=>i)) : new Set(); syncGenre(gi); });
+  refresh();
+}
+
+/* ジャンルの見た目（料理チェック・親チェックの不確定状態・件数）を同期 */
+function syncGenre(gi){
+  const g=DATA[gi], set=checked[gi];
+  g.dishes.forEach((_,di)=>{
+    const inp = genresEl.querySelector(`input[data-g="${gi}"][data-d="${di}"]`);
+    inp.checked = set.has(di);
+  });
+  const parent = document.getElementById('g'+gi);
+  parent.checked = set.size===g.dishes.length;
+  parent.classList.toggle('indet', set.size>0 && set.size<g.dishes.length);
+  document.getElementById('gc'+gi).textContent = set.size>0 ? `${set.size}/${g.dishes.length}` : '';
+}
+DATA.forEach((_,gi)=>syncGenre(gi));
+
+/* 選択中の全料理を取得 */
+function getSelected(){
+  const out=[];
+  DATA.forEach((g,gi)=> g.dishes.forEach((d,di)=>{ if(checked[gi].has(di)) out.push({name:d, gi}); }));
+  return out;
+}
+
+/* ---------------- ルーレット描画 ---------------- */
+const cv = document.getElementById('wheel');
+const ctx = cv.getContext('2d');
+const SIZE = 760;
+let rotation = -Math.PI/2;   // 現在の回転（ラジアン）
+let spinning = false;
+
+function drawWheel(){
+  const items = getSelected();
+  ctx.clearRect(0,0,SIZE,SIZE);
+  const cx=SIZE/2, cy=SIZE/2, R=SIZE/2-6;
+  const n=items.length;
+
+  // 外周リング
+  ctx.beginPath(); ctx.arc(cx,cy,R+3,0,Math.PI*2);
+  ctx.fillStyle="#0f0c09"; ctx.fill();
+
+  if(n===0){
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.fillStyle="#2A231B"; ctx.fill();
+    ctx.fillStyle="#A99A85";
+    ctx.font="600 30px 'Zen Maru Gothic', sans-serif";
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("料理を選んでね", cx, cy);
+    return;
+  }
+
+  const seg = Math.PI*2/n;
+  // 件数に応じて文字サイズ調整
+  const fs = Math.max(15, Math.min(34, 760/n*0.9));
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate(rotation);
+  for(let i=0;i<n;i++){
+    const a0=i*seg, a1=a0+seg;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.arc(0,0,R,a0,a1);
+    ctx.closePath();
+    ctx.fillStyle = PALETTE[i % PALETTE.length];
+    // 隣り合う同色を避ける軽い工夫
+    if(n>1 && i===n-1 && (PALETTE[0]===ctx.fillStyle)) ctx.fillStyle = PALETTE[1];
+    ctx.fill();
+    ctx.strokeStyle="rgba(20,17,14,.5)"; ctx.lineWidth=2; ctx.stroke();
+
+    // テキスト（放射状）
+    ctx.save();
+    ctx.rotate(a0+seg/2);
+    ctx.textAlign="right"; ctx.textBaseline="middle";
+    ctx.fillStyle="#241C12";
+    ctx.font=`700 ${fs}px 'Zen Maru Gothic', sans-serif`;
+    let label=items[i].name;
+    const maxW=R-90;
+    if(ctx.measureText(label).width>maxW){
+      while(label.length>1 && ctx.measureText(label+"…").width>maxW) label=label.slice(0,-1);
+      label+="…";
+    }
+    ctx.fillText(label, R-22, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/* ---------------- 全体更新 ---------------- */
+const countEl=document.getElementById('count');
+const spinBtn=document.getElementById('spin');
+function refresh(){
+  const n=getSelected().length;
+  countEl.textContent=n;
+  spinBtn.disabled = (n===0 || spinning);
+  drawWheel();
+}
+
+/* ---------------- 回す（自動停止） ---------------- */
+const pointer=document.getElementById('pointer');
+const resultEl=document.getElementById('result');
+const pickEl=document.getElementById('pick');
+
+function spin(){
+  const items=getSelected();
+  if(items.length===0 || spinning) return;
+  spinning=true; spinBtn.disabled=true;
+  resultEl.classList.remove('show'); pickEl.classList.remove('pop');
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const n=items.length, seg=Math.PI*2/n;
+
+  const start=rotation;
+  const turns = reduce ? 2 : (5 + Math.floor(Math.random()*4));   // 5〜8周
+  const extra = Math.random()*Math.PI*2;
+  const target = start + turns*Math.PI*2 + extra;
+  const dur = reduce ? 800 : 4200 + Math.random()*900;
+  const t0=performance.now();
+  let lastSeg=-1;
+
+  function frame(now){
+    const p=Math.min(1,(now-t0)/dur);
+    const e=1-Math.pow(1-p,3);              // easeOutCubic
+    rotation = start + (target-start)*e;
+    drawWheel();
+
+    // ポインターのカチカチ演出
+    const cur=Math.floor(((-(rotation+Math.PI/2)) % (Math.PI*2) + Math.PI*2) % (Math.PI*2) / seg);
+    if(cur!==lastSeg){
+      lastSeg=cur;
+      pointer.style.transform='translateX(-50%) rotate(-11deg)';
+      setTimeout(()=>{ pointer.style.transform='translateX(-50%) rotate(0deg)'; },55);
+    }
+
+    if(p<1){ requestAnimationFrame(frame); }
+    else finish(items, seg, n);
+  }
+  requestAnimationFrame(frame);
+}
+
+function finish(items, seg, n){
+  rotation = ((rotation % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
+  // ポインター（真上 = -90°）の下にあるセグメントを判定
+  // セグメント i の絶対角範囲は [rotation + i*seg, rotation + (i+1)*seg]
+  const x = ((-Math.PI/2 - rotation) % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+  const idx = Math.floor(x/seg) % n;
+  const win = items[idx];
+
+  drawWheel();
+  pickEl.textContent = win.name;
+  resultEl.classList.add('show');
+  void pickEl.offsetWidth;
+  pickEl.classList.add('pop');
+
+  spinning=false;
+  spinBtn.disabled = (getSelected().length===0);
+}
+
+spinBtn.addEventListener('click', spin);
+
+/* ---------------- 起動 ---------------- */
+refresh();
+</script>
+</body>
+</html>

@@ -75,7 +75,7 @@ const data = [
                 url: "https://rirtir.com/Image/ImageEffectLayerTool/",
                 desc: "様々なエフェクトを重ねることができるツール（ベータ版）",
                 tags: ["画像", "画像処理", "オフライン"],
-                main: false,
+                main: true,
             },
             {
                 title: "輝度値→アルファ変換",
@@ -197,6 +197,13 @@ const data = [
                 url: "https://rirtir.com/Utility/RealEstate10Kcreatemeta/",
                 desc: "RE10Kのメタデータを作成するツール。完全に研究用",
                 tags: ["個人用"],
+                main: false,
+            },
+            {
+                title: "ご飯ルーレット",
+                url: "https://rirtir.com/Utility/GohanRoulette/",
+                desc: "ランダムに食事の候補を提示するツール",
+                tags: [],
                 main: false,
             }
         ]
