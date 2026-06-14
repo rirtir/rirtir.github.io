@@ -245,6 +245,32 @@
   .mini-label{font-size:11px;color:var(--ink-faint);letter-spacing:.06em;white-space:nowrap}
   .sr-out{margin-top:9px;font-size:11px;color:var(--ink-dim);letter-spacing:.02em}
 
+  /* resize / color / advanced controls */
+  .resize-size-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 10px}
+  .size-box{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:9px;padding:6px 8px}
+  .size-box span{font-size:10px;color:var(--ink-faint);letter-spacing:.08em;min-width:12px}
+  .num-input{
+    width:100%;min-width:0;background:transparent;border:none;color:var(--ink);
+    font-family:"Space Mono",monospace;font-size:13px;outline:none;text-align:right;
+  }
+  .num-input::-webkit-inner-spin-button,.num-input::-webkit-outer-spin-button{opacity:.35}
+  .quality-row{display:flex;gap:6px;margin-top:8px}
+  .quality-btn{
+    flex:1;height:28px;border-radius:8px;font-size:12px;font-weight:600;
+    border:1px solid var(--line);color:var(--ink-dim);background:rgba(255,255,255,.02);transition:.13s;
+  }
+  .quality-btn:hover{color:var(--ink);border-color:var(--line-strong)}
+  .quality-btn.on{color:#0B0C0F;background:var(--cat);border-color:var(--cat)}
+  .color-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .color-box{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:9px;padding:6px 8px}
+  .color-box span{font-size:10px;color:var(--ink-faint);letter-spacing:.08em;white-space:nowrap}
+  .color-input{width:34px;height:24px;border:none;background:transparent;padding:0;cursor:pointer}
+  .param-row{display:flex;align-items:center;gap:10px;margin-top:9px}
+  .param-row:first-child{margin-top:0}
+  .param-row .mini-label{min-width:76px}
+  .param-row .val{min-width:46px}
+  .mobile-note{margin-top:9px;font-size:10.5px;color:var(--ink-faint);line-height:1.45}
+
   /* toast */
   .toast{
     position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
@@ -369,8 +395,23 @@
   </filter>
 </svg>
 
+
 <script>
 "use strict";
+
+/* ---------- runtime guards ---------- */
+const IS_COARSE = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+const MAX_SIDE = IS_COARSE ? 1600 : 2000;    // 通常プレビューの最大辺
+const MAX_OUT  = IS_COARSE ? 3500 : 6000;    // 解像度系フィルタ後の最大辺
+const MAX_PIXELS_NOTICE = IS_COARSE ? 9000000 : 18000000;
+
+window.addEventListener("error", e=>{
+  toast("JSエラー: " + (e.message || "不明なエラー"));
+});
+window.addEventListener("unhandledrejection", e=>{
+  const msg = e.reason && (e.reason.message || e.reason.toString()) || "不明なエラー";
+  toast("処理エラー: " + msg);
+});
 
 /* ---------- filter definitions ---------- */
 const CATS = {
@@ -381,35 +422,43 @@ const CATS = {
   stylize: { label:"スタイライズ", color:"var(--c-stylize)" },
 };
 
-// css(v) builds the CSS filter function; fmt(v) formats the readout; neutral = value with no visible effect
-// special:true のフィルタは CSS filter ではなく専用パイプラインで処理する
+const RESIZE_SCALES = [
+  { key:"2",      label:"×2",   factor:2 },
+  { key:"1",      label:"×1",   factor:1 },
+  { key:"0.5",    label:"×1/2", factor:0.5 },
+  { key:"0.25",   label:"×1/4", factor:0.25 },
+  { key:"0.125",  label:"×1/8", factor:0.125 },
+  { key:"custom", label:"カスタム", factor:null },
+];
+const QUALITY_LABELS = { low:"低", medium:"中", high:"高" };
+
 const FILTERS = {
-  brightness:{ name:"明るさ",    cat:"tone",    min:0,  max:200, step:1,   def:100, neutral:100, fmt:v=>v+"%",  css:v=>`brightness(${v/100})` },
-  contrast:  { name:"コントラスト", cat:"tone",  min:0,  max:200, step:1,   def:100, neutral:100, fmt:v=>v+"%",  css:v=>`contrast(${v/100})` },
-  opacity:   { name:"不透明度",   cat:"tone",    min:0,  max:100, step:1,   def:100, neutral:100, fmt:v=>v+"%",  css:v=>`opacity(${v/100})` },
-  saturate:  { name:"彩度",       cat:"color",   min:0,  max:300, step:1,   def:100, neutral:100, fmt:v=>v+"%",  css:v=>`saturate(${v/100})` },
-  hue:       { name:"色相",       cat:"color",   min:-180,max:180,step:1,   def:0,   neutral:0,   fmt:v=>(v>0?"+":"")+v+"°", css:v=>`hue-rotate(${v}deg)` },
-  sepia:     { name:"セピア",     cat:"color",   min:0,  max:100, step:1,   def:80,  neutral:0,   fmt:v=>v+"%",  css:v=>`sepia(${v/100})` },
-  grayscale: { name:"モノクロ",   cat:"color",   min:0,  max:100, step:1,   def:100, neutral:0,   fmt:v=>v+"%",  css:v=>`grayscale(${v/100})` },
-  blur:      { name:"ぼかし",     cat:"focus",   min:0,  max:40,  step:0.5, def:6,   neutral:0,   fmt:v=>v+"px", css:v=>`blur(${v}px)` },
-  superres:  { name:"超解像",     cat:"res",     min:0,  max:100, step:1,   def:55,  neutral:0,   fmt:v=>v+"%",
-               special:true, scales:[1.5,2,3,4], defScale:2 },
-  invert:    { name:"色反転",     cat:"stylize", min:0,  max:100, step:1,   def:100, neutral:0,   fmt:v=>v+"%",  css:v=>`invert(${v/100})` },
+  brightness:{ name:"明るさ",       cat:"tone",    min:0,  max:200, step:1,   def:100, neutral:100, fmt:v=>v+"%" },
+  contrast:  { name:"コントラスト", cat:"tone",    min:0,  max:200, step:1,   def:100, neutral:100, fmt:v=>v+"%" },
+  opacity:   { name:"不透明度",     cat:"tone",    min:0,  max:100, step:1,   def:100, neutral:100, fmt:v=>v+"%" },
+  bias:      { name:"バイアス消去", cat:"tone",    special:true },
+  saturate:  { name:"彩度",         cat:"color",   min:0,  max:300, step:1,   def:100, neutral:100, fmt:v=>v+"%" },
+  hue:       { name:"色相",         cat:"color",   min:-180,max:180,step:1,   def:0,   neutral:0,   fmt:v=>(v>0?"+":"")+v+"°" },
+  sepia:     { name:"セピア",       cat:"color",   min:0,  max:100, step:1,   def:80,  neutral:0,   fmt:v=>v+"%" },
+  grayscale: { name:"グレースケール", cat:"color", min:0,  max:100, step:1,   def:100, neutral:0,   fmt:v=>v+"%" },
+  quantize:  { name:"減色",         cat:"color",   min:2,  max:256, step:1,   def:32,  neutral:256, fmt:v=>v+"色", special:true },
+  blur:      { name:"ぼかし",       cat:"focus",   min:0,  max:40,  step:0.5, def:6,   neutral:0,   fmt:v=>v+"px" },
+  superres:  { name:"超解像",       cat:"res",     min:0,  max:100, step:1,   def:55,  neutral:0,   fmt:v=>v+"%", special:true, scales:[1.5,2,3,4], defScale:2 },
+  resize:    { name:"リサイズ",     cat:"res",     special:true },
+  invert:    { name:"色反転",       cat:"stylize", min:0,  max:100, step:1,   def:100, neutral:0,   fmt:v=>v+"%" },
 };
 
 /* ---------- state ---------- */
-let layers = [];            // {id, type, value, enabled, scale?}
+let layers = [];
 let nextId = 1;
 let sourceReady = false;
-let imgGen = 0;             // 画像の世代(超解像キャッシュの無効化に使用)
+let imgGen = 0;
 const img = new Image();
-const MAX_SIDE = 2000;      // 作業バッファの最大辺(処理速度のため)
-const MAX_OUT  = 6000;      // 超解像出力の最大辺(メモリ保護のため)
 
 /* ---------- elements ---------- */
 const $ = id => document.getElementById(id);
 const canvas = $("canvas");
-const ctx = canvas.getContext("2d");
+const ctx = canvas.getContext("2d", { willReadFrequently:true });
 const stage = $("stage");
 const empty = $("empty");
 const canvasWrap = $("canvasWrap");
@@ -420,6 +469,48 @@ const stageUI = $("stageUI");
 const zoomTag = $("zoomTag");
 const compareFlag = $("compareFlag");
 const fileInput = $("fileInput");
+
+/* ---------- small utilities ---------- */
+function clamp(v, min=0, max=255){ return v < min ? min : (v > max ? max : v); }
+function clampInt(v, min=1, max=MAX_OUT){
+  v = Math.round(Number(v));
+  if(!Number.isFinite(v)) return min;
+  return Math.max(min, Math.min(max, v));
+}
+function createCanvas(w,h){
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(w));
+  c.height = Math.max(1, Math.round(h));
+  return c;
+}
+function drawImageToCanvas(src, w, h, quality="high"){
+  const c = createCanvas(w,h);
+  const x = c.getContext("2d", { willReadFrequently:true });
+  x.imageSmoothingEnabled = quality !== "low";
+  x.imageSmoothingQuality = quality === "high" ? "high" : "medium";
+  x.drawImage(src, 0, 0, c.width, c.height);
+  return c;
+}
+function copyCanvas(src){ return drawImageToCanvas(src, src.width, src.height, "high"); }
+function hexToRgb(hex){
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+  if(!m) return [0,0,0];
+  const n = parseInt(m[1],16);
+  return [(n>>16)&255, (n>>8)&255, n&255];
+}
+function pixelLimitCanvas(src){
+  const longest = Math.max(src.width, src.height);
+  if(longest <= MAX_OUT) return src;
+  const s = MAX_OUT / longest;
+  toast(`出力が上限 ${MAX_OUT}px を超えるため自動調整しました`);
+  return drawImageToCanvas(src, Math.round(src.width*s), Math.round(src.height*s), "high");
+}
+function stagePoint(clientX, clientY){
+  const rect = stage.getBoundingClientRect();
+  return { x: clientX - rect.left - rect.width/2, y: clientY - rect.top - rect.height/2 };
+}
+function distance(a,b){ return Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY); }
+function midpoint(a,b){ return { clientX:(a.clientX+b.clientX)/2, clientY:(a.clientY+b.clientY)/2 }; }
 
 /* ---------- add-layer UI ---------- */
 function buildAddGrid(){
@@ -443,19 +534,41 @@ function buildAddGrid(){
   });
 }
 
+function makeLayer(type){
+  const f = FILTERS[type];
+  const layer = { id:nextId++, type, value:f.def ?? 0, enabled:true };
+  if(type === "superres") layer.scale = f.defScale;
+  if(type === "resize"){
+    layer.mode = "1";
+    layer.quality = "medium";
+    layer.width = null;
+    layer.height = null;
+  }
+  if(type === "grayscale"){
+    layer.lowColor = "#000000";
+    layer.highColor = "#ffffff";
+  }
+  if(type === "bias"){
+    layer.value = 85;       // 補正量
+    layer.size = 121;       // 局所平均サイズ
+    layer.offset = 0;       // 明るさオフセット
+    layer.threshold = 3;    // 偏差しきい値
+  }
+  return layer;
+}
+
 /* ---------- layer ops ---------- */
 function addLayer(type){
   const f = FILTERS[type];
-  if(f.special && layers.some(l=>l.type===type)){
+  if(type === "superres" && layers.some(l=>l.type===type)){
     toast("超解像レイヤーは 1 つだけ追加できます");
     return;
   }
-  const layer = { id:nextId++, type, value:f.def, enabled:true };
-  if(f.special) layer.scale = f.defScale;
+  const layer = makeLayer(type);
   layers.push(layer);
+  if(type === "resize" && sourceReady) updateResizeFromMode(layer, "1");
   renderStack();
   scheduleRender();
-  // 追加したカードまでスクロール
   requestAnimationFrame(()=>{ stackList.scrollTop = stackList.scrollHeight; });
   if(!sourceReady) toast("画像を開くと結果が表示されます");
 }
@@ -471,6 +584,71 @@ function toggleLayer(id){
 function clearAll(){
   if(!layers.length) return;
   layers = []; renderStack(); scheduleRender();
+}
+
+/* ---------- dimension helpers ---------- */
+function baseDimensions(){
+  if(!sourceReady) return { w:0, h:0 };
+  let w = img.naturalWidth, h = img.naturalHeight;
+  const hasResolutionLayer = layers.some(l=>l.enabled && (l.type === "superres" || l.type === "resize"));
+  if(!hasResolutionLayer && Math.max(w,h) > MAX_SIDE){
+    const s = MAX_SIDE / Math.max(w,h);
+    w = Math.round(w*s); h = Math.round(h*s);
+  }
+  return { w, h };
+}
+function layerInputSize(targetLayer){
+  let size = baseDimensions();
+  for(const l of layers){
+    if(l.id === targetLayer.id) break;
+    if(!l.enabled) continue;
+    if(l.type === "superres"){
+      const t = scaleTarget(size.w, size.h, l.scale || 1);
+      size = { w:t.w, h:t.h };
+    } else if(l.type === "resize"){
+      const t = resizeTarget(l, size.w, size.h);
+      size = { w:t.w, h:t.h };
+    }
+  }
+  return size;
+}
+function scaleTarget(w,h,scale){
+  const longest = Math.max(w,h) || 1;
+  let s = scale, clamped = false;
+  if(longest * s > MAX_OUT){
+    s = Math.max(1 / longest, MAX_OUT / longest);
+    clamped = true;
+  }
+  return { w:Math.max(1, Math.round(w*s)), h:Math.max(1, Math.round(h*s)), s, clamped };
+}
+function resizeTarget(layer, inputW, inputH){
+  if(layer.mode !== "custom"){
+    const def = RESIZE_SCALES.find(x=>x.key === layer.mode) || RESIZE_SCALES[1];
+    const t = scaleTarget(inputW, inputH, def.factor || 1);
+    return { w:t.w, h:t.h, clamped:t.clamped };
+  }
+  const w = clampInt(layer.width || inputW, 1, MAX_OUT);
+  const h = clampInt(layer.height || inputH, 1, MAX_OUT);
+  return { w, h, clamped:false };
+}
+function updateResizeFromMode(layer, mode){
+  layer.mode = mode;
+  const input = layerInputSize(layer);
+  if(mode !== "custom"){
+    const t = resizeTarget(layer, input.w, input.h);
+    layer.width = t.w;
+    layer.height = t.h;
+  } else {
+    if(!layer.width || !layer.height){
+      layer.width = input.w;
+      layer.height = input.h;
+    }
+  }
+}
+function refreshResizeLayers(){
+  for(const l of layers){
+    if(l.type === "resize" && l.enabled && l.mode !== "custom") updateResizeFromMode(l, l.mode);
+  }
 }
 
 /* ---------- render the stack list ---------- */
@@ -492,7 +670,6 @@ function renderStack(){
     card.style.setProperty("--cat", cat.color);
     card.dataset.id = layer.id;
 
-    const isNeutral = Number(layer.value)===f.neutral;
     const topHTML = `
       <div class="layer-top">
         <span class="handle" title="ドラッグで並べ替え" aria-label="並べ替え">
@@ -510,54 +687,168 @@ function renderStack(){
         </button>
       </div>`;
 
-    if(f.special){
-      // 超解像カード: 倍率の切り替え + ディテール復元 + 出力解像度の表示
-      const t = sourceReady ? srTarget(layer) : null;
-      card.innerHTML = topHTML + `
-      <div class="layer-body">
-        <div class="scale-row" role="group" aria-label="拡大率">
-          ${f.scales.map(s=>`<button class="scale-btn ${layer.scale===s?'on':''}" data-s="${s}">×${s}</button>`).join("")}
-        </div>
-        <div class="slider-row">
-          <span class="mini-label">ディテール</span>
-          <input type="range" min="${f.min}" max="${f.max}" step="${f.step}" value="${layer.value}" aria-label="ディテール復元">
-          <span class="val ${isNeutral?'neutral':''}">${f.fmt(layer.value)}</span>
-        </div>
-        <div class="sr-out mono">${t
-          ? `出力解像度: ${t.w} × ${t.h} px${t.clamped ? "(上限 "+MAX_OUT+"px に調整)" : ""}`
-          : "画像を開くと出力解像度が表示されます"}</div>
-      </div>`;
-      card.querySelectorAll(".scale-btn").forEach(btn=>{
-        btn.addEventListener("click", ()=>{
-          layer.scale = Number(btn.dataset.s);
-          renderStack();          // ボタン状態と出力解像度の表示を更新
-          scheduleRender();
-        });
-      });
-    } else {
-      card.innerHTML = topHTML + `
-      <div class="layer-body">
-        <div class="slider-row">
-          <input type="range" min="${f.min}" max="${f.max}" step="${f.step}" value="${layer.value}" aria-label="${f.name}">
-          <span class="val ${isNeutral?'neutral':''}">${f.fmt(layer.value)}</span>
-        </div>
-      </div>`;
-    }
+    card.innerHTML = topHTML + layerBodyHTML(layer);
 
-    // controls
-    const range = card.querySelector("input[type=range]");
-    const val = card.querySelector(".val");
-    range.addEventListener("input", ()=>{
-      layer.value = Number(range.value);
-      val.textContent = f.fmt(layer.value);
-      val.classList.toggle("neutral", layer.value===f.neutral);
-      scheduleRender();
-    });
-    card.querySelector(".vis").addEventListener("click", ()=>toggleLayer(layer.id));
-    card.querySelector(".del").addEventListener("click", ()=>removeLayer(layer.id));
-
+    wireLayerControls(card, layer);
     enableDrag(card, card.querySelector(".handle"));
     stackList.appendChild(card);
+  });
+}
+
+function sliderHTML(f, value, label=null, className="main-range"){
+  const isNeutral = Number(value) === f.neutral;
+  return `<div class="slider-row">
+    ${label ? `<span class="mini-label">${label}</span>` : ""}
+    <input class="${className}" type="range" min="${f.min}" max="${f.max}" step="${f.step}" value="${value}" aria-label="${f.name}">
+    <span class="val ${isNeutral?'neutral':''}">${f.fmt(value)}</span>
+  </div>`;
+}
+function layerBodyHTML(layer){
+  const f = FILTERS[layer.type];
+  if(layer.type === "superres"){
+    const input = sourceReady ? layerInputSize(layer) : null;
+    const t = input ? scaleTarget(input.w, input.h, layer.scale || 1) : null;
+    return `<div class="layer-body">
+      <div class="scale-row" role="group" aria-label="拡大率">
+        ${f.scales.map(s=>`<button class="scale-btn ${layer.scale===s?'on':''}" data-s="${s}">×${s}</button>`).join("")}
+      </div>
+      ${sliderHTML(f, layer.value, "ディテール")}
+      <div class="sr-out mono">${t
+        ? `出力解像度: ${t.w} × ${t.h} px${t.clamped ? "(上限 "+MAX_OUT+"px に調整)" : ""}`
+        : "画像を開くと出力解像度が表示されます"}</div>
+    </div>`;
+  }
+  if(layer.type === "resize"){
+    const input = sourceReady ? layerInputSize(layer) : null;
+    if(input && (!layer.width || !layer.height)) updateResizeFromMode(layer, layer.mode || "1");
+    const t = input ? resizeTarget(layer, input.w, input.h) : null;
+    return `<div class="layer-body">
+      <div class="scale-row" role="group" aria-label="リサイズ倍率">
+        ${RESIZE_SCALES.map(s=>`<button class="scale-btn ${layer.mode===s.key?'on':''}" data-mode="${s.key}">${s.label}</button>`).join("")}
+      </div>
+      <div class="resize-size-row">
+        <label class="size-box"><span>X</span><input class="num-input resize-w" type="number" min="1" max="${MAX_OUT}" step="1" inputmode="numeric" value="${layer.width || ''}"></label>
+        <label class="size-box"><span>Y</span><input class="num-input resize-h" type="number" min="1" max="${MAX_OUT}" step="1" inputmode="numeric" value="${layer.height || ''}"></label>
+      </div>
+      <div class="quality-row" role="group" aria-label="リサイズ品質">
+        ${Object.entries(QUALITY_LABELS).map(([key,label])=>`<button class="quality-btn ${layer.quality===key?'on':''}" data-q="${key}">品質：${label}</button>`).join("")}
+      </div>
+      <div class="sr-out mono">${input && t ? `入力: ${input.w} × ${input.h} px / 出力: ${t.w} × ${t.h} px` : "画像を開くと解像度が表示されます"}</div>
+    </div>`;
+  }
+  if(layer.type === "grayscale"){
+    return `<div class="layer-body">
+      ${sliderHTML(f, layer.value)}
+      <div class="color-row">
+        <label class="color-box"><span>暗部</span><input class="color-input low-color" type="color" value="${layer.lowColor || '#000000'}"></label>
+        <label class="color-box"><span>明部</span><input class="color-input high-color" type="color" value="${layer.highColor || '#ffffff'}"></label>
+      </div>
+    </div>`;
+  }
+  if(layer.type === "bias"){
+    return `<div class="layer-body">
+      ${paramSliderHTML("補正量", "bias-amount", 0, 200, 1, layer.value, layer.value+"%")}
+      ${paramSliderHTML("局所平均", "bias-size", 15, 301, 2, layer.size, layer.size+"px")}
+      ${paramSliderHTML("オフセット", "bias-offset", -80, 80, 1, layer.offset, (layer.offset>0?"+":"")+layer.offset)}
+      ${paramSliderHTML("偏差しきい値", "bias-threshold", 0, 80, 1, layer.threshold, layer.threshold)}
+      <div class="mobile-note">文書写真の影消し用です。局所平均を大きくすると、広い影・照明ムラを補正しやすくなります。</div>
+    </div>`;
+  }
+  return `<div class="layer-body">${sliderHTML(f, layer.value)}</div>`;
+}
+function paramSliderHTML(label, cls, min, max, step, value, readout){
+  return `<div class="param-row">
+    <span class="mini-label">${label}</span>
+    <input class="${cls}" type="range" min="${min}" max="${max}" step="${step}" value="${value}" aria-label="${label}">
+    <span class="val">${readout}</span>
+  </div>`;
+}
+function wireLayerControls(card, layer){
+  const f = FILTERS[layer.type];
+
+  card.querySelector(".vis").addEventListener("click", ()=>toggleLayer(layer.id));
+  card.querySelector(".del").addEventListener("click", ()=>removeLayer(layer.id));
+
+  if(layer.type === "superres"){
+    card.querySelectorAll(".scale-btn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        layer.scale = Number(btn.dataset.s);
+        refreshResizeLayers();
+        renderStack();
+        scheduleRender();
+      });
+    });
+    wireMainRange(card, layer, f);
+    return;
+  }
+
+  if(layer.type === "resize"){
+    card.querySelectorAll(".scale-btn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        updateResizeFromMode(layer, btn.dataset.mode);
+        renderStack();
+        scheduleRender();
+      });
+    });
+    card.querySelectorAll(".quality-btn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        layer.quality = btn.dataset.q;
+        renderStack();
+        scheduleRender();
+      });
+    });
+    const wInput = card.querySelector(".resize-w");
+    const hInput = card.querySelector(".resize-h");
+    const onSizeInput = ()=>{
+      layer.mode = "custom";
+      layer.width = clampInt(wInput.value, 1, MAX_OUT);
+      layer.height = clampInt(hInput.value, 1, MAX_OUT);
+      renderStack();
+      scheduleRender();
+    };
+    wInput.addEventListener("change", onSizeInput);
+    hInput.addEventListener("change", onSizeInput);
+    wInput.addEventListener("input", ()=>{ layer.mode = "custom"; });
+    hInput.addEventListener("input", ()=>{ layer.mode = "custom"; });
+    return;
+  }
+
+  if(layer.type === "grayscale"){
+    wireMainRange(card, layer, f);
+    card.querySelector(".low-color").addEventListener("input", e=>{ layer.lowColor = e.target.value; scheduleRender(); });
+    card.querySelector(".high-color").addEventListener("input", e=>{ layer.highColor = e.target.value; scheduleRender(); });
+    return;
+  }
+
+  if(layer.type === "bias"){
+    wireParam(card, ".bias-amount", layer, "value", v=>v+"%");
+    wireParam(card, ".bias-size", layer, "size", v=>v+"px");
+    wireParam(card, ".bias-offset", layer, "offset", v=>(v>0?"+":"")+v);
+    wireParam(card, ".bias-threshold", layer, "threshold", v=>String(v));
+    return;
+  }
+
+  wireMainRange(card, layer, f);
+}
+function wireMainRange(card, layer, f){
+  const range = card.querySelector(".main-range");
+  const val = card.querySelector(".val");
+  if(!range) return;
+  range.addEventListener("input", ()=>{
+    layer.value = Number(range.value);
+    val.textContent = f.fmt(layer.value);
+    val.classList.toggle("neutral", layer.value===f.neutral);
+    scheduleRender();
+  });
+}
+function wireParam(card, selector, layer, prop, fmt){
+  const input = card.querySelector(selector);
+  const val = input && input.parentElement.querySelector(".val");
+  if(!input) return;
+  input.addEventListener("input", ()=>{
+    layer[prop] = Number(input.value);
+    if(val) val.textContent = fmt(layer[prop]);
+    scheduleRender();
   });
 }
 
@@ -602,129 +893,285 @@ function getDragAfter(container, y){
 function commitOrderFromDOM(){
   const order = [...stackList.querySelectorAll(".layer")].map(c=>Number(c.dataset.id));
   layers.sort((a,b)=> order.indexOf(a.id) - order.indexOf(b.id));
+  refreshResizeLayers();
+  renderStack();
   scheduleRender();
 }
 
-/* ---------- image processing ---------- */
-function buildFilterString(){
-  const parts = layers
-    .filter(l=>l.enabled && !FILTERS[l.type].special)
-    .map(l=>FILTERS[l.type].css(l.value));
-  return parts.length ? parts.join(" ") : "none";
+/* ---------- image processing pipeline ---------- */
+function getBaseCanvas(){
+  const b = baseDimensions();
+  return drawImageToCanvas(img, b.w, b.h, "high");
 }
 
-/* ---------- super resolution ----------
-   1) 元画像を 2 倍ずつ段階的に拡大(高品質補間でジャギーを抑える)
-   2) SVG の畳み込みフィルタでアンシャープ系のディテール復元をかける
-   拡大結果(upCanvas)とシャープ結果(srCanvas)を別々にキャッシュし、
-   ディテールのスライダー操作では拡大をやり直さない */
-const upCanvas = document.createElement("canvas");
-const srCanvas = document.createElement("canvas");
-let upKey = "", srKey = "", srClampNoticed = "";
+function renderPipeline(showOriginal=false){
+  let cur = getBaseCanvas();
+  if(showOriginal) return cur;
 
-function activeSR(){
-  return layers.find(l=>l.type==="superres" && l.enabled);
-}
-
-// 倍率から出力サイズを計算(MAX_OUT を超える場合は倍率を自動調整)
-function srTarget(sr){
-  const nw = img.naturalWidth || 0, nh = img.naturalHeight || 0;
-  const longest = Math.max(nw, nh) || 1;
-  let s = sr.scale, clamped = false;
-  if(longest * s > MAX_OUT){
-    s = Math.max(1, MAX_OUT / longest);
-    clamped = true;
-  }
-  return { w: Math.max(1, Math.round(nw*s)), h: Math.max(1, Math.round(nh*s)), s, clamped };
-}
-
-function ensureSR(sr){
-  const t = srTarget(sr);
-  const uKey = `${imgGen}|${t.w}x${t.h}`;
-
-  if(uKey !== upKey){
-    // 段階的アップスケール
-    let cur = img, cw = img.naturalWidth, ch = img.naturalHeight;
-    while(cw * 2 <= t.w){
-      const step = document.createElement("canvas");
-      step.width = cw*2; step.height = ch*2;
-      const sc = step.getContext("2d");
-      sc.imageSmoothingEnabled = true;
-      sc.imageSmoothingQuality = "high";
-      sc.drawImage(cur, 0, 0, step.width, step.height);
-      cur = step; cw = step.width; ch = step.height;
+  for(const layer of layers){
+    if(!layer.enabled) continue;
+    switch(layer.type){
+      case "superres": cur = applySuperResolution(cur, layer); break;
+      case "resize": cur = applyResize(cur, layer); break;
+      case "blur": cur = applyBlur(cur, layer.value); break;
+      case "bias": cur = applyBiasCorrection(cur, layer); break;
+      case "quantize": cur = applyQuantize(cur, layer.value); break;
+      default: cur = applyPixelFilter(cur, layer); break;
     }
-    upCanvas.width = t.w; upCanvas.height = t.h;
-    const uc = upCanvas.getContext("2d");
-    uc.imageSmoothingEnabled = true;
-    uc.imageSmoothingQuality = "high";
-    uc.drawImage(cur, 0, 0, t.w, t.h);
-    upKey = uKey;
-    srKey = "";
+    cur = pixelLimitCanvas(cur);
   }
+  return cur;
+}
 
-  const kKey = uKey + "|" + sr.value;
-  if(kKey !== srKey){
-    srCanvas.width = t.w; srCanvas.height = t.h;
-    const sc = srCanvas.getContext("2d");
-    const a = (sr.value/100) * 1.1;   // シャープ強度
-    if(a > 0.001){
-      $("srKernel").setAttribute("kernelMatrix",
-        `0 ${-a} 0 ${-a} ${1 + 4*a} ${-a} 0 ${-a} 0`);
-      sc.filter = "url(#srSharpenF)";
-    } else {
-      sc.filter = "none";
+function applyResize(src, layer){
+  const t = resizeTarget(layer, src.width, src.height);
+  if(t.clamped) toast(`リサイズ後の最大辺を ${MAX_OUT}px に調整しました`);
+  return drawImageToCanvas(src, t.w, t.h, layer.quality || "medium");
+}
+
+function applySuperResolution(src, layer){
+  const t = scaleTarget(src.width, src.height, layer.scale || 1);
+  if(t.clamped) toast(`超解像の最大辺を ${MAX_OUT}px に調整しました`);
+
+  let cur = src;
+  let cw = src.width, ch = src.height;
+  while(cw * 2 <= t.w && ch * 2 <= t.h){
+    cur = drawImageToCanvas(cur, cw*2, ch*2, "high");
+    cw = cur.width; ch = cur.height;
+  }
+  cur = drawImageToCanvas(cur, t.w, t.h, "high");
+  if((layer.value || 0) > 0.5) cur = applySharpen(cur, (layer.value/100) * 1.1);
+  return cur;
+}
+
+function applyPixelFilter(src, layer){
+  const f = FILTERS[layer.type];
+  if(!f || Number(layer.value) === f.neutral) return copyCanvas(src);
+
+  const c = copyCanvas(src);
+  const x = c.getContext("2d", { willReadFrequently:true });
+  const imgData = x.getImageData(0,0,c.width,c.height);
+  const d = imgData.data;
+  const v = Number(layer.value);
+  const type = layer.type;
+  const low = type === "grayscale" ? hexToRgb(layer.lowColor || "#000000") : null;
+  const high = type === "grayscale" ? hexToRgb(layer.highColor || "#ffffff") : null;
+  const hueRad = type === "hue" ? v * Math.PI / 180 : 0;
+  const cosH = Math.cos(hueRad), sinH = Math.sin(hueRad);
+
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i], g=d[i+1], b=d[i+2], a=d[i+3];
+    if(type === "brightness"){
+      const m = v/100; r*=m; g*=m; b*=m;
+    } else if(type === "contrast"){
+      const m = v/100; r=(r-128)*m+128; g=(g-128)*m+128; b=(b-128)*m+128;
+    } else if(type === "opacity"){
+      a *= v/100;
+    } else if(type === "saturate"){
+      const m = v/100, lum = 0.2126*r + 0.7152*g + 0.0722*b;
+      r = lum + (r-lum)*m; g = lum + (g-lum)*m; b = lum + (b-lum)*m;
+    } else if(type === "hue"){
+      // CSS hue-rotate に近い輝度保持の回転行列
+      const nr = (0.213 + cosH*0.787 - sinH*0.213)*r + (0.715 - cosH*0.715 - sinH*0.715)*g + (0.072 - cosH*0.072 + sinH*0.928)*b;
+      const ng = (0.213 - cosH*0.213 + sinH*0.143)*r + (0.715 + cosH*0.285 + sinH*0.140)*g + (0.072 - cosH*0.072 - sinH*0.283)*b;
+      const nb = (0.213 - cosH*0.213 - sinH*0.787)*r + (0.715 - cosH*0.715 + sinH*0.715)*g + (0.072 + cosH*0.928 + sinH*0.072)*b;
+      r=nr; g=ng; b=nb;
+    } else if(type === "sepia"){
+      const m = v/100;
+      const nr = r*0.393 + g*0.769 + b*0.189;
+      const ng = r*0.349 + g*0.686 + b*0.168;
+      const nb = r*0.272 + g*0.534 + b*0.131;
+      r = r*(1-m) + nr*m; g = g*(1-m) + ng*m; b = b*(1-m) + nb*m;
+    } else if(type === "grayscale"){
+      const m = v/100;
+      const lum = (0.2126*r + 0.7152*g + 0.0722*b) / 255;
+      const tr = low[0]*(1-lum) + high[0]*lum;
+      const tg = low[1]*(1-lum) + high[1]*lum;
+      const tb = low[2]*(1-lum) + high[2]*lum;
+      r = r*(1-m) + tr*m; g = g*(1-m) + tg*m; b = b*(1-m) + tb*m;
+    } else if(type === "invert"){
+      const m = v/100;
+      r = r*(1-m) + (255-r)*m; g = g*(1-m) + (255-g)*m; b = b*(1-m) + (255-b)*m;
     }
-    sc.drawImage(upCanvas, 0, 0);
-    sc.filter = "none";
-    srKey = kKey;
+    d[i]=clamp(r); d[i+1]=clamp(g); d[i+2]=clamp(b); d[i+3]=clamp(a);
   }
+  x.putImageData(imgData,0,0);
+  return c;
+}
 
-  if(t.clamped && srClampNoticed !== uKey){
-    toast(`出力が上限 ${MAX_OUT}px を超えるため、倍率を ×${(Math.round(t.s*100)/100)} に調整しました`);
-    srClampNoticed = uKey;
+function applyQuantize(src, colors){
+  colors = clampInt(colors, 2, 256);
+  if(colors >= 256) return copyCanvas(src);
+  const c = copyCanvas(src);
+  const x = c.getContext("2d", { willReadFrequently:true });
+  const imgData = x.getImageData(0,0,c.width,c.height);
+  const d = imgData.data;
+
+  // 軽量化優先: k-means ではなく、指定色数に近いチャンネル段階数へ高速量子化する。
+  // スマホでも操作中に止まりにくく、写真/イラストの両方で破綻しにくい。
+  const levels = Math.max(2, Math.round(Math.cbrt(colors)));
+  const step = 255 / (levels - 1);
+  for(let i=0;i<d.length;i+=4){
+    d[i]   = Math.round(d[i]   / step) * step;
+    d[i+1] = Math.round(d[i+1] / step) * step;
+    d[i+2] = Math.round(d[i+2] / step) * step;
   }
-  return t;
+  x.putImageData(imgData,0,0);
+  return c;
+}
+
+function applySharpen(src, amount){
+  if(amount <= 0.001) return copyCanvas(src);
+  const c = copyCanvas(src);
+  const x = c.getContext("2d", { willReadFrequently:true });
+  const w=c.width, h=c.height;
+  const imgData = x.getImageData(0,0,w,h);
+  const srcData = new Uint8ClampedArray(imgData.data);
+  const d = imgData.data;
+  const center = 1 + 4*amount;
+  const side = -amount;
+
+  for(let y=0;y<h;y++){
+    const ym = Math.max(0,y-1), yp = Math.min(h-1,y+1);
+    for(let x0=0;x0<w;x0++){
+      const xm = Math.max(0,x0-1), xp = Math.min(w-1,x0+1);
+      const i = (y*w+x0)*4;
+      const il = (y*w+xm)*4, ir=(y*w+xp)*4, iu=(ym*w+x0)*4, id=(yp*w+x0)*4;
+      for(let ch=0; ch<3; ch++){
+        d[i+ch] = clamp(srcData[i+ch]*center + (srcData[il+ch]+srcData[ir+ch]+srcData[iu+ch]+srcData[id+ch])*side);
+      }
+    }
+  }
+  x.putImageData(imgData,0,0);
+  return c;
+}
+
+function applyBlur(src, radius){
+  radius = Math.round(Number(radius));
+  if(radius <= 0) return copyCanvas(src);
+  const c = copyCanvas(src);
+  const x = c.getContext("2d", { willReadFrequently:true });
+  const w=c.width, h=c.height;
+  const imgData = x.getImageData(0,0,w,h);
+  const srcData = imgData.data;
+  const tmp = new Uint8ClampedArray(srcData.length);
+  const out = imgData.data;
+  const div = radius*2 + 1;
+
+  // horizontal pass
+  for(let y=0;y<h;y++){
+    let sr=0, sg=0, sb=0, sa=0;
+    for(let ix=-radius; ix<=radius; ix++){
+      const px = Math.min(w-1, Math.max(0, ix));
+      const i = (y*w+px)*4;
+      sr+=srcData[i]; sg+=srcData[i+1]; sb+=srcData[i+2]; sa+=srcData[i+3];
+    }
+    for(let x0=0;x0<w;x0++){
+      const i = (y*w+x0)*4;
+      tmp[i]=sr/div; tmp[i+1]=sg/div; tmp[i+2]=sb/div; tmp[i+3]=sa/div;
+      const removeX = Math.max(0, x0-radius);
+      const addX = Math.min(w-1, x0+radius+1);
+      const ri=(y*w+removeX)*4, ai=(y*w+addX)*4;
+      sr += srcData[ai]-srcData[ri]; sg += srcData[ai+1]-srcData[ri+1]; sb += srcData[ai+2]-srcData[ri+2]; sa += srcData[ai+3]-srcData[ri+3];
+    }
+  }
+  // vertical pass
+  for(let x0=0;x0<w;x0++){
+    let sr=0, sg=0, sb=0, sa=0;
+    for(let iy=-radius; iy<=radius; iy++){
+      const py = Math.min(h-1, Math.max(0, iy));
+      const i = (py*w+x0)*4;
+      sr+=tmp[i]; sg+=tmp[i+1]; sb+=tmp[i+2]; sa+=tmp[i+3];
+    }
+    for(let y=0;y<h;y++){
+      const i = (y*w+x0)*4;
+      out[i]=sr/div; out[i+1]=sg/div; out[i+2]=sb/div; out[i+3]=sa/div;
+      const removeY = Math.max(0, y-radius);
+      const addY = Math.min(h-1, y+radius+1);
+      const ri=(removeY*w+x0)*4, ai=(addY*w+x0)*4;
+      sr += tmp[ai]-tmp[ri]; sg += tmp[ai+1]-tmp[ri+1]; sb += tmp[ai+2]-tmp[ri+2]; sa += tmp[ai+3]-tmp[ri+3];
+    }
+  }
+  x.putImageData(imgData,0,0);
+  return c;
+}
+
+function applyBiasCorrection(src, layer){
+  const amount = (layer.value || 0) / 100;
+  if(amount <= 0) return copyCanvas(src);
+  const c = copyCanvas(src);
+  const x = c.getContext("2d", { willReadFrequently:true });
+  const w=c.width, h=c.height;
+  const imgData = x.getImageData(0,0,w,h);
+  const d = imgData.data;
+  const iw = w + 1;
+  const integral = new Float32Array((w+1)*(h+1));
+  let global = 0;
+
+  for(let y=1;y<=h;y++){
+    let row = 0;
+    for(let xx=1;xx<=w;xx++){
+      const i = ((y-1)*w + (xx-1))*4;
+      const lum = 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2];
+      row += lum;
+      global += lum;
+      integral[y*iw + xx] = integral[(y-1)*iw + xx] + row;
+    }
+  }
+  global /= (w*h || 1);
+  const radius = Math.max(1, Math.round((layer.size || 121)/2));
+  const offset = Number(layer.offset || 0);
+  const threshold = Number(layer.threshold || 0);
+  const target = global + offset;
+
+  for(let y=0;y<h;y++){
+    const y1 = Math.max(0, y-radius), y2 = Math.min(h-1, y+radius);
+    for(let xx=0;xx<w;xx++){
+      const x1 = Math.max(0, xx-radius), x2 = Math.min(w-1, xx+radius);
+      const area = (x2-x1+1) * (y2-y1+1);
+      const sum = integral[(y2+1)*iw + (x2+1)] - integral[y1*iw + (x2+1)] - integral[(y2+1)*iw + x1] + integral[y1*iw + x1];
+      const local = sum / area;
+      const deviation = local - global;
+      if(Math.abs(deviation) < threshold) continue;
+      const delta = (target - local) * amount;
+      const i = (y*w+xx)*4;
+      d[i] = clamp(d[i] + delta);
+      d[i+1] = clamp(d[i+1] + delta);
+      d[i+2] = clamp(d[i+2] + delta);
+    }
+  }
+  x.putImageData(imgData,0,0);
+  return c;
 }
 
 let pendingRender = false;
 function scheduleRender(){
   if(pendingRender) return;
   pendingRender = true;
-  requestAnimationFrame(()=>{ pendingRender = false; render(); });
+  requestAnimationFrame(()=>{
+    pendingRender = false;
+    try{ render(); }catch(err){ toast("描画エラー: " + (err.message || err)); }
+  });
 }
 
-function render(showOriginal){
+function render(showOriginal=false){
   if(!sourceReady) return;
+  const out = renderPipeline(showOriginal);
+  if(canvas.width!==out.width || canvas.height!==out.height){ canvas.width=out.width; canvas.height=out.height; }
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(out, 0, 0);
 
-  const sr = showOriginal ? null : activeSR();
-  let source = img, w, h;
-
-  if(sr){
-    // 超解像が有効なら、出力解像度はその倍率に追従する
-    ensureSR(sr);
-    source = srCanvas;
-    w = srCanvas.width; h = srCanvas.height;
+  const finalW = out.width, finalH = out.height;
+  const baseW = img.naturalWidth, baseH = img.naturalHeight;
+  if(!showOriginal && (finalW !== baseW || finalH !== baseH)){
+    const ratio = Math.round((finalW / baseW) * 100) / 100;
+    stageTag.textContent = `${baseW} × ${baseH} → ${finalW} × ${finalH} px (×${ratio})`;
   } else {
-    w = img.naturalWidth; h = img.naturalHeight;
-    if(Math.max(w,h) > MAX_SIDE){
-      const s = MAX_SIDE/Math.max(w,h);
-      w = Math.round(w*s); h = Math.round(h*s);
-    }
+    stageTag.textContent = `${baseW} × ${baseH} px`;
   }
 
-  if(canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; }
-  ctx.clearRect(0,0,w,h);
-  ctx.filter = showOriginal ? "none" : buildFilterString();
-  ctx.drawImage(source, 0, 0, w, h);
-  ctx.filter = "none";
-
-  // 解像度表示(超解像時は 元 → 出力 を併記)
-  if(sr && w !== img.naturalWidth){
-    const ratio = Math.round((w / img.naturalWidth) * 100) / 100;
-    stageTag.textContent = `${img.naturalWidth} × ${img.naturalHeight} → ${w} × ${h} px (×${ratio})`;
-  } else {
-    stageTag.textContent = `${img.naturalWidth} × ${img.naturalHeight} px`;
+  if(out.width * out.height > MAX_PIXELS_NOTICE){
+    console.warn("Large canvas:", out.width, out.height);
   }
 }
 
@@ -733,24 +1180,25 @@ function loadFromURL(url){
   const tmp = new Image();
   tmp.crossOrigin = "anonymous";
   tmp.onload = ()=>{
-    img.src = url;
     img.onload = ()=>{
       sourceReady = true;
       imgGen++;
-      upKey = srKey = "";          // 超解像キャッシュを破棄
       empty.classList.add("hidden");
       canvasWrap.classList.remove("hidden");
       stageUI.classList.remove("hidden");
       $("btnSave").disabled = false;
       $("btnCompare").disabled = false;
       resetView();
-      renderStack();               // 超解像カードの出力解像度表示を更新
+      refreshResizeLayers();
+      renderStack();
       render();
       if(!zoomHintShown){
-        toast("プレビューはホイールで拡大縮小、ドラッグで移動できます");
+        toast(IS_COARSE ? "プレビューは2本指で拡大縮小、1本指で移動できます" : "プレビューはホイールで拡大縮小、ドラッグで移動できます");
         zoomHintShown = true;
       }
     };
+    img.onerror = ()=> toast("画像を表示できませんでした");
+    img.src = url;
   };
   tmp.onerror = ()=> toast("画像を読み込めませんでした");
   tmp.src = url;
@@ -764,7 +1212,6 @@ function handleFile(file){
   loadFromURL(URL.createObjectURL(file));
 }
 
-/* procedural sample so the tool is playable immediately */
 function loadSample(){
   const c = document.createElement("canvas");
   c.width = 1200; c.height = 800;
@@ -772,14 +1219,12 @@ function loadSample(){
   const g = x.createLinearGradient(0,0,1200,800);
   g.addColorStop(0,"#2b3a8f"); g.addColorStop(.5,"#9c3d8a"); g.addColorStop(1,"#e6a23c");
   x.fillStyle = g; x.fillRect(0,0,1200,800);
-  // soft orbs
   [["#ffd27d",300,260,200],["#5be0c8",880,300,170],["#ff7a9c",640,560,150],["#7fb0ff",980,620,120]]
     .forEach(([col,cx,cy,r])=>{
       const rg = x.createRadialGradient(cx,cy,0,cx,cy,r);
       rg.addColorStop(0,col); rg.addColorStop(1,"rgba(0,0,0,0)");
       x.fillStyle = rg; x.beginPath(); x.arc(cx,cy,r,0,7); x.fill();
     });
-  // grid lines for detail (shows sharpen/blur clearly)
   x.strokeStyle = "rgba(255,255,255,.10)"; x.lineWidth = 1;
   for(let i=0;i<=1200;i+=60){ x.beginPath();x.moveTo(i,0);x.lineTo(i,800);x.stroke(); }
   for(let i=0;i<=800;i+=60){ x.beginPath();x.moveTo(0,i);x.lineTo(1200,i);x.stroke(); }
@@ -792,6 +1237,7 @@ function loadSample(){
 /* ---------- export ---------- */
 function saveImage(){
   if(!sourceReady) return;
+  render(false);
   canvas.toBlob(blob=>{
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -821,40 +1267,80 @@ function resetView(){
   view.z = 1; view.tx = 0; view.ty = 0;
   applyView();
 }
+function zoomAt(clientX, clientY, newZ){
+  const p = stagePoint(clientX, clientY);
+  const nz = Math.min(12, Math.max(0.2, newZ));
+  view.tx = p.x - (p.x - view.tx) * (nz / view.z);
+  view.ty = p.y - (p.y - view.ty) * (nz / view.z);
+  view.z = nz;
+  applyView();
+}
 
-// ホイールでカーソル位置を中心に拡大縮小
 stage.addEventListener("wheel", e=>{
   if(!sourceReady) return;
   e.preventDefault();
-  const rect = stage.getBoundingClientRect();
-  const cx = e.clientX - rect.left - rect.width/2;   // ステージ中心基準のカーソル位置
-  const cy = e.clientY - rect.top  - rect.height/2;
-  const nz = Math.min(12, Math.max(0.2, view.z * Math.exp(-e.deltaY * 0.0016)));
-  view.tx = cx - (cx - view.tx) * (nz / view.z);
-  view.ty = cy - (cy - view.ty) * (nz / view.z);
-  view.z = nz;
-  applyView();
+  zoomAt(e.clientX, e.clientY, view.z * Math.exp(-e.deltaY * 0.0016));
 }, { passive:false });
 
-// ドラッグでパン
-let panning = null;
+const activePointers = new Map();
+let panStart = null;
+let pinchStart = null;
+
 canvasWrap.addEventListener("pointerdown", e=>{
-  if(!sourceReady || e.button !== 0) return;
-  panning = { x:e.clientX, y:e.clientY, tx:view.tx, ty:view.ty };
+  if(!sourceReady) return;
+  if(e.pointerType === "mouse" && e.button !== 0) return;
+  e.preventDefault();
+  activePointers.set(e.pointerId, { clientX:e.clientX, clientY:e.clientY });
   canvasWrap.setPointerCapture(e.pointerId);
   canvasWrap.classList.add("panning");
-});
+
+  if(activePointers.size === 1){
+    panStart = { x:e.clientX, y:e.clientY, tx:view.tx, ty:view.ty };
+    pinchStart = null;
+  } else if(activePointers.size === 2){
+    const pts = [...activePointers.values()];
+    const mid = midpoint(pts[0], pts[1]);
+    const sp = stagePoint(mid.clientX, mid.clientY);
+    pinchStart = { dist:distance(pts[0], pts[1]), cx:sp.x, cy:sp.y, tx:view.tx, ty:view.ty, z:view.z };
+    panStart = null;
+  }
+}, { passive:false });
+
 canvasWrap.addEventListener("pointermove", e=>{
-  if(!panning) return;
-  view.tx = panning.tx + (e.clientX - panning.x);
-  view.ty = panning.ty + (e.clientY - panning.y);
-  applyView();
-});
-["pointerup","pointercancel"].forEach(ev=>
-  canvasWrap.addEventListener(ev, ()=>{
-    panning = null;
+  if(!activePointers.has(e.pointerId)) return;
+  e.preventDefault();
+  activePointers.set(e.pointerId, { clientX:e.clientX, clientY:e.clientY });
+
+  if(activePointers.size >= 2 && pinchStart){
+    const pts = [...activePointers.values()].slice(0,2);
+    const mid = midpoint(pts[0], pts[1]);
+    const sp = stagePoint(mid.clientX, mid.clientY);
+    const nz = Math.min(12, Math.max(0.2, pinchStart.z * (distance(pts[0], pts[1]) / Math.max(1, pinchStart.dist))));
+    view.tx = sp.x - (pinchStart.cx - pinchStart.tx) * (nz / pinchStart.z);
+    view.ty = sp.y - (pinchStart.cy - pinchStart.ty) * (nz / pinchStart.z);
+    view.z = nz;
+    applyView();
+  } else if(activePointers.size === 1 && panStart){
+    view.tx = panStart.tx + (e.clientX - panStart.x);
+    view.ty = panStart.ty + (e.clientY - panStart.y);
+    applyView();
+  }
+}, { passive:false });
+
+function endPointer(e){
+  activePointers.delete(e.pointerId);
+  if(activePointers.size === 0){
+    panStart = null; pinchStart = null;
     canvasWrap.classList.remove("panning");
-  }));
+    return;
+  }
+  if(activePointers.size === 1){
+    const p = [...activePointers.values()][0];
+    panStart = { x:p.clientX, y:p.clientY, tx:view.tx, ty:view.ty };
+    pinchStart = null;
+  }
+}
+["pointerup","pointercancel","pointerleave"].forEach(ev=>canvasWrap.addEventListener(ev, endPointer));
 canvasWrap.addEventListener("dblclick", resetView);
 zoomTag.addEventListener("click", resetView);
 
@@ -862,10 +1348,11 @@ zoomTag.addEventListener("click", resetView);
 let toastTimer;
 function toast(msg){
   const t = $("toast");
+  if(!t) return;
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove("show"), 2400);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 3200);
 }
 
 /* ---------- wiring ---------- */
@@ -882,7 +1369,6 @@ cmp.addEventListener("pointerdown", ()=>setCompare(true));
 ["pointerup","pointerleave","pointercancel"].forEach(ev=>
   cmp.addEventListener(ev, ()=>setCompare(false)));
 
-// drag & drop onto stage
 ["dragenter","dragover"].forEach(ev=>
   stage.addEventListener(ev, e=>{ e.preventDefault(); empty.classList.add("drag"); }));
 ["dragleave","drop"].forEach(ev=>
@@ -896,5 +1382,6 @@ stage.addEventListener("drop", e=>{
 buildAddGrid();
 renderStack();
 </script>
+
 </body>
 </html>
