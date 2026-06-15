@@ -64,6 +64,13 @@ const data = [
                 desc: "エアーホッケーゲーム。難易度選択可能。",
                 tags: ["ソロ", "ゲーム"],
                 main: true,
+            },
+            {
+                title: "ノノグラム",
+                url: "https://rirtir.com/Game/Nonogram/",
+                desc: "ピクセルアートのやつ。自分でステージを追加可能。",
+                tags: ["ソロ", "やり込み", "ゲーム"],
+                main: true,
             }
         ]
     },

@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e1a">
+<title>ノノグラム</title>
+<style>
+:root{
+  --bg0:#0b0e1a; --bg1:#131a2e; --panel:#20294a; --panel2:#1a2138;
+  --border:#2c3656; --muted:#8b93b5; --text:#e7ebff;
+  --accent:#5b8cff; --accent-d:#3f6fe0; --teal:#22d3a6; --teal-d:#12a883;
+  --gold:#ffcf5b; --danger:#ff6b6b; --danger-d:#e04848;
+  /* light playfield */
+  --pf:#eef0f8; --cellbg:#f5f6fb; --ink:#2b3148; --crossc:#9aa3bf;
+  --line:#c5cbe0; --line2:#8b93b5; --cluetext:#2b3148;
+  --shadow:0 10px 30px rgba(0,0,0,.45);
+  --r:14px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;
+  background:radial-gradient(1200px 700px at 50% -10%, #1a2440 0%, var(--bg1) 45%, var(--bg0) 100%);
+  color:var(--text);
+  -webkit-user-select:none; user-select:none; overscroll-behavior:none;
+}
+button{font-family:inherit; cursor:pointer; color:inherit; border:none; background:none;}
+.app{max-width:560px; margin:0 auto; min-height:100dvh; min-height:100vh; display:flex; flex-direction:column; position:relative;}
+.screen{display:none; flex:1; min-height:0; flex-direction:column;}
+.screen.active{display:flex;}
+
+/* generic buttons */
+.btn{background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--border); color:var(--text);
+  padding:10px 14px; border-radius:12px; font-weight:600; font-size:15px; transition:transform .06s, filter .15s; touch-action:manipulation;}
+.btn:active{transform:translateY(1px) scale(.99);}
+.btn.primary{background:linear-gradient(180deg,var(--accent),var(--accent-d)); border-color:transparent; color:#fff; box-shadow:0 6px 16px rgba(91,140,255,.35);}
+.btn.teal{background:linear-gradient(180deg,var(--teal),var(--teal-d)); border-color:transparent; color:#04211a; box-shadow:0 6px 16px rgba(34,211,166,.3);}
+.btn.danger{background:linear-gradient(180deg,var(--danger),var(--danger-d)); border-color:transparent; color:#fff;}
+.btn.ghost{background:rgba(255,255,255,.04);}
+.btn.sm{padding:7px 11px; font-size:13px; border-radius:10px;}
+.btn:disabled{opacity:.4;}
+.icon-btn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:11px;background:rgba(255,255,255,.05);border:1px solid var(--border);font-size:18px;}
+
+/* ---------- SELECT SCREEN ---------- */
+.s-header{padding:16px 16px 10px; display:flex; align-items:center; gap:10px;}
+.s-title{font-size:22px; font-weight:800; letter-spacing:.06em;}
+.s-title .dot{color:var(--accent);}
+.s-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.s-header .spacer{flex:1;}
+.tabs{display:flex; gap:7px; padding:4px 16px 12px; overflow-x:auto; scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:0 0 auto; padding:8px 13px; border-radius:999px; font-size:13px; font-weight:700; color:var(--muted);
+  background:rgba(255,255,255,.04); border:1px solid var(--border);}
+.tab.active{color:#fff; background:linear-gradient(180deg,var(--accent),var(--accent-d)); border-color:transparent;}
+.tab .c{opacity:.7; font-weight:600; margin-left:5px; font-size:11px;}
+.s-scroll{flex:1; min-height:0; overflow-y:auto; padding:0 16px 8px;}
+.cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; padding-bottom:14px;}
+.card{position:relative; background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--border);
+  border-radius:var(--r); padding:12px; display:flex; flex-direction:column; gap:9px; transition:transform .07s, border-color .15s;}
+.card:active{transform:translateY(1px) scale(.99);}
+.card.cleared{border-color:rgba(34,211,166,.5);}
+.thumb{width:100%; aspect-ratio:1/1; background:var(--pf); border-radius:9px; display:flex; align-items:center; justify-content:center; overflow:hidden;}
+.thumb canvas{image-rendering:pixelated; width:86%; height:86%; object-fit:contain;}
+.card .label{font-size:13px; font-weight:700;}
+.card .meta{font-size:11px; color:var(--muted);}
+.badge{position:absolute; top:9px; right:9px; display:flex; gap:5px;}
+.chip{font-size:10.5px; font-weight:800; padding:3px 7px; border-radius:999px;}
+.chip.ok{background:var(--teal); color:#04211a;}
+.chip.wip{background:var(--gold); color:#3a2e00;}
+.card.random{align-items:center; justify-content:center; text-align:center; background:
+  linear-gradient(180deg,#26305a,#1b2340); border:1px dashed var(--accent);}
+.card.random .big{font-size:30px;}
+.card.random .label{color:var(--accent);}
+
+/* loadout bar */
+.loadout{position:sticky; bottom:0; background:linear-gradient(180deg,rgba(13,17,30,.4),var(--bg0) 60%);
+  padding:10px 16px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid var(--border); backdrop-filter:blur(8px);}
+.loadout .lo-title{font-size:11px; color:var(--muted); margin-bottom:7px; display:flex; justify-content:space-between;}
+.slots{display:grid; grid-template-columns:repeat(4,1fr); gap:9px;}
+.slot{aspect-ratio:1/1; border-radius:13px; background:rgba(255,255,255,.04); border:1.5px solid var(--border);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; position:relative; padding:4px;}
+.slot.filled{border-color:var(--accent); background:linear-gradient(180deg,rgba(91,140,255,.16),rgba(91,140,255,.05));}
+.slot .g{font-size:23px; line-height:1;}
+.slot .n{font-size:9.5px; color:var(--muted); text-align:center; line-height:1.1; max-width:100%; overflow:hidden;}
+.slot .cnt{position:absolute; top:3px; right:5px; font-size:10px; font-weight:800; color:var(--gold);}
+.slot.empty .g{color:var(--muted); opacity:.5;}
+
+/* ---------- GAME SCREEN ---------- */
+.g-header{display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--border);}
+.g-header .title{font-size:15px; font-weight:800; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.hint-pill{display:none; align-items:center; gap:5px; font-size:12px; font-weight:800; color:#1d4ed8;
+  background:rgba(59,130,246,.9); color:#fff; padding:5px 9px; border-radius:999px;}
+.hint-pill.on{display:flex;}
+.brush-toggle{display:flex; background:rgba(255,255,255,.05); border:1px solid var(--border); border-radius:11px; overflow:hidden;}
+.brush-toggle button{padding:7px 9px; font-size:12px; font-weight:700; color:var(--muted);}
+.brush-toggle button.on{background:linear-gradient(180deg,var(--accent),var(--accent-d)); color:#fff;}
+
+.board-area{flex:1; min-height:0; overflow:auto; display:flex; align-items:center; justify-content:center; padding:10px;}
+.playfield{background:var(--pf); border-radius:16px; padding:10px; box-shadow:var(--shadow);}
+.board{--num:calc(var(--cell)*0.64); --rcw:calc(var(--num)*var(--maxRC)); --cch:calc(var(--num)*var(--maxCC));
+  display:flex; flex-direction:column; color:var(--cluetext);}
+.board-top{display:flex;}
+.corner{width:var(--rcw); height:var(--cch); flex:0 0 auto;}
+.col-clues{display:flex; padding-left:1px;}
+.col-clue{width:var(--cell); height:var(--cch); display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+  gap:1px; font-size:calc(var(--cell)*0.46); font-weight:700; line-height:1; padding-bottom:2px; border-radius:6px;}
+.col-clue span{display:block;}
+.board-main{display:flex;}
+.row-clues{display:flex; flex-direction:column; padding-top:1px;}
+.row-clue{width:var(--rcw); height:var(--cell); display:flex; align-items:center; justify-content:flex-end;
+  gap:calc(var(--cell)*0.16); font-size:calc(var(--cell)*0.46); font-weight:700; line-height:1; padding-right:3px; border-radius:6px;}
+.clue.zero{opacity:.33; font-weight:600;}
+.row-clue.done,.col-clue.done{opacity:.26;}
+.row-clue.blue,.col-clue.blue{background:rgba(59,130,246,.24); color:#1d4ed8;}
+.row-clue.red,.col-clue.red{background:rgba(239,68,68,.24); color:#b91c1c;}
+
+.grid{display:grid; border-top:1px solid var(--line); border-left:1px solid var(--line);}
+.cell{width:var(--cell); height:var(--cell); border-right:1px solid var(--line); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center; position:relative; background:var(--cellbg);}
+.cell.ml{border-left:2px solid var(--line2);}
+.cell.mt{border-top:2px solid var(--line2);}
+.cell.rowhl:not(.fill),.cell.colhl:not(.fill){background:#e3e8fb;}
+.cell.fill{background:var(--ink);}
+.cell.cross::after{content:"×"; color:var(--crossc); font-size:calc(var(--cell)*0.74); font-weight:700; line-height:1;}
+.cell.preview{box-shadow:inset 0 0 0 2px var(--teal); z-index:1;}
+.cell.sel{box-shadow:inset 0 0 0 2px var(--accent), 0 0 9px rgba(91,140,255,.65); z-index:3;}
+.cell.sel.preview{box-shadow:inset 0 0 0 2px var(--accent), 0 0 0 2px var(--teal);}
+
+/* controls */
+.controls{padding:9px 12px calc(10px + env(safe-area-inset-bottom)); border-top:1px solid var(--border);
+  display:flex; flex-direction:column; gap:9px; background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);}
+.item-row{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+.islot{position:relative; border-radius:12px; background:rgba(255,255,255,.05); border:1.5px solid var(--border);
+  padding:7px 4px 6px; display:flex; flex-direction:column; align-items:center; gap:1px; min-height:54px; justify-content:center;}
+.islot.armed{border-color:var(--teal); background:linear-gradient(180deg,rgba(34,211,166,.18),rgba(34,211,166,.05));}
+.islot.dead{opacity:.4;}
+.islot.used{opacity:.42; filter:grayscale(.5);}
+.islot .g{font-size:21px; line-height:1;}
+.islot .n{font-size:9px; color:var(--muted); line-height:1.05; text-align:center;}
+.islot .cnt{position:absolute; top:2px; right:5px; font-size:9.5px; font-weight:800; color:var(--gold);}
+.islot.used .cnt{color:var(--muted);}
+.islot.empty .g{opacity:.35;}
+.thumb .qmark{font-size:34px; font-weight:800; color:var(--muted); opacity:.55;}
+.thumb.hidden{background:repeating-linear-gradient(45deg,#e7e9f4,#e7e9f4 6px,#eef0f8 6px,#eef0f8 12px);}
+
+.armed-panel{display:none; align-items:center; gap:10px; background:linear-gradient(180deg,rgba(34,211,166,.14),rgba(34,211,166,.04));
+  border:1px solid var(--teal); border-radius:12px; padding:8px 10px;}
+.armed-panel.on{display:flex;}
+.armed-panel .ag{font-size:22px;}
+.armed-panel .info{flex:1; min-width:0;}
+.armed-panel .an{font-size:13px; font-weight:800;}
+.armed-panel .ad{font-size:11px; color:var(--muted);}
+
+.pad-row{display:flex; gap:12px; align-items:stretch;}
+.dpad{display:grid; grid-template-columns:repeat(3,46px); grid-template-rows:repeat(3,46px); gap:6px; flex:0 0 auto;}
+.dpad button{border-radius:12px; background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--border);
+  font-size:20px; font-weight:800; display:flex; align-items:center; justify-content:center; color:var(--text);}
+.dpad button:active{background:var(--accent); color:#fff;}
+.dpad .center{background:rgba(255,255,255,.03); font-size:12px; font-weight:700; color:var(--muted); cursor:default;}
+.dpad .center:active{background:rgba(255,255,255,.03); color:var(--muted);}
+.dpad .sp{visibility:hidden;}
+.actions{flex:1; display:flex; flex-direction:column; gap:8px;}
+.actions button{flex:1; font-size:17px; font-weight:800; border-radius:13px;}
+.act-fill{background:linear-gradient(180deg,#39415f,#2b3148); border:1px solid var(--border); color:#fff;}
+.act-fill:active{background:var(--ink);}
+.act-cross{background:rgba(255,255,255,.05); border:1px solid var(--border); color:var(--text);}
+.act-cross:active{background:var(--danger); color:#fff;}
+
+/* ---------- MODALS / OVERLAYS ---------- */
+.overlay{position:fixed; inset:0; background:rgba(6,8,16,.72); backdrop-filter:blur(5px); display:none;
+  align-items:center; justify-content:center; padding:18px; z-index:50;}
+.overlay.on{display:flex;}
+.sheet{width:100%; max-width:430px; max-height:86vh; overflow-y:auto; background:linear-gradient(180deg,var(--bg1),var(--bg0));
+  border:1px solid var(--border); border-radius:20px; padding:18px; box-shadow:var(--shadow);}
+.sheet h2{margin:0 0 4px; font-size:18px;}
+.sheet h3{margin:14px 0 6px; font-size:13px; color:var(--muted); text-transform:none; letter-spacing:.02em;}
+.sheet p{font-size:13px; line-height:1.65; color:#cdd4f0; margin:6px 0;}
+.sheet .close-row{display:flex; gap:9px; margin-top:16px;}
+.sheet .close-row .btn{flex:1;}
+.picklist{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:6px;}
+.pitem{display:flex; align-items:center; gap:9px; padding:9px 10px; border-radius:12px; background:rgba(255,255,255,.04);
+  border:1px solid var(--border); text-align:left;}
+.pitem:active{transform:scale(.98);}
+.pitem.equipped{border-color:var(--accent); background:rgba(91,140,255,.12);}
+.pitem.disabled{opacity:.4;}
+.pitem .pg{font-size:22px; flex:0 0 auto;}
+.pitem .pn{font-size:12px; font-weight:700; line-height:1.15;}
+.pitem .pc{font-size:11px; color:var(--gold); font-weight:800;}
+.pitem .inf{font-size:13px; color:var(--teal); font-weight:900;}
+
+/* result */
+.result{text-align:center;}
+.result .big{font-size:30px; font-weight:900; letter-spacing:.08em; color:var(--teal);
+  text-shadow:0 0 24px rgba(34,211,166,.4); margin-bottom:4px;}
+.reveal{margin:14px auto; background:var(--pf); border-radius:14px; padding:12px; width:fit-content; box-shadow:var(--shadow);}
+.reveal canvas{image-rendering:pixelated; display:block; border-radius:6px;}
+.drop{margin:12px auto; padding:12px 14px; border-radius:14px; background:linear-gradient(180deg,rgba(255,207,91,.16),rgba(255,207,91,.05));
+  border:1px solid rgba(255,207,91,.5); display:flex; align-items:center; gap:12px; justify-content:center;}
+.drop .dg{font-size:30px;}
+.drop .dn{font-size:15px; font-weight:800;}
+.drop .dl{font-size:11px; color:var(--muted);}
+.drop.none{background:rgba(255,255,255,.04); border-color:var(--border); color:var(--muted); font-size:13px;}
+.result .r-actions{display:flex; flex-direction:column; gap:9px; margin-top:8px;}
+
+/* toast */
+.toast{position:fixed; left:50%; bottom:calc(90px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(20px);
+  background:rgba(20,26,46,.96); border:1px solid var(--border); color:#fff; padding:10px 16px; border-radius:999px;
+  font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:80; box-shadow:var(--shadow); max-width:90vw; text-align:center;}
+.toast.on{opacity:1; transform:translateX(-50%) translateY(0);}
+
+.loading{text-align:center; color:var(--muted); font-size:12px; padding:8px;}
+.empty-note{color:var(--muted); font-size:13px; text-align:center; padding:24px 10px; line-height:1.6;}
+
+@media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+input[type=file]{display:none;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== SELECT SCREEN ===== -->
+  <section id="screen-select" class="screen active">
+    <div class="s-header">
+      <div>
+        <div class="s-title">ノノグラ<span class="dot">ム</span></div>
+        <div class="s-sub" id="clearedCount">0 / 0 クリア</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="icon-btn" id="btnAdd" title="画像を追加">＋</button>
+      <button class="icon-btn" id="btnHelp" title="ヘルプ">？</button>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="s-scroll">
+      <div id="loadingNote" class="loading">images フォルダを確認中…</div>
+      <div class="cards" id="cards"></div>
+    </div>
+    <div class="loadout">
+      <div class="lo-title"><span>持ち込みアイテム（最大4つ）</span><span id="loHint">スロットをタップして装備</span></div>
+      <div class="slots" id="loadoutSlots"></div>
+    </div>
+  </section>
+
+  <!-- ===== GAME SCREEN ===== -->
+  <section id="screen-game" class="screen">
+    <div class="g-header">
+      <button class="icon-btn" id="btnBack">‹</button>
+      <div class="title" id="gameTitle">ステージ</div>
+      <div class="hint-pill" id="hintPill">💡 <span id="hintTime">0</span></div>
+      <button class="icon-btn" id="btnRestart" title="やり直す">↺</button>
+    </div>
+    <div class="board-area" id="boardArea">
+      <div class="playfield" id="playfield">
+        <div class="board" id="board"></div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="item-row" id="itemRow"></div>
+      <div class="armed-panel" id="armedPanel">
+        <div class="ag" id="armedG">●</div>
+        <div class="info"><div class="an" id="armedN">アイテム</div><div class="ad" id="armedD"></div></div>
+        <button class="btn teal sm" id="btnUse">発動</button>
+        <button class="btn ghost sm" id="btnCancelArm">×</button>
+      </div>
+      <div class="pad-row">
+        <div class="dpad">
+          <button class="sp"></button>
+          <button id="padU">▲</button>
+          <button class="sp"></button>
+          <button id="padL">◀</button>
+          <button class="center" id="padC">–,–</button>
+          <button id="padR">▶</button>
+          <button class="sp"></button>
+          <button id="padD">▼</button>
+          <button class="sp"></button>
+        </div>
+        <div class="actions">
+          <button class="act-fill" id="btnFill">塗る</button>
+          <button class="act-cross" id="btnCross">バツ ×</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== OVERLAYS ===== -->
+  <div class="overlay" id="ovPick"><div class="sheet">
+    <h2>アイテムを装備</h2>
+    <h3>ボム（正解を表示）</h3>
+    <div class="picklist" id="pickBomb"></div>
+    <h3>サポート</h3>
+    <div class="picklist" id="pickSupport"></div>
+    <div class="close-row">
+      <button class="btn ghost" id="pickRemove">このスロットを外す</button>
+      <button class="btn" id="pickClose">閉じる</button>
+    </div>
+  </div></div>
+
+  <div class="overlay" id="ovHelp"><div class="sheet">
+    <h2>遊び方</h2>
+    <p><b>目的：</b>上と左の数字をヒントに、正しいマスを塗って絵を完成させます。数字は連続して塗るマスの数。例「2 1 1」は ⬛⬛⬜⬛⬜⬛ のように並びます。</p>
+    <h3>操作</h3>
+    <p>・マスを<b>タップ</b>で選択。十字キーで選択マスを上下左右に移動。<br>・<b>塗る／バツ</b>ボタンで選択マスを塗る・×にする（もう一度で解除）。<br>・ヘッダーの<b>選択／塗/×</b>を切り替えると、タップだけで塗る・×もできます。<br>・PCでは矢印キー＝移動、Space/Enter＝塗る、X＝バツ。</p>
+    <h3>クリア判定とヒント</h3>
+    <p>・各ラインの塗り数が数字と一致すると、その数字が<b>薄く</b>なります（位置は問いません）。<br>・<b>ヒント</b>使用中は、確定で塗れるマスがあるラインの数字が<span style="color:#5b8cff;font-weight:800">青</span>、数が多すぎるなど矛盾したラインが<span style="color:#ff6b6b;font-weight:800">赤</span>になります。</p>
+    <h3>アイテム</h3>
+    <p>・<b>ボム</b>：選択マスを中心に、その範囲の<b>正解</b>を表示（横/縦ライン・十字・円・四角・菱形、大きさ複数）。<br>・<b>ヒント</b>：効果時間中、確定／矛盾ラインを表示。<br>・<b>スキャン</b>：塗り間違い・バツ間違いを指定数まで自動修正。<br>・装備したアイテムは1ゲーム中それぞれ<b>1回だけ</b>使えます。<br>・各種の<b>一番弱いもの</b>（縦/横ラインボム1・円形/四角ボム小・十字ボム小・ヒント小・スキャン小）は何度装備しても<b>減りません（無限所持）</b>。それ以外は<b>装備してゲームを開始した時点で1つ消費</b>されます（持ち込んだ分はその1ゲーム内で使い切り）。</p>
+    <h3>ステージとアイテム入手</h3>
+    <p>・ステージは画像の<b>画素数（マス数）</b>で難易度分けされます。<br>・<b>画像の追加：</b>右上の＋から2値化画像をアップロード。または同じ場所に置いた <code>images</code> フォルダに <code>1.png, 2.png …</code> と入れると自動でステージが増えます（フォルダが無くても動作します）。<br>・ステージ<b>初回クリア</b>でアイテムをランダム入手。高難度ほど良い物が出やすく、弱い物は出にくくなります。<br>・<b>ランダムモード</b>：選んだ難易度からランダム出題。クリアでアイテムは貰えますが、クリア扱いにはなりません。<br>・進捗とクリア状況は自動保存され、開くたび復元されます。</p>
+    <div class="close-row">
+      <button class="btn danger" id="btnReset">データ初期化</button>
+      <button class="btn" id="helpClose">閉じる</button>
+    </div>
+  </div></div>
+
+  <div class="overlay" id="ovConfirm"><div class="sheet">
+    <h2 id="cfTitle">確認</h2>
+    <p id="cfMsg"></p>
+    <div class="close-row">
+      <button class="btn ghost" id="cfCancel">キャンセル</button>
+      <button class="btn danger" id="cfOk">OK</button>
+    </div>
+  </div></div>
+
+  <div class="overlay" id="ovResult"><div class="sheet result">
+    <div class="big">クリア！</div>
+    <div id="resultSub" class="s-sub"></div>
+    <div class="reveal"><canvas id="revealCanvas"></canvas></div>
+    <div id="dropBox"></div>
+    <div class="r-actions" id="resultActions"></div>
+  </div></div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" multiple>
+
+<script>
+"use strict";
+(function(){
+/* ============================ CONFIG ============================ */
+const KEY = "picross_save_v1";
+const MAXDIM = 40;
+const NUMF = 0.64; // must match CSS --num factor
+
+const DIFFS = [
+  {key:"easy",   name:"簡単",   max:25},
+  {key:"normal", name:"普通",   max:81},
+  {key:"hard",   name:"難しい", max:169},
+  {key:"expert", name:"高難度", max:324},
+  {key:"master", name:"超難度", max:Infinity},
+];
+function diffIndexForArea(a){ for(let i=0;i<DIFFS.length;i++){ if(a<=DIFFS[i].max) return i; } return DIFFS.length-1; }
+
+// item catalog
+const ITEMS = {
+  // tier 0 — infinite, never dropped
+  hline1:{name:"横ラインボム1", cat:"bomb", tier:0, g:"↔", p:{shape:"hline", n:1}},
+  vline1:{name:"縦ラインボム1", cat:"bomb", tier:0, g:"↕", p:{shape:"vline", n:1}},
+  square_s:{name:"四角ボム小",  cat:"bomb", tier:0, g:"■", p:{shape:"square", rad:1}},
+  diamond_s:{name:"菱形ボム小", cat:"bomb", tier:0, g:"◆", p:{shape:"diamond", rad:2}},
+  hint_s:{name:"ヒント小",      cat:"support", tier:0, g:"💡", p:{sub:"hint", dur:60}},
+  scan_s:{name:"スキャン小",    cat:"support", tier:0, g:"🔍", p:{sub:"scan", fix:1}},
+  // tier 1
+  hline3:{name:"横ラインボム3", cat:"bomb", tier:1, g:"↔", p:{shape:"hline", n:3}},
+  vline3:{name:"縦ラインボム3", cat:"bomb", tier:1, g:"↕", p:{shape:"vline", n:3}},
+  cross_s:{name:"十字ボム小",   cat:"bomb", tier:1, g:"✚", p:{shape:"cross", t:1}},
+  circle_m:{name:"円形ボム中",  cat:"bomb", tier:1, g:"●", p:{shape:"circle", rad:3}},
+  square_m:{name:"四角ボム中",  cat:"bomb", tier:1, g:"■", p:{shape:"square", rad:2}},
+  diamond_m:{name:"菱形ボム中", cat:"bomb", tier:1, g:"◆", p:{shape:"diamond", rad:3}},
+  hint_m:{name:"ヒント中",      cat:"support", tier:1, g:"💡", p:{sub:"hint", dur:180}},
+  scan_m:{name:"スキャン中",    cat:"support", tier:1, g:"🔍", p:{sub:"scan", fix:3}},
+  // tier 2
+  hline5:{name:"横ラインボム5", cat:"bomb", tier:2, g:"↔", p:{shape:"hline", n:5}},
+  vline5:{name:"縦ラインボム5", cat:"bomb", tier:2, g:"↕", p:{shape:"vline", n:5}},
+  cross_m:{name:"十字ボム中",   cat:"bomb", tier:2, g:"✚", p:{shape:"cross", t:3}},
+  circle_l:{name:"円形ボム大",  cat:"bomb", tier:2, g:"●", p:{shape:"circle", rad:4}},
+  square_l:{name:"四角ボム大",  cat:"bomb", tier:2, g:"■", p:{shape:"square", rad:3}},
+  diamond_l:{name:"菱形ボム大", cat:"bomb", tier:2, g:"◆", p:{shape:"diamond", rad:4}},
+  hint_l:{name:"ヒント大",      cat:"support", tier:2, g:"💡", p:{sub:"hint", dur:300}},
+  scan_l:{name:"スキャン大",    cat:"support", tier:2, g:"🔍", p:{sub:"scan", fix:5}},
+  // tier 3
+  hline7:{name:"横ラインボム7", cat:"bomb", tier:3, g:"↔", p:{shape:"hline", n:7}},
+  vline7:{name:"縦ラインボム7", cat:"bomb", tier:3, g:"↕", p:{shape:"vline", n:7}},
+  cross_l:{name:"十字ボム大",   cat:"bomb", tier:3, g:"✚", p:{shape:"cross", t:5}},
+  circle_xl:{name:"円形ボム特大",cat:"bomb", tier:3, g:"●", p:{shape:"circle", rad:5.2}},
+  square_xl:{name:"四角ボム特大",cat:"bomb", tier:3, g:"■", p:{shape:"square", rad:4}},
+  diamond_xl:{name:"菱形ボム特大",cat:"bomb", tier:3, g:"◆", p:{shape:"diamond", rad:6}},
+  hint_xl:{name:"ヒント特",     cat:"support", tier:3, g:"💡", p:{sub:"hint", dur:600}},
+  scan_xl:{name:"スキャン特",   cat:"support", tier:3, g:"🔍", p:{sub:"scan", fix:8}},
+};
+const TIER0 = Object.keys(ITEMS).filter(k=>ITEMS[k].tier===0);
+const FINITE_BY_TIER = {1:[],2:[],3:[]};
+Object.keys(ITEMS).forEach(k=>{ const t=ITEMS[k].tier; if(t>=1) FINITE_BY_TIER[t].push(k); });
+
+const DROP_WEIGHTS = {
+  0:{1:78,2:18,3:4},
+  1:{1:55,2:33,3:12},
+  2:{1:30,2:45,3:25},
+  3:{2:55,3:45},
+  4:{2:25,3:75},
+};
+
+function itemDesc(id){
+  const it=ITEMS[id], p=it.p;
+  if(it.cat==="support"){
+    if(p.sub==="hint") return p.dur+"秒間 確定／矛盾ラインを表示";
+    return "間違いを最大"+p.fix+"マス修正";
+  }
+  const s=p.shape;
+  if(s==="hline") return "横"+p.n+"ライン分の正解を表示";
+  if(s==="vline") return "縦"+p.n+"ライン分の正解を表示";
+  if(s==="cross") return "十字（太さ"+p.t+"）の正解を表示";
+  if(s==="circle") return "円形（半径"+p.rad+"）の正解を表示";
+  if(s==="square"){ const d=p.rad*2+1; return d+"×"+d+"四角の正解を表示"; }
+  if(s==="diamond") return "菱形（半径"+p.rad+"）の正解を表示";
+  return "正解を表示";
+}
+
+/* ============================ STATE ============================ */
+const memLS = {};
+const LS = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return (k in memLS)?memLS[k]:null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ memLS[k]=v; } },
+};
+function defaultSave(){
+  return { version:1, cleared:{}, progress:{}, inventory:{}, loadout:[], uploads:[], seeded:false };
+}
+let save = defaultSave();
+function loadSave(){
+  const raw = LS.get(KEY);
+  if(raw){ try{ const o=JSON.parse(raw); if(o && o.version===1){ save=Object.assign(defaultSave(),o);
+    save.cleared=save.cleared||{}; save.progress=save.progress||{}; save.inventory=save.inventory||{};
+    save.loadout=save.loadout||[]; save.uploads=save.uploads||[]; } }catch(e){} }
+}
+let saveTimer=null;
+function saveSoon(){ if(saveTimer) clearTimeout(saveTimer); saveTimer=setTimeout(saveNow,400); }
+function saveNow(){ if(saveTimer){ clearTimeout(saveTimer); saveTimer=null; } LS.set(KEY, JSON.stringify(save)); }
+
+function seedIfNeeded(){
+  if(save.seeded) return;
+  save.seeded=true;
+  save.inventory = { scan_m:2, hint_m:2, circle_l:1, hline3:1, vline3:1, square_m:1 };
+  save.loadout = ["hline1","vline1","hint_s","scan_s"];
+  saveNow();
+}
+
+// runtime
+let g = null;
+let stagesByDiff = [[],[],[],[],[]];
+let stagesById = {};
+let folderLoaded = false;
+
+/* ============================ HELPERS ============================ */
+const $ = id => document.getElementById(id);
+function el(tag,cls,txt){ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
+function hash32(str){ let h=2166136261>>>0; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36); }
+function cellsString(sol){ let s=""; for(let r=0;r<sol.length;r++){ for(let c=0;c<sol[r].length;c++){ s+= sol[r][c]?"1":"0"; } } return s; }
+function solFromCells(s,R,C){ const sol=[]; let i=0; for(let r=0;r<R;r++){ const row=[]; for(let c=0;c<C;c++){ row.push(s.charCodeAt(i++)===49?1:0); } sol.push(row); } return sol; }
+function arrEq(a,b){ if(a.length!==b.length) return false; for(let i=0;i<a.length;i++){ if(a[i]!==b[i]) return false; } return true; }
+function clueOf(line){ const out=[]; let c=0; for(let i=0;i<line.length;i++){ if(line[i]===1) c++; else { if(c>0) out.push(c); c=0; } } if(c>0) out.push(c); return out; }
+function runsOfMarks(marks){ const out=[]; let c=0; for(let i=0;i<marks.length;i++){ if(marks[i]===1) c++; else { if(c>0) out.push(c); c=0; } } if(c>0) out.push(c); return out; }
+
+let toastTimer=null;
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("on"); if(toastTimer) clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("on"),1700); }
+
+function openOverlay(id){ $(id).classList.add("on"); }
+function closeOverlay(id){ $(id).classList.remove("on"); }
+let confirmCb=null;
+function askConfirm(title,msg,cb){ $("cfTitle").textContent=title; $("cfMsg").textContent=msg; confirmCb=cb; openOverlay("ovConfirm"); }
+
+/* ============================ BUILT-IN STAGES ============================ */
+function builtinHeart(){
+  // 5x5 heart
+  return solFromCells("0101011111111110111000100",5,5);
+}
+function builtinDisk(){
+  const R=10,C=10,rad=4.3,cy=4.5,cx=4.5,sol=[];
+  for(let r=0;r<R;r++){ const row=[]; for(let c=0;c<C;c++){ const dx=c-cx,dy=r-cy; row.push((dx*dx+dy*dy)<=rad*rad ? 1 : 0); } sol.push(row); }
+  return sol;
+}
+function builtinRing(){
+  const R=13,C=13,cy=6,cx=6,sol=[];
+  for(let r=0;r<R;r++){ const row=[]; for(let c=0;c<C;c++){ const dx=c-cx,dy=r-cy,d=dx*dx+dy*dy; row.push((d<=36 && d>=10.24)?1:0); } sol.push(row); }
+  return sol;
+}
+function builtinStages(){
+  return [
+    {sol:builtinHeart(), src:"builtin", order:0},
+    {sol:builtinDisk(),  src:"builtin", order:1},
+    {sol:builtinRing(),  src:"builtin", order:2},
+  ];
+}
+
+/* ============================ IMAGE → STAGE ============================ */
+function binarizeImage(im){
+  let w=im.naturalWidth||im.width, h=im.naturalHeight||im.height;
+  if(!w||!h) return null;
+  let nw=w, nh=h;
+  if(Math.max(w,h)>MAXDIM){ const s=MAXDIM/Math.max(w,h); nw=Math.max(1,Math.round(w*s)); nh=Math.max(1,Math.round(h*s)); }
+  const cv=document.createElement("canvas"); cv.width=nw; cv.height=nh;
+  const ctx=cv.getContext("2d",{willReadFrequently:true}); ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(im,0,0,nw,nh);
+  let data;
+  try{ data=ctx.getImageData(0,0,nw,nh).data; }catch(e){ return null; } // tainted (file://)
+  const sol=[]; let filled=0;
+  for(let r=0;r<nh;r++){ const row=[]; for(let c=0;c<nw;c++){ const i=(r*nw+c)*4; const a=data[i+3];
+    const lum=0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
+    const on=(a>=128 && lum<128)?1:0; if(on) filled++; row.push(on); } sol.push(row); }
+  if(filled===0) return null;
+  return {R:nh, C:nw, sol};
+}
+function loadImg(src){ return new Promise(res=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>res(null); try{ im.src=src; }catch(e){ res(null); } }); }
+
+async function loadFolderStages(onFound){
+  const exts=["png","jpg","jpeg","gif","webp","bmp"];
+  let miss=0, idx=1; const cap=500;
+  while(idx<=cap && miss<3){
+    let im=null;
+    for(const ext of exts){ im=await loadImg("images/"+idx+"."+ext); if(im) break; }
+    if(!im){ miss++; idx++; continue; }
+    miss=0;
+    const bin=binarizeImage(im);
+    if(bin){ onFound({sol:bin.sol, src:"folder", order:idx}); }
+    idx++;
+  }
+}
+
+/* ============================ STAGE LIST BUILD ============================ */
+function rebuildStages(){
+  stagesByDiff=[[],[],[],[],[]]; stagesById={};
+  const raw=[];
+  builtinStages().forEach(s=>raw.push(s));
+  (save.uploads||[]).forEach((u,i)=>{ raw.push({sol:solFromCells(u.s,u.R,u.C), src:"upload", order:i, name:u.name}); });
+  folderRaw.forEach(s=>raw.push(s));
+
+  const seen={};
+  const srcRank={builtin:0, folder:1, upload:2};
+  // attach id + diff
+  const items=[];
+  for(const s of raw){
+    const cells=cellsString(s.sol);
+    const id="h"+hash32(cells);
+    if(seen[id]) continue; seen[id]=true;
+    const R=s.sol.length, C=s.sol[0].length;
+    items.push({id, sol:s.sol, cells, R, C, src:s.src, order:s.order, name:s.name,
+      diff:diffIndexForArea(R*C), srcRank:srcRank[s.src]});
+  }
+  // group + sort + number
+  for(let d=0;d<5;d++){
+    const arr=items.filter(x=>x.diff===d);
+    arr.sort((a,b)=> a.srcRank-b.srcRank || a.order-b.order || (a.id<b.id?-1:1));
+    arr.forEach((x,i)=>{ x.num=i+1; x.label="【"+DIFFS[d].name+"】ステージ"+(i+1); stagesById[x.id]=x; });
+    stagesByDiff[d]=arr;
+  }
+}
+let folderRaw=[];
+
+/* ============================ LINE SOLVER (for hint) ============================ */
+// feasible: is there a black/white assignment with marks==1 forced black,
+// index forceWhite forced white, run-lengths == clue. marks 0/2 are free.
+function lineFeasible(marks, clue, forceWhite){
+  const n=marks.length;
+  if(forceWhite!==undefined && marks[forceWhite]===1) return false;
+  const memo=new Map();
+  function canBlack(i){ return i!==forceWhite; }
+  function solve(pos,ci){
+    if(ci===clue.length){
+      for(let i=pos;i<n;i++){ if(marks[i]===1) return false; }
+      return true;
+    }
+    if(pos>=n) return false;
+    const key=pos*128+ci; if(memo.has(key)) return memo.get(key);
+    let res=false;
+    if(marks[pos]!==1){ if(solve(pos+1,ci)) res=true; }
+    if(!res){
+      const len=clue[ci];
+      if(pos+len<=n){
+        let ok=true;
+        for(let i=pos;i<pos+len;i++){ if(!canBlack(i)){ ok=false; break; } }
+        if(ok){
+          const after=pos+len;
+          if(after===n){ res=(ci+1===clue.length); }
+          else if(marks[after]!==1){ if(solve(after+1,ci+1)) res=true; }
+        }
+      }
+    }
+    memo.set(key,res); return res;
+  }
+  if(clue.length===0){ for(let i=0;i<n;i++){ if(marks[i]===1) return false; } return true; }
+  return solve(0,0);
+}
+function lineHL(marks, clue){
+  // returns 0 normal, 1 blue(determinable), 2 red(infeasible)
+  if(!lineFeasible(marks,clue)) return 2;
+  for(let i=0;i<marks.length;i++){
+    if(marks[i]===0){ if(!lineFeasible(marks,clue,i)) return 1; } // forcing white breaks -> forced black
+  }
+  return 0;
+}
+
+/* ============================ BOMB AREAS ============================ */
+function bombCells(shape,p,sr,sc,R,C){
+  const out=[]; const add=(r,c)=>{ if(r>=0&&r<R&&c>=0&&c<C) out.push([r,c]); };
+  if(shape==="hline"){ const h=(p.n-1)/2; for(let r=sr-h;r<=sr+h;r++){ if(r<0||r>=R) continue; for(let c=0;c<C;c++) add(r,c); } }
+  else if(shape==="vline"){ const h=(p.n-1)/2; for(let c=sc-h;c<=sc+h;c++){ if(c<0||c>=C) continue; for(let r=0;r<R;r++) add(r,c); } }
+  else if(shape==="cross"){ const h=(p.t-1)/2;
+    for(let r=sr-h;r<=sr+h;r++){ if(r<0||r>=R) continue; for(let c=0;c<C;c++) add(r,c); }
+    for(let c=sc-h;c<=sc+h;c++){ if(c<0||c>=C) continue; for(let r=0;r<R;r++) add(r,c); } }
+  else if(shape==="square"){ const k=p.rad; for(let r=sr-k;r<=sr+k;r++) for(let c=sc-k;c<=sc+k;c++) add(r,c); }
+  else if(shape==="circle"){ const k=Math.ceil(p.rad); for(let r=sr-k;r<=sr+k;r++) for(let c=sc-k;c<=sc+k;c++){ const dr=r-sr,dc=c-sc; if(dr*dr+dc*dc<=p.rad*p.rad) add(r,c); } }
+  else if(shape==="diamond"){ const k=p.rad; for(let r=sr-k;r<=sr+k;r++) for(let c=sc-k;c<=sc+k;c++){ if(Math.abs(r-sr)+Math.abs(c-sc)<=k) add(r,c); } }
+  // dedupe (cross overlaps)
+  const seen={}; const uniq=[];
+  for(const [r,c] of out){ const kk=r*1000+c; if(!seen[kk]){ seen[kk]=1; uniq.push([r,c]); } }
+  return uniq;
+}
+
+/* ============================ INVENTORY ============================ */
+function countOf(id){ if(!ITEMS[id]) return 0; if(ITEMS[id].tier===0) return Infinity; return save.inventory[id]||0; }
+function useOne(id){ if(ITEMS[id].tier===0) return; save.inventory[id]=Math.max(0,(save.inventory[id]||0)-1); }
+function addItem(id){ save.inventory[id]=(save.inventory[id]||0)+1; }
+
+function rollDrop(diff){
+  const w=DROP_WEIGHTS[diff]; const tiers=Object.keys(w).map(Number); let tot=0; tiers.forEach(t=>tot+=w[t]);
+  let x=Math.random()*tot, tier=tiers[0];
+  for(const t of tiers){ x-=w[t]; if(x<=0){ tier=t; break; } }
+  const pool=FINITE_BY_TIER[tier]; const id=pool[Math.floor(Math.random()*pool.length)];
+  return id;
+}
+
+/* ============================ SELECT SCREEN UI ============================ */
+let activeTab=0;
+function totalStages(){ let n=0; for(let d=0;d<5;d++) n+=stagesByDiff[d].length; return n; }
+function clearedRealCount(){ let n=0; for(const id in stagesById){ if(save.cleared[id]) n++; } return n; }
+
+function renderTabs(){
+  const t=$("tabs"); t.innerHTML="";
+  DIFFS.forEach((d,i)=>{
+    const b=el("button","tab"+(i===activeTab?" active":""));
+    b.appendChild(el("span",null,d.name));
+    b.appendChild(el("span","c",String(stagesByDiff[i].length)));
+    b.onclick=()=>{ activeTab=i; renderTabs(); renderCards(); };
+    t.appendChild(b);
+  });
+}
+function drawThumb(canvas,sol){
+  const R=sol.length,C=sol[0].length; canvas.width=C; canvas.height=R;
+  const ctx=canvas.getContext("2d"); ctx.fillStyle="#f5f6fb"; ctx.fillRect(0,0,C,R);
+  ctx.fillStyle="#2b3148";
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){ if(sol[r][c]) ctx.fillRect(c,r,1,1); }
+}
+function progressActive(pr){
+  if(!pr) return false;
+  if(pr.hint>0) return true;
+  if(pr.grid && /[12]/.test(pr.grid)) return true;
+  if(pr.used && pr.used.some(Boolean)) return true;
+  return false;
+}
+function renderCards(){
+  const wrap=$("cards"); wrap.innerHTML="";
+  const arr=stagesByDiff[activeTab];
+  // random card
+  if(arr.length){
+    const rc=el("div","card random");
+    rc.appendChild(el("div","big","🎲"));
+    rc.appendChild(el("div","label","ランダム"));
+    rc.appendChild(el("div","meta",DIFFS[activeTab].name+"からランダム出題"));
+    if(progressActive(save.progress["rand:"+activeTab])){ const bd=el("div","badge"); bd.appendChild(el("span","chip wip","途中")); rc.appendChild(bd); }
+    rc.onclick=()=>startRandom(activeTab);
+    wrap.appendChild(rc);
+  }
+  if(!arr.length){
+    wrap.appendChild(Object.assign(el("div","empty-note"),{innerHTML:"この難易度のステージはまだありません。<br>右上の ＋ から画像を追加できます。"}));
+  }
+  arr.forEach(st=>{
+    const cleared=!!save.cleared[st.id];
+    const card=el("div","card"+(cleared?" cleared":""));
+    const th=el("div","thumb"+(cleared?"":" hidden"));
+    if(cleared){ const cv=document.createElement("canvas"); drawThumb(cv,st.sol); th.appendChild(cv); }
+    else { th.appendChild(el("div","qmark","？")); }
+    card.appendChild(th);
+    card.appendChild(el("div","label",st.label));
+    card.appendChild(el("div","meta",st.C+"×"+st.R+"（"+(st.R*st.C)+"マス）"));
+    const bd=el("div","badge");
+    if(cleared) bd.appendChild(el("span","chip ok","✓"));
+    if(progressActive(save.progress[st.id])) bd.appendChild(el("span","chip wip","途中"));
+    if(bd.childNodes.length) card.appendChild(bd);
+    card.onclick=()=>startStage(st,"normal");
+    wrap.appendChild(card);
+  });
+}
+function renderClearedCount(){ $("clearedCount").textContent = clearedRealCount()+" / "+totalStages()+" クリア"; }
+
+function renderLoadout(){
+  const wrap=$("loadoutSlots"); wrap.innerHTML="";
+  for(let i=0;i<4;i++){
+    const id=save.loadout[i];
+    const s=el("div","slot"+(id?" filled":" empty"));
+    if(id){
+      const it=ITEMS[id];
+      s.appendChild(el("div","g",it.g));
+      s.appendChild(el("div","n",it.name));
+      const cnt=countOf(id); s.appendChild(el("div","cnt", cnt===Infinity?"∞":("×"+cnt)));
+    } else {
+      s.appendChild(el("div","g","＋"));
+      s.appendChild(el("div","n","空き"));
+    }
+    s.onclick=()=>openPicker(i);
+    wrap.appendChild(s);
+  }
+}
+
+/* ----- item picker ----- */
+let pickSlot=-1;
+function openPicker(slot){ pickSlot=slot; renderPicker(); openOverlay("ovPick"); }
+function renderPicker(){
+  const bombWrap=$("pickBomb"), supWrap=$("pickSupport"); bombWrap.innerHTML=""; supWrap.innerHTML="";
+  const avail=Object.keys(ITEMS).filter(id=>countOf(id)>0);
+  avail.sort((a,b)=> ITEMS[a].tier-ITEMS[b].tier);
+  avail.forEach(id=>{
+    const it=ITEMS[id]; const cnt=countOf(id);
+    const equippedElsewhere = save.loadout.indexOf(id)!==-1 && save.loadout.indexOf(id)!==pickSlot;
+    const b=el("button","pitem"+(save.loadout[pickSlot]===id?" equipped":"")+(equippedElsewhere?" disabled":""));
+    b.appendChild(el("div","pg",it.g));
+    const info=el("div"); info.appendChild(el("div","pn",it.name));
+    info.appendChild(cnt===Infinity?el("div","inf","∞ 無限"):el("div","pc","×"+cnt));
+    b.appendChild(info);
+    if(!equippedElsewhere){ b.onclick=()=>{ save.loadout[pickSlot]=id; saveNow(); renderLoadout(); renderPicker(); }; }
+    (it.cat==="bomb"?bombWrap:supWrap).appendChild(b);
+  });
+  if(!bombWrap.childNodes.length) bombWrap.appendChild(el("div","empty-note","利用できるボムがありません"));
+  if(!supWrap.childNodes.length) supWrap.appendChild(el("div","empty-note","利用できるサポートがありません"));
+}
+
+/* ============================ GAME ============================ */
+function newPlayerGrid(R,C){ const p=[]; for(let r=0;r<R;r++){ p.push(new Array(C).fill(0)); } return p; }
+
+function startStage(st, mode, opts){
+  opts=opts||{};
+  const stageKey = mode==="random" ? ("rand:"+st._diff) : st.id;
+  const pr=save.progress[stageKey];
+  const F=[false,false,false,false];
+  // ----- decide this play-through's kit (equipped items) and per-slot usage -----
+  let kit, used;
+  const resuming = !opts.kit && pr && pr.sid===st.id && pr.kit;
+  if(opts.kit){                 // restart / reroll: carry the already-paid kit, fresh uses
+    kit=opts.kit.slice(0,4); while(kit.length<4) kit.push(null); used=F.slice();
+  } else if(resuming){          // resume a committed play-through: no re-consume
+    kit=pr.kit.slice(0,4); while(kit.length<4) kit.push(null);
+    used=(pr.used||F).slice(0,4); while(used.length<4) used.push(false);
+  } else {                      // brand-new start: snapshot loadout, consume finite items once
+    kit=[]; used=F.slice();
+    for(let i=0;i<4;i++){
+      const id=save.loadout[i];
+      if(!id || !ITEMS[id]){ kit.push(null); continue; }
+      if(ITEMS[id].tier===0){ kit.push(id); }            // infinite: equip without consuming
+      else if(countOf(id)>0){ useOne(id); kit.push(id); } // finite: consume one to bring it
+      else { kit.push(null); }                            // none left: cannot bring this slot
+    }
+  }
+  g = {
+    stage:st, R:st.R, C:st.C, sol:st.sol, mode, stageKey,
+    player:newPlayerGrid(st.R,st.C),
+    rowClues:st.sol.map(row=>clueOf(row)),
+    colClues:[],
+    sel:{r:0,c:0}, brush:"select",
+    armed:null, hintActive:false, hintLeft:0, hintTimer:null,
+    kit, slotUsed:used,
+    firstClear: mode==="normal" && !save.cleared[st.id],
+  };
+  for(let c=0;c<st.C;c++){ const col=[]; for(let r=0;r<st.R;r++) col.push(st.sol[r][c]); g.colClues.push(clueOf(col)); }
+  // restore board + hint (resume only; never on restart/reroll)
+  if(!opts.kit && pr && pr.sid===st.id){
+    let i=0; const s=pr.grid||"";
+    for(let r=0;r<st.R;r++) for(let c=0;c<st.C;c++){ const ch=s.charCodeAt(i++); g.player[r][c]= ch===49?1:(ch===50?2:0); }
+    if(pr.hint>0){ g.hintActive=true; g.hintLeft=pr.hint; }
+  }
+  $("gameTitle").textContent = mode==="random" ? ("🎲 "+DIFFS[st._diff].name+" ランダム") : st.label;
+  buildBoard();
+  buildItemRow();
+  setBrush("select");
+  showScreen("game");
+  layoutBoard();
+  refreshAll();
+  if(g.hintActive) startHintTimer(true);
+  saveProgress();
+}
+function startRandom(diff){
+  const pr=save.progress["rand:"+diff];
+  if(pr && pr.sid && stagesById[pr.sid]){
+    const st=Object.assign({},stagesById[pr.sid]); st._diff=diff; startStage(st,"random"); return;
+  }
+  pickNewRandom(diff);
+}
+function pickNewRandom(diff, keepKit){
+  const arr=stagesByDiff[diff];
+  if(!arr.length){ toast("この難易度のステージがありません"); return; }
+  const st=Object.assign({},arr[Math.floor(Math.random()*arr.length)]); st._diff=diff;
+  delete save.progress["rand:"+diff];
+  startStage(st,"random", keepKit?{kit:keepKit}:undefined);
+}
+
+/* ----- board DOM ----- */
+let cellEls=[], rowClueEls=[], colClueEls=[];
+function buildBoard(){
+  const board=$("board"); board.innerHTML="";
+  const R=g.R,C=g.C;
+  let maxRC=1, maxCC=1;
+  g.rowClues.forEach(a=>{ maxRC=Math.max(maxRC,a.length||1); });
+  g.colClues.forEach(a=>{ maxCC=Math.max(maxCC,a.length||1); });
+  board.style.setProperty("--maxRC",maxRC);
+  board.style.setProperty("--maxCC",maxCC);
+
+  // top
+  const top=el("div","board-top");
+  top.appendChild(el("div","corner"));
+  const colWrap=el("div","col-clues"); colClueEls=[];
+  for(let c=0;c<C;c++){
+    const cc=el("div","col-clue"); const cl=g.colClues[c];
+    if(cl.length===0){ cc.appendChild(el("span","clue zero","0")); }
+    else cl.forEach(n=>cc.appendChild(el("span","clue",String(n))));
+    colWrap.appendChild(cc); colClueEls.push(cc);
+  }
+  top.appendChild(colWrap); board.appendChild(top);
+
+  // main
+  const main=el("div","board-main");
+  const rowWrap=el("div","row-clues"); rowClueEls=[];
+  for(let r=0;r<R;r++){
+    const rc=el("div","row-clue"); const cl=g.rowClues[r];
+    if(cl.length===0){ rc.appendChild(el("span","clue zero","0")); }
+    else cl.forEach(n=>rc.appendChild(el("span","clue",String(n))));
+    rowWrap.appendChild(rc); rowClueEls.push(rc);
+  }
+  main.appendChild(rowWrap);
+
+  const grid=el("div","grid"); grid.style.gridTemplateColumns="repeat("+C+",var(--cell))";
+  cellEls=[];
+  for(let r=0;r<R;r++){ const rowEls=[]; for(let c=0;c<C;c++){
+    const cell=el("div","cell"); 
+    if(c%5===0 && c>0) cell.classList.add("ml");
+    if(r%5===0 && r>0) cell.classList.add("mt");
+    cell.dataset.r=r; cell.dataset.c=c;
+    grid.appendChild(cell); rowEls.push(cell);
+  } cellEls.push(rowEls); }
+  grid.onclick=onGridClick;
+  main.appendChild(grid); board.appendChild(main);
+}
+
+function layoutBoard(){
+  if(!g) return;
+  const area=$("boardArea");
+  const availW=area.clientWidth-24, availH=area.clientHeight-24;
+  let maxRC=1,maxCC=1;
+  g.rowClues.forEach(a=>maxRC=Math.max(maxRC,a.length||1));
+  g.colClues.forEach(a=>maxCC=Math.max(maxCC,a.length||1));
+  const cw=availW/(NUMF*maxRC + g.C);
+  const ch=availH/(NUMF*maxCC + g.R);
+  let cell=Math.floor(Math.min(cw,ch));
+  cell=Math.max(11,Math.min(40,cell));
+  $("board").style.setProperty("--cell",cell+"px");
+}
+
+/* ----- rendering cells ----- */
+function paintCell(r,c){
+  const cell=cellEls[r][c]; const v=g.player[r][c];
+  cell.classList.toggle("fill",v===1);
+  cell.classList.toggle("cross",v===2);
+}
+function refreshSelection(){
+  // clear old
+  document.querySelectorAll(".cell.sel,.cell.rowhl,.cell.colhl,.cell.preview").forEach(e=>e.classList.remove("sel","rowhl","colhl","preview"));
+  const {r,c}=g.sel;
+  for(let i=0;i<g.C;i++) cellEls[r][i].classList.add("rowhl");
+  for(let i=0;i<g.R;i++) cellEls[i][c].classList.add("colhl");
+  cellEls[r][c].classList.add("sel");
+  $("padC").textContent=(r+1)+","+(c+1);
+  refreshPreview();
+}
+function refreshPreview(){
+  document.querySelectorAll(".cell.preview").forEach(e=>e.classList.remove("preview"));
+  if(g.armed){ const it=ITEMS[g.armed.id]; if(it.cat==="bomb"){
+    const cells=bombCells(it.p.shape,it.p,g.sel.r,g.sel.c,g.R,g.C);
+    cells.forEach(([r,c])=>cellEls[r][c].classList.add("preview"));
+  } }
+}
+function refreshLine(r,c){
+  // row r
+  if(r>=0){ const marks=g.player[r]; const clue=g.rowClues[r];
+    const runs=runsOfMarks(marks); const done=arrEq(runs,clue);
+    const div=rowClueEls[r]; div.classList.toggle("done",done);
+    div.classList.remove("blue","red");
+    if(g.hintActive && !done){ const hl=lineHL(marks,clue); if(hl===1) div.classList.add("blue"); else if(hl===2) div.classList.add("red"); }
+  }
+  if(c>=0){ const marks=[]; for(let r2=0;r2<g.R;r2++) marks.push(g.player[r2][c]); const clue=g.colClues[c];
+    const runs=runsOfMarks(marks); const done=arrEq(runs,clue);
+    const div=colClueEls[c]; div.classList.toggle("done",done);
+    div.classList.remove("blue","red");
+    if(g.hintActive && !done){ const hl=lineHL(marks,clue); if(hl===1) div.classList.add("blue"); else if(hl===2) div.classList.add("red"); }
+  }
+}
+function refreshAllLines(){ for(let r=0;r<g.R;r++) refreshLine(r,-1); for(let c=0;c<g.C;c++) refreshLine(-1,c); }
+function refreshAll(){
+  for(let r=0;r<g.R;r++) for(let c=0;c<g.C;c++) paintCell(r,c);
+  refreshAllLines();
+  refreshSelection();
+}
+
+/* ----- interaction ----- */
+function onGridClick(e){
+  const t=e.target.closest(".cell"); if(!t) return;
+  const r=+t.dataset.r, c=+t.dataset.c;
+  if(g.armed){ g.sel={r,c}; refreshSelection(); return; } // re-aim only
+  g.sel={r,c};
+  if(g.brush==="fill") toggleFill(r,c);
+  else if(g.brush==="cross") toggleCross(r,c);
+  refreshSelection();
+}
+function moveSel(dr,dc){
+  g.sel.r=Math.max(0,Math.min(g.R-1,g.sel.r+dr));
+  g.sel.c=Math.max(0,Math.min(g.C-1,g.sel.c+dc));
+  refreshSelection();
+}
+function toggleFill(r,c){
+  g.player[r][c] = (g.player[r][c]===1)?0:1;
+  afterChange([r],[c]);
+}
+function toggleCross(r,c){
+  g.player[r][c] = (g.player[r][c]===2)?0:2;
+  afterChange([r],[c]);
+}
+function afterChange(rows,cols){
+  rows.forEach(r=>paintCellRow(r)); cols.forEach(c=>paintCellCol(c));
+  const rs=new Set(rows), cs=new Set(cols);
+  rs.forEach(r=>refreshLine(r,-1)); cs.forEach(c=>refreshLine(-1,c));
+  saveProgress();
+  checkWin();
+}
+function paintCellRow(r){ for(let c=0;c<g.C;c++) paintCell(r,c); }
+function paintCellCol(c){ for(let r=0;r<g.R;r++) paintCell(r,c); }
+
+function setBrush(mode){
+  g.brush=mode;
+  // header brush toggle reflects state if present
+}
+/* ----- items in game ----- */
+function buildItemRow(){
+  const row=$("itemRow"); row.innerHTML="";
+  for(let i=0;i<4;i++){
+    const id=g.kit[i];
+    const used=g.slotUsed[i];
+    const s=el("div","islot"+(id?"":" empty")+(used?" used":""));
+    if(id){
+      const it=ITEMS[id];
+      s.appendChild(el("div","g",it.g));
+      s.appendChild(el("div","n",it.name));
+      s.appendChild(el("div","cnt", used?"使用済":"1回"));
+      s.dataset.slot=i;
+      s.onclick=()=>armItem(i);
+    } else {
+      s.appendChild(el("div","g","–"));
+    }
+    row.appendChild(s);
+  }
+  reflectArmed();
+}
+function armItem(slot){
+  const id=g.kit[slot]; if(!id) return;
+  if(g.slotUsed[slot]){ toast("このアイテムは使用済みです"); return; }
+  if(g.armed && g.armed.slot===slot){ useArmed(); return; } // tap again = use
+  g.armed={slot,id};
+  reflectArmed(); refreshPreview();
+}
+function cancelArm(){ g.armed=null; reflectArmed(); refreshPreview(); }
+function reflectArmed(){
+  document.querySelectorAll(".islot").forEach(e=>e.classList.remove("armed"));
+  const panel=$("armedPanel");
+  if(g.armed){
+    const slotEl=document.querySelector('.islot[data-slot="'+g.armed.slot+'"]');
+    if(slotEl) slotEl.classList.add("armed");
+    const it=ITEMS[g.armed.id];
+    $("armedG").textContent=it.g; $("armedN").textContent=it.name; $("armedD").textContent=itemDesc(g.armed.id);
+    panel.classList.add("on");
+  } else panel.classList.remove("on");
+}
+function useArmed(){
+  if(!g.armed) return;
+  const slot=g.armed.slot, id=g.armed.id, it=ITEMS[id];
+  if(g.slotUsed[slot]){ toast("使用済みです"); cancelArm(); return; }
+  let spend=true;
+  if(it.cat==="bomb"){
+    const cells=bombCells(it.p.shape,it.p,g.sel.r,g.sel.c,g.R,g.C);
+    const rows=new Set(), cols=new Set();
+    cells.forEach(([r,c])=>{ g.player[r][c]= g.sol[r][c]===1?1:2; rows.add(r); cols.add(c); });
+    afterChange([...rows],[...cols]);
+    toast(it.name+" 発動");
+  } else if(it.p.sub==="hint"){
+    g.hintActive=true; g.hintLeft += it.p.dur; // stack duration
+    startHintTimer(false);
+    refreshAllLines();
+    toast("ヒント "+it.p.dur+"秒");
+  } else if(it.p.sub==="scan"){
+    let fixed=0; const rows=new Set(), cols=new Set();
+    outer:
+    for(let r=0;r<g.R;r++) for(let c=0;c<g.C;c++){
+      const pv=g.player[r][c], sv=g.sol[r][c];
+      if(pv===1 && sv===0){ g.player[r][c]=2; fixed++; rows.add(r); cols.add(c); }
+      else if(pv===2 && sv===1){ g.player[r][c]=1; fixed++; rows.add(r); cols.add(c); }
+      if(fixed>=it.p.fix) break outer;
+    }
+    if(fixed>0){ afterChange([...rows],[...cols]); toast(fixed+"マス修正しました"); }
+    else { toast("間違いはありません"); spend=false; } // nothing to fix -> not consumed
+  }
+  if(spend) g.slotUsed[slot]=true;
+  buildItemRow();
+  cancelArm();
+  saveProgress();
+}
+
+/* ----- hint timer ----- */
+function startHintTimer(resuming){
+  $("hintPill").classList.add("on"); $("hintTime").textContent=Math.ceil(g.hintLeft);
+  if(g.hintTimer) clearInterval(g.hintTimer);
+  g.hintTimer=setInterval(()=>{
+    g.hintLeft-=1;
+    if(g.hintLeft<=0){ stopHint(); return; }
+    $("hintTime").textContent=Math.ceil(g.hintLeft);
+    saveProgressThrottled();
+  },1000);
+}
+function stopHint(){
+  g.hintActive=false; g.hintLeft=0;
+  if(g.hintTimer){ clearInterval(g.hintTimer); g.hintTimer=null; }
+  $("hintPill").classList.remove("on");
+  refreshAllLines();
+  saveProgress();
+}
+let hintSaveT=0;
+function saveProgressThrottled(){ const now=Date.now(); if(now-hintSaveT>4000){ hintSaveT=now; saveProgress(); } }
+
+/* ----- progress persistence ----- */
+function gridToStr(){ let s=""; for(let r=0;r<g.R;r++) for(let c=0;c<g.C;c++) s+= g.player[r][c]; return s; }
+function saveProgress(){
+  if(!g) return;
+  const str=gridToStr();
+  save.progress[g.stageKey]={ sid:g.stage.id, mode:g.mode, grid:str,
+    hint: g.hintActive?Math.ceil(g.hintLeft):0,
+    kit: g.kit.slice(), used: g.slotUsed.slice() };
+  saveSoon();
+}
+function clearProgress(){ if(g) delete save.progress[g.stageKey]; }
+
+/* ----- win ----- */
+function isWin(){ for(let r=0;r<g.R;r++) for(let c=0;c<g.C;c++){ if((g.player[r][c]===1)!==(g.sol[r][c]===1)) return false; } return true; }
+function checkWin(){ if(isWin()) onWin(); }
+function onWin(){
+  if(g.hintTimer){ clearInterval(g.hintTimer); g.hintTimer=null; } $("hintPill").classList.remove("on");
+  clearProgress();
+  let dropId=null;
+  const diff=g.mode==="random"? g.stage._diff : g.stage.diff;
+  if(g.mode==="normal"){
+    if(g.firstClear){ save.cleared[g.stage.id]=true; dropId=rollDrop(diff); addItem(dropId); }
+  } else { dropId=rollDrop(diff); addItem(dropId); }
+  saveNow();
+  showResult(dropId);
+}
+function showResult(dropId){
+  // reveal canvas
+  const cv=$("revealCanvas"); const R=g.R,C=g.C; const scale=Math.max(4,Math.min(14,Math.floor(240/Math.max(R,C))));
+  cv.width=C*scale; cv.height=R*scale; const ctx=cv.getContext("2d");
+  ctx.fillStyle="#f5f6fb"; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.fillStyle="#2b3148";
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){ if(g.sol[r][c]) ctx.fillRect(c*scale,r*scale,scale,scale); }
+  $("resultSub").textContent = g.mode==="random" ? (DIFFS[g.stage._diff].name+" ランダム") : g.stage.label;
+
+  // drop box
+  const box=$("dropBox"); box.innerHTML="";
+  if(dropId){
+    const it=ITEMS[dropId];
+    const d=el("div","drop"); d.appendChild(el("div","dg",it.g));
+    const info=el("div"); info.appendChild(el("div","dl","アイテム獲得！")); info.appendChild(el("div","dn",it.name));
+    d.appendChild(info); box.appendChild(d);
+  } else {
+    const why = g.mode==="random" ? "ランダムモードのためクリア記録なし" : "クリア済みのためアイテムなし";
+    box.appendChild(Object.assign(el("div","drop none"),{textContent:why}));
+  }
+
+  // actions
+  const act=$("resultActions"); act.innerHTML="";
+  if(g.mode==="random"){
+    const b1=el("button","btn primary","別のランダム"); b1.onclick=()=>{ closeOverlay("ovResult"); pickNewRandom(g.stage._diff); };
+    act.appendChild(b1);
+  } else {
+    const next=stagesByDiff[g.stage.diff].find(s=>s.num===g.stage.num+1);
+    if(next){ const b1=el("button","btn primary","次のステージ"); b1.onclick=()=>{ closeOverlay("ovResult"); startStage(next,"normal"); }; act.appendChild(b1); }
+    const b2=el("button","btn ghost","もう一度"); b2.onclick=()=>{ closeOverlay("ovResult"); startStage(g.stage,"normal"); };
+    act.appendChild(b2); 
+  }
+  const b3=el("button","btn","ステージ選択へ"); b3.onclick=()=>{ closeOverlay("ovResult"); goSelect(); };
+  act.appendChild(b3);
+
+  openOverlay("ovResult");
+}
+
+/* ----- restart ----- */
+function restartStage(){
+  askConfirm("やり直す", g.mode==="random"?"別のステージを引き直しますか？":"このステージを最初からやり直しますか？", ()=>{
+    if(g.hintTimer){ clearInterval(g.hintTimer); g.hintTimer=null; }
+    const keptKit=g.kit.slice();
+    clearProgress();
+    if(g.mode==="random"){ pickNewRandom(g.stage._diff, keptKit); }
+    else { startStage(g.stage,"normal",{kit:keptKit}); }
+  });
+}
+
+/* ============================ SCREENS ============================ */
+function showScreen(name){
+  $("screen-select").classList.toggle("active",name==="select");
+  $("screen-game").classList.toggle("active",name==="game");
+}
+function goSelect(){
+  if(g && g.hintTimer){ clearInterval(g.hintTimer); g.hintTimer=null; }
+  saveNow();
+  g=null;
+  renderTabs(); renderCards(); renderLoadout(); renderClearedCount();
+  showScreen("select");
+}
+
+/* ============================ UPLOADS ============================ */
+async function handleFiles(files){
+  let added=0;
+  for(const f of files){
+    if(!f.type.startsWith("image/")) continue;
+    const dataUrl=await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>res(null); fr.readAsDataURL(f); });
+    if(!dataUrl) continue;
+    const im=await loadImg(dataUrl); if(!im) continue;
+    const bin=binarizeImage(im); if(!bin){ continue; }
+    const cells=cellsString(bin.sol); const id="h"+hash32(cells);
+    if(stagesById[id] || (save.uploads||[]).some(u=>("h"+hash32(u.s))===id)){ continue; }
+    save.uploads.push({id, name:f.name||"upload", R:bin.R, C:bin.C, s:cells});
+    added++;
+  }
+  if(added){ saveNow(); folderRebuild(); toast(added+"件のステージを追加しました"); }
+  else toast("追加できる2値化画像がありませんでした");
+}
+function folderRebuild(){ rebuildStages(); renderTabs(); renderCards(); renderClearedCount(); }
+
+/* ============================ EVENTS ============================ */
+function bindEvents(){
+  // select
+  $("btnAdd").onclick=()=>$("fileInput").click();
+  $("fileInput").onchange=e=>{ const fs=e.target.files; if(fs&&fs.length) handleFiles(fs); e.target.value=""; };
+  $("btnHelp").onclick=()=>openOverlay("ovHelp");
+  $("helpClose").onclick=()=>closeOverlay("ovHelp");
+  $("btnReset").onclick=()=>{ askConfirm("データ初期化","クリア状況・アイテム・進捗・追加画像をすべて削除します。よろしいですか？",()=>{
+    save=defaultSave(); saveNow(); seedIfNeeded(); folderRaw=[]; folderRebuild(); renderLoadout(); closeOverlay("ovHelp");
+    // reload folder
+    loadFolderAsync(); toast("初期化しました"); }); };
+  $("pickClose").onclick=()=>closeOverlay("ovPick");
+  $("pickRemove").onclick=()=>{ save.loadout[pickSlot]=undefined; save.loadout=save.loadout.filter(x=>x!==undefined); saveNow(); renderLoadout(); closeOverlay("ovPick"); };
+
+  // confirm
+  $("cfCancel").onclick=()=>{ closeOverlay("ovConfirm"); confirmCb=null; };
+  $("cfOk").onclick=()=>{ closeOverlay("ovConfirm"); const cb=confirmCb; confirmCb=null; if(cb) cb(); };
+
+  // game header
+  $("btnBack").onclick=goSelect;
+  $("btnRestart").onclick=restartStage;
+
+  // dpad
+  $("padU").onclick=()=>moveSel(-1,0);
+  $("padD").onclick=()=>moveSel(1,0);
+  $("padL").onclick=()=>moveSel(0,-1);
+  $("padR").onclick=()=>moveSel(0,1);
+
+  // actions
+  $("btnFill").onclick=()=>{ if(g.armed){ toast("アイテムを発動またはキャンセルしてください"); return; } toggleFill(g.sel.r,g.sel.c); };
+  $("btnCross").onclick=()=>{ if(g.armed){ toast("アイテムを発動またはキャンセルしてください"); return; } toggleCross(g.sel.r,g.sel.c); };
+  $("btnUse").onclick=useArmed;
+  $("btnCancelArm").onclick=cancelArm;
+
+  // overlay backdrop close (tap outside sheet)
+  ["ovPick","ovHelp"].forEach(idv=>{ $(idv).addEventListener("click",e=>{ if(e.target.id===idv) closeOverlay(idv); }); });
+
+  // keyboard (PC)
+  document.addEventListener("keydown",e=>{
+    if(!$("screen-game").classList.contains("active") || !g) return;
+    if($("ovResult").classList.contains("on")||$("ovConfirm").classList.contains("on")) return;
+    let handled=true;
+    switch(e.key){
+      case "ArrowUp": moveSel(-1,0); break;
+      case "ArrowDown": moveSel(1,0); break;
+      case "ArrowLeft": moveSel(0,-1); break;
+      case "ArrowRight": moveSel(0,1); break;
+      case " ": case "Enter":
+        if(document.activeElement && document.activeElement.tagName==="BUTTON"){ handled=false; break; }
+        if(!g.armed) toggleFill(g.sel.r,g.sel.c); else useArmed();
+        break;
+      case "x": case "X": case "Delete": case "Backspace": if(!g.armed) toggleCross(g.sel.r,g.sel.c); break;
+      case "Escape": if(g.armed) cancelArm(); break;
+      default: handled=false;
+    }
+    if(handled) e.preventDefault();
+  });
+
+  // resize
+  let rt=null;
+  window.addEventListener("resize",()=>{ if(rt) clearTimeout(rt); rt=setTimeout(()=>{ if(g) layoutBoard(); },120); });
+  window.addEventListener("orientationchange",()=>{ setTimeout(()=>{ if(g) layoutBoard(); },300); });
+
+  // save on hide
+  document.addEventListener("visibilitychange",()=>{ if(document.hidden) saveNow(); });
+}
+
+/* ============================ INIT ============================ */
+function loadFolderAsync(){
+  folderRaw=[]; folderLoaded=false;
+  $("loadingNote").style.display="block"; $("loadingNote").textContent="images フォルダを確認中…";
+  loadFolderStages(found=>{
+    folderRaw.push(found);
+    rebuildStages();
+    if($("screen-select").classList.contains("active")){ renderTabs(); renderCards(); renderClearedCount(); }
+  }).then(()=>{
+    folderLoaded=true;
+    $("loadingNote").style.display = folderRaw.length? "none":"none";
+    rebuildStages();
+    if($("screen-select").classList.contains("active")){ renderTabs(); renderCards(); renderClearedCount(); }
+  }).catch(()=>{ $("loadingNote").style.display="none"; });
+}
+
+function init(){
+  loadSave(); seedIfNeeded();
+  rebuildStages();
+  bindEvents();
+  renderTabs(); renderCards(); renderLoadout(); renderClearedCount();
+  showScreen("select");
+  loadFolderAsync();
+}
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init); else init();
+})();
+</script>
+</body>
+</html>
