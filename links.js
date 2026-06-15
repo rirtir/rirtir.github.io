@@ -265,6 +265,13 @@ const data = [
                 tags: ["画像", "SVG"],
                 main: true,
             },
+            {
+                title: "Dottorie",
+                url: "https://amix-design.com/asoboad/tools/d-dottorie/",
+                desc: "ブラウザでドット絵が作れる",
+                tags: ["画像", "ドット絵", "ピクセルアート"],
+                main: true,
+            },
         ]
     }
 ]

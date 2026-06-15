@@ -26,22 +26,34 @@
       <span class="sub">レイヤー画像エディタ</span>
     </div>
     <div class="spacer"></div>
-    <button class="btn" id="btnOpen">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-      <span class="lbl">画像を開く</span>
+
+    <!-- プレビュー拡大時の補間切り替え（直置き・ワンタップ） -->
+    <button class="btn" id="btnInterp" title="プレビュー拡大時の補間方法（なめらか / ピクセル）を切り替えます">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+      <b class="interp-label" id="interpLabel">なめらか</b>
     </button>
+
+    <!-- 元画像と比較（直置き・押している間だけ表示） -->
     <button class="btn" id="btnCompare" disabled
       title="押している間だけ元画像を表示">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 12 19 8M12 12 19 16" opacity=".5"/></svg>
       <span class="lbl">比較</span>
     </button>
-    <button class="btn ghost" id="btnClear" disabled>
-      <span class="lbl">すべて削除</span>
-    </button>
-    <button class="btn primary" id="btnSave" disabled>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 20h14a2 2 0 0 0 2-2V8l-5-5H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M8 20v-7h8v7M8 3v4h6"/></svg>
-      <span class="lbl">書き出す</span>
-    </button>
+
+    <!-- メニュー（画像の読み込み・書き出し・削除をまとめる） -->
+    <div class="menu-wrap">
+      <button class="btn" id="btnMenu" aria-haspopup="true" aria-expanded="false" title="メニュー">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        <span class="lbl">メニュー</span>
+      </button>
+      <div class="menu-dropdown hidden" id="menuDropdown" role="menu">
+        <button class="menu-item" id="btnOpen" role="menuitem">画像を開く…</button>
+        <button class="menu-item" id="btnSave" role="menuitem" disabled>PNG で書き出す</button>
+        <div class="menu-sep"></div>
+        <button class="menu-item danger" id="btnClear" role="menuitem" disabled>すべてのレイヤーを削除</button>
+      </div>
+    </div>
+
     <input type="file" id="fileInput" accept="image/*" class="hidden">
   </header>
 

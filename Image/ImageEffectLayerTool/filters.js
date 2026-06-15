@@ -52,6 +52,7 @@ const FILTERS = {
   superres:  { name:"超解像",       cat:"res",     min:0,  max:100, step:1,   def:55,  neutral:0,   fmt:v=>v+"%", special:true, scales:[1.5,2,3,4], defScale:2, resolution:true, unique:true },
   resize:    { name:"リサイズ",     cat:"res",     special:true, resolution:true },
   invert:    { name:"色反転",       cat:"stylize", min:0,  max:100, step:1,   def:100, neutral:0,   fmt:v=>v+"%" },
+  binarize:  { name:"2値化",        cat:"stylize", min:0,  max:255, step:1,   def:128, neutral:-1,  fmt:v=>v+"" },
 };
 
 /* ---------- layer factory ---------- */
@@ -100,23 +101,34 @@ function layerInputSize(targetLayer){
   return size;
 }
 function scaleTarget(w,h,scale){
-  const longest = Math.max(w,h) || 1;
-  let s = scale, clamped = false;
-  if(longest * s > MAX_OUT){
-    s = Math.max(1 / longest, MAX_OUT / longest);
-    clamped = true;
-  }
-  return { w:Math.max(1, Math.round(w*s)), h:Math.max(1, Math.round(h*s)), s, clamped };
+  const s = scale || 1;
+  // 実寸の出力サイズはここで上限を設けない（書き出しは指定どおりの解像度にする）。
+  return { w:Math.max(1, Math.round(w*s)), h:Math.max(1, Math.round(h*s)), s, clamped:false };
 }
 function resizeTarget(layer, inputW, inputH){
   if(layer.mode !== "custom"){
     const def = RESIZE_SCALES.find(x=>x.key === layer.mode) || RESIZE_SCALES[1];
     const t = scaleTarget(inputW, inputH, def.factor || 1);
-    return { w:t.w, h:t.h, clamped:t.clamped };
+    return { w:t.w, h:t.h, clamped:false };
   }
-  const w = clampInt(layer.width || inputW, 1, MAX_OUT);
-  const h = clampInt(layer.height || inputH, 1, MAX_OUT);
+  const w = clampInt(layer.width || inputW, 1, HARD_MAX);
+  const h = clampInt(layer.height || inputH, 1, HARD_MAX);
   return { w, h, clamped:false };
+}
+/* ---------- 実際の出力解像度（全レイヤー適用後の実寸） ---------- */
+function outputDimensions(){
+  let size = baseDimensions();
+  for(const l of layers){
+    if(!l.enabled) continue;
+    if(l.type === "superres"){
+      const t = scaleTarget(size.w, size.h, l.scale || 1);
+      size = { w:t.w, h:t.h };
+    } else if(l.type === "resize"){
+      const t = resizeTarget(l, size.w, size.h);
+      size = { w:t.w, h:t.h };
+    }
+  }
+  return size;
 }
 function updateResizeFromMode(layer, mode){
   layer.mode = mode;
@@ -158,7 +170,7 @@ function layerBodyHTML(layer){
       </div>
       ${sliderHTML(f, layer.value, "ディテール")}
       <div class="sr-out mono">${t
-        ? `出力解像度: ${t.w} × ${t.h} px${t.clamped ? "(上限 "+MAX_OUT+"px に調整)" : ""}`
+        ? `出力解像度: ${t.w} × ${t.h} px`
         : "画像を開くと出力解像度が表示されます"}</div>
     </div>`;
   }
@@ -171,8 +183,8 @@ function layerBodyHTML(layer){
         ${RESIZE_SCALES.map(s=>`<button class="scale-btn ${layer.mode===s.key?'on':''}" data-mode="${s.key}">${s.label}</button>`).join("")}
       </div>
       <div class="resize-size-row">
-        <label class="size-box"><span>X</span><input class="num-input resize-w" type="number" min="1" max="${MAX_OUT}" step="1" inputmode="numeric" value="${layer.width || ''}"></label>
-        <label class="size-box"><span>Y</span><input class="num-input resize-h" type="number" min="1" max="${MAX_OUT}" step="1" inputmode="numeric" value="${layer.height || ''}"></label>
+        <label class="size-box"><span>X</span><input class="num-input resize-w" type="number" min="1" max="${HARD_MAX}" step="1" inputmode="numeric" value="${layer.width || ''}"></label>
+        <label class="size-box"><span>Y</span><input class="num-input resize-h" type="number" min="1" max="${HARD_MAX}" step="1" inputmode="numeric" value="${layer.height || ''}"></label>
       </div>
       <div class="quality-row" role="group" aria-label="リサイズ品質">
         ${Object.entries(QUALITY_LABELS).map(([key,label])=>`<button class="quality-btn ${layer.quality===key?'on':''}" data-q="${key}">品質：${label}</button>`).join("")}
@@ -244,8 +256,8 @@ function wireBody(card, layer){
     const hInput = card.querySelector(".resize-h");
     const onSizeInput = ()=>{
       layer.mode = "custom";
-      layer.width = clampInt(wInput.value, 1, MAX_OUT);
-      layer.height = clampInt(hInput.value, 1, MAX_OUT);
+      layer.width = clampInt(wInput.value, 1, HARD_MAX);
+      layer.height = clampInt(hInput.value, 1, HARD_MAX);
       renderStack();
       scheduleRender();
     };
@@ -296,43 +308,51 @@ function wireParam(card, selector, layer, prop, fmt){
   });
 }
 
-/* ---------- image processing pipeline ---------- */
-function renderPipeline(showOriginal=false){
-  let cur = getBaseCanvas();
+/* ---------- image processing pipeline ----------
+   mode="preview": 表示用。各段を PREVIEW_MAX で抑え、巨大な中間キャンバスを作らない。
+   mode="export" : 書き出し用。実寸のまま処理し、上限を設けない（失敗時は app 側で通知）。 */
+function renderPipeline(showOriginal=false, mode="preview"){
+  const cap = mode === "export" ? Infinity : PREVIEW_MAX;
+  let cur = getBaseCanvas(mode);
   if(showOriginal) return cur;
 
   for(const layer of layers){
     if(!layer.enabled) continue;
     switch(layer.type){
-      case "superres": cur = applySuperResolution(cur, layer); break;
-      case "resize": cur = applyResize(cur, layer); break;
+      case "superres": cur = applySuperResolution(cur, layer, mode); break;
+      case "resize": cur = applyResize(cur, layer, mode); break;
       case "blur": cur = applyBlur(cur, layer.value); break;
       case "bias": cur = applyBiasCorrection(cur, layer); break;
       case "quantize": cur = applyQuantize(cur, layer.value); break;
       default: cur = applyPixelFilter(cur, layer); break;
     }
-    cur = pixelLimitCanvas(cur);
+    cur = pixelLimitCanvas(cur, cap);
   }
   return cur;
 }
 
-function applyResize(src, layer){
-  const t = resizeTarget(layer, src.width, src.height);
-  if(t.clamped) toast(`リサイズ後の最大辺を ${MAX_OUT}px に調整しました`);
-  return drawImageToCanvas(src, t.w, t.h, layer.quality || "medium");
+function applyResize(src, layer, mode="preview"){
+  // 出力サイズは常に「実寸」で決め、プレビューのときだけ PREVIEW_MAX に収める。
+  const trueIn = layerInputSize(layer);
+  const t = resizeTarget(layer, trueIn.w, trueIn.h);
+  let w = t.w, h = t.h;
+  if(mode !== "export"){ const c = capDim(w, h, PREVIEW_MAX); w = c.w; h = c.h; }
+  return drawImageToCanvas(src, w, h, layer.quality || "medium");
 }
 
-function applySuperResolution(src, layer){
-  const t = scaleTarget(src.width, src.height, layer.scale || 1);
-  if(t.clamped) toast(`超解像の最大辺を ${MAX_OUT}px に調整しました`);
+function applySuperResolution(src, layer, mode="preview"){
+  const trueIn = layerInputSize(layer);
+  const tt = scaleTarget(trueIn.w, trueIn.h, layer.scale || 1);
+  let targetW = tt.w, targetH = tt.h;
+  if(mode !== "export"){ const c = capDim(targetW, targetH, PREVIEW_MAX); targetW = c.w; targetH = c.h; }
 
   let cur = src;
   let cw = src.width, ch = src.height;
-  while(cw * 2 <= t.w && ch * 2 <= t.h){
+  while(cw * 2 <= targetW && ch * 2 <= targetH){
     cur = drawImageToCanvas(cur, cw*2, ch*2, "high");
     cw = cur.width; ch = cur.height;
   }
-  cur = drawImageToCanvas(cur, t.w, t.h, "high");
+  cur = drawImageToCanvas(cur, targetW, targetH, "high");
   if((layer.value || 0) > 0.5) cur = applySharpen(cur, (layer.value/100) * 1.1);
   return cur;
 }
@@ -385,6 +405,10 @@ function applyPixelFilter(src, layer){
     } else if(type === "invert"){
       const m = v/100;
       r = r*(1-m) + (255-r)*m; g = g*(1-m) + (255-g)*m; b = b*(1-m) + (255-b)*m;
+    } else if(type === "binarize"){
+      const lum = 0.2126*r + 0.7152*g + 0.0722*b;
+      const bw = lum >= v ? 255 : 0;
+      r = g = b = bw;
     }
     d[i]=clamp(r); d[i+1]=clamp(g); d[i+2]=clamp(b); d[i+3]=clamp(a);
   }
@@ -545,6 +569,7 @@ window.PRISM_FILTERS = {
   makeLayer,
   onLayerAdded,
   layerInputSize,
+  outputDimensions,
   scaleTarget,
   resizeTarget,
   updateResizeFromMode,

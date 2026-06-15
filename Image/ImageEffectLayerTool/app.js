@@ -16,8 +16,11 @@
 
 /* ---------- runtime guards ---------- */
 const IS_COARSE = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-const MAX_SIDE = IS_COARSE ? 1600 : 2000;    // 通常プレビューの最大辺
-const MAX_OUT  = IS_COARSE ? 3500 : 6000;    // 解像度系フィルタ後の最大辺
+// プレビュー表示専用の最大辺。性能のためプレビューだけ常にここまで縮小する。
+// 実際の出力（書き出し・リサイズ・超解像）はこの値に縛られない。
+const PREVIEW_MAX = IS_COARSE ? 2600 : 3500;
+// 出力時の安全上限（ブラウザ／メモリ限界の目安）。これを超えると書き出しに失敗しうる。
+const HARD_MAX = 16384;
 const MAX_PIXELS_NOTICE = IS_COARSE ? 9000000 : 18000000;
 
 window.addEventListener("error", e=>{
@@ -52,7 +55,7 @@ const fileInput = $("fileInput");
 
 /* ---------- small utilities ---------- */
 function clamp(v, min=0, max=255){ return v < min ? min : (v > max ? max : v); }
-function clampInt(v, min=1, max=MAX_OUT){
+function clampInt(v, min=1, max=HARD_MAX){
   v = Math.round(Number(v));
   if(!Number.isFinite(v)) return min;
   return Math.max(min, Math.min(max, v));
@@ -78,11 +81,20 @@ function hexToRgb(hex){
   const n = parseInt(m[1],16);
   return [(n>>16)&255, (n>>8)&255, n&255];
 }
-function pixelLimitCanvas(src){
+// 縦横比を保ったまま、最長辺が cap 以下になるようサイズを丸めて返す。
+function capDim(w, h, cap){
+  w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
+  const longest = Math.max(w, h);
+  if(!Number.isFinite(cap) || longest <= cap) return { w, h };
+  const s = cap / longest;
+  return { w:Math.max(1, Math.round(w*s)), h:Math.max(1, Math.round(h*s)) };
+}
+// 与えられた cap で最長辺を抑える。cap=Infinity（書き出し時）なら無加工で返す。
+function pixelLimitCanvas(src, cap){
+  if(!Number.isFinite(cap)) return src;
   const longest = Math.max(src.width, src.height);
-  if(longest <= MAX_OUT) return src;
-  const s = MAX_OUT / longest;
-  toast(`出力が上限 ${MAX_OUT}px を超えるため自動調整しました`);
+  if(longest <= cap) return src;
+  const s = cap / longest;
   return drawImageToCanvas(src, Math.round(src.width*s), Math.round(src.height*s), "high");
 }
 function stagePoint(clientX, clientY){
@@ -149,22 +161,18 @@ function clearAll(){
   layers = []; renderStack(); scheduleRender();
 }
 
-/* ---------- base dimensions（プレビューの基準サイズ） ---------- */
+/* ---------- base dimensions ----------
+   ここは常に「実寸（元画像の解像度）」を返す。プレビュー用の縮小は
+   getBaseCanvas("preview") 側だけで行い、書き出しや解像度計算には影響させない。 */
 function baseDimensions(){
   if(!sourceReady) return { w:0, h:0 };
-  let w = img.naturalWidth, h = img.naturalHeight;
-  const fm = window.PRISM_FILTERS;
-  const hasResolutionLayer = !!fm && layers.some(l=>l.enabled && fm.FILTERS[l.type] && fm.FILTERS[l.type].resolution);
-  if(!hasResolutionLayer && Math.max(w,h) > MAX_SIDE){
-    const s = MAX_SIDE / Math.max(w,h);
-    w = Math.round(w*s); h = Math.round(h*s);
-  }
-  return { w, h };
+  return { w: img.naturalWidth, h: img.naturalHeight };
 }
 
-function getBaseCanvas(){
+function getBaseCanvas(mode="preview"){
   const b = baseDimensions();
-  return drawImageToCanvas(img, b.w, b.h, "high");
+  const size = mode === "export" ? b : capDim(b.w, b.h, PREVIEW_MAX);
+  return drawImageToCanvas(img, size.w, size.h, "high");
 }
 
 /* ---------- render the stack list（カードの枠は app、本体UIは filters） ---------- */
@@ -275,22 +283,34 @@ function scheduleRender(){
 function render(showOriginal=false){
   if(!sourceReady) return;
   const fm = window.PRISM_FILTERS;
-  const out = (fm && fm.renderPipeline) ? fm.renderPipeline(showOriginal) : getBaseCanvas();
+  const out = (fm && fm.renderPipeline) ? fm.renderPipeline(showOriginal, "preview") : getBaseCanvas("preview");
   if(canvas.width!==out.width || canvas.height!==out.height){ canvas.width=out.width; canvas.height=out.height; }
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.drawImage(out, 0, 0);
 
-  const finalW = out.width, finalH = out.height;
   const baseW = img.naturalWidth, baseH = img.naturalHeight;
-  if(!showOriginal && (finalW !== baseW || finalH !== baseH)){
-    const ratio = Math.round((finalW / baseW) * 100) / 100;
-    stageTag.textContent = `${baseW} × ${baseH} → ${finalW} × ${finalH} px (×${ratio})`;
-  } else {
+  if(showOriginal){
     stageTag.textContent = `${baseW} × ${baseH} px`;
+    return;
   }
 
-  if(out.width * out.height > MAX_PIXELS_NOTICE){
-    console.warn("Large canvas:", out.width, out.height);
+  // タグには「実際の出力解像度」を表示する（プレビューの縮小サイズではなく）。
+  const od = (fm && fm.outputDimensions) ? fm.outputDimensions() : { w:baseW, h:baseH };
+  let tag;
+  if(od.w !== baseW || od.h !== baseH){
+    const ratio = Math.round((od.w / baseW) * 100) / 100;
+    tag = `${baseW} × ${baseH} → ${od.w} × ${od.h} px (×${ratio})`;
+  } else {
+    tag = `${baseW} × ${baseH} px`;
+  }
+  // プレビューが実寸より縮小表示されている場合だけ注記する。
+  if(out.width !== od.w || out.height !== od.h){
+    tag += `  ·  プレビュー ${out.width} × ${out.height}`;
+  }
+  stageTag.textContent = tag;
+
+  if(od.w * od.h > MAX_PIXELS_NOTICE){
+    console.warn("Large output:", od.w, od.h);
   }
 }
 
@@ -355,18 +375,38 @@ function loadSample(){
   loadFromURL(c.toDataURL("image/png"));
 }
 
-/* ---------- export ---------- */
+/* ---------- export ----------
+   プレビュー（表示用キャンバス）とは独立に、実寸でパイプラインを走らせて書き出す。
+   解像度が大きすぎて生成に失敗した場合はエラーを通知する。 */
 function saveImage(){
   if(!sourceReady) return;
-  render(false);
-  canvas.toBlob(blob=>{
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "prism-export.png";
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast("PNG として書き出しました");
-  }, "image/png");
+  const fm = window.PRISM_FILTERS;
+  const failMsg = "書き出しに失敗しました。解像度が大きすぎる可能性があります";
+
+  let out;
+  try{
+    out = (fm && fm.renderPipeline) ? fm.renderPipeline(false, "export") : getBaseCanvas("export");
+  }catch(err){
+    console.error(err);
+    toast(failMsg);
+    return;
+  }
+  if(!out || !out.width || !out.height){ toast(failMsg); return; }
+
+  try{
+    out.toBlob(blob=>{
+      if(!blob){ toast(failMsg); return; }
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "prism-export.png";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast(`PNG として書き出しました (${out.width} × ${out.height} px)`);
+    }, "image/png");
+  }catch(err){
+    console.error(err);
+    toast(failMsg);
+  }
 }
 
 /* ---------- compare (hold) ---------- */
@@ -486,9 +526,45 @@ $("btnClear").addEventListener("click", clearAll);
 fileInput.addEventListener("change", e=> handleFile(e.target.files[0]));
 
 const cmp = $("btnCompare");
-cmp.addEventListener("pointerdown", ()=>setCompare(true));
+cmp.addEventListener("pointerdown", e=>{ e.preventDefault(); setCompare(true); });
 ["pointerup","pointerleave","pointercancel"].forEach(ev=>
   cmp.addEventListener(ev, ()=>setCompare(false)));
+// 長押し時のテキスト選択／コンテキストメニューを抑止（スマホで青く反転するのを防ぐ）
+cmp.addEventListener("contextmenu", e=>e.preventDefault());
+
+/* ---------- preview interpolation toggle（表示拡大時の補間方法） ---------- */
+let interpMode = "smooth";   // "smooth" = バイリニア / "pixel" = ニアレストネイバー
+function applyInterp(){
+  canvasWrap.classList.toggle("pixelated", interpMode === "pixel");
+  const lbl = $("interpLabel");
+  if(lbl) lbl.textContent = interpMode === "pixel" ? "ピクセル" : "なめらか";
+}
+$("btnInterp").addEventListener("click", ()=>{
+  interpMode = interpMode === "pixel" ? "smooth" : "pixel";
+  applyInterp();
+  toast(interpMode === "pixel"
+    ? "補間: ニアレストネイバー（ピクセルアート向け）"
+    : "補間: バイリニア（なめらか）");
+});
+applyInterp();
+
+/* ---------- hamburger menu（開く・書き出し・削除をまとめる） ---------- */
+const btnMenu = $("btnMenu");
+const menuDropdown = $("menuDropdown");
+function setMenu(open){
+  menuDropdown.classList.toggle("hidden", !open);
+  btnMenu.setAttribute("aria-expanded", open ? "true" : "false");
+}
+btnMenu.addEventListener("click", e=>{
+  e.stopPropagation();
+  setMenu(menuDropdown.classList.contains("hidden"));
+});
+document.addEventListener("click", e=>{
+  if(menuDropdown.classList.contains("hidden")) return;
+  if(e.target === btnMenu || btnMenu.contains(e.target) || menuDropdown.contains(e.target)) return;
+  setMenu(false);
+});
+[$("btnOpen"), $("btnSave"), $("btnClear")].forEach(b=> b && b.addEventListener("click", ()=>setMenu(false)));
 
 ["dragenter","dragover"].forEach(ev=>
   stage.addEventListener(ev, e=>{ e.preventDefault(); empty.classList.add("drag"); }));
