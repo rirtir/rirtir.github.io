@@ -43,16 +43,19 @@ const FILTERS = {
   contrast:  { name:"コントラスト", cat:"tone",    min:0,  max:200, step:1,   def:100, neutral:100, fmt:v=>v+"%" },
   opacity:   { name:"不透明度",     cat:"tone",    min:0,  max:100, step:1,   def:100, neutral:100, fmt:v=>v+"%" },
   bias:      { name:"バイアス消去", cat:"tone",    special:true },
+  tonecurve: { name:"トーンカーブ", cat:"tone",    special:true },
   saturate:  { name:"彩度",         cat:"color",   min:0,  max:300, step:1,   def:100, neutral:100, fmt:v=>v+"%" },
   hue:       { name:"色相",         cat:"color",   min:-180,max:180,step:1,   def:0,   neutral:0,   fmt:v=>(v>0?"+":"")+v+"\u00b0" },
   sepia:     { name:"セピア",       cat:"color",   min:0,  max:100, step:1,   def:80,  neutral:0,   fmt:v=>v+"%" },
   grayscale: { name:"グレースケール", cat:"color", min:0,  max:100, step:1,   def:100, neutral:0,   fmt:v=>v+"%" },
   quantize:  { name:"減色",         cat:"color",   min:2,  max:256, step:1,   def:32,  neutral:256, fmt:v=>v+"色", special:true },
   blur:      { name:"ぼかし",       cat:"focus",   min:0,  max:40,  step:0.5, def:6,   neutral:0,   fmt:v=>v+"px" },
-  superres:  { name:"超解像",       cat:"res",     min:0,  max:100, step:1,   def:55,  neutral:0,   fmt:v=>v+"%", special:true, scales:[1.5,2,3,4], defScale:2, resolution:true, unique:true },
   resize:    { name:"リサイズ",     cat:"res",     special:true, resolution:true },
+  superres:  { name:"超解像",       cat:"res",     min:0,  max:100, step:1,   def:55,  neutral:0,   fmt:v=>v+"%", special:true, scales:[1.5,2,3,4], defScale:2, resolution:true, unique:true },
+  pixelart:  { name:"ドット絵化",   cat:"res",     special:true, resolution:true },
   invert:    { name:"色反転",       cat:"stylize", min:0,  max:100, step:1,   def:100, neutral:0,   fmt:v=>v+"%" },
   binarize:  { name:"2値化",        cat:"stylize", min:0,  max:255, step:1,   def:128, neutral:-1,  fmt:v=>v+"" },
+  mosaic:    { name:"モザイク",     cat:"stylize", special:true },
 };
 
 /* ---------- layer factory ---------- */
@@ -76,12 +79,39 @@ function makeLayer(type){
     layer.offset = 0;       // 明るさオフセット
     layer.threshold = 3;    // 偏差しきい値
   }
+  if(type === "tonecurve"){
+    layer.channel = "rgb";
+    layer.curves = {
+      rgb:[{x:0,y:0},{x:255,y:255}],
+      r:[{x:0,y:0},{x:255,y:255}],
+      g:[{x:0,y:0},{x:255,y:255}],
+      b:[{x:0,y:0},{x:255,y:255}],
+    };
+  }
+  if(type === "mosaic"){
+    layer.size = 16;
+    layer.offsetX = 0;
+    layer.offsetY = 0;
+    layer.method = "mean";   // mean | median | mode
+  }
+  if(type === "pixelart"){
+    layer.outW = null;
+    layer.outH = null;
+    layer.colors = 16;
+    layer.punch = 30;        // メリハリ（%）
+    layer.dither = true;
+  }
   return layer;
 }
 
 /* ---------- add-layer hook（レイヤー追加直後のフィルター固有の初期化） ---------- */
 function onLayerAdded(layer){
   if(layer.type === "resize" && sourceReady) updateResizeFromMode(layer, "1");
+  if(layer.type === "pixelart" && sourceReady){          // 追加
+    const input = layerInputSize(layer);
+    const t = pixelartTarget(layer, input.w, input.h);
+    layer.outW = t.w; layer.outH = t.h;
+  }
 }
 
 /* ---------- dimension helpers ---------- */
@@ -95,6 +125,9 @@ function layerInputSize(targetLayer){
       size = { w:t.w, h:t.h };
     } else if(l.type === "resize"){
       const t = resizeTarget(l, size.w, size.h);
+      size = { w:t.w, h:t.h };
+    } else if(l.type === "pixelart"){
+      const t = pixelartTarget(l, size.w, size.h);
       size = { w:t.w, h:t.h };
     }
   }
@@ -115,6 +148,11 @@ function resizeTarget(layer, inputW, inputH){
   const h = clampInt(layer.height || inputH, 1, HARD_MAX);
   return { w, h, clamped:false };
 }
+function pixelartTarget(layer, inW, inH){
+  const w = clampInt(layer.outW || Math.round(inW/8) || 64, 1, 2048);
+  const h = clampInt(layer.outH || Math.round(inH/8) || 64, 1, 2048);
+  return { w, h };
+}
 /* ---------- 実際の出力解像度（全レイヤー適用後の実寸） ---------- */
 function outputDimensions(){
   let size = baseDimensions();
@@ -125,6 +163,9 @@ function outputDimensions(){
       size = { w:t.w, h:t.h };
     } else if(l.type === "resize"){
       const t = resizeTarget(l, size.w, size.h);
+      size = { w:t.w, h:t.h };
+    } else if(l.type === "pixelart"){
+      const t = pixelartTarget(l, size.w, size.h);
       size = { w:t.w, h:t.h };
     }
   }
@@ -210,6 +251,51 @@ function layerBodyHTML(layer){
       <div class="mobile-note">文書写真の影消し用です。局所平均を大きくすると、広い影・照明ムラを補正しやすくなります。</div>
     </div>`;
   }
+  if(layer.type === "tonecurve"){
+    const ch = layer.channel || "rgb";
+    const chBtns = [["rgb","RGB"],["r","R"],["g","G"],["b","B"]]
+      .map(([k,lbl])=>`<button class="scale-btn tc-ch ${ch===k?'on':''}" data-ch="${k}">${lbl}</button>`).join("");
+    return `<div class="layer-body">
+      <div class="scale-row" role="group" aria-label="チャンネル">${chBtns}</div>
+      <div class="tc-editor" style="margin-top:4px;touch-action:none;user-select:none">${toneCurveSVG(layer)}</div>
+      <div class="quality-row" style="margin-top:8px">
+        <button class="quality-btn tc-reset">この曲線をリセット</button>
+      </div>
+      <div class="mobile-note">クリックで制御点を追加、ドラッグで移動、ダブルクリックで削除。RGB＝全体、R/G/B＝各チャンネルを別々に編集できます。</div>
+    </div>`;
+  }
+  if(layer.type === "mosaic"){
+    const methods = [["mean","平均"],["median","中央値"],["mode","最頻値"]];
+    return `<div class="layer-body">
+      ${paramSliderHTML("ブロックサイズ","mos-size",2,128,1,layer.size,layer.size+"px")}
+      ${paramSliderHTML("オフセットX","mos-ox",0,128,1,layer.offsetX,layer.offsetX+"px")}
+      ${paramSliderHTML("オフセットY","mos-oy",0,128,1,layer.offsetY,layer.offsetY+"px")}
+      <div class="quality-row" role="group" aria-label="集計方法">
+        ${methods.map(([k,l])=>`<button class="quality-btn mos-method ${layer.method===k?'on':''}" data-m="${k}">${l}</button>`).join("")}
+      </div>
+    </div>`;
+  }
+  if(layer.type === "pixelart"){
+    const input = sourceReady ? layerInputSize(layer) : null;
+    if(input && (!layer.outW || !layer.outH)){
+      const t = pixelartTarget(layer, input.w, input.h);
+      layer.outW = t.w; layer.outH = t.h;
+    }
+    return `<div class="layer-body">
+      <div class="resize-size-row">
+        <label class="size-box"><span>X</span><input class="num-input pa-w" type="number" min="1" max="2048" step="1" inputmode="numeric" value="${layer.outW || ''}"></label>
+        <label class="size-box"><span>Y</span><input class="num-input pa-h" type="number" min="1" max="2048" step="1" inputmode="numeric" value="${layer.outH || ''}"></label>
+      </div>
+      ${paramSliderHTML("色数","pa-colors",2,64,1,layer.colors,layer.colors+"色")}
+      ${paramSliderHTML("メリハリ","pa-punch",0,100,1,layer.punch,layer.punch+"%")}
+      <div class="quality-row" role="group" aria-label="ディザリング">
+        <button class="quality-btn pa-dither ${layer.dither!==false?'on':''}" data-d="on">ディザあり</button>
+        <button class="quality-btn pa-dither ${layer.dither===false?'on':''}" data-d="off">ディザなし</button>
+      </div>
+      <div class="sr-out mono">${input ? `入力: ${input.w} × ${input.h} px / 出力: ${layer.outW} × ${layer.outH} px` : "画像を開くと解像度が表示されます"}</div>
+      <div class="mobile-note">縮小→メリハリ補正→適応パレット(メディアンカット)→ディザリング。出力は指定ピクセル数ちょうどです。</div>
+    </div>`;
+  }
   return `<div class="layer-body">${sliderHTML(f, layer.value)}</div>`;
 }
 function paramSliderHTML(label, cls, min, max, step, value, readout){
@@ -218,6 +304,29 @@ function paramSliderHTML(label, cls, min, max, step, value, readout){
     <input class="${cls}" type="range" min="${min}" max="${max}" step="${step}" value="${value}" aria-label="${label}">
     <span class="val">${readout}</span>
   </div>`;
+}
+const TC_COLOR = { rgb:"#ECEEF2", r:"#ff6b6b", g:"#51cf66", b:"#5b8def" };
+function curveOf(layer, ch){
+  if(!layer.curves) layer.curves = {};
+  if(!layer.curves[ch]) layer.curves[ch] = [{x:0,y:0},{x:255,y:255}];
+  return layer.curves[ch];
+}
+function toneCurveSVG(layer){
+  const ch = layer.channel || "rgb";
+  const pts = curveOf(layer, ch);
+  const color = TC_COLOR[ch];
+  const lut = buildCurveLUT(pts);
+  let path = "";
+  for(let i=0;i<256;i++) path += (i===0?`M ${i} ${255-lut[i]}`:` L ${i} ${255-lut[i]}`);
+  const grid = [64,128,192].map(g=>
+    `<line x1="${g}" y1="0" x2="${g}" y2="255" stroke="rgba(255,255,255,.06)"/><line x1="0" y1="${g}" x2="255" y2="${g}" stroke="rgba(255,255,255,.06)"/>`).join("");
+  const dots = pts.map((p,idx)=>`<circle class="tc-pt" data-i="${idx}" cx="${p.x}" cy="${255-p.y}" r="6" fill="${color}" stroke="#0B0C0F" stroke-width="2"/>`).join("");
+  return `<svg class="tc-svg" viewBox="-8 -8 272 272" width="100%" style="display:block;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:9px;aspect-ratio:1/1">
+    <line x1="0" y1="255" x2="255" y2="0" stroke="rgba(255,255,255,.12)" stroke-dasharray="4 4"/>
+    ${grid}
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5"/>
+    ${dots}
+  </svg>`;
 }
 
 /* ---------- control wiring（フィルター固有のUI配線） ---------- */
@@ -282,6 +391,44 @@ function wireBody(card, layer){
     wireParam(card, ".bias-threshold", layer, "threshold", v=>String(v));
     return;
   }
+  if(layer.type === "tonecurve"){
+    card.querySelectorAll(".tc-ch").forEach(btn=>{
+      btn.addEventListener("click", ()=>{ layer.channel = btn.dataset.ch; renderStack(); scheduleRender(); });
+    });
+    const reset = card.querySelector(".tc-reset");
+    if(reset) reset.addEventListener("click", ()=>{
+      layer.curves[layer.channel||"rgb"] = [{x:0,y:0},{x:255,y:255}];
+      renderStack(); scheduleRender();
+    });
+    const svg = card.querySelector(".tc-svg");
+    if(svg) wireToneCurveSVG(svg, layer);
+    return;
+  }
+  if(layer.type === "mosaic"){
+    wireParam(card, ".mos-size", layer, "size", v=>v+"px");
+    wireParam(card, ".mos-ox", layer, "offsetX", v=>v+"px");
+    wireParam(card, ".mos-oy", layer, "offsetY", v=>v+"px");
+    card.querySelectorAll(".mos-method").forEach(btn=>{
+      btn.addEventListener("click", ()=>{ layer.method = btn.dataset.m; renderStack(); scheduleRender(); });
+    });
+    return;
+  }
+  if(layer.type === "pixelart"){
+    const wIn = card.querySelector(".pa-w"), hIn = card.querySelector(".pa-h");
+    const onSize = ()=>{
+      layer.outW = clampInt(wIn.value, 1, 2048);
+      layer.outH = clampInt(hIn.value, 1, 2048);
+      renderStack(); scheduleRender();
+    };
+    wIn.addEventListener("change", onSize);
+    hIn.addEventListener("change", onSize);
+    wireParam(card, ".pa-colors", layer, "colors", v=>v+"色");
+    wireParam(card, ".pa-punch", layer, "punch", v=>v+"%");
+    card.querySelectorAll(".pa-dither").forEach(btn=>{
+      btn.addEventListener("click", ()=>{ layer.dither = btn.dataset.d === "on"; renderStack(); scheduleRender(); });
+    });
+    return;
+  }
 
   wireMainRange(card, layer, f);
 }
@@ -307,6 +454,70 @@ function wireParam(card, selector, layer, prop, fmt){
     scheduleRender();
   });
 }
+function wireToneCurveSVG(svg, layer){
+  let dragIdx = -1;
+  const toSVG = e=>{
+    const rect = svg.getBoundingClientRect();
+    const vx = -8 + (e.clientX - rect.left)/rect.width * 272;
+    const vy = -8 + (e.clientY - rect.top)/rect.height * 272;
+    return { x: Math.max(0,Math.min(255,vx)), y: Math.max(0,Math.min(255, 255 - vy)) };
+  };
+  const redraw = ()=>{
+    const ch = layer.channel || "rgb";
+    const pts = curveOf(layer, ch);
+    const lut = buildCurveLUT(pts);
+    let path = "";
+    for(let i=0;i<256;i++) path += (i===0?`M ${i} ${255-lut[i]}`:` L ${i} ${255-lut[i]}`);
+    svg.querySelector("path").setAttribute("d", path);
+    [...svg.querySelectorAll(".tc-pt")].forEach(n=>n.remove());
+    const color = TC_COLOR[ch];
+    pts.forEach((p,idx)=>{
+      const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+      c.setAttribute("class","tc-pt"); c.setAttribute("data-i",idx);
+      c.setAttribute("cx",p.x); c.setAttribute("cy",255-p.y); c.setAttribute("r",6);
+      c.setAttribute("fill",color); c.setAttribute("stroke","#0B0C0F"); c.setAttribute("stroke-width",2);
+      svg.appendChild(c);
+    });
+  };
+  svg.addEventListener("pointerdown", e=>{
+    e.preventDefault();
+    const pts = curveOf(layer, layer.channel || "rgb");
+    const p = toSVG(e);
+    let hit=-1, best=14*14;
+    for(let i=0;i<pts.length;i++){ const dx=pts[i].x-p.x, dy=pts[i].y-p.y, dd=dx*dx+dy*dy; if(dd<best){best=dd;hit=i;} }
+    if(hit===-1){
+      const np = { x:Math.round(p.x), y:Math.round(p.y) };
+      pts.push(np); pts.sort((a,b)=>a.x-b.x); hit = pts.indexOf(np);
+    }
+    dragIdx = hit;
+    try{ svg.setPointerCapture(e.pointerId); }catch(_){}
+    redraw(); scheduleRender();
+  });
+  svg.addEventListener("pointermove", e=>{
+    if(dragIdx<0) return;
+    e.preventDefault();
+    const pts = curveOf(layer, layer.channel || "rgb");
+    const p = toSVG(e);
+    let nx = Math.round(p.x);
+    if(dragIdx===0) nx = 0;
+    else if(dragIdx===pts.length-1) nx = 255;
+    else nx = Math.max(pts[dragIdx-1].x+1, Math.min(pts[dragIdx+1].x-1, nx));
+    pts[dragIdx] = { x:nx, y:Math.round(p.y) };
+    redraw(); scheduleRender();
+  });
+  const end = e=>{ if(dragIdx>=0){ try{ svg.releasePointerCapture(e.pointerId); }catch(_){} } dragIdx=-1; };
+  svg.addEventListener("pointerup", end);
+  svg.addEventListener("pointercancel", end);
+  svg.addEventListener("dblclick", e=>{
+    e.preventDefault();
+    const pts = curveOf(layer, layer.channel || "rgb");
+    if(pts.length<=2) return;
+    const p = toSVG(e);
+    let hit=-1, best=16*16;
+    for(let i=0;i<pts.length;i++){ const dx=pts[i].x-p.x, dy=pts[i].y-p.y, dd=dx*dx+dy*dy; if(dd<best){best=dd;hit=i;} }
+    if(hit>0 && hit<pts.length-1){ pts.splice(hit,1); redraw(); scheduleRender(); }
+  });
+}
 
 /* ---------- image processing pipeline ----------
    mode="preview": 表示用。各段を PREVIEW_MAX で抑え、巨大な中間キャンバスを作らない。
@@ -321,6 +532,9 @@ function renderPipeline(showOriginal=false, mode="preview"){
     switch(layer.type){
       case "superres": cur = applySuperResolution(cur, layer, mode); break;
       case "resize": cur = applyResize(cur, layer, mode); break;
+      case "tonecurve": cur = applyToneCurve(cur, layer); break;
+      case "mosaic": cur = applyMosaic(cur, layer); break;
+      case "pixelart": cur = applyPixelArt(cur, layer, mode); break;
       case "blur": cur = applyBlur(cur, layer.value); break;
       case "bias": cur = applyBiasCorrection(cur, layer); break;
       case "quantize": cur = applyQuantize(cur, layer.value); break;
@@ -559,6 +773,156 @@ function applyBiasCorrection(src, layer){
   }
   x.putImageData(imgData,0,0);
   return c;
+}
+
+/* ---------- tone curve ---------- */
+function buildCurveLUT(points){
+  const pts = points.slice().sort((a,b)=>a.x-b.x);
+  const n = pts.length;
+  const lut = new Uint8ClampedArray(256);
+  if(n === 1){ lut.fill(clamp(pts[0].y)); return lut; }
+  const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
+  const dx=[], slope=[];
+  for(let i=0;i<n-1;i++){ dx[i]=xs[i+1]-xs[i]; slope[i]= dx[i]===0?0:(ys[i+1]-ys[i])/dx[i]; }
+  const m = new Array(n);
+  m[0]=slope[0]; m[n-1]=slope[n-2];
+  for(let i=1;i<n-1;i++) m[i] = slope[i-1]*slope[i]<=0 ? 0 : (slope[i-1]+slope[i])/2;
+  for(let i=0;i<n-1;i++){
+    if(slope[i]===0){ m[i]=0; m[i+1]=0; continue; }
+    const a=m[i]/slope[i], b=m[i+1]/slope[i], hyp=a*a+b*b;
+    if(hyp>9){ const t=3/Math.sqrt(hyp); m[i]=t*a*slope[i]; m[i+1]=t*b*slope[i]; }
+  }
+  let seg=0;
+  for(let xi=0;xi<256;xi++){
+    if(xi<=xs[0]){ lut[xi]=clamp(ys[0]); continue; }
+    if(xi>=xs[n-1]){ lut[xi]=clamp(ys[n-1]); continue; }
+    while(seg<n-2 && xi>xs[seg+1]) seg++;
+    const h=dx[seg], t=(xi-xs[seg])/h, t2=t*t, t3=t2*t;
+    const y = (2*t3-3*t2+1)*ys[seg] + (t3-2*t2+t)*h*m[seg] + (-2*t3+3*t2)*ys[seg+1] + (t3-t2)*h*m[seg+1];
+    lut[xi]=clamp(y);
+  }
+  return lut;
+}
+function applyToneCurve(src, layer){
+  const cu = layer.curves || {};
+  const idy = p => !p || (p.length===2 && p[0].x===0 && p[0].y===0 && p[1].x===255 && p[1].y===255);
+  if(idy(cu.rgb)&&idy(cu.r)&&idy(cu.g)&&idy(cu.b)) return copyCanvas(src);
+  const I = [{x:0,y:0},{x:255,y:255}];
+  const Lc=buildCurveLUT(cu.rgb||I), Lr=buildCurveLUT(cu.r||I), Lg=buildCurveLUT(cu.g||I), Lb=buildCurveLUT(cu.b||I);
+  const c = copyCanvas(src);
+  const x = c.getContext("2d",{willReadFrequently:true});
+  const im = x.getImageData(0,0,c.width,c.height), d = im.data;
+  for(let i=0;i<d.length;i+=4){
+    d[i]=Lr[Lc[d[i]]]; d[i+1]=Lg[Lc[d[i+1]]]; d[i+2]=Lb[Lc[d[i+2]]];
+  }
+  x.putImageData(im,0,0);
+  return c;
+}
+
+/* ---------- mosaic ---------- */
+function histMedian(h, half){ let c=0; for(let v=0;v<256;v++){ c+=h[v]; if(c>half) return v; } return 255; }
+function histMode(h){ let bv=0,bc=-1; for(let v=0;v<256;v++) if(h[v]>bc){bc=h[v];bv=v;} return bv; }
+function applyMosaic(src, layer){
+  const size = clampInt(layer.size||16, 1, 1024);
+  if(size<=1) return copyCanvas(src);
+  const ox = ((Math.round(layer.offsetX||0)%size)+size)%size;
+  const oy = ((Math.round(layer.offsetY||0)%size)+size)%size;
+  const method = layer.method || "mean";
+  const c = copyCanvas(src);
+  const x = c.getContext("2d",{willReadFrequently:true});
+  const w=c.width, h=c.height, im=x.getImageData(0,0,w,h), d=im.data;
+  const hr=new Int32Array(256), hg=new Int32Array(256), hb=new Int32Array(256);
+  const useHist = method!=="mean";
+  for(let by=oy-size; by<h; by+=size){
+    const y0=Math.max(0,by), y1=Math.min(h,by+size); if(y1<=y0) continue;
+    for(let bx=ox-size; bx<w; bx+=size){
+      const x0=Math.max(0,bx), x1=Math.min(w,bx+size); if(x1<=x0) continue;
+      let rr=0,gg=0,bb=0,aa=0,n=0;
+      if(useHist){ hr.fill(0); hg.fill(0); hb.fill(0); }
+      for(let yy=y0; yy<y1; yy++){
+        let i=(yy*w+x0)*4;
+        for(let xx=x0; xx<x1; xx++, i+=4){
+          aa+=d[i+3]; n++;
+          if(useHist){ hr[d[i]]++; hg[d[i+1]]++; hb[d[i+2]]++; }
+          else { rr+=d[i]; gg+=d[i+1]; bb+=d[i+2]; }
+        }
+      }
+      let R,G,B; const A=aa/n;
+      if(method==="mean"){ R=rr/n; G=gg/n; B=bb/n; }
+      else if(method==="median"){ const hf=n>>1; R=histMedian(hr,hf); G=histMedian(hg,hf); B=histMedian(hb,hf); }
+      else { R=histMode(hr); G=histMode(hg); B=histMode(hb); }
+      for(let yy=y0; yy<y1; yy++){
+        let i=(yy*w+x0)*4;
+        for(let xx=x0; xx<x1; xx++, i+=4){ d[i]=R; d[i+1]=G; d[i+2]=B; d[i+3]=A; }
+      }
+    }
+  }
+  x.putImageData(im,0,0);
+  return c;
+}
+
+/* ---------- pixel art（縮小＋適応パレット＋ディザ） ---------- */
+function medianCutPalette(pixels, n){
+  let boxes = [pixels];
+  while(boxes.length < n){
+    let bi=-1, bestRange=-1, bestCh=0;
+    for(let i=0;i<boxes.length;i++){
+      const box=boxes[i]; if(box.length<2) continue;
+      const mn=[255,255,255], mx=[0,0,0];
+      for(const p of box) for(let ch=0;ch<3;ch++){ if(p[ch]<mn[ch])mn[ch]=p[ch]; if(p[ch]>mx[ch])mx[ch]=p[ch]; }
+      for(let ch=0;ch<3;ch++){ const r=mx[ch]-mn[ch]; if(r>bestRange){ bestRange=r; bi=i; bestCh=ch; } }
+    }
+    if(bi<0) break;
+    const box=boxes[bi]; box.sort((a,b)=>a[bestCh]-b[bestCh]);
+    const mid=box.length>>1;
+    boxes.splice(bi,1,box.slice(0,mid),box.slice(mid));
+  }
+  return boxes.map(box=>{
+    let r=0,g=0,b=0; for(const p of box){ r+=p[0]; g+=p[1]; b+=p[2]; }
+    const k=box.length||1; return [Math.round(r/k),Math.round(g/k),Math.round(b/k)];
+  });
+}
+function applyPixelArt(src, layer){
+  const trueIn = layerInputSize(layer);
+  const t = pixelartTarget(layer, trueIn.w, trueIn.h);
+  const outW=t.w, outH=t.h;
+  const small = drawImageToCanvas(src, outW, outH, "high");
+  const x = small.getContext("2d",{willReadFrequently:true});
+  const id = x.getImageData(0,0,outW,outH), d = id.data;
+
+  const punch = (layer.punch ?? 30)/100;
+  if(punch>0){
+    const cM=1+punch*0.6, sM=1+punch*0.8;
+    for(let i=0;i<d.length;i+=4){
+      let r=(d[i]-128)*cM+128, g=(d[i+1]-128)*cM+128, b=(d[i+2]-128)*cM+128;
+      const lum=0.2126*r+0.7152*g+0.0722*b;
+      d[i]=clamp(lum+(r-lum)*sM); d[i+1]=clamp(lum+(g-lum)*sM); d[i+2]=clamp(lum+(b-lum)*sM);
+    }
+  }
+
+  const colors = clampInt(layer.colors||16, 2, 64);
+  const sample=[];
+  for(let i=0;i<d.length;i+=4) if(d[i+3]>8) sample.push([d[i],d[i+1],d[i+2]]);
+  const palette = sample.length ? medianCutPalette(sample, colors) : [[0,0,0]];
+
+  const dither = layer.dither !== false;
+  const bayer = [0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+  const amt = dither ? Math.max(8, 255/colors) : 0;
+  for(let y=0;y<outH;y++){
+    for(let xx=0;xx<outW;xx++){
+      const i=(y*outW+xx)*4;
+      const o = dither ? (bayer[(y&3)*4+(xx&3)]/16 - 0.5)*amt : 0;
+      const r=d[i]+o, g=d[i+1]+o, b=d[i+2]+o;
+      let best=0, bd=Infinity;
+      for(let p=0;p<palette.length;p++){
+        const dr=palette[p][0]-r, dg=palette[p][1]-g, db=palette[p][2]-b, dd=dr*dr+dg*dg+db*db;
+        if(dd<bd){ bd=dd; best=p; }
+      }
+      d[i]=palette[best][0]; d[i+1]=palette[best][1]; d[i+2]=palette[best][2];
+    }
+  }
+  x.putImageData(id,0,0);
+  return small;
 }
 
 let pendingRender = false;
