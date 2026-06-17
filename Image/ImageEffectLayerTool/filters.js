@@ -49,6 +49,7 @@ const FILTERS = {
   sepia:     { name:"セピア",       cat:"color",   min:0,  max:100, step:1,   def:80,  neutral:0,   fmt:v=>v+"%" },
   grayscale: { name:"グレースケール", cat:"color", min:0,  max:100, step:1,   def:100, neutral:0,   fmt:v=>v+"%" },
   quantize:  { name:"減色",         cat:"color",   min:2,  max:256, step:1,   def:32,  neutral:256, fmt:v=>v+"色", special:true },
+  recolor:   { name:"色置換",       cat:"color",   special:true },
   blur:      { name:"ぼかし",       cat:"focus",   min:0,  max:40,  step:0.5, def:6,   neutral:0,   fmt:v=>v+"px" },
   resize:    { name:"リサイズ",     cat:"res",     special:true, resolution:true },
   superres:  { name:"超解像",       cat:"res",     min:0,  max:100, step:1,   def:55,  neutral:0,   fmt:v=>v+"%", special:true, scales:[1.5,2,3,4], defScale:2, resolution:true, unique:true },
@@ -100,6 +101,12 @@ function makeLayer(type){
     layer.colors = 16;
     layer.punch = 30;        // メリハリ（%）
     layer.dither = true;
+  }
+  if(type === "recolor"){
+    layer.fromColor = "#ff0000";   // 基準色
+    layer.toColor   = "#00ff00";   // 変換色
+    layer.threshold = 30;          // 閾値（Lab/ΔE 距離）
+    layer.blend     = true;        // true=なじませる / false=置き換え
   }
   return layer;
 }
@@ -296,6 +303,20 @@ function layerBodyHTML(layer){
       <div class="mobile-note">縮小→メリハリ補正→適応パレット(メディアンカット)→ディザリング。出力は指定ピクセル数ちょうどです。</div>
     </div>`;
   }
+  if(layer.type === "recolor"){
+    return `<div class="layer-body">
+      <div class="color-row">
+        <label class="color-box"><span>基準色</span><input class="color-input rc-from" type="color" value="${layer.fromColor || '#ff0000'}"></label>
+        <label class="color-box"><span>変換色</span><input class="color-input rc-to" type="color" value="${layer.toColor || '#00ff00'}"></label>
+      </div>
+      ${paramSliderHTML("閾値","rc-threshold",0,150,1,layer.threshold,String(layer.threshold))}
+      <div class="quality-row" role="group" aria-label="変換方法">
+        <button class="quality-btn rc-blend ${layer.blend!==false?'on':''}" data-b="on">なじませる</button>
+        <button class="quality-btn rc-blend ${layer.blend===false?'on':''}" data-b="off">置き換え</button>
+      </div>
+      <div class="mobile-note">基準色に近い画素を変換色へ置き換えます。閾値が高いほど広い範囲の色を対象にします。「置き換え」は対象画素をすべて変換色に。「なじませる」は基準色に近いほど強く変換し、グラデーションや輪郭の境界をなめらかに保ちます。</div>
+    </div>`;
+  }
   return `<div class="layer-body">${sliderHTML(f, layer.value)}</div>`;
 }
 function paramSliderHTML(label, cls, min, max, step, value, readout){
@@ -429,6 +450,15 @@ function wireBody(card, layer){
     });
     return;
   }
+  if(layer.type === "recolor"){
+    card.querySelector(".rc-from").addEventListener("input", e=>{ layer.fromColor = e.target.value; scheduleRender(); });
+    card.querySelector(".rc-to").addEventListener("input", e=>{ layer.toColor = e.target.value; scheduleRender(); });
+    wireParam(card, ".rc-threshold", layer, "threshold", v=>String(v));
+    card.querySelectorAll(".rc-blend").forEach(btn=>{
+      btn.addEventListener("click", ()=>{ layer.blend = btn.dataset.b === "on"; renderStack(); scheduleRender(); });
+    });
+    return;
+  }
 
   wireMainRange(card, layer, f);
 }
@@ -537,6 +567,7 @@ function renderPipeline(showOriginal=false, mode="preview"){
       case "pixelart": cur = applyPixelArt(cur, layer, mode); break;
       case "blur": cur = applyBlur(cur, layer.value); break;
       case "bias": cur = applyBiasCorrection(cur, layer); break;
+      case "recolor": cur = applyRecolor(cur, layer); break;
       case "quantize": cur = applyQuantize(cur, layer.value); break;
       default: cur = applyPixelFilter(cur, layer); break;
     }
@@ -923,6 +954,71 @@ function applyPixelArt(src, layer){
   }
   x.putImageData(id,0,0);
   return small;
+}
+
+/* ---------- recolor（色置換） ----------
+   閾値判定は Lab(ΔE76)距離で行う（知覚的に「似た色」を拾いやすい）。
+   ・置き換え(blend=false): 閾値内の画素はすべて変換色にする（愚直・境界は硬い）。
+   ・なじませる(blend=true): 「画素 + (変換色 - 基準色)」のオフセットで色を移動させ
+     （青→シアン→緑 を 青→マゼンタ→赤 のように構造ごとシフト）、
+     さらに基準色からの距離で重みづけして、閾値の縁では原画へフェードさせる。
+     これで中間色・グラデーションは構造を保ったまま変換され、
+     アンチエイリアスの輪郭は段差なくなじむ。 */
+
+// sRGB(0-255) → 線形 のLUT（毎画素 Math.pow を避ける）
+const SRGB_LIN_LUT = (()=>{
+  const t = new Float32Array(256);
+  for(let i=0;i<256;i++){ const c=i/255; t[i]= c<=0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055,2.4); }
+  return t;
+})();
+function rgbToLab(r,g,b){
+  const R=SRGB_LIN_LUT[r|0], G=SRGB_LIN_LUT[g|0], B=SRGB_LIN_LUT[b|0];
+  // sRGB → XYZ (D65)、白色点で正規化
+  let X=(R*0.4124+G*0.3576+B*0.1805)/0.95047;
+  let Y=(R*0.2126+G*0.7152+B*0.0722);
+  let Z=(R*0.0193+G*0.1192+B*0.9505)/1.08883;
+  const f = t=> t>0.008856 ? Math.cbrt(t) : (7.787*t + 16/116);
+  const fx=f(X), fy=f(Y), fz=f(Z);
+  return [116*fy-16, 500*(fx-fy), 200*(fy-fz)];
+}
+
+// なじませ時、閾値の外縁この割合ぶんだけ原画へフェードする（0〜1、大きいほど縁が広くやわらかい）
+const RECOLOR_FEATHER = 0.35;
+
+function applyRecolor(src, layer){
+  const threshold = Number(layer.threshold || 0);
+  if(threshold <= 0) return copyCanvas(src);
+
+  const [fr,fg,fb] = hexToRgb(layer.fromColor || "#ff0000");
+  const [tr,tg,tb] = hexToRgb(layer.toColor   || "#00ff00");
+  const blend = layer.blend !== false;
+  const fromLab = rgbToLab(fr,fg,fb);
+  const dr=tr-fr, dg=tg-fg, db=tb-fb;   // RGBオフセット（構造保持用）
+  const flat = 1 - RECOLOR_FEATHER;     // この正規化距離までは全強度
+
+  const c = copyCanvas(src);
+  const x = c.getContext("2d",{willReadFrequently:true});
+  const im = x.getImageData(0,0,c.width,c.height), d = im.data;
+
+  for(let i=0;i<d.length;i+=4){
+    const r=d[i], g=d[i+1], b=d[i+2];
+    const lab = rgbToLab(r,g,b);
+    const dl=lab[0]-fromLab[0], da=lab[1]-fromLab[1], dbl=lab[2]-fromLab[2];
+    const dist = Math.sqrt(dl*dl + da*da + dbl*dbl);
+    if(dist > threshold) continue;
+
+    if(!blend){
+      d[i]=tr; d[i+1]=tg; d[i+2]=tb;          // 置き換え
+    } else {
+      const t = dist/threshold;               // 0(=基準色) 〜 1(=閾値の縁)
+      const w = t <= flat ? 1 : (1 - t)/RECOLOR_FEATHER;   // 縁でだけ 1→0 へ
+      d[i]   = clamp(r*(1-w) + (r+dr)*w);
+      d[i+1] = clamp(g*(1-w) + (g+dg)*w);
+      d[i+2] = clamp(b*(1-w) + (b+db)*w);
+    }
+  }
+  x.putImageData(im,0,0);
+  return c;
 }
 
 let pendingRender = false;
