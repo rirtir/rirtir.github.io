@@ -125,6 +125,13 @@ const data = [
                 desc: "画像から主要な色を抽出（調整中）",
                 tags: ["画像", "画像処理", "オフライン"],
                 main: false,
+            },
+            {
+                title: "モザイク検出ツール",
+                url: "https://rirtir.com/Image/MosaicMask/",
+                desc: "モザイクのかかっている箇所をマスク画像として出力可能。",
+                tags: ["画像", "画像処理", "オフライン"],
+                main: false,
             }
         ]
     },
