@@ -50,11 +50,15 @@
         <button class="menu-item" id="btnOpen" role="menuitem">画像を開く…</button>
         <button class="menu-item" id="btnSave" role="menuitem" disabled>PNG で書き出す</button>
         <div class="menu-sep"></div>
+        <button class="menu-item" id="btnOpenProject" role="menuitem">プロジェクトを開く…</button>
+        <button class="menu-item" id="btnSaveProject" role="menuitem" disabled>プロジェクトを保存…</button>
+        <div class="menu-sep"></div>
         <button class="menu-item danger" id="btnClear" role="menuitem" disabled>すべてのレイヤーを削除</button>
       </div>
     </div>
 
     <input type="file" id="fileInput" accept="image/*" class="hidden">
+    <input type="file" id="projectInput" accept=".json,.prism,application/json" class="hidden">
   </header>
 
   <!-- workspace -->
@@ -92,7 +96,7 @@
       <div class="rail-section">
         <div class="rail-head"><h3>レイヤーを追加</h3></div>
         <div class="add-grid" id="addGrid"></div>
-        <div class="divider"></div>
+        <div class="add-resizer" id="addResizer" title="ドラッグで一覧の高さを調整" aria-hidden="true"></div>
       </div>
 
       <div class="rail-section" style="padding-bottom:0">

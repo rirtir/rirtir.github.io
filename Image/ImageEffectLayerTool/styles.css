@@ -16,6 +16,7 @@
     --ring:#7FB0FF;
     --rail-w:360px;
     --radius:13px;
+    --add-h:240px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -182,7 +183,14 @@
   .rail-head h3{font-size:11px;font-weight:600;letter-spacing:.16em;color:var(--ink-faint);text-transform:uppercase}
   .stack-count{font-family:"Space Mono",monospace;font-size:11px;color:var(--ink-faint)}
 
-  .add-grid{display:flex;flex-direction:column;gap:12px}
+  .add-grid{
+    display:flex;flex-direction:column;gap:12px;
+    max-height:var(--add-h,240px);
+    overflow-y:auto;overflow-x:hidden;
+    padding-right:4px;
+  }
+  .add-grid::-webkit-scrollbar{width:10px}
+  .add-grid::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:8px;border:3px solid var(--panel)}
   .add-cat .cat-label{
     display:flex;align-items:center;gap:7px;
     font-size:10px;letter-spacing:.14em;text-transform:uppercase;
@@ -307,6 +315,18 @@
 
   .hidden{display:none!important}
 
+  /* add-grid リサイザー（PCのみ・separator兼用） */
+  .add-resizer{height:11px;margin-top:8px;position:relative;display:flex;align-items:center;justify-content:center;cursor:ns-resize}
+  .add-resizer::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line)}
+  .add-resizer::after{content:"";position:relative;width:34px;height:4px;border-radius:3px;background:rgba(255,255,255,.14);transition:background .15s}
+  .add-resizer:hover::after{background:rgba(255,255,255,.28)}
+
+  /* レイヤーカードの折りたたみ */
+  .icon-btn.collapse svg{transition:transform .15s}
+  .layer.collapsed .icon-btn.collapse svg{transform:rotate(-90deg)}
+  .layer.collapsed .layer-body{display:none}
+  .layer.collapsed .layer-top{margin-bottom:0}
+
   /* ---------- responsive ---------- */
   @media (max-width:820px){
     body{overflow:auto}
@@ -320,5 +340,6 @@
     .brand .sub{display:none}
     .btn span.lbl{display:none}
     .btn{padding:0 11px}
+    .add-resizer{display:none}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}

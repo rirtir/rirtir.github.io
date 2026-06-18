@@ -37,6 +37,8 @@ let nextId = 1;
 let sourceReady = false;
 let imgGen = 0;
 const img = new Image();
+let sourceDataURL = null;   // 元画像データURL（プロジェクト埋め込み用・無劣化）
+let sourceName = "image";   // 元画像名（拡張子なし）
 
 /* ---------- elements ---------- */
 const $ = id => document.getElementById(id);
@@ -52,6 +54,7 @@ const stageUI = $("stageUI");
 const zoomTag = $("zoomTag");
 const compareFlag = $("compareFlag");
 const fileInput = $("fileInput");
+const projectInput = $("projectInput");
 
 /* ---------- small utilities ---------- */
 function clamp(v, min=0, max=255){ return v < min ? min : (v > max ? max : v); }
@@ -191,7 +194,7 @@ function renderStack(){
     const f = fm.FILTERS[layer.type];
     const cat = fm.CATS[f.cat];
     const card = document.createElement("div");
-    card.className = "layer" + (layer.enabled? "" : " disabled");
+    card.className = "layer" + (layer.enabled ? "" : " disabled") + (layer.collapsed ? " collapsed" : "");
     card.style.setProperty("--cat", cat.color);
     card.dataset.id = layer.id;
 
@@ -202,6 +205,9 @@ function renderStack(){
         </span>
         <span class="layer-name">${f.name}</span>
         <span class="layer-cat">${f.cat}</span>
+        <button class="icon-btn collapse" title="${layer.collapsed?'展開する':'折りたたむ'}" aria-label="折りたたみ" aria-expanded="${layer.collapsed?'false':'true'}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
         <button class="icon-btn vis ${layer.enabled?'on':''}" title="${layer.enabled?'非表示にする':'表示する'}" aria-label="表示切替">
           ${layer.enabled
             ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`
@@ -216,6 +222,12 @@ function renderStack(){
 
     card.querySelector(".vis").addEventListener("click", ()=>toggleLayer(layer.id));
     card.querySelector(".del").addEventListener("click", ()=>removeLayer(layer.id));
+    const colBtn = card.querySelector(".collapse");
+    if(colBtn) colBtn.addEventListener("click", ()=>{
+      layer.collapsed = !layer.collapsed;
+      card.classList.toggle("collapsed", layer.collapsed);
+      colBtn.setAttribute("aria-expanded", layer.collapsed ? "false" : "true");
+    });
     if(fm.wireBody) fm.wireBody(card, layer);
 
     enableDrag(card, card.querySelector(".handle"));
@@ -322,10 +334,12 @@ function loadFromURL(url){
     img.onload = ()=>{
       sourceReady = true;
       imgGen++;
+      sourceDataURL = url;                    // 埋め込み用に保持
       empty.classList.add("hidden");
       canvasWrap.classList.remove("hidden");
       stageUI.classList.remove("hidden");
       $("btnSave").disabled = false;
+      $("btnSaveProject").disabled = false;   // プロジェクト保存を有効化
       $("btnCompare").disabled = false;
       resetView();
       const fm = window.PRISM_FILTERS;
@@ -350,7 +364,13 @@ function handleFile(file){
     toast("画像ファイルではありません。JPG・PNG・WebP をお試しください");
     return;
   }
-  loadFromURL(URL.createObjectURL(file));
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    sourceName = (file.name || "image").replace(/\.[^.]+$/, "");
+    loadFromURL(reader.result);   // 元データURL（無劣化）をそのまま使う
+  };
+  reader.onerror = ()=> toast("画像を読み込めませんでした");
+  reader.readAsDataURL(file);
 }
 
 function loadSample(){
@@ -372,6 +392,7 @@ function loadSample(){
   x.fillStyle = "rgba(255,255,255,.92)";
   x.font = "700 96px 'Space Grotesk', sans-serif";
   x.fillText("PRISM", 80, 460);
+  sourceName = "sample";
   loadFromURL(c.toDataURL("image/png"));
 }
 
@@ -407,6 +428,114 @@ function saveImage(){
     console.error(err);
     toast(failMsg);
   }
+}
+
+/* ---------- project save / load ----------
+   レイヤー（追加フィルターと値）をJSONで保存。画像はデータURLとして
+   埋め込む（元バイト列のbase64なので無劣化）。id は保存時に除外し、
+   読み込み時に振り直す（並び順は配列順で保持）。 */
+const PROJECT_VERSION = 1;
+
+function saveProject(){
+  if(!sourceReady){ toast("先に画像を開いてください"); return; }
+  const data = {
+    prism: "project",
+    version: PROJECT_VERSION,
+    savedAt: new Date().toISOString(),
+    image: sourceDataURL
+      ? { embedded:true, name:sourceName, dataURL:sourceDataURL }
+      : { embedded:false },
+    layers: layers.map(({ id, ...rest })=> rest),
+  };
+  try{
+    const blob = new Blob([JSON.stringify(data)], { type:"application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = (sourceName || "prism") + ".prism.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("プロジェクトを保存しました");
+  }catch(err){
+    console.error(err);
+    toast("プロジェクトの保存に失敗しました");
+  }
+}
+
+function loadProjectFromFile(file){
+  if(!file){ return; }
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    let data;
+    try{ data = JSON.parse(reader.result); }
+    catch(_){ toast("プロジェクトファイルを解釈できませんでした"); return; }
+    if(!data || data.prism !== "project" || !Array.isArray(data.layers)){
+      toast("PRISM のプロジェクトファイルではありません");
+      return;
+    }
+    applyProjectData(data);
+  };
+  reader.onerror = ()=> toast("プロジェクトファイルを読み込めませんでした");
+  reader.readAsText(file);
+}
+
+function applyProjectData(data){
+  const fm = window.PRISM_FILTERS;
+  let maxId = 0;
+  const restored = [];
+  data.layers.forEach(src=>{
+    if(!src || !fm || !fm.FILTERS[src.type]) return;   // 未知の型は読み飛ばす
+    const layer = JSON.parse(JSON.stringify(src));      // curves等のネストも複製
+    if(typeof layer.enabled !== "boolean") layer.enabled = true;
+    layer.id = ++maxId;
+    restored.push(layer);
+  });
+  layers = restored;
+  nextId = maxId + 1;
+  renderStack();
+
+  const skipped = data.layers.length - restored.length;
+  const note = skipped > 0 ? `（未対応のレイヤー${skipped}件は除外）` : "";
+  const img64 = data.image && data.image.embedded && data.image.dataURL;
+  if(img64){
+    sourceName = data.image.name || sourceName;
+    loadFromURL(img64);   // onload で renderStack / render が走る
+    toast("プロジェクトを読み込みました" + note);
+  }else{
+    if(sourceReady) scheduleRender();
+    toast("レイヤーのみ読み込みました（画像は含まれていません）" + note);
+  }
+}
+
+/* ---------- add-grid リサイズ（PCのみ） ---------- */
+function initAddResizer(){
+  const handle = $("addResizer");
+  const grid = $("addGrid");
+  const rail = document.querySelector(".rail");
+  if(!handle || !grid || !rail) return;
+  let startY = 0, startH = 0, dragging = false;
+  const onMove = e=>{
+    if(!dragging) return;
+    const dy = e.clientY - startY;
+    const h = Math.max(96, Math.min(rail.clientHeight - 200, startH + dy));
+    document.documentElement.style.setProperty("--add-h", h + "px");
+  };
+  const onUp = e=>{
+    if(!dragging) return;
+    dragging = false;
+    try{ handle.releasePointerCapture(e.pointerId); }catch(_){}
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+  };
+  handle.addEventListener("pointerdown", e=>{
+    if(IS_COARSE || window.innerWidth <= 820) return;   // タッチ・狭幅では無効
+    e.preventDefault();
+    dragging = true;
+    startY = e.clientY;
+    startH = grid.getBoundingClientRect().height;
+    try{ handle.setPointerCapture(e.pointerId); }catch(_){}
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  });
 }
 
 /* ---------- compare (hold) ---------- */
@@ -524,6 +653,9 @@ $("emptySample").addEventListener("click", loadSample);
 $("btnSave").addEventListener("click", saveImage);
 $("btnClear").addEventListener("click", clearAll);
 fileInput.addEventListener("change", e=> handleFile(e.target.files[0]));
+$("btnSaveProject").addEventListener("click", saveProject);
+$("btnOpenProject").addEventListener("click", ()=>{ projectInput.value=""; projectInput.click(); });
+projectInput.addEventListener("change", e=> loadProjectFromFile(e.target.files[0]));
 
 const cmp = $("btnCompare");
 cmp.addEventListener("pointerdown", e=>{ e.preventDefault(); setCompare(true); });
@@ -564,7 +696,8 @@ document.addEventListener("click", e=>{
   if(e.target === btnMenu || btnMenu.contains(e.target) || menuDropdown.contains(e.target)) return;
   setMenu(false);
 });
-[$("btnOpen"), $("btnSave"), $("btnClear")].forEach(b=> b && b.addEventListener("click", ()=>setMenu(false)));
+[$("btnOpen"), $("btnOpenProject"), $("btnSave"), $("btnSaveProject"), $("btnClear")]
+  .forEach(b=> b && b.addEventListener("click", ()=>setMenu(false)));
 
 ["dragenter","dragover"].forEach(ev=>
   stage.addEventListener(ev, e=>{ e.preventDefault(); empty.classList.add("drag"); }));
@@ -578,3 +711,4 @@ stage.addEventListener("drop", e=>{
 // init
 buildAddGrid();
 renderStack();
+initAddResizer();
