@@ -132,6 +132,13 @@ const data = [
                 desc: "モザイクのかかっている箇所をマスク画像として出力可能。",
                 tags: ["画像", "画像処理", "オフライン"],
                 main: false,
+            },
+            {
+                title: "ドット絵メーカー",
+                url: "https://rirtir.com/Image/PixelArtMaker/",
+                desc: "簡単なドット絵を作成できるツール",
+                tags: ["画像", "画像処理", "お絵描き", "オフライン"],
+                main: false,
             }
         ]
     },

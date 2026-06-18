@@ -1,0 +1,1151 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ドット絵メーカー</title>
+<style>
+  :root{
+    --bg:#12141a;
+    --panel:#1b1f2a;
+    --panel2:#242a38;
+    --text:#ecf0f7;
+    --muted:#aab3c2;
+    --line:#343c4e;
+    --accent:#75a7ff;
+    --danger:#ff7777;
+    --ok:#8be28b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+  button,input,select,label{font:inherit}
+  button,input,select{border:1px solid var(--line);background:#111722;color:var(--text);border-radius:8px;padding:6px 8px}
+  button{cursor:pointer;user-select:none}
+  button:hover{border-color:var(--accent)}
+  button.active{outline:2px solid var(--accent);background:#21324f}
+  button.danger:hover{border-color:var(--danger)}
+  input[type="number"]{width:86px}
+  input[type="color"]{width:46px;height:34px;padding:2px}
+  input[type="range"]{accent-color:var(--accent)}
+  .app{display:grid;grid-template-columns:340px 1fr;grid-template-rows:auto 1fr auto;height:100%}
+  header{grid-column:1/3;display:flex;gap:10px;align-items:center;padding:10px 12px;background:#0f1218;border-bottom:1px solid var(--line);white-space:nowrap;overflow-x:auto}
+  header h1{font-size:16px;margin:0 10px 0 0}
+  .sidebar{overflow:auto;background:var(--panel);border-right:1px solid var(--line);padding:10px}
+  .workspace{position:relative;overflow:hidden;background:#10131a}
+  .canvasShell{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  canvas{width:100%;height:100%;display:block;cursor:crosshair;touch-action:none;background:#0b0e14}
+  footer{grid-column:1/3;display:flex;align-items:center;gap:18px;padding:6px 12px;background:#0f1218;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+  .group{background:var(--panel2);border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:10px}
+  .group h2{font-size:14px;margin:0 0 8px 0;color:#dce6ff}
+  .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0}
+  .row.tight{gap:5px}
+  .hint{font-size:12px;color:var(--muted);line-height:1.45}
+  .toolgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .toolgrid button{padding:8px 4px}
+  .palette{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}
+  .swatch{height:26px;border-radius:6px;border:1px solid rgba(255,255,255,.25);position:relative;padding:0;background-color:transparent;background-image:linear-gradient(45deg,#777 25%,transparent 25%),linear-gradient(-45deg,#777 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#777 75%),linear-gradient(-45deg,transparent 75%,#777 75%);background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0}
+  .swatch span{display:block;width:100%;height:100%;border-radius:5px}
+  .swatch.selected{outline:3px solid var(--accent)}
+  .layerList{display:flex;flex-direction:column;gap:5px}
+  .layer{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;padding:6px;border:1px solid var(--line);border-radius:9px;background:#151b27}
+  .layer.active{border-color:var(--accent);background:#1d2a40}
+  .layer .name{border:none;background:transparent;color:var(--text);padding:3px;min-width:0;width:100%}
+  .layer small{color:var(--muted)}
+  .kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:#0c1119;color:#dce6ff;font-size:12px}
+  .sep{height:1px;background:var(--line);margin:8px 0}
+  .fileLabel{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#111722;border-radius:8px;padding:6px 8px;cursor:pointer}
+  .fileLabel:hover{border-color:var(--accent)}
+  .fileLabel input{display:none}
+  .mini{font-size:12px;padding:4px 6px;border-radius:6px}
+  .dangerText{color:var(--danger)}
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr;grid-template-rows:auto 48vh 1fr auto}
+    header,.workspace,footer{grid-column:1}
+    .sidebar{grid-row:3;border-right:none;border-top:1px solid var(--line)}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>ドット絵メーカー</h1>
+    <span>新規</span>
+    <label>W <input id="newW" type="number" min="1" max="512" value="32"></label>
+    <label>H <input id="newH" type="number" min="1" max="512" value="32"></label>
+    <button id="newProjectBtn">作成</button>
+    <label class="fileLabel">下絵画像<input id="underlayFile" type="file" accept="image/*"></label>
+    <label class="fileLabel">ドット画像から開始<input id="pixelFile" type="file" accept="image/*"></label>
+    <button id="exportBtn">PNG出力</button>
+    <label><input id="exportBg" type="checkbox" checked> 背景込み</label>
+  </header>
+
+  <aside class="sidebar">
+    <div class="group">
+      <h2>ツール</h2>
+      <div class="toolgrid" id="tools">
+        <button data-tool="brush" class="active">ブラシ</button>
+        <button data-tool="eraser">消しゴム</button>
+        <button data-tool="line">直線</button>
+        <button data-tool="rect">長方形</button>
+        <button data-tool="ellipse">楕円</button>
+        <button data-tool="move">レイヤー移動</button>
+        <button data-tool="underlay">下絵操作</button>
+      </div>
+      <div class="row">
+        <label>サイズ <input id="brushSize" type="number" min="1" max="64" value="1"></label>
+        <label>形状
+          <select id="brushShape">
+            <option value="square">四角</option>
+            <option value="circle">円形</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label><input id="shapeFill" type="checkbox" checked> 図形を塗りつぶす</label>
+      </div>
+      <p class="hint">図形ツールは左クリック長押し＋ドラッグ。<span class="kbd">Shift</span>で直線は水平/垂直、長方形は正方形、楕円は正円になります。</p>
+      <p class="hint"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span>でアンドゥ、<span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">Z</span>でリドゥ。ドラッグは1操作として扱います。</p>
+    </div>
+
+    <div class="group">
+      <h2>表示</h2>
+      <div class="row">
+        <label>背景 <input id="bgColor" type="color" value="#ffffff"></label>
+        <label><input id="showGrid" type="checkbox" checked> グリッド</label>
+      </div>
+      <div class="row">
+        <button id="zoomOut">－</button>
+        <button id="zoomReset">100%</button>
+        <button id="zoomIn">＋</button>
+      </div>
+      <p class="hint">ホイールでズーム、中央ドラッグまたはスペース＋ドラッグで表示位置を移動できます。</p>
+    </div>
+
+    <div class="group">
+      <h2>パレット（64色）</h2>
+      <div class="row">
+        <span id="paletteNo">#1</span>
+        <input id="paletteColor" type="color" value="#000000">
+        <span class="hint">色変更で同じパレットを使ったマスも一括変更</span>
+      </div>
+      <div class="palette" id="palette"></div>
+    </div>
+
+    <div class="group">
+      <h2>レイヤー</h2>
+      <div class="row tight">
+        <button id="addLayer">追加</button>
+        <button id="deleteLayer" class="danger">削除</button>
+        <button id="layerUp">上へ</button>
+        <button id="layerDown">下へ</button>
+      </div>
+      <div class="layerList" id="layerList"></div>
+      <p class="hint">上にあるレイヤーほど優先して表示されます。レイヤー移動ツールではキャンバスは固定のまま、選択中レイヤーの画素だけを移動します。</p>
+    </div>
+
+    <div class="group">
+      <h2>下絵</h2>
+      <div class="row">
+        <label><input id="underlayVisible" type="checkbox" checked> 表示</label>
+        <label>配置
+          <select id="underlayAbove">
+            <option value="below">ドット絵の奥</option>
+            <option value="above">ドット絵の上</option>
+          </select>
+        </label>
+      </div>
+      <div class="row"><label>不透明度 <input id="underlayOpacity" type="range" min="0" max="1" step="0.01" value="0.5"></label><span id="underlayOpacityText">50%</span></div>
+      <div class="row"><label>X <input id="underlayX" type="number" step="0.1" value="16"></label><label>Y <input id="underlayY" type="number" step="0.1" value="16"></label></div>
+      <div class="row">
+        <label>拡大率X <input id="underlayScaleX" type="number" step="0.01" value="1"></label>
+        <label>拡大率Y <input id="underlayScaleY" type="number" step="0.01" value="1"></label>
+      </div>
+      <div class="row">
+        <label>回転° <input id="underlayRotation" type="number" step="1" value="0"></label>
+      </div>
+      <div class="row"><button id="clearUnderlay" class="danger">下絵を削除</button></div>
+      <p class="hint">下絵操作ツールでドラッグ移動できます。下絵はキャンバス解像度とは独立して、拡大縮小・回転できます。</p>
+    </div>
+  </aside>
+
+  <main class="workspace">
+    <div class="canvasShell"><canvas id="canvas"></canvas></div>
+  </main>
+
+  <footer>
+    <span id="status">準備完了</span>
+    <span id="pos">x:- y:-</span>
+    <span id="projectInfo">32×32 / 1レイヤー</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const MAX_PALETTE = 64;
+  const UNDO_LIMIT = 60;
+  const TRANSPARENT = 0;
+
+  const $ = (id) => document.getElementById(id);
+  const canvas = $('canvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+
+  let tool = 'brush';
+  let undoStack = [];
+  let redoStack = [];
+  let isPointerDown = false;
+  let activePointerId = null;
+  let lastCell = null;
+  let dragStart = null;
+  let dragNow = null;
+  let panning = false;
+  let panStart = null;
+  let movePreview = null;
+  let underlayDrag = null;
+  let paletteChangeOpen = false;
+  let resizeObserver = null;
+  let spaceHeld = false;
+  let shapeShift = false;
+
+  const defaultPalette = [
+    '#000000','#ffffff','#7f7f7f','#c3c3c3','#880015','#ed1c24','#ff7f27','#fff200',
+    '#22b14c','#00a2e8','#3f48cc','#a349a4','#ffaec9','#ffc90e','#b5e61d','#99d9ea',
+    '#4b2e1a','#8b5a2b','#d2b48c','#f4c2a1','#5f3dc4','#1971c2','#0ca678','#e8590c',
+    '#212529','#495057','#868e96','#adb5bd','#f8f9fa','#ff6b6b','#f06595','#cc5de8',
+    '#845ef7','#5c7cfa','#339af0','#22b8cf','#20c997','#51cf66','#94d82d','#fcc419',
+    '#ff922b','#ff8787','#e03131','#c2255c','#9c36b5','#6741d9','#364fc7','#1864ab',
+    '#0b7285','#087f5b','#2b8a3e','#5c940d','#e67700','#d9480f','#a61e4d','#5f3dc4',
+    '#0a0a0a','#1a1a1a','#2a2a2a','#3a3a3a','#4a4a4a','#5a5a5a','#6a6a6a','#7a7a7a'
+  ];
+
+  let state = {
+    width: 32,
+    height: 32,
+    bgColor: '#ffffff',
+    showGrid: true,
+    palette: defaultPalette.slice(0, MAX_PALETTE),
+    selectedPalette: 0,
+    layers: [],
+    activeLayer: 0,
+    underlay: emptyUnderlay(),
+    view: { zoom: 18, panX: 80, panY: 60 }
+  };
+
+  function emptyUnderlay(){
+    return {
+      img:null,
+      src:null,
+      visible:true,
+      above:false,
+      opacity:0.5,
+      x:16,
+      y:16,
+      scaleX:1,
+      scaleY:1,
+      rotation:0
+    };
+  }
+
+  function createLayer(name){
+    return { name, visible:true, opacity:1, pixels:new Uint8Array(state.width * state.height) };
+  }
+
+  function init(){
+    state.layers = [createLayer('レイヤー 1')];
+    bindEvents();
+    renderAllControls();
+    fitInitialView();
+    render();
+    setStatus('新規プロジェクトを作成しました');
+  }
+
+  function bindEvents(){
+    $('tools').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-tool]');
+      if(!btn) return;
+      setTool(btn.dataset.tool);
+    });
+
+    $('newProjectBtn').addEventListener('click', () => {
+      const w = clamp(parseInt($('newW').value || '32', 10), 1, 512);
+      const h = clamp(parseInt($('newH').value || '32', 10), 1, 512);
+      newProject(w, h);
+    });
+
+    $('underlayFile').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if(file) loadUnderlay(file);
+      e.target.value = '';
+    });
+
+    $('pixelFile').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if(file) importPixelImage(file);
+      e.target.value = '';
+    });
+
+    $('exportBtn').addEventListener('click', exportPng);
+
+    $('bgColor').addEventListener('change', (e) => {
+      pushUndo();
+      state.bgColor = e.target.value;
+      render();
+    });
+
+    $('showGrid').addEventListener('change', (e) => {
+      state.showGrid = e.target.checked;
+      render();
+    });
+
+    $('brushSize').addEventListener('change', () => {
+      $('brushSize').value = clamp(parseInt($('brushSize').value || '1', 10), 1, 64);
+    });
+
+    $('zoomIn').addEventListener('click', () => zoomAt(canvas.clientWidth/2, canvas.clientHeight/2, 1.25));
+    $('zoomOut').addEventListener('click', () => zoomAt(canvas.clientWidth/2, canvas.clientHeight/2, 0.8));
+    $('zoomReset').addEventListener('click', () => fitInitialView());
+
+    $('paletteColor').addEventListener('input', (e) => {
+      if(!paletteChangeOpen){
+        pushUndo();
+        paletteChangeOpen = true;
+      }
+      state.palette[state.selectedPalette] = e.target.value;
+      renderPalette();
+      render();
+    });
+    $('paletteColor').addEventListener('change', () => {
+      paletteChangeOpen = false;
+      setStatus('パレット色を変更しました');
+    });
+
+    $('addLayer').addEventListener('click', () => {
+      pushUndo();
+      state.layers.push(createLayer(`レイヤー ${state.layers.length + 1}`));
+      state.activeLayer = state.layers.length - 1;
+      renderLayerList(); render(); updateProjectInfo();
+    });
+    $('deleteLayer').addEventListener('click', () => {
+      if(state.layers.length <= 1){ setStatus('最低1枚のレイヤーが必要です'); return; }
+      pushUndo();
+      state.layers.splice(state.activeLayer, 1);
+      state.activeLayer = clamp(state.activeLayer, 0, state.layers.length - 1);
+      renderLayerList(); render(); updateProjectInfo();
+    });
+    $('layerUp').addEventListener('click', () => moveActiveLayer(1));
+    $('layerDown').addEventListener('click', () => moveActiveLayer(-1));
+
+    bindUnderlayControls();
+
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointercancel', onPointerUp);
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+    canvas.addEventListener('wheel', onWheel, { passive:false });
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', (e) => {
+      if(e.code === 'Space'){
+        spaceHeld = false;
+        canvas.style.cursor = cursorForTool();
+      }
+    });
+
+    resizeObserver = new ResizeObserver(() => resizeCanvas());
+    resizeObserver.observe(canvas);
+  }
+
+  function bindUnderlayControls(){
+    const bindChange = (id, fn) => {
+      $(id).addEventListener('change', (e) => {
+        pushUndo();
+        fn(e);
+        updateUnderlayControls();
+        render();
+      });
+    };
+    bindChange('underlayVisible', e => state.underlay.visible = e.target.checked);
+    bindChange('underlayAbove', e => state.underlay.above = e.target.value === 'above');
+    bindChange('underlayOpacity', e => state.underlay.opacity = parseFloat(e.target.value));
+    bindChange('underlayX', e => state.underlay.x = parseFloat(e.target.value || '0'));
+    bindChange('underlayY', e => state.underlay.y = parseFloat(e.target.value || '0'));
+    bindChange('underlayScaleX', e => {state.underlay.scaleX = Math.max(0.01, parseFloat(e.target.value || '1'));});
+    bindChange('underlayScaleY', e => {state.underlay.scaleY = Math.max(0.01, parseFloat(e.target.value || '1'));});
+    bindChange('underlayRotation', e => state.underlay.rotation = parseFloat(e.target.value || '0'));
+    $('clearUnderlay').addEventListener('click', () => {
+      if(!state.underlay.img) return;
+      pushUndo();
+      state.underlay = emptyUnderlay();
+      updateUnderlayControls();
+      render();
+    });
+  }
+
+  function setTool(next){
+    tool = next;
+    document.querySelectorAll('#tools button').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
+    canvas.style.cursor = cursorForTool();
+    setStatus(`ツール: ${document.querySelector(`#tools button[data-tool="${tool}"]`).textContent}`);
+  }
+
+  function cursorForTool(){
+    if(tool === 'move' || tool === 'underlay') return 'grab';
+    return 'crosshair';
+  }
+
+  function newProject(w, h){
+    pushUndo();
+    state.width = w;
+    state.height = h;
+    state.layers = [createLayer('レイヤー 1')];
+    state.activeLayer = 0;
+    state.underlay = emptyUnderlay();
+    state.underlay.x = w / 2;
+    state.underlay.y = h / 2;
+    $('newW').value = w;
+    $('newH').value = h;
+    fitInitialView();
+    renderAllControls();
+    render();
+    setStatus(`${w}×${h} の透明キャンバスを作成しました`);
+  }
+
+  function renderAllControls(){
+    $('bgColor').value = state.bgColor;
+    $('showGrid').checked = state.showGrid;
+    renderPalette();
+    renderLayerList();
+    updateUnderlayControls();
+    updateProjectInfo();
+  }
+
+  function renderPalette(){
+    const box = $('palette');
+    box.innerHTML = '';
+    state.palette.forEach((color, i) => {
+      const b = document.createElement('button');
+      b.className = 'swatch' + (i === state.selectedPalette ? ' selected' : '');
+      b.title = `パレット ${i + 1}: ${color}`;
+      const inner = document.createElement('span');
+      inner.style.background = color;
+      b.appendChild(inner);
+      b.addEventListener('click', () => {
+        state.selectedPalette = i;
+        $('paletteColor').value = state.palette[i];
+        $('paletteNo').textContent = `#${i + 1}`;
+        renderPalette();
+      });
+      box.appendChild(b);
+    });
+    $('paletteColor').value = state.palette[state.selectedPalette];
+    $('paletteNo').textContent = `#${state.selectedPalette + 1}`;
+  }
+
+  function renderLayerList(){
+    const list = $('layerList');
+    list.innerHTML = '';
+    for(let i = state.layers.length - 1; i >= 0; i--){
+      const layer = state.layers[i];
+      const row = document.createElement('div');
+      row.className = 'layer' + (i === state.activeLayer ? ' active' : '');
+      row.addEventListener('click', (e) => {
+        if(e.target.matches('input')) return;
+        state.activeLayer = i;
+        renderLayerList();
+      });
+
+      const vis = document.createElement('input');
+      vis.type = 'checkbox';
+      vis.checked = layer.visible;
+      vis.title = '表示/非表示';
+      vis.addEventListener('change', () => {
+        pushUndo();
+        layer.visible = vis.checked;
+        render();
+      });
+
+      const middle = document.createElement('div');
+      const name = document.createElement('input');
+      name.className = 'name';
+      name.value = layer.name;
+      name.addEventListener('change', () => { layer.name = name.value || `レイヤー ${i + 1}`; });
+      const small = document.createElement('small');
+      small.textContent = i === state.layers.length - 1 ? '最前面' : (i === 0 ? '最背面' : '');
+      middle.appendChild(name);
+      middle.appendChild(small);
+
+      const opacity = document.createElement('input');
+      opacity.type = 'range';
+      opacity.min = '0'; opacity.max = '1'; opacity.step = '0.05'; opacity.value = layer.opacity;
+      opacity.title = 'レイヤー不透明度';
+      opacity.addEventListener('change', () => {
+        pushUndo();
+        layer.opacity = parseFloat(opacity.value);
+        render();
+      });
+
+      row.appendChild(vis);
+      row.appendChild(middle);
+      row.appendChild(opacity);
+      list.appendChild(row);
+    }
+  }
+
+  function updateUnderlayControls(){
+    const u = state.underlay;
+    $('underlayVisible').checked = !!u.visible;
+    $('underlayAbove').value = u.above ? 'above' : 'below';
+    $('underlayOpacity').value = String(u.opacity);
+    $('underlayOpacityText').textContent = `${Math.round(u.opacity * 100)}%`;
+    $('underlayX').value = round2(u.x);
+    $('underlayY').value = round2(u.y);
+    $('underlayScaleX').value = round2(u.scaleX ?? u.scale ?? 1);
+    $('underlayScaleY').value = round2(u.scaleY ?? u.scale ?? 1);
+    $('underlayRotation').value = round2(u.rotation);
+  }
+
+  function updateProjectInfo(){
+    $('projectInfo').textContent = `${state.width}×${state.height} / ${state.layers.length}レイヤー`;
+  }
+
+  function moveActiveLayer(dir){
+    const i = state.activeLayer;
+    const ni = i + dir;
+    if(ni < 0 || ni >= state.layers.length) return;
+    pushUndo();
+    const [l] = state.layers.splice(i, 1);
+    state.layers.splice(ni, 0, l);
+    state.activeLayer = ni;
+    renderLayerList();
+    render();
+  }
+
+  function resizeCanvas(){
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.floor(rect.width * dpr));
+    const h = Math.max(1, Math.floor(rect.height * dpr));
+    if(canvas.width !== w || canvas.height !== h){
+      canvas.width = w;
+      canvas.height = h;
+      render();
+    }
+  }
+
+  function fitInitialView(){
+    const rect = canvas.getBoundingClientRect();
+    const cw = rect.width || 800;
+    const ch = rect.height || 600;
+    const zoom = Math.floor(Math.max(4, Math.min(32, Math.min((cw - 80) / state.width, (ch - 80) / state.height))));
+    state.view.zoom = zoom;
+    state.view.panX = Math.round((cw - state.width * zoom) / 2);
+    state.view.panY = Math.round((ch - state.height * zoom) / 2);
+    render();
+  }
+
+  function render(){
+    resizeCanvasIfNeeded();
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,rect.width,rect.height);
+    ctx.fillStyle = '#0b0e14';
+    ctx.fillRect(0,0,rect.width,rect.height);
+
+    ctx.save();
+    ctx.translate(state.view.panX, state.view.panY);
+    ctx.scale(state.view.zoom, state.view.zoom);
+    ctx.imageSmoothingEnabled = false;
+
+    drawCanvasBackground();
+    if(state.underlay.img && state.underlay.visible && !state.underlay.above) drawUnderlay();
+    drawAllLayers();
+    if(state.underlay.img && state.underlay.visible && state.underlay.above) drawUnderlay();
+    drawShapePreview();
+    if(state.showGrid) drawGrid();
+    drawCanvasBorder();
+    ctx.restore();
+  }
+
+  function resizeCanvasIfNeeded(){
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.floor(rect.width * dpr));
+    const h = Math.max(1, Math.floor(rect.height * dpr));
+    if(canvas.width !== w || canvas.height !== h){
+      canvas.width = w;
+      canvas.height = h;
+    }
+  }
+
+  function drawCanvasBackground(){
+    ctx.fillStyle = state.bgColor;
+    ctx.fillRect(0,0,state.width,state.height);
+  }
+
+  function drawCanvasBorder(){
+    ctx.save();
+    ctx.lineWidth = 1 / state.view.zoom;
+    ctx.strokeStyle = 'rgba(255,255,255,.8)';
+    ctx.strokeRect(0,0,state.width,state.height);
+    ctx.restore();
+  }
+
+  function drawGrid(){
+    if(state.view.zoom < 7) return;
+    ctx.save();
+    ctx.lineWidth = 1 / state.view.zoom;
+    ctx.strokeStyle = state.view.zoom >= 14 ? 'rgba(0,0,0,.22)' : 'rgba(0,0,0,.12)';
+    ctx.beginPath();
+    for(let x=0; x<=state.width; x++){ ctx.moveTo(x,0); ctx.lineTo(x,state.height); }
+    for(let y=0; y<=state.height; y++){ ctx.moveTo(0,y); ctx.lineTo(state.width,y); }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawUnderlay(){
+    const u = state.underlay;
+    if(!u.img) return;
+    ctx.save();
+    ctx.globalAlpha = u.opacity;
+    ctx.imageSmoothingEnabled = true;
+    ctx.translate(u.x, u.y);
+    ctx.rotate(degToRad(u.rotation));
+    ctx.scale(u.scaleX ?? u.scale ?? 1, u.scaleY ?? u.scale ?? 1);
+    ctx.drawImage(u.img, -u.img.width / 2, -u.img.height / 2);
+    ctx.restore();
+    ctx.imageSmoothingEnabled = false;
+  }
+
+  function drawAllLayers(){
+    for(let i=0; i<state.layers.length; i++){
+      const layer = state.layers[i];
+      if(!layer.visible) continue;
+      if(movePreview && i === state.activeLayer){
+        drawLayerPixels(layer.pixels, movePreview.dx, movePreview.dy, layer.opacity);
+      }else{
+        drawLayerPixels(layer.pixels, 0, 0, layer.opacity);
+      }
+    }
+  }
+
+  function drawLayerPixels(pixels, ox, oy, opacity){
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    for(let y=0; y<state.height; y++){
+      const yy = y + oy;
+      if(yy < 0 || yy >= state.height) continue;
+      for(let x=0; x<state.width; x++){
+        const xx = x + ox;
+        if(xx < 0 || xx >= state.width) continue;
+        const idx = pixels[y * state.width + x];
+        if(idx === TRANSPARENT) continue;
+        ctx.fillStyle = state.palette[idx - 1] || '#000000';
+        ctx.fillRect(xx, yy, 1, 1);
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawShapePreview(){
+    if(!dragStart || !dragNow || !['line','rect','ellipse'].includes(tool)) return;
+    const cells = shapeCells(tool, dragStart.x, dragStart.y, dragNow.x, dragNow.y, $('shapeFill').checked, shapeShift);
+    ctx.save();
+    ctx.globalAlpha = 0.72;
+    ctx.fillStyle = state.palette[state.selectedPalette];
+    for(const p of cells){
+      if(inBounds(p.x, p.y)) ctx.fillRect(p.x, p.y, 1, 1);
+    }
+    ctx.restore();
+  }
+
+  function onPointerDown(e){
+    const isMiddle = e.button === 1;
+    if(isMiddle || spaceHeld){
+      startPan(e); return;
+    }
+    if(e.button !== 0) return;
+    canvas.setPointerCapture(e.pointerId);
+    activePointerId = e.pointerId;
+    isPointerDown = true;
+    const cell = eventToCell(e);
+    const g = eventToGridFloat(e);
+
+    if(tool === 'brush' || tool === 'eraser'){
+      pushUndo();
+      lastCell = cell;
+      paintBetween(cell, cell, tool === 'eraser' ? 0 : state.selectedPalette + 1);
+      render();
+    }else if(['line','rect','ellipse'].includes(tool)){
+      pushUndo();
+      dragStart = cell;
+      dragNow = cell;
+      shapeShift = e.shiftKey;
+      render();
+    }else if(tool === 'move'){
+      pushUndo();
+      dragStart = cell;
+      movePreview = { dx:0, dy:0, original: state.layers[state.activeLayer].pixels.slice() };
+      canvas.style.cursor = 'grabbing';
+      render();
+    }else if(tool === 'underlay'){
+      pushUndo();
+      underlayDrag = { startGrid:g, startX:state.underlay.x, startY:state.underlay.y };
+      canvas.style.cursor = 'grabbing';
+    }
+  }
+
+  function onPointerMove(e){
+    const cell = eventToCell(e);
+    $('pos').textContent = inBounds(cell.x, cell.y) ? `x:${cell.x} y:${cell.y}` : 'x:- y:-';
+
+    if(panning){
+      const p = eventToScreen(e);
+      state.view.panX = panStart.panX + (p.x - panStart.x);
+      state.view.panY = panStart.panY + (p.y - panStart.y);
+      render();
+      return;
+    }
+
+    if(!isPointerDown || e.pointerId !== activePointerId) return;
+
+    if(tool === 'brush' || tool === 'eraser'){
+      if(!lastCell || (lastCell.x === cell.x && lastCell.y === cell.y)) return;
+      paintBetween(lastCell, cell, tool === 'eraser' ? 0 : state.selectedPalette + 1);
+      lastCell = cell;
+      render();
+    }else if(['line','rect','ellipse'].includes(tool)){
+      shapeShift = e.shiftKey;
+      dragNow = constrainForShift(tool, dragStart, cell, shapeShift);
+      render();
+    }else if(tool === 'move' && movePreview){
+      movePreview.dx = cell.x - dragStart.x;
+      movePreview.dy = cell.y - dragStart.y;
+      render();
+    }else if(tool === 'underlay' && underlayDrag){
+      const g = eventToGridFloat(e);
+      state.underlay.x = underlayDrag.startX + (g.x - underlayDrag.startGrid.x);
+      state.underlay.y = underlayDrag.startY + (g.y - underlayDrag.startGrid.y);
+      updateUnderlayControls();
+      render();
+    }
+  }
+
+  function onPointerUp(e){
+    if(panning){ stopPan(); return; }
+    if(!isPointerDown || e.pointerId !== activePointerId) return;
+
+    if(['line','rect','ellipse'].includes(tool) && dragStart && dragNow){
+      const end = constrainForShift(tool, dragStart, dragNow, e.shiftKey);
+      const cells = shapeCells(tool, dragStart.x, dragStart.y, end.x, end.y, $('shapeFill').checked, false);
+      setManyCells(cells, state.selectedPalette + 1);
+    }else if(tool === 'move' && movePreview){
+      commitMovePreview();
+    }
+
+    isPointerDown = false;
+    activePointerId = null;
+    lastCell = null;
+    dragStart = null;
+    dragNow = null;
+    shapeShift = false;
+    movePreview = null;
+    underlayDrag = null;
+    canvas.style.cursor = cursorForTool();
+    render();
+  }
+
+  function startPan(e){
+    e.preventDefault();
+    panning = true;
+    const p = eventToScreen(e);
+    panStart = { x:p.x, y:p.y, panX:state.view.panX, panY:state.view.panY };
+    canvas.style.cursor = 'grabbing';
+  }
+
+  function stopPan(){
+    panning = false;
+    panStart = null;
+    canvas.style.cursor = cursorForTool();
+  }
+
+  function onWheel(e){
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.12 : 0.89;
+    const p = eventToScreen(e);
+    zoomAt(p.x, p.y, factor);
+  }
+
+  function zoomAt(screenX, screenY, factor){
+    const before = screenToGrid(screenX, screenY);
+    state.view.zoom = clampFloat(state.view.zoom * factor, 2, 80);
+    state.view.panX = screenX - before.x * state.view.zoom;
+    state.view.panY = screenY - before.y * state.view.zoom;
+    render();
+  }
+
+  function onKeyDown(e){
+    if(e.ctrlKey && e.key.toLowerCase() === 'z'){
+      e.preventDefault();
+      if(e.shiftKey) redo(); else undo();
+      return;
+    }
+    if(e.ctrlKey && e.key.toLowerCase() === 'y'){
+      e.preventDefault(); redo(); return;
+    }
+    if(e.code === 'Space'){
+      spaceHeld = true;
+      canvas.style.cursor = 'grab';
+    }
+    if(e.target && ['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) return;
+    if(e.key.toLowerCase() === 'b') setTool('brush');
+    if(e.key.toLowerCase() === 'e') setTool('eraser');
+    if(e.key.toLowerCase() === 'l') setTool('line');
+    if(e.key.toLowerCase() === 'r') setTool('rect');
+  }
+
+  function paintBetween(a, b, value){
+    const line = bresenham(a.x, a.y, b.x, b.y);
+    for(const p of line) applyBrush(p.x, p.y, value);
+  }
+
+  function applyBrush(cx, cy, value){
+    const size = clamp(parseInt($('brushSize').value || '1', 10), 1, 64);
+    const shape = $('brushShape').value;
+    const half = Math.floor(size / 2);
+    if(shape === 'square'){
+      for(let y = cy - half; y < cy - half + size; y++){
+        for(let x = cx - half; x < cx - half + size; x++) setCell(x, y, value);
+      }
+    }else{
+      const r = size / 2;
+      const min = -Math.floor(r);
+      const max = Math.ceil(r);
+      for(let dy=min; dy<=max; dy++){
+        for(let dx=min; dx<=max; dx++){
+          const dist = Math.sqrt((dx + 0.5) * (dx + 0.5) + (dy + 0.5) * (dy + 0.5));
+          if(dist <= r) setCell(cx + dx, cy + dy, value);
+        }
+      }
+    }
+  }
+
+  function setCell(x, y, value){
+    if(!inBounds(x, y)) return;
+    state.layers[state.activeLayer].pixels[y * state.width + x] = value;
+  }
+
+  function setManyCells(cells, value){
+    for(const p of cells) setCell(p.x, p.y, value);
+  }
+
+  function commitMovePreview(){
+    const layer = state.layers[state.activeLayer];
+    const source = movePreview.original;
+    const dest = new Uint8Array(state.width * state.height);
+    const dx = movePreview.dx;
+    const dy = movePreview.dy;
+    for(let y=0; y<state.height; y++){
+      for(let x=0; x<state.width; x++){
+        const v = source[y * state.width + x];
+        if(v === 0) continue;
+        const nx = x + dx;
+        const ny = y + dy;
+        if(inBounds(nx, ny)) dest[ny * state.width + nx] = v;
+      }
+    }
+    layer.pixels = dest;
+  }
+
+  function shapeCells(kind, x0, y0, x1, y1, fill){
+    if(kind === 'line') return bresenham(x0, y0, x1, y1);
+    if(kind === 'rect') return rectCells(x0, y0, x1, y1, fill);
+    if(kind === 'ellipse') return ellipseCells(x0, y0, x1, y1, fill);
+    return [];
+  }
+
+  function constrainForShift(kind, start, end, shift){
+    if(!shift) return end;
+    let dx = end.x - start.x;
+    let dy = end.y - start.y;
+    if(kind === 'line'){
+      if(Math.abs(dx) >= Math.abs(dy)) return { x:end.x, y:start.y };
+      return { x:start.x, y:end.y };
+    }
+    if(kind === 'rect' || kind === 'ellipse'){
+      const side = Math.max(Math.abs(dx), Math.abs(dy));
+      return { x:start.x + Math.sign(dx || 1) * side, y:start.y + Math.sign(dy || 1) * side };
+    }
+    return end;
+  }
+
+  function bresenham(x0, y0, x1, y1){
+    const cells = [];
+    let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy;
+    while(true){
+      cells.push({x:x0,y:y0});
+      if(x0 === x1 && y0 === y1) break;
+      const e2 = 2 * err;
+      if(e2 >= dy){ err += dy; x0 += sx; }
+      if(e2 <= dx){ err += dx; y0 += sy; }
+    }
+    return cells;
+  }
+
+  function rectCells(x0, y0, x1, y1, fill){
+    const minX = Math.min(x0, x1), maxX = Math.max(x0, x1);
+    const minY = Math.min(y0, y1), maxY = Math.max(y0, y1);
+    const cells = [];
+    for(let y=minY; y<=maxY; y++){
+      for(let x=minX; x<=maxX; x++){
+        if(fill || x === minX || x === maxX || y === minY || y === maxY) cells.push({x,y});
+      }
+    }
+    return cells;
+  }
+
+  function ellipseCells(x0, y0, x1, y1, fill){
+    const minX = Math.min(x0, x1), maxX = Math.max(x0, x1);
+    const minY = Math.min(y0, y1), maxY = Math.max(y0, y1);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const rx = Math.max(0.5, (maxX - minX + 1) / 2);
+    const ry = Math.max(0.5, (maxY - minY + 1) / 2);
+    const cells = [];
+    const inside = (x,y) => {
+      const nx = (x + 0.5 - cx - 0.5) / rx;
+      const ny = (y + 0.5 - cy - 0.5) / ry;
+      return nx*nx + ny*ny <= 1;
+    };
+    for(let y=minY; y<=maxY; y++){
+      for(let x=minX; x<=maxX; x++){
+        if(!inside(x,y)) continue;
+        if(fill){ cells.push({x,y}); continue; }
+        if(!inside(x-1,y) || !inside(x+1,y) || !inside(x,y-1) || !inside(x,y+1)) cells.push({x,y});
+      }
+    }
+    return cells;
+  }
+
+  function loadUnderlay(file){
+    readImage(file, (img, src) => {
+      pushUndo();
+      const scale = Math.min(state.width / img.width, state.height / img.height, 1);
+      state.underlay = {
+        img,
+        src,
+        visible:true,
+        above:false,
+        opacity:0.5,
+        x:state.width / 2,
+        y:state.height / 2,
+        scaleX:Math.max(scale, 0.01),
+        scaleY:Math.max(scale, 0.01),
+        rotation:0
+      };
+      updateUnderlayControls();
+      render();
+      setStatus('下絵画像を読み込みました');
+    });
+  }
+
+  function importPixelImage(file){
+    readImage(file, (img) => {
+      const w = img.width, h = img.height;
+      if(w > 512 || h > 512){
+        const ok = confirm(`画像サイズが ${w}×${h} です。処理が重くなる可能性があります。このサイズで開始しますか？`);
+        if(!ok) return;
+      }
+      pushUndo();
+      const tmp = document.createElement('canvas');
+      tmp.width = w; tmp.height = h;
+      const tctx = tmp.getContext('2d');
+      tctx.imageSmoothingEnabled = false;
+      tctx.drawImage(img, 0, 0);
+      const data = tctx.getImageData(0,0,w,h).data;
+      const freq = new Map();
+      for(let i=0; i<data.length; i+=4){
+        const a = data[i+3];
+        if(a < 16) continue;
+        const hex = rgbToHex(data[i], data[i+1], data[i+2]);
+        freq.set(hex, (freq.get(hex) || 0) + 1);
+      }
+      const colors = Array.from(freq.entries()).sort((a,b) => b[1] - a[1]).slice(0, MAX_PALETTE).map(x => x[0]);
+      const palette = colors.concat(defaultPalette).slice(0, MAX_PALETTE);
+      const colorToIndex = new Map();
+      palette.forEach((c,i) => colorToIndex.set(c, i + 1));
+      const pixels = new Uint8Array(w * h);
+      for(let p=0, i=0; p<w*h; p++, i+=4){
+        if(data[i+3] < 16){ pixels[p] = 0; continue; }
+        const hex = rgbToHex(data[i], data[i+1], data[i+2]);
+        let idx = colorToIndex.get(hex);
+        if(!idx) idx = nearestPaletteIndex(hex, palette);
+        pixels[p] = idx;
+      }
+      state.width = w;
+      state.height = h;
+      state.palette = palette;
+      state.selectedPalette = 0;
+      state.layers = [{ name:'インポート画像', visible:true, opacity:1, pixels }];
+      state.activeLayer = 0;
+      state.underlay = emptyUnderlay();
+      state.underlay.x = w/2;
+      state.underlay.y = h/2;
+      $('newW').value = w;
+      $('newH').value = h;
+      fitInitialView();
+      renderAllControls();
+      render();
+      setStatus(`ドット画像を読み込み、${Math.min(colors.length, MAX_PALETTE)}色をパレットに追加しました`);
+    });
+  }
+
+  function readImage(file, cb){
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => cb(img, reader.result);
+      img.onerror = () => setStatus('画像を読み込めませんでした');
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function exportPng(){
+    const out = document.createElement('canvas');
+    out.width = state.width; out.height = state.height;
+    const o = out.getContext('2d');
+    o.imageSmoothingEnabled = false;
+    if($('exportBg').checked){
+      o.fillStyle = state.bgColor;
+      o.fillRect(0,0,state.width,state.height);
+    }
+    for(const layer of state.layers){
+      if(!layer.visible) continue;
+      o.globalAlpha = layer.opacity;
+      for(let y=0; y<state.height; y++){
+        for(let x=0; x<state.width; x++){
+          const idx = layer.pixels[y * state.width + x];
+          if(idx === 0) continue;
+          o.fillStyle = state.palette[idx - 1] || '#000';
+          o.fillRect(x,y,1,1);
+        }
+      }
+    }
+    o.globalAlpha = 1;
+    const a = document.createElement('a');
+    a.download = `pixel-art-${state.width}x${state.height}.png`;
+    a.href = out.toDataURL('image/png');
+    a.click();
+    setStatus('PNGを出力しました');
+  }
+
+  function snapshot(){
+    return {
+      width:state.width,
+      height:state.height,
+      bgColor:state.bgColor,
+      showGrid:state.showGrid,
+      palette:state.palette.slice(),
+      selectedPalette:state.selectedPalette,
+      activeLayer:state.activeLayer,
+      layers:state.layers.map(l => ({ name:l.name, visible:l.visible, opacity:l.opacity, pixels:l.pixels.slice() })),
+      underlay: { ...state.underlay },
+      view: { ...state.view }
+    };
+  }
+
+  function restore(s){
+    state.width = s.width;
+    state.height = s.height;
+    state.bgColor = s.bgColor;
+    state.showGrid = s.showGrid;
+    state.palette = s.palette.slice();
+    state.selectedPalette = s.selectedPalette;
+    state.activeLayer = clamp(s.activeLayer, 0, s.layers.length - 1);
+    state.layers = s.layers.map(l => ({ name:l.name, visible:l.visible, opacity:l.opacity, pixels:l.pixels.slice() }));
+    state.underlay = { ...s.underlay };
+    state.view = { ...s.view };
+    $('newW').value = state.width;
+    $('newH').value = state.height;
+    renderAllControls();
+    render();
+  }
+
+  function pushUndo(){
+    undoStack.push(snapshot());
+    if(undoStack.length > UNDO_LIMIT) undoStack.shift();
+    redoStack.length = 0;
+  }
+
+  function undo(){
+    if(!undoStack.length){ setStatus('これ以上戻れません'); return; }
+    redoStack.push(snapshot());
+    const s = undoStack.pop();
+    restore(s);
+    setStatus('アンドゥしました');
+  }
+
+  function redo(){
+    if(!redoStack.length){ setStatus('これ以上やり直せません'); return; }
+    undoStack.push(snapshot());
+    const s = redoStack.pop();
+    restore(s);
+    setStatus('リドゥしました');
+  }
+
+  function eventToScreen(e){
+    const rect = canvas.getBoundingClientRect();
+    return { x:e.clientX - rect.left, y:e.clientY - rect.top };
+  }
+
+  function screenToGrid(sx, sy){
+    return { x:(sx - state.view.panX) / state.view.zoom, y:(sy - state.view.panY) / state.view.zoom };
+  }
+
+  function eventToGridFloat(e){
+    const p = eventToScreen(e);
+    return screenToGrid(p.x, p.y);
+  }
+
+  function eventToCell(e){
+    const g = eventToGridFloat(e);
+    return { x:Math.floor(g.x), y:Math.floor(g.y) };
+  }
+
+  function rgbToHex(r,g,b){
+    return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+  }
+
+  function hexToRgb(hex){
+    const v = hex.replace('#','');
+    return { r:parseInt(v.slice(0,2),16), g:parseInt(v.slice(2,4),16), b:parseInt(v.slice(4,6),16) };
+  }
+
+  function nearestPaletteIndex(hex, palette){
+    const c = hexToRgb(hex);
+    let best = 1, bestD = Infinity;
+    for(let i=0; i<palette.length; i++){
+      const p = hexToRgb(palette[i]);
+      const d = (c.r-p.r)**2 + (c.g-p.g)**2 + (c.b-p.b)**2;
+      if(d < bestD){ bestD = d; best = i + 1; }
+    }
+    return best;
+  }
+
+  function inBounds(x,y){ return x >= 0 && y >= 0 && x < state.width && y < state.height; }
+  function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+  function clampFloat(n,min,max){ return Math.max(min, Math.min(max, n)); }
+  function round2(n){ return Math.round(n * 100) / 100; }
+  function degToRad(deg){ return deg * Math.PI / 180; }
+  function setStatus(msg){ $('status').textContent = msg; }
+
+  init();
+})();
+</script>
+</body>
+</html>
