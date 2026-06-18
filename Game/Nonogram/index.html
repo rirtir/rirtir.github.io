@@ -98,8 +98,9 @@ button{font-family:inherit; cursor:pointer; color:inherit; border:none; backgrou
 .brush-toggle button.on{background:linear-gradient(180deg,var(--accent),var(--accent-d)); color:#fff;}
 .retire-btn{flex:0 0 auto; padding:7px 9px; font-size:12px; border-radius:10px; white-space:nowrap;}
 
-.board-area{flex:1 1 auto; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch; display:flex; align-items:safe center; justify-content:safe center; padding:10px;}
-.playfield{background:var(--pf); border-radius:16px; padding:10px; box-shadow:var(--shadow);}
+.board-area{flex:1 1 auto; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch; display:flex; align-items:safe center; justify-content:safe center; padding:10px;
+  overscroll-behavior:contain; touch-action:pan-x pan-y;}
+.playfield{background:var(--pf); border-radius:16px; padding:10px; box-shadow:var(--shadow); transform-origin:0 0;}
 .board{--num:calc(var(--cell)*0.64); --rcw:calc(var(--num)*var(--maxRC)); --cch:calc(var(--num)*var(--maxCC));
   display:flex; flex-direction:column; color:var(--cluetext);}
 .board-top{display:flex;}
@@ -371,6 +372,8 @@ input[type=file]{display:none;}
 const KEY = "picross_save_v1";
 const MAXDIM = 40;
 const NUMF = 0.64; // must match CSS --num factor
+const BOARD_ZOOM_MIN = 0.75;
+const BOARD_ZOOM_MAX = 3.0;
 
 const DIFFS = [
   {key:"easy",   name:"簡単",   max:25},
@@ -487,6 +490,7 @@ function hash32(str){ let h=2166136261>>>0; for(let i=0;i<str.length;i++){ h^=st
 function cellsString(sol){ let s=""; for(let r=0;r<sol.length;r++){ for(let c=0;c<sol[r].length;c++){ s+= sol[r][c]?"1":"0"; } } return s; }
 function solFromCells(s,R,C){ const sol=[]; let i=0; for(let r=0;r<R;r++){ const row=[]; for(let c=0;c<C;c++){ row.push(s.charCodeAt(i++)===49?1:0); } sol.push(row); } return sol; }
 function arrEq(a,b){ if(a.length!==b.length) return false; for(let i=0;i<a.length;i++){ if(a[i]!==b[i]) return false; } return true; }
+function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
 function clueOf(line){ const out=[]; let c=0; for(let i=0;i<line.length;i++){ if(line[i]===1) c++; else { if(c>0) out.push(c); c=0; } } if(c>0) out.push(c); return out; }
 function runsOfMarks(marks){ const out=[]; let c=0; for(let i=0;i<marks.length;i++){ if(marks[i]===1) c++; else { if(c>0) out.push(c); c=0; } } if(c>0) out.push(c); return out; }
 
@@ -797,6 +801,8 @@ function startStage(st, mode, opts){
     sel:{r:0,c:0}, brush:"select",
     armed:null, hintActive:false, hintLeft:0, hintTimer:null,
     kit, slotUsed:used,
+    zoom: (!opts.kit && pr && pr.sid===st.id && typeof pr.zoom==="number") ? clamp(pr.zoom,BOARD_ZOOM_MIN,BOARD_ZOOM_MAX) : 1,
+    baseCell:0,
     committed: !!resuming || !!opts.kit,
     firstClear: mode==="normal" && !save.cleared[st.id],
   };
@@ -888,8 +894,11 @@ function layoutBoard(){
   g.colClues.forEach(a=>maxCC=Math.max(maxCC,a.length||1));
   const cw=availW/(NUMF*maxRC + g.C);
   const ch=availH/(NUMF*maxCC + g.R);
-  let cell=Math.floor(Math.min(cw,ch));
-  cell=Math.max(11,Math.min(40,cell));
+  let baseCell=Math.floor(Math.min(cw,ch));
+  baseCell=Math.max(11,Math.min(40,baseCell));
+  g.baseCell=baseCell;
+  g.zoom=clamp(g.zoom||1,BOARD_ZOOM_MIN,BOARD_ZOOM_MAX);
+  const cell=Math.max(8,Math.round(baseCell*g.zoom));
   $("board").style.setProperty("--cell",cell+"px");
 }
 
@@ -938,8 +947,84 @@ function refreshAll(){
   refreshSelection();
 }
 
+
+/* ----- board pinch zoom ----- */
+const boardPinch = {
+  active:false,
+  startDist:0,
+  startZoom:1,
+  anchorX:0,
+  anchorY:0,
+  contentX:0,
+  contentY:0,
+  blockClickUntil:0
+};
+function touchDistance(touches){
+  const a=touches[0], b=touches[1];
+  const dx=a.clientX-b.clientX, dy=a.clientY-b.clientY;
+  return Math.hypot(dx,dy);
+}
+function touchMidpoint(touches){
+  const a=touches[0], b=touches[1];
+  return {x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2};
+}
+function applyBoardZoom(nextZoom, anchor){
+  if(!g) return;
+  const area=$("boardArea");
+  g.zoom=clamp(nextZoom,BOARD_ZOOM_MIN,BOARD_ZOOM_MAX);
+  layoutBoard();
+
+  if(anchor){
+    // DOMのレイアウトを即時反映させてから、指の中心位置をできるだけ維持する。
+    $("playfield").offsetWidth;
+    area.scrollLeft = Math.max(0, anchor.contentX*g.zoom - anchor.anchorX);
+    area.scrollTop  = Math.max(0, anchor.contentY*g.zoom - anchor.anchorY);
+  }
+}
+function bindBoardPinchZoom(){
+  const area=$("boardArea");
+  area.addEventListener("touchstart",e=>{
+    if(!g || e.touches.length!==2) return;
+
+    const rect=area.getBoundingClientRect();
+    const mid=touchMidpoint(e.touches);
+    boardPinch.active=true;
+    boardPinch.startDist=Math.max(1,touchDistance(e.touches));
+    boardPinch.startZoom=g.zoom||1;
+    boardPinch.anchorX=mid.x-rect.left;
+    boardPinch.anchorY=mid.y-rect.top;
+    boardPinch.contentX=(area.scrollLeft+boardPinch.anchorX)/boardPinch.startZoom;
+    boardPinch.contentY=(area.scrollTop+boardPinch.anchorY)/boardPinch.startZoom;
+    boardPinch.blockClickUntil=Date.now()+450;
+    e.preventDefault();
+  },{passive:false});
+
+  area.addEventListener("touchmove",e=>{
+    if(!g || !boardPinch.active || e.touches.length!==2) return;
+
+    const ratio=touchDistance(e.touches)/boardPinch.startDist;
+    applyBoardZoom(boardPinch.startZoom*ratio, boardPinch);
+    boardPinch.blockClickUntil=Date.now()+450;
+    e.preventDefault();
+  },{passive:false});
+
+  const endPinch=e=>{
+    if(!boardPinch.active) return;
+    if(e.touches && e.touches.length>=2) return;
+
+    boardPinch.active=false;
+    boardPinch.blockClickUntil=Date.now()+450;
+    // 進捗がある場合だけ、次回復帰時の倍率も保存しておく。
+    if(g && save.progress[g.stageKey]) saveProgress();
+    e.preventDefault();
+  };
+  area.addEventListener("touchend",endPinch,{passive:false});
+  area.addEventListener("touchcancel",endPinch,{passive:false});
+}
+
 /* ----- interaction ----- */
 function onGridClick(e){
+  if(boardPinch.active || Date.now()<boardPinch.blockClickUntil){ e.preventDefault(); return; }
   const t=e.target.closest(".cell"); if(!t) return;
   const r=+t.dataset.r, c=+t.dataset.c;
   if(g.armed){ g.sel={r,c}; refreshSelection(); return; } // re-aim only
@@ -1121,6 +1206,7 @@ function saveProgress(){
   save.progress[g.stageKey]={ sid:g.stage.id, mode:g.mode, grid:str,
     hint: g.hintActive?Math.ceil(g.hintLeft):0,
     kit: g.kit.slice(), used: g.slotUsed.slice(),
+    zoom: g.zoom||1,
     committed: !!g.committed };
   saveSoon();
 }
@@ -1362,6 +1448,7 @@ function bindEvents(){
   bindMarkButton("btnCross",2);
   $("btnUse").onclick=useArmed;
   $("btnCancelArm").onclick=cancelArm;
+  bindBoardPinchZoom();
 
   // overlay backdrop close (tap outside sheet)
   ["ovPick","ovHelp"].forEach(idv=>{ $(idv).addEventListener("click",e=>{ if(e.target.id===idv) closeOverlay(idv); }); });
@@ -1401,7 +1488,9 @@ function bindEvents(){
   }
   window.addEventListener("orientationchange",()=>{ setTimeout(onResize,300); });
   document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});
-  document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
+  ["gesturestart","gesturechange","gestureend"].forEach(ev=>{
+    document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
+  });
 
   // save on hide
   document.addEventListener("visibilitychange",()=>{ if(document.hidden) saveNow(); });
