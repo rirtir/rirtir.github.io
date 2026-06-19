@@ -376,10 +376,10 @@ const BOARD_ZOOM_MIN = 0.75;
 const BOARD_ZOOM_MAX = 3.0;
 
 const DIFFS = [
-  {key:"easy",   name:"簡単",   max:100},
-  {key:"normal", name:"普通",   max:225},
-  {key:"hard",   name:"難しい", max:400},
-  {key:"expert", name:"高難度", max:900},
+  {key:"easy",   name:"簡単",   max:64},
+  {key:"normal", name:"普通",   max:100},
+  {key:"hard",   name:"難しい", max:225},
+  {key:"expert", name:"高難度", max:400},
   {key:"master", name:"超難度", max:Infinity},
 ];
 function diffIndexForArea(a){ for(let i=0;i<DIFFS.length;i++){ if(a<=DIFFS[i].max) return i; } return DIFFS.length-1; }

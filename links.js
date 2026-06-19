@@ -138,7 +138,7 @@ const data = [
                 url: "https://rirtir.com/Image/PixelArtMaker/",
                 desc: "簡単なドット絵を作成できるツール",
                 tags: ["画像", "画像処理", "お絵描き", "オフライン"],
-                main: false,
+                main: true,
             }
         ]
     },
