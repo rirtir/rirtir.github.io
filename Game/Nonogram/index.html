@@ -102,21 +102,25 @@ button{font-family:inherit; cursor:pointer; color:inherit; border:none; backgrou
   overscroll-behavior:contain; touch-action:pan-x pan-y;}
 .playfield{background:var(--pf); border-radius:16px; padding:10px; box-shadow:var(--shadow); transform-origin:0 0;}
 .board{--num:calc(var(--cell)*0.64); --rcw:calc(var(--num)*var(--maxRC)); --cch:calc(var(--num)*var(--maxCC));
-  display:flex; flex-direction:column; color:var(--cluetext);}
-.board-top{display:flex;}
-.corner{width:var(--rcw); height:var(--cch); flex:0 0 auto;}
-.col-clues{display:flex; padding-left:1px;}
+  display:flex; flex-direction:column; color:var(--cluetext); position:relative;}
+.board-top{display:flex; position:sticky; top:0; z-index:30; background:var(--pf);}
+.corner{width:var(--rcw); height:var(--cch); flex:0 0 auto; position:sticky; left:0; z-index:40; background:var(--pf);}
+.col-clues{display:flex; padding-left:1px; background:var(--pf);}
 .col-clue{width:var(--cell); height:var(--cch); display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
   gap:1px; font-size:calc(var(--cell)*0.46); font-weight:700; line-height:1; padding-bottom:2px; border-radius:6px;}
 .col-clue span{display:block;}
-.board-main{display:flex;}
-.row-clues{display:flex; flex-direction:column; padding-top:1px;}
+.board-main{display:flex; align-items:flex-start;}
+.row-clues{display:flex; flex-direction:column; padding-top:1px; position:sticky; left:0; z-index:20; background:var(--pf);}
 .row-clue{width:var(--rcw); height:var(--cell); display:flex; align-items:center; justify-content:flex-end;
   gap:calc(var(--cell)*0.16); font-size:calc(var(--cell)*0.46); font-weight:700; line-height:1; padding-right:3px; border-radius:6px;}
 .clue.zero{opacity:.33; font-weight:600;}
 .row-clue.done,.col-clue.done{opacity:.26;}
+.row-clue.selected,.col-clue.selected{background:rgba(59,130,246,.18); color:#1d4ed8; box-shadow:inset 0 0 0 1px rgba(59,130,246,.26);}
+.row-clue.done.selected,.col-clue.done.selected{opacity:.8;}
 .row-clue.blue,.col-clue.blue{background:rgba(59,130,246,.24); color:#1d4ed8;}
 .row-clue.red,.col-clue.red{background:rgba(239,68,68,.24); color:#b91c1c;}
+.row-clue.blue.selected,.col-clue.blue.selected{background:rgba(59,130,246,.32);}
+.row-clue.red.selected,.col-clue.red.selected{background:linear-gradient(180deg,rgba(239,68,68,.24),rgba(59,130,246,.18));}
 
 .grid{display:grid; border-top:1px solid var(--line); border-left:1px solid var(--line);}
 .cell{width:var(--cell); height:var(--cell); border-right:1px solid var(--line); border-bottom:1px solid var(--line);
@@ -374,6 +378,7 @@ const MAXDIM = 40;
 const NUMF = 0.64; // must match CSS --num factor
 const BOARD_ZOOM_MIN = 0.75;
 const BOARD_ZOOM_MAX = 3.0;
+const LONG_PRESS_MARK_MS = 150;
 
 const DIFFS = [
   {key:"easy",   name:"簡単",   max:64},
@@ -911,10 +916,15 @@ function paintCell(r,c){
 function refreshSelection(){
   // clear old
   document.querySelectorAll(".cell.sel,.cell.rowhl,.cell.colhl,.cell.preview").forEach(e=>e.classList.remove("sel","rowhl","colhl","preview"));
+  rowClueEls.forEach(e=>e.classList.remove("selected"));
+  colClueEls.forEach(e=>e.classList.remove("selected"));
+
   const {r,c}=g.sel;
   for(let i=0;i<g.C;i++) cellEls[r][i].classList.add("rowhl");
   for(let i=0;i<g.R;i++) cellEls[i][c].classList.add("colhl");
   cellEls[r][c].classList.add("sel");
+  if(rowClueEls[r]) rowClueEls[r].classList.add("selected");
+  if(colClueEls[c]) colClueEls[c].classList.add("selected");
   $("padC").textContent=(r+1)+","+(c+1);
   refreshPreview();
 }
@@ -1042,7 +1052,7 @@ function moveSelAndMaybeMark(dr,dc){
   moveSel(dr,dc);
   if(actionHold.mark && !g.armed){
     actionHold.moved=true;
-    markSelection(actionHold.mark);
+    markSelection(actionHold.mark,true);
   }
 }
 function toggleFill(r,c){
@@ -1053,15 +1063,17 @@ function toggleCross(r,c){
   g.player[r][c] = (g.player[r][c]===2)?0:2;
   afterChange([r],[c]);
 }
-function setMark(r,c,mark){
-  if(!g || g.player[r][c]===mark) return false;
+function setMark(r,c,mark,onlyEmpty){
+  if(!g) return false;
+  if(onlyEmpty && g.player[r][c]!==0) return false;
+  if(g.player[r][c]===mark) return false;
   g.player[r][c]=mark;
   afterChange([r],[c]);
   return true;
 }
-function markSelection(mark){
+function markSelection(mark,onlyEmpty){
   if(!g || g.armed) return false;
-  return setMark(g.sel.r,g.sel.c,mark);
+  return setMark(g.sel.r,g.sel.c,mark,onlyEmpty);
 }
 function afterChange(rows,cols){
   commitPlayIfNeeded();
@@ -1381,8 +1393,8 @@ function bindMarkButton(id,mark){
     try{ b.setPointerCapture(e.pointerId); }catch(_){}
     actionHold.timer=setTimeout(()=>{
       actionHold.long=true;
-      markSelection(mark);
-    },230);
+      markSelection(mark,true);
+    },LONG_PRESS_MARK_MS);
   });
   const end=e=>{
     if(actionHold.mark!==mark) return;
