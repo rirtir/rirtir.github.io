@@ -1514,11 +1514,9 @@ function loadFolderAsync(){
   $("loadingNote").style.display="block"; $("loadingNote").textContent="images フォルダを確認中…";
   loadFolderStages(found=>{
     folderRaw.push(found);
-    rebuildStages();
-    if($("screen-select").classList.contains("active")){ renderTabs(); renderCards(); renderClearedCount(); }
   }).then(()=>{
     folderLoaded=true;
-    $("loadingNote").style.display = folderRaw.length? "none":"none";
+    $("loadingNote").style.display="none";
     rebuildStages();
     if($("screen-select").classList.contains("active")){ renderTabs(); renderCards(); renderClearedCount(); }
   }).catch(()=>{ $("loadingNote").style.display="none"; });
