@@ -531,11 +531,11 @@ function builtinStages(){
 }
 
 /* ============================ IMAGE → STAGE ============================ */
-function binarizeImage(im){
+function binarizeImage(im, noResize){
   let w=im.naturalWidth||im.width, h=im.naturalHeight||im.height;
   if(!w||!h) return null;
   let nw=w, nh=h;
-  if(Math.max(w,h)>MAXDIM){ const s=MAXDIM/Math.max(w,h); nw=Math.max(1,Math.round(w*s)); nh=Math.max(1,Math.round(h*s)); }
+  if(!noResize && Math.max(w,h)>MAXDIM){ const s=MAXDIM/Math.max(w,h); nw=Math.max(1,Math.round(w*s)); nh=Math.max(1,Math.round(h*s)); }
   const cv=document.createElement("canvas"); cv.width=nw; cv.height=nh;
   const ctx=cv.getContext("2d",{willReadFrequently:true}); ctx.imageSmoothingEnabled=false;
   ctx.drawImage(im,0,0,nw,nh);
@@ -558,7 +558,7 @@ async function loadFolderStages(onFound){
     for(const ext of exts){ im=await loadImg("./images/"+idx+"."+ext); if(im) break; }
     if(!im){ miss++; idx++; continue; }
     miss=0;
-    const bin=binarizeImage(im);
+    const bin=binarizeImage(im, true);
     if(bin){ onFound({sol:bin.sol, src:"folder", order:idx}); }
     idx++;
   }
