@@ -71,7 +71,14 @@ const data = [
                 desc: "ピクセルアートのやつ。自分でステージを追加可能。",
                 tags: ["ソロ", "やり込み", "ゲーム"],
                 main: true,
-            }
+            },
+            {
+                title: "テレパシーオンライン",
+                url: "https://telepath-online.onrender.com",
+                desc: "テレパシーで相手と意思疎通するゲーム。制作中（ベータ版）",
+                tags: ["みんなで", "やり込み", "ゲーム"],
+                main: true,
+            },
         ]
     },
     {
