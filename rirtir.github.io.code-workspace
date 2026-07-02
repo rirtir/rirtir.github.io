@@ -7,5 +7,7 @@
 			"path": "../Renderを使った実装"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "rirtir.github.io"
+	}
 }

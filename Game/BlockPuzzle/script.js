@@ -1091,25 +1091,36 @@ async function onPointerUp(e) {
 
     const anchorPos = getBoardCellFromPoint(logicalX, logicalY);
 
+    // ドラッグ操作をここで終了する。
+    // この後の placePiece / enemyTurn（AI演出）は非同期なので、
+    // 先に dragging を解除しリスナも外しておかないと、演出中に
+    // マウスを動かすとピースやハイライトがカーソルに追従してしまう。
+    const activeDrag = dragging;
+    dragging = null;
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+    clearHighlights();
+    dragCanvas.style.display = "none";
+
     if (anchorPos) {
         const origin = getPlacementOrigin(
-            dragging.piece,
+            activeDrag.piece,
             anchorPos.x,
             anchorPos.y
         );
 
-        if (canPlace(dragging.piece, origin.x, origin.y)) {
+        if (canPlace(activeDrag.piece, origin.x, origin.y)) {
             undoState = cloneState();
             updateUndoButtonState();
 
-            await placePiece(dragging.piece, origin.x, origin.y);
+            await placePiece(activeDrag.piece, origin.x, origin.y);
             saveGame();
 
-            const activePieces = dragging.useEnemyPieces
+            const activePieces = activeDrag.useEnemyPieces
                 ? enemyPieces
                 : currentPieces;
 
-            activePieces[dragging.pieceIndex] = null;
+            activePieces[activeDrag.pieceIndex] = null;
             renderAllPieces();
 
             if (gameMode === "battle_ai") {
@@ -1147,13 +1158,6 @@ async function onPointerUp(e) {
             checkGameOver();
         }
     }
-
-    clearHighlights();
-    dragCanvas.style.display = "none";
-    dragging = null;
-
-    window.removeEventListener("pointermove", onPointerMove);
-    window.removeEventListener("pointerup", onPointerUp);
 }
 
 /* =========================================================
@@ -1426,6 +1430,107 @@ function evaluateEnemyPlacement(piece, baseX, baseY) {
     return score;
 }
 
+// 指定したセル群を黄緑ハイライトする（AIの設置予定地の表示に使う）
+function highlightCells(cells) {
+    clearHighlights();
+    for (const [x, y] of cells) {
+        if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) continue;
+        boardElement.children[y * BOARD_SIZE + x]
+            .classList.add("highlight-valid");
+    }
+}
+
+/* ---------------------------------------------------------
+   AIの設置モーション
+   プレイヤーがドラッグしているときのように、小さいピースを
+   イージングで設置場所まで動かし、黄緑ハイライトを出し、
+   0.5秒静止してから設置する（表示だけの演出。盤面は書き換えない）。
+--------------------------------------------------------- */
+function animateEnemyPlacement(piece, index, baseX, baseY) {
+    return new Promise((resolve) => {
+
+        const size = getShapeSize(piece.shape);
+
+        // スロットに表示中のキャンバスに合わせて描画サイズを決める
+        const slotEl = document.getElementById(`enemySlot${index}`);
+        const slotCanvas = slotEl ? slotEl.querySelector("canvas") : null;
+
+        let cellSize = 20;
+        if (slotCanvas && slotCanvas.width > 0) {
+            cellSize = slotCanvas.width / size.w;
+        }
+
+        dragCanvas.width = size.w * cellSize;
+        dragCanvas.height = size.h * cellSize;
+        drawPiece(dragCtx, piece, cellSize);
+
+        const boardRect = boardElement.getBoundingClientRect();
+        const cellBoard = boardRect.width / BOARD_SIZE;
+
+        // 開始位置（スロットの中心）
+        let startCX, startCY;
+        if (slotCanvas) {
+            const r = slotCanvas.getBoundingClientRect();
+            startCX = r.left + r.width / 2;
+            startCY = r.top + r.height / 2;
+        } else {
+            startCX = boardRect.left + boardRect.width / 2;
+            startCY = boardRect.top - 40;
+        }
+
+        // 終了位置（設置セルの中心）
+        const xs = piece.shape.map(([dx]) => baseX + dx);
+        const ys = piece.shape.map(([, dy]) => baseY + dy);
+        const minX = Math.min(...xs);
+        const maxX = Math.max(...xs);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
+
+        const endCX = boardRect.left + ((minX + maxX + 1) / 2) * cellBoard;
+        const endCY = boardRect.top + ((minY + maxY + 1) / 2) * cellBoard;
+
+        const startLeft = startCX - dragCanvas.width / 2;
+        const startTop = startCY - dragCanvas.height / 2;
+        const endLeft = endCX - dragCanvas.width / 2;
+        const endTop = endCY - dragCanvas.height / 2;
+
+        // 設置予定地をハイライト
+        const targetCells = piece.shape.map(([dx, dy]) => [baseX + dx, baseY + dy]);
+        highlightCells(targetCells);
+
+        dragCanvas.style.left = `${startLeft}px`;
+        dragCanvas.style.top = `${startTop}px`;
+        dragCanvas.style.display = "block";
+
+        const MOVE_MS = 450; // 移動時間
+        const HOLD_MS = 300; // 設置前の静止時間
+        const startTime = performance.now();
+
+        const easeInOutCubic = (t) =>
+            t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+        function frame(now) {
+            const t = Math.min(1, (now - startTime) / MOVE_MS);
+            const e = easeInOutCubic(t);
+
+            dragCanvas.style.left = `${startLeft + (endLeft - startLeft) * e}px`;
+            dragCanvas.style.top = `${startTop + (endTop - startTop) * e}px`;
+
+            if (t < 1) {
+                requestAnimationFrame(frame);
+            } else {
+                setTimeout(() => {
+                    dragCanvas.style.display = "none";
+                    clearHighlights();
+                    resolve();
+                }, HOLD_MS);
+            }
+        }
+
+        requestAnimationFrame(frame);
+    });
+}
+
 async function enemyTurn() {
     const available = enemyPieces
         .map((piece, index) => ({ piece, index }))
@@ -1456,6 +1561,10 @@ async function enemyTurn() {
 
     const selected = { piece: best.piece, index: best.index };
     const pos = { x: best.x, y: best.y };
+
+    // 設置場所が決まったら、プレイヤーのドラッグ操作のように
+    // ピースを動かして見せてから設置する
+    await animateEnemyPlacement(selected.piece, selected.index, pos.x, pos.y);
 
     // Enemy placement does not affect player combo state
     const savedCombo = comboMultiplier;
