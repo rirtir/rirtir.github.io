@@ -678,7 +678,9 @@ function loadGame() {
     rightHandMode =
         data.rightHandMode ?? true;
 
-    renderBoard();
+    // セーブ復元時は盤面セル（DOM）がまだ生成されていない場合がある
+    // （ページを開き直した直後など）。createBoard() でセルを作り直してから描画する。
+    createBoard();
     renderAllPieces();
 
     updateUI();
@@ -1259,11 +1261,17 @@ function resolveClears() {
 }
 
 function findClearCells() {
+    return findClearCellsOn(board);
+}
+
+// 任意の盤面（2次元配列）に対して、消えるセルの一覧を返す。
+// AI の先読み評価でも使えるように board を引数化したもの。
+function findClearCellsOn(b) {
     const result = new Set();
 
     // Rows
     for (let y = 0; y < BOARD_SIZE; y++) {
-        if (board[y].every(v => v !== null)) {
+        if (b[y].every(v => v !== null)) {
             for (let x = 0; x < BOARD_SIZE; x++) {
                 result.add(`${x},${y}`);
             }
@@ -1274,7 +1282,7 @@ function findClearCells() {
     for (let x = 0; x < BOARD_SIZE; x++) {
         let full = true;
         for (let y = 0; y < BOARD_SIZE; y++) {
-            if (board[y][x] === null) {
+            if (b[y][x] === null) {
                 full = false;
                 break;
             }
@@ -1293,7 +1301,7 @@ function findClearCells() {
 
             for (let y = 0; y < 3; y++) {
                 for (let x = 0; x < 3; x++) {
-                    if (board[by * 3 + y][bx * 3 + x] === null) {
+                    if (b[by * 3 + y][bx * 3 + x] === null) {
                         full = false;
                     }
                 }
@@ -1315,6 +1323,109 @@ function findClearCells() {
 /* =========================================================
    Enemy Turn
 ========================================================= */
+// 隣接方向（上下左右）
+const NEIGHBOR_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+/* ---------------------------------------------------------
+   敵AIの評価関数
+   piece を (baseX, baseY) に置いたときの「良さ」をスコア化する。
+   - ラインが消える置き方を強く優先
+   - 既存ブロックや壁に接する（＝まとまった）置き方を優先
+   - 飛地（囲まれて埋めにくい空きマス）ができる置き方を減点
+   - 行・列がフルに近づく置き方を加点（次の消しへの布石）
+--------------------------------------------------------- */
+function evaluateEnemyPlacement(piece, baseX, baseY) {
+
+    // ピースを置いた仮想盤面を作る
+    const temp = board.map(row => [...row]);
+    const pieceCells = new Set();
+
+    for (const [dx, dy] of piece.shape) {
+        const x = baseX + dx;
+        const y = baseY + dy;
+        temp[y][x] = ENEMY_COLOR;
+        pieceCells.add(`${x},${y}`);
+    }
+
+    let score = 0;
+
+    // --- 1. ライン消し（消える前の盤面で判定）---
+    const cleared = findClearCellsOn(temp);
+    if (cleared.length > 0) {
+        score += 120 + cleared.length * 8;
+    }
+
+    // --- 2. ライン進捗（消える前の行・列の埋まり具合）---
+    // 触れた行・列がフルに近いほど加点。二乗で「あと少し」を強調。
+    const rows = new Set();
+    const cols = new Set();
+    for (const [dx, dy] of piece.shape) {
+        rows.add(baseY + dy);
+        cols.add(baseX + dx);
+    }
+    for (const y of rows) {
+        let filled = 0;
+        for (let x = 0; x < BOARD_SIZE; x++) if (temp[y][x] !== null) filled++;
+        score += filled * filled * 0.08;
+    }
+    for (const x of cols) {
+        let filled = 0;
+        for (let y = 0; y < BOARD_SIZE; y++) if (temp[y][x] !== null) filled++;
+        score += filled * filled * 0.08;
+    }
+
+    // 以降の「綺麗さ」評価は、消えた後の盤面で行う
+    for (const [x, y] of cleared) {
+        temp[y][x] = null;
+    }
+
+    // --- 3. 隣接性（既存ブロック・壁に接するほど加点）---
+    // ピース自身の元セルは除外し、既存ブロック（元の board）と壁のみ数える。
+    let adjacency = 0;
+    for (const [dx, dy] of piece.shape) {
+        const x = baseX + dx;
+        const y = baseY + dy;
+        for (const [ex, ey] of NEIGHBOR_DIRS) {
+            const nx = x + ex;
+            const ny = y + ey;
+            if (nx < 0 || nx >= BOARD_SIZE || ny < 0 || ny >= BOARD_SIZE) {
+                adjacency += 1; // 壁に接する
+            } else if (!pieceCells.has(`${nx},${ny}`) && board[ny][nx] !== null) {
+                adjacency += 1; // 既存ブロックに接する
+            }
+        }
+    }
+    score += adjacency * 1.2;
+
+    // --- 4. 飛地ペナルティ（囲まれた空きマスを減点）---
+    let holePenalty = 0;
+    for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < BOARD_SIZE; x++) {
+            if (temp[y][x] !== null) continue;
+
+            let filledN = 0;
+            for (const [ex, ey] of NEIGHBOR_DIRS) {
+                const nx = x + ex;
+                const ny = y + ey;
+                if (nx < 0 || nx >= BOARD_SIZE || ny < 0 || ny >= BOARD_SIZE) {
+                    filledN++;
+                } else if (temp[ny][nx] !== null) {
+                    filledN++;
+                }
+            }
+
+            if (filledN === 4) {
+                holePenalty += 6; // 完全に囲まれた1マスの穴
+            } else if (filledN === 3) {
+                holePenalty += 1; // 埋めにくくなりつつある
+            }
+        }
+    }
+    score -= holePenalty;
+
+    return score;
+}
+
 async function enemyTurn() {
     const available = enemyPieces
         .map((piece, index) => ({ piece, index }))
@@ -1322,20 +1433,29 @@ async function enemyTurn() {
 
     if (available.length === 0) return;
 
-    const selected = randomItem(available);
-    const candidates = [];
+    // 全ての手持ちピース × 全ての置ける位置を評価し、最善手を選ぶ
+    let best = null;
 
-    for (let y = 0; y < BOARD_SIZE; y++) {
-        for (let x = 0; x < BOARD_SIZE; x++) {
-            if (canPlace(selected.piece, x, y)) {
-                candidates.push({ x, y });
+    for (const { piece, index } of available) {
+        for (let y = 0; y < BOARD_SIZE; y++) {
+            for (let x = 0; x < BOARD_SIZE; x++) {
+                if (!canPlace(piece, x, y)) continue;
+
+                // 同点の手をばらけさせるための微小なゆらぎ
+                const s = evaluateEnemyPlacement(piece, x, y)
+                    + Math.random() * 0.5;
+
+                if (!best || s > best.score) {
+                    best = { piece, index, x, y, score: s };
+                }
             }
         }
     }
 
-    if (candidates.length === 0) return;
+    if (!best) return;
 
-    const pos = randomItem(candidates);
+    const selected = { piece: best.piece, index: best.index };
+    const pos = { x: best.x, y: best.y };
 
     // Enemy placement does not affect player combo state
     const savedCombo = comboMultiplier;
