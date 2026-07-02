@@ -407,6 +407,7 @@ let comboMultiplier = 1;
 let lastPlayerCleared = false;
 
 let gameOver = false;
+let enemyActing = false; // AIの計算・設置モーション中はプレイヤー操作をロック
 let dragging = null;
 let rightHandMode = true;
 let faceToFaceMode = true;
@@ -999,6 +1000,7 @@ function generateEnemyPieces() {
 ========================================================= */
 function startDrag(event, pieceIndex, cellSize, useEnemyPieces = false) {
     if (gameOver) return;
+    if (enemyActing) return; // AIのモーション中はプレイヤー操作を無効化
 
     const pieces = useEnemyPieces
         ? enemyPieces
@@ -1532,60 +1534,69 @@ function animateEnemyPlacement(piece, index, baseX, baseY) {
 }
 
 async function enemyTurn() {
-    const available = enemyPieces
-        .map((piece, index) => ({ piece, index }))
-        .filter(v => v.piece);
 
-    if (available.length === 0) return;
+    // AIの計算〜設置モーション中はプレイヤーがピースを動かせないようロック
+    enemyActing = true;
 
-    // 全ての手持ちピース × 全ての置ける位置を評価し、最善手を選ぶ
-    let best = null;
+    try {
+        const available = enemyPieces
+            .map((piece, index) => ({ piece, index }))
+            .filter(v => v.piece);
 
-    for (const { piece, index } of available) {
-        for (let y = 0; y < BOARD_SIZE; y++) {
-            for (let x = 0; x < BOARD_SIZE; x++) {
-                if (!canPlace(piece, x, y)) continue;
+        if (available.length === 0) return;
 
-                // 同点の手をばらけさせるための微小なゆらぎ
-                const s = evaluateEnemyPlacement(piece, x, y)
-                    + Math.random() * 0.5;
+        // 全ての手持ちピース × 全ての置ける位置を評価し、最善手を選ぶ
+        let best = null;
 
-                if (!best || s > best.score) {
-                    best = { piece, index, x, y, score: s };
+        for (const { piece, index } of available) {
+            for (let y = 0; y < BOARD_SIZE; y++) {
+                for (let x = 0; x < BOARD_SIZE; x++) {
+                    if (!canPlace(piece, x, y)) continue;
+
+                    // 同点の手をばらけさせるための微小なゆらぎ
+                    const s = evaluateEnemyPlacement(piece, x, y)
+                        + Math.random() * 0.5;
+
+                    if (!best || s > best.score) {
+                        best = { piece, index, x, y, score: s };
+                    }
                 }
             }
         }
+
+        if (!best) return;
+
+        const selected = { piece: best.piece, index: best.index };
+        const pos = { x: best.x, y: best.y };
+
+        // 設置場所が決まったら、プレイヤーのドラッグ操作のように
+        // ピースを動かして見せてから設置する
+        await animateEnemyPlacement(selected.piece, selected.index, pos.x, pos.y);
+
+        // Enemy placement does not affect player combo state
+        const savedCombo = comboMultiplier;
+        const savedLastCleared = lastPlayerCleared;
+        const savedScore = player1Score;
+
+        await placePiece(selected.piece, pos.x, pos.y);
+
+        // Count enemy score roughly as occupied block count
+        // enemyScore += selected.piece.shape.length * 10;
+
+        // Restore player's combo state and score changes caused by enemy clears
+        comboMultiplier = savedCombo;
+        lastPlayerCleared = savedLastCleared;
+        enemyScore += player1Score - savedScore;
+        player1Score = savedScore;
+
+        enemyPieces[selected.index] = null;
+
+        renderAllPieces();
+        updateUI();
+
+    } finally {
+        enemyActing = false;
     }
-
-    if (!best) return;
-
-    const selected = { piece: best.piece, index: best.index };
-    const pos = { x: best.x, y: best.y };
-
-    // 設置場所が決まったら、プレイヤーのドラッグ操作のように
-    // ピースを動かして見せてから設置する
-    await animateEnemyPlacement(selected.piece, selected.index, pos.x, pos.y);
-
-    // Enemy placement does not affect player combo state
-    const savedCombo = comboMultiplier;
-    const savedLastCleared = lastPlayerCleared;
-    const savedScore = player1Score;
-
-    await placePiece(selected.piece, pos.x, pos.y);
-
-    // Count enemy score roughly as occupied block count
-    // enemyScore += selected.piece.shape.length * 10;
-
-    // Restore player's combo state and score changes caused by enemy clears
-    comboMultiplier = savedCombo;
-    lastPlayerCleared = savedLastCleared;
-    enemyScore += player1Score - savedScore;
-    player1Score = savedScore;
-
-    enemyPieces[selected.index] = null;
-
-    renderAllPieces();
-    updateUI();
 }
 
 /* =========================================================
