@@ -685,7 +685,25 @@ function drawBody(b, t) {
     ctx.beginPath(); ctx.arc(p.x, p.y, b.r * C.BH_CORE + 3, 0, 6.29); ctx.stroke();
   } else {
     const sp = planetSprite(b);
-    ctx.drawImage(sp.canvas, p.x - sp.half, p.y - sp.half, sp.half * 2, sp.half * 2);
+    if (b.spin) {
+      // 自転: スプライト自体を回す（クレーターの動きで回転が見える）
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(b.spin * t);
+      ctx.drawImage(sp.canvas, -sp.half, -sp.half, sp.half * 2, sp.half * 2);
+      ctx.restore();
+      // 回転インジケータ（回る破線リング）
+      ctx.save();
+      ctx.strokeStyle = "rgba(160,220,255,0.4)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 14]);
+      ctx.lineDashOffset = -b.spin * t * (b.r + 9);
+      ctx.beginPath(); ctx.arc(p.x, p.y, b.r + 9, 0, 6.29); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    } else {
+      ctx.drawImage(sp.canvas, p.x - sp.half, p.y - sp.half, sp.half * 2, sp.half * 2);
+    }
     if (b.t === "r") {
       // 反重力の波紋
       ctx.save();
@@ -903,12 +921,33 @@ function drawAim() {
   ctx.lineTo(hx + uy * 6, hy - ux * 6);
   ctx.closePath();
   ctx.fillStyle = col; ctx.fill();
-  // 引っぱりゴム
-  ctx.globalAlpha = valid ? 0.45 : 0.2;
+  // ドラッグ起点マーカー（照準風。天体と混同しない淡いUI色・細線）
+  ctx.globalAlpha = valid ? 0.9 : 0.5;
+  ctx.strokeStyle = "#cfd6f2"; ctx.lineWidth = 1.6;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath(); ctx.arc(a.sx, a.sy, 13, 0, 6.29); ctx.stroke();
+  ctx.setLineDash([]);
+  for (let k = 0; k < 4; k++) {              // 十字の目盛り
+    const ca = k * Math.PI / 2 + Math.PI / 4;
+    ctx.beginPath();
+    ctx.moveTo(a.sx + Math.cos(ca) * 16, a.sy + Math.sin(ca) * 16);
+    ctx.lineTo(a.sx + Math.cos(ca) * 22, a.sy + Math.sin(ca) * 22);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#cfd6f2";
+  ctx.beginPath(); ctx.arc(a.sx, a.sy, 2.5, 0, 6.29); ctx.fill();
+  // 起点から現在の指位置への「糸」（引っぱり具合の実寸表示）
+  ctx.globalAlpha = valid ? 0.55 : 0.25;
   ctx.setLineDash([4, 6]);
   ctx.strokeStyle = "#8b94c2"; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(st.x, st.y); ctx.lineTo(st.x - ux * Math.min(pull, C.PULL_MAX), st.y - uy * Math.min(pull, C.PULL_MAX)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(a.cx, a.cy); ctx.stroke();
   ctx.setLineDash([]);
+  ctx.fillStyle = col;                       // 指側の端点はパワー色
+  ctx.beginPath(); ctx.arc(a.cx, a.cy, 4, 0, 6.29); ctx.fill();
+  // 最大パワーの限界円（起点基準）
+  ctx.globalAlpha = 0.14;
+  ctx.strokeStyle = "#8b94c2"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(a.sx, a.sy, C.PULL_MAX, 0, 6.29); ctx.stroke();
   // パワーゲージ
   ctx.globalAlpha = valid ? 0.9 : 0.3;
   ctx.strokeStyle = col; ctx.lineWidth = 4; ctx.lineCap = "round";

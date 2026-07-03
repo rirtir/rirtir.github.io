@@ -44,6 +44,20 @@ const GGP = (() => {
   function orbitAngle(b, t) {
     return b.orbit ? b.orbit.ph + b.orbit.w * t : 0;
   }
+  // 表面の角度（公転による見かけの回転＋自転）。着地追従に使う
+  function surfAngle(b, t) {
+    return orbitAngle(b, t) + (b.spin || 0) * t;
+  }
+  // 表面速度（公転速度＋自転による接線速度）。(nx,ny)=中心→接点の法線
+  function surfVel(b, t, nx, ny) {
+    const v = bodyVel(b, t);
+    if (b.spin) {
+      const lever = b.r + C.BALL_R;
+      v.x += -b.spin * lever * ny;
+      v.y += b.spin * lever * nx;
+    }
+    return v;
+  }
   function goalPos(level, t) {
     return bodyPos(level.goal, t);
   }
@@ -72,7 +86,7 @@ const GGP = (() => {
       const bp = bodyPos(b, t);
       const d = Math.hypot(x - bp.x, y - bp.y);
       if (d < b.r + C.BALL_R + 6) {
-        return { bi: i, ang: Math.atan2(y - bp.y, x - bp.x), oang: orbitAngle(b, t) };
+        return { bi: i, ang: Math.atan2(y - bp.y, x - bp.x), oang: surfAngle(b, t) };
       }
     }
     return null;
@@ -87,7 +101,7 @@ const GGP = (() => {
     if (!st.attach) return;
     const b = level.bodies[st.attach.bi];
     const bp = bodyPos(b, st.t);
-    const ang = st.attach.ang + (orbitAngle(b, st.t) - st.attach.oang);
+    const ang = st.attach.ang + (surfAngle(b, st.t) - st.attach.oang);
     st.x = bp.x + (b.r + C.BALL_R) * Math.cos(ang);
     st.y = bp.y + (b.r + C.BALL_R) * Math.sin(ang);
   }
@@ -96,8 +110,11 @@ const GGP = (() => {
   function launch(st, level, dirx, diry, speed) {
     const len = Math.hypot(dirx, diry) || 1;
     let vx = (dirx / len) * speed, vy = (diry / len) * speed;
-    if (st.attach) {                      // 動く足場の速度を引き継ぐ
-      const bv = bodyVel(level.bodies[st.attach.bi], st.t);
+    if (st.attach) {                      // 動く足場の速度を引き継ぐ（公転＋自転）
+      const b = level.bodies[st.attach.bi];
+      const bp = bodyPos(b, st.t);
+      const d = Math.hypot(st.x - bp.x, st.y - bp.y) || 1;
+      const bv = surfVel(b, st.t, (st.x - bp.x) / d, (st.y - bp.y) / d);
       vx += bv.x; vy += bv.y;
     }
     st.last = snapshot(st);
@@ -170,13 +187,13 @@ const GGP = (() => {
       const nx = dx / (d || 1), ny = dy / (d || 1);
       st.x = bp.x + nx * (b.r + C.BALL_R);
       st.y = bp.y + ny * (b.r + C.BALL_R);
-      const bv = bodyVel(b, st.t);
+      const bv = surfVel(b, st.t, nx, ny);
       const rvx = st.vx - bv.x, rvy = st.vy - bv.y;
       const rsp = Math.hypot(rvx, rvy);
       const vn = rvx * nx + rvy * ny;
       if (rsp < C.REST_SPEED) {
         st.mode = "rest"; st.vx = 0; st.vy = 0;
-        st.attach = { bi: i, ang: Math.atan2(ny, nx), oang: orbitAngle(b, st.t) };
+        st.attach = { bi: i, ang: Math.atan2(ny, nx), oang: surfAngle(b, st.t) };
         events.push({ type: "rest", x: st.x, y: st.y });
         return;
       }
@@ -261,6 +278,6 @@ const GGP = (() => {
     return { pts, end: sim.mode, ex: sim.x, ey: sim.y };
   }
 
-  return { C, bodyPos, bodyVel, goalPos, orbitAngle, makeState, findAttach,
-           launch, respawn, step, cloneState, predict };
+  return { C, bodyPos, bodyVel, goalPos, orbitAngle, surfAngle, surfVel,
+           makeState, findAttach, launch, respawn, step, cloneState, predict };
 })();
