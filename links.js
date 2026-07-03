@@ -79,6 +79,13 @@ const data = [
                 tags: ["みんなで", "やり込み", "ゲーム"],
                 main: true,
             },
+            {
+                title: "グラビティゴルフ",
+                url: "https://rirtir.com/Game/GravityGolf/",
+                desc: "惑星の重力で曲がる宇宙ゴルフ。全27ホール収録。",
+                tags: ["ソロ", "やり込み", "ゲーム"],
+                main: true,
+            },
         ]
     },
     {

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="description" content="惑星の重力でボールの軌道が曲がる宇宙ゴルフ。スイングバイ、ワームホール、ブラックホールを乗りこなして全27ホールを攻略しよう。">
+<title>グラビティゴルフ — 重力で曲がる宇宙ゴルフ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<canvas id="cv"></canvas>
+
+<!-- ============ プレイ中 HUD ============ -->
+<div id="hud" class="hidden">
+  <div class="hud-left">
+    <button id="btnBack" class="icon-btn" title="ホール選択へ (Esc)">◀</button>
+    <div class="hud-hole">
+      <span id="hudHole" class="num">1-1</span>
+      <span id="hudName">ファーストフライト</span>
+    </div>
+  </div>
+  <div class="hud-mid">
+    <div class="hud-stat">打数<b id="hudStrokes" class="num">0</b></div>
+    <div class="hud-stat">パー<b id="hudPar" class="num">1</b></div>
+    <div class="hud-stat">ベスト<b id="hudBest" class="num">—</b></div>
+  </div>
+  <div class="hud-right">
+    <button id="btnRecall" class="pill-btn hidden">ボール回収</button>
+    <button id="btnRetry" class="icon-btn" title="ホールをやり直す (R)">↺</button>
+    <button id="btnGuide" class="icon-btn" title="軌道ガイド ON/OFF (G)">◠</button>
+    <button id="btnSound" class="icon-btn" title="サウンド ON/OFF (M)">♪</button>
+  </div>
+</div>
+
+<div id="banner" class="hidden"></div>
+<div id="hint" class="hidden"></div>
+<div id="toast" class="hidden"></div>
+
+<!-- ============ タイトル ============ -->
+<div id="screenTitle" class="screen">
+  <div class="title-box">
+    <h1 class="logo">GRAVITY<span>GOLF</span></h1>
+    <p class="tagline">重力で曲がる、宇宙のゴルフ。</p>
+    <button id="btnStart" class="big-btn">はじめる</button>
+    <p id="titleStars" class="stars-total">★ 0 / 81</p>
+    <p class="howto">ドラッグして引っぱり、はなして発射</p>
+  </div>
+  <a class="home-link" href="./../../index.html">← rirtir.com</a>
+</div>
+
+<!-- ============ コース選択 ============ -->
+<div id="screenCourse" class="screen hidden">
+  <h2 class="screen-title">コースをえらぶ</h2>
+  <div id="courseList"></div>
+  <button id="btnTitleBack" class="text-btn">← タイトルへ</button>
+</div>
+
+<!-- ============ ホール選択 ============ -->
+<div id="screenHoles" class="screen hidden">
+  <h2 id="holesTitle" class="screen-title"></h2>
+  <div id="holeGrid"></div>
+  <button id="btnCourseBack" class="text-btn">← コース選択へ</button>
+</div>
+
+<!-- ============ クリア画面 ============ -->
+<div id="overlayClear" class="overlay hidden">
+  <div class="panel">
+    <div id="clearScore" class="score-name">パー</div>
+    <div id="clearStars" class="stars">
+      <span class="star">★</span><span class="star">★</span><span class="star">★</span>
+    </div>
+    <div id="clearDetail" class="clear-detail"></div>
+    <div id="clearBest" class="best-note"></div>
+    <div class="row">
+      <button id="btnClearRetry" class="sub-btn">もう一度</button>
+      <button id="btnClearList" class="sub-btn">ホール選択</button>
+      <button id="btnClearNext" class="big-btn">つぎへ ▶</button>
+    </div>
+  </div>
+</div>
+
+<script src="./levels.js"></script>
+<script src="./physics.js"></script>
+<script src="./game.js"></script>
+</body>
+</html>
