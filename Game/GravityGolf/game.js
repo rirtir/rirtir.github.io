@@ -348,7 +348,7 @@ function switchScreen(m) {
   mode = m;
   hide(el.screenTitle); hide(el.screenCourse); hide(el.screenHoles);
   hide(el.hud); hide(el.overlayClear); hide(el.hint); hide(el.banner);
-  if (m === "title") { show(el.screenTitle); el.titleStars.textContent = `★ ${totalStars()} / ${GG_LEVELS.length * 3}`; }
+  if (m === "title") { show(el.screenTitle); el.titleStars.innerHTML = `<span class="ic ic-star"></span> ${totalStars()} / ${GG_LEVELS.length * 3}`; }
   if (m === "course") { buildCourseList(); show(el.screenCourse); }
   if (m === "holes") { buildHoleGrid(); show(el.screenHoles); }
   if (m === "play") show(el.hud);
@@ -362,7 +362,7 @@ function buildCourseList() {
     btn.innerHTML =
       `<div class="cinfo"><span class="cnum">${cs.sub}</span>` +
       `<span class="cname">${cs.name}</span></div>` +
-      `<span class="cstars">★ ${courseStars(i)}/27</span>`;
+      `<span class="cstars"><span class="ic ic-star"></span>${courseStars(i)}/27</span>`;
     btn.addEventListener("click", () => {
       if (!courseUnlocked(i)) { showToast("前のコースの 9番ホールをクリアで解放", "info"); return; }
       AU.click(); curCourse = i; switchScreen("holes");
@@ -383,7 +383,7 @@ function buildHoleGrid() {
     const btn = document.createElement("button");
     btn.className = "hole-cell" + (unlocked ? "" : " locked");
     let starsHtml = "";
-    for (let k = 0; k < 3; k++) starsHtml += `<span class="${k < st ? "" : "off"}">★</span>`;
+    for (let k = 0; k < 3; k++) starsHtml += `<span class="ic ic-star${k < st ? "" : " off"}"></span>`;
     btn.innerHTML =
       `<span class="hnum">${lv.id}</span><span class="hname">${lv.name}</span>` +
       `<span class="hstars">${starsHtml}</span>`;
@@ -461,7 +461,9 @@ function onClear() {
   });
   const last = play.idx === GG_LEVELS.length - 1;
   const endOfCourse = play.idx % 9 === 8;
-  el.btnClearNext.textContent = last ? "コース選択へ" : (endOfCourse ? "つぎのコースへ ▶" : "つぎへ ▶");
+  el.btnClearNext.innerHTML = last ? "コース選択へ"
+    : (endOfCourse ? 'つぎのコースへ <span class="ic ic-next"></span>'
+                   : 'つぎへ <span class="ic ic-next"></span>');
   updateHud();
   show(el.overlayClear);
 }

@@ -17,7 +17,7 @@
 <!-- ============ プレイ中 HUD ============ -->
 <div id="hud" class="hidden">
   <div class="hud-left">
-    <button id="btnBack" class="icon-btn" title="ホール選択へ (Esc)">◀</button>
+    <button id="btnBack" class="icon-btn" title="ホール選択へ (Esc)" aria-label="ホール選択へ"><span class="ic ic-back"></span></button>
     <div class="hud-hole">
       <span id="hudHole" class="num">1-1</span>
       <span id="hudName">ファーストフライト</span>
@@ -30,9 +30,9 @@
   </div>
   <div class="hud-right">
     <button id="btnRecall" class="pill-btn hidden">ボール回収</button>
-    <button id="btnRetry" class="icon-btn" title="ホールをやり直す (R)">↺</button>
-    <button id="btnGuide" class="icon-btn" title="軌道ガイド ON/OFF (G)">◠</button>
-    <button id="btnSound" class="icon-btn" title="サウンド ON/OFF (M)">♪</button>
+    <button id="btnRetry" class="icon-btn" title="ホールをやり直す (R)" aria-label="やり直す"><span class="ic ic-retry"></span></button>
+    <button id="btnGuide" class="icon-btn" title="軌道ガイド ON/OFF (G)" aria-label="軌道ガイド切り替え"><span class="ic ic-guide"></span></button>
+    <button id="btnSound" class="icon-btn" title="サウンド ON/OFF (M)" aria-label="サウンド切り替え"><span class="ic ic-sound"></span></button>
   </div>
 </div>
 
@@ -46,24 +46,24 @@
     <h1 class="logo">GRAVITY<span>GOLF</span></h1>
     <p class="tagline">重力で曲がる、宇宙のゴルフ。</p>
     <button id="btnStart" class="big-btn">はじめる</button>
-    <p id="titleStars" class="stars-total">★ 0 / 81</p>
+    <p id="titleStars" class="stars-total"><span class="ic ic-star"></span> 0 / 81</p>
     <p class="howto">ドラッグして引っぱり、はなして発射</p>
   </div>
-  <a class="home-link" href="./../../index.html">← rirtir.com</a>
+  <a class="home-link" href="./../../index.html"><span class="ic ic-back"></span> rirtir.com</a>
 </div>
 
 <!-- ============ コース選択 ============ -->
 <div id="screenCourse" class="screen hidden">
   <h2 class="screen-title">コースをえらぶ</h2>
   <div id="courseList"></div>
-  <button id="btnTitleBack" class="text-btn">← タイトルへ</button>
+  <button id="btnTitleBack" class="text-btn"><span class="ic ic-back"></span> タイトルへ</button>
 </div>
 
 <!-- ============ ホール選択 ============ -->
 <div id="screenHoles" class="screen hidden">
   <h2 id="holesTitle" class="screen-title"></h2>
   <div id="holeGrid"></div>
-  <button id="btnCourseBack" class="text-btn">← コース選択へ</button>
+  <button id="btnCourseBack" class="text-btn"><span class="ic ic-back"></span> コース選択へ</button>
 </div>
 
 <!-- ============ クリア画面 ============ -->
@@ -71,14 +71,14 @@
   <div class="panel">
     <div id="clearScore" class="score-name">パー</div>
     <div id="clearStars" class="stars">
-      <span class="star">★</span><span class="star">★</span><span class="star">★</span>
+      <span class="star ic ic-star"></span><span class="star ic ic-star"></span><span class="star ic ic-star"></span>
     </div>
     <div id="clearDetail" class="clear-detail"></div>
     <div id="clearBest" class="best-note"></div>
     <div class="row">
       <button id="btnClearRetry" class="sub-btn">もう一度</button>
       <button id="btnClearList" class="sub-btn">ホール選択</button>
-      <button id="btnClearNext" class="big-btn">つぎへ ▶</button>
+      <button id="btnClearNext" class="big-btn">つぎへ <span class="ic ic-next"></span></button>
     </div>
   </div>
 </div>

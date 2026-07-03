@@ -13,7 +13,34 @@
   --danger:    #ff6b6b;
   --font-jp:   'Zen Maru Gothic', sans-serif;
   --font-num:  'Orbitron', monospace;
+
+  /* --- アイコン（SVGパスを data URI で保持。mask で好きな色に塗る） ---
+     使い方: <span class="ic ic-back"></span> のように class を付ける。
+     色は currentColor に追従する（親の color / fill で変えられる）。 */
+  --i-back:     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5 8 12 15 19'/%3E%3C/svg%3E");
+  --i-next:     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5 16 12 9 19'/%3E%3C/svg%3E");
+  --i-retry:    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000'%3E%3Cpath d='M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z'/%3E%3C/svg%3E");
+  --i-guide:    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 18 Q12 2 21 18' fill='none' stroke='%23000' stroke-width='2.3' stroke-linecap='round' stroke-dasharray='2.5 3.6'/%3E%3Ccircle cx='21' cy='18' r='2.1' fill='%23000'/%3E%3C/svg%3E");
+  --i-sound:    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 9H7l5-4v14l-5-4H4z' fill='%23000'/%3E%3Cpath d='M15.5 8.5a5 5 0 0 1 0 7M18 6a9 9 0 0 1 0 12' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round'/%3E%3C/svg%3E");
+  --i-soundoff: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 9H7l5-4v14l-5-4H4z' fill='%23000'/%3E%3Cpath d='M16 9l6 6M22 9l-6 6' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round'/%3E%3C/svg%3E");
+  --i-star:     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000'%3E%3Cpath d='M12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26Z'/%3E%3C/svg%3E");
+  --i-lock:     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 11V8a5 5 0 0 1 10 0v3' fill='none' stroke='%23000' stroke-width='2'/%3E%3Crect x='4.5' y='10.5' width='15' height='9.5' rx='2' fill='%23000'/%3E%3C/svg%3E");
 }
+
+/* ============ アイコン（mask 方式・currentColor で着色） ============ */
+.ic{
+  display:inline-block; width:1em; height:1em; flex:none;
+  vertical-align:-0.14em;
+  background-color:currentColor;
+  -webkit-mask:var(--ic) center / contain no-repeat;
+          mask:var(--ic) center / contain no-repeat;
+}
+.ic-back  { --ic:var(--i-back); }
+.ic-next  { --ic:var(--i-next); }
+.ic-retry { --ic:var(--i-retry); }
+.ic-guide { --ic:var(--i-guide); }
+.ic-sound { --ic:var(--i-sound); }
+.ic-star  { --ic:var(--i-star); }
 
 *{ margin:0; padding:0; box-sizing:border-box; }
 
@@ -61,8 +88,12 @@ button:active{ transform:scale(0.96); }
 .icon-btn{
   width:42px; height:42px; font-size:1.1rem; line-height:1;
   border-radius:12px; flex:none;
+  display:flex; align-items:center; justify-content:center;
 }
+.icon-btn .ic{ width:1.3em; height:1.3em; }
 .icon-btn.off{ color:var(--text-dim); opacity:.55; }
+/* サウンド OFF のときはミュート（×付き）アイコンに差し替え */
+#btnSound.off .ic-sound{ --ic:var(--i-soundoff); }
 
 .pill-btn{
   font-size:.9rem; padding:10px 18px; border-radius:999px;
@@ -177,7 +208,13 @@ button:active{ transform:scale(0.96); }
 .course-card .cinfo{ flex:1; display:flex; flex-direction:column; gap:2px; }
 .course-card .cstars{ font-family:var(--font-num); color:var(--gold); font-size:.95rem; white-space:nowrap; }
 .course-card.locked{ opacity:.45; }
-.course-card.locked .cname::after{ content:" 🔒"; font-size:.8em; }
+.course-card.locked .cname::after{
+  content:""; display:inline-block; width:.85em; height:.85em;
+  margin-left:.4em; vertical-align:-0.08em; background-color:currentColor;
+  -webkit-mask:var(--i-lock) center / contain no-repeat;
+          mask:var(--i-lock) center / contain no-repeat;
+}
+.course-card .cstars .ic-star{ margin-right:.25em; }
 
 /* ホールグリッド */
 #holeGrid{
@@ -191,10 +228,16 @@ button:active{ transform:scale(0.96); }
 }
 .hole-cell .hnum{ font-family:var(--font-num); font-weight:700; font-size:1.05rem; color:var(--accent); }
 .hole-cell .hname{ font-size:.68rem; color:var(--text-dim); line-height:1.2; min-height:2.4em; display:flex; align-items:center; }
-.hole-cell .hstars{ font-size:.8rem; color:var(--gold); letter-spacing:1px; }
+.hole-cell .hstars{ font-size:.8rem; color:var(--gold); display:flex; gap:3px; }
+.hole-cell .hstars .ic-star{ width:1.15em; height:1.15em; }
 .hole-cell .hstars .off{ color:#3a4062; }
 .hole-cell.locked{ opacity:.38; }
-.hole-cell.locked .hnum::after{ content:"🔒"; font-size:.7em; margin-left:4px; }
+.hole-cell.locked .hnum::after{
+  content:""; display:inline-block; width:.72em; height:.72em;
+  margin-left:.3em; vertical-align:-0.02em; background-color:currentColor;
+  -webkit-mask:var(--i-lock) center / contain no-repeat;
+          mask:var(--i-lock) center / contain no-repeat;
+}
 
 /* ============ クリアオーバーレイ ============ */
 .overlay{
@@ -218,10 +261,10 @@ button:active{ transform:scale(0.96); }
   color:var(--accent); text-shadow:0 0 24px rgba(110,231,255,.7);
 }
 .score-name.super{ color:var(--gold); text-shadow:0 0 26px rgba(255,209,102,.85); }
-.stars{ margin:10px 0 4px; font-size:2.2rem; letter-spacing:10px; }
-.stars .star{ color:#3a4062; display:inline-block; }
+.stars{ margin:10px 0 4px; font-size:2.2rem; display:flex; gap:14px; justify-content:center; }
+.stars .star{ color:#3a4062; }
 .stars .star.on{
-  color:var(--gold); text-shadow:0 0 18px rgba(255,209,102,.9);
+  color:var(--gold); filter:drop-shadow(0 0 9px rgba(255,209,102,.85));
   animation:starPop .4s cubic-bezier(.2, 1.6, .4, 1) backwards;
 }
 .stars .star.on:nth-child(1){ animation-delay:.15s; }
