@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090806">
+  <meta name="description" content="人工太陽を積んだ最後の列車で七夜を駆ける、固定長キャンペーン型の列車戦術RPG。">
+  <meta property="og:title" content="黎明列車 ― 七夜の終着点">
+  <meta property="og:description" content="手描きの装甲列車を指揮し、夜に沈む世界を七夜で横断する全7章の戦術RPG。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://rirtir.com/Game/DawnTrain/assets/art/key/title-train.webp">
+  <title>黎明列車 ― 七夜の終着点</title>
+  <link rel="preload" href="assets/art/key/title-train.webp" as="image" type="image/webp">
+  <link rel="stylesheet" href="style.css?v=2.1.0">
+</head>
+<body>
+  <div class="world-stage" aria-hidden="true">
+    <div class="world-backdrop"></div>
+    <div class="world-smoke smoke-a"></div>
+    <div class="world-smoke smoke-b"></div>
+    <div class="world-vignette"></div>
+    <div class="film-grain"></div>
+  </div>
+
+  <svg class="icon-sprite" aria-hidden="true">
+    <symbol id="i-fuel" viewBox="0 0 24 24"><path d="M8 3h8v4l2 3v10H6V10l2-3V3Zm1 8h6M9 15h6"/></symbol>
+    <symbol id="i-scrap" viewBox="0 0 24 24"><path d="m14 4 6 6-3 3-2-2-6 6 2 2-2 2-6-6 2-2 2 2 6-6-2-2 3-3Z"/></symbol>
+    <symbol id="i-med" viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6V3Z"/></symbol>
+    <symbol id="i-morale" viewBox="0 0 24 24"><path d="M12 21S4 16 4 9a4 4 0 0 1 7-3 4 4 0 0 1 7 3c0 7-6 12-6 12Z"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Zm12-1c2 2 2 6 0 8m3-11c4 4 4 10 0 14"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4 3c-1 .5-1 1-1 2m0 3h.01"/></symbol>
+    <symbol id="i-rail" viewBox="0 0 24 24"><path d="M7 3v18m10-18v18M5 6h14M5 12h14M5 18h14"/></symbol>
+    <symbol id="i-steam" viewBox="0 0 24 24"><path d="M8 20c-3-4 3-5 0-9s3-5 1-8m7 17c-3-4 3-5 0-9s3-5 1-8"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m5 12 12-7v5h3v4h-3v5L5 12Z"/></symbol>
+    <symbol id="i-skill" viewBox="0 0 24 24"><path d="m12 2 2.2 6.1L20 6l-2.1 5.8L22 14l-6.1.8L16 21l-4-4.7L8 21l.1-6.2L2 14l4.1-2.2L4 6l5.8 2.1L12 2Z"/></symbol>
+  </svg>
+
+  <div id="shell">
+    <header id="topbar" class="topbar hidden">
+      <button id="brandButton" class="brand-button" type="button" aria-label="旅の画面へ戻る">
+        <span class="brand-mark"><svg><use href="#i-rail"></use></svg></span>
+        <span><b>黎明列車</b><small id="headerLocation">七夜の終着点</small></span>
+      </button>
+      <div id="headerResources" class="resource-strip" aria-label="所持資源"></div>
+      <div class="top-actions">
+        <button id="soundButton" class="icon-button" type="button" aria-label="音声設定"><svg><use href="#i-sound"></use></svg></button>
+        <button id="helpButton" class="icon-button" type="button" aria-label="ヘルプ"><svg><use href="#i-help"></use></svg></button>
+      </div>
+    </header>
+
+    <main id="app" tabindex="-1" aria-live="polite">
+      <section class="loading-screen">
+        <div class="loading-emblem" aria-hidden="true"><svg><use href="#i-rail"></use></svg></div>
+        <p>暁核を起動しています…</p>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="modalRoot" class="modal-root hidden" role="presentation"></div>
+  <noscript>このゲームを遊ぶにはJavaScriptを有効にしてください。</noscript>
+
+  <script src="data.js?v=2.1.0"></script>
+  <script src="campaign.js?v=2.1.0"></script>
+  <script src="engine.js?v=2.1.0"></script>
+  <script src="audio.js?v=2.1.0"></script>
+  <script src="game.js?v=2.1.0"></script>
+</body>
+</html>

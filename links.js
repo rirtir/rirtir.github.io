@@ -3,6 +3,13 @@ const data = [
         category: "ゲーム",
         links: [
             {
+                title: "黎明列車 ― 七夜の終着点",
+                url: "https://rirtir.com/Game/DawnTrain/",
+                desc: "手描きの装甲列車を指揮し、夜に沈む世界を七夜で横断する全7章の戦術RPG。",
+                tags: ["ソロ", "戦術RPG", "物語", "ゲーム"],
+                main: true,
+            },
+            {
                 title: "ito",
                 url: "https://rirtir.com/Game/ito/",
                 desc: "互いの数字を当てろ",
@@ -77,7 +84,7 @@ const data = [
                 url: "https://telepath-online.onrender.com",
                 desc: "テレパシーで相手と意思疎通するゲーム。制作中（ベータ版）",
                 tags: ["みんなで", "やり込み", "ゲーム"],
-                main: true,
+                main: false,
             },
             {
                 title: "グラビティゴルフ",
