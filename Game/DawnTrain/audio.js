@@ -16,16 +16,16 @@
       this.sfxCache = new Map();
       this.activeSfx = new Set();
       this.bgmFiles = {
-        title: "assets/audio/bgm/title.ogg?v=2.1.1",
-        journey: "assets/audio/bgm/journey.ogg?v=2.1.1",
-        battle: "assets/audio/bgm/battle.ogg?v=2.1.1",
-        boss: "assets/audio/bgm/boss.ogg?v=2.1.1",
-        ending: "assets/audio/bgm/ending.ogg?v=2.1.1"
+        title: "assets/audio/bgm/title.ogg?v=2.2.0",
+        journey: "assets/audio/bgm/journey.ogg?v=2.2.0",
+        battle: "assets/audio/bgm/battle.ogg?v=2.2.0",
+        boss: "assets/audio/bgm/boss.ogg?v=2.2.0",
+        ending: "assets/audio/bgm/ending.ogg?v=2.2.0"
       };
       this.sfxFiles = Object.fromEntries([
         "confirm", "lever", "cancel", "paper", "story", "move",
         "attack", "hit", "repair", "steam", "victory", "defeat"
-      ].map(name => [name, `assets/audio/sfx/${name}.ogg?v=2.1.1`]));
+      ].map(name => [name, `assets/audio/sfx/${name}.ogg?v=2.2.0`]));
 
       const unlock = () => {
         this.unlocked = true;

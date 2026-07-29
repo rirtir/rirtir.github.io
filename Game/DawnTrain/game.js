@@ -41,6 +41,7 @@
   let selectedAction = null;
   let toastTimer = null;
   let fxTimer = null;
+  let actionHintTimer = null;
   let currentView = "loading";
   let lastClock = Date.now();
   let routeSelection = null;
@@ -94,7 +95,7 @@
   }
 
   function loadSettings() {
-    const defaults = { sound: true, bgmVolume: 0.4, sfxVolume: 0.7, reduceMotion: false, confirmTurn: true };
+    const defaults = { sound: true, bgmVolume: 0.4, sfxVolume: 0.7, reduceMotion: false, confirmTurn: true, actionHints: true };
     try {
       const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY));
       if (!saved || typeof saved !== "object") return defaults;
@@ -184,12 +185,23 @@
     const chapter = E.getChapter(game);
     document.body.dataset.chapter = String((chapter?.number) || 1);
     DT.audio.setChapter((chapter?.number) || 1);
-    headerLocation.textContent = chapter ? `第${chapter.number}夜 ${chapter.name}` : "七夜の終着点";
+    headerLocation.textContent = currentView === "battle" && game.battle
+      ? DATA.encounters[game.battle.encounterId]?.name || "戦闘中"
+      : chapter ? `第${chapter.number}夜 ${chapter.name}` : "七夜の終着点";
     renderResources();
   }
 
   function renderResources() {
     if (!game) return;
+    if (currentView === "battle" && game.battle) {
+      const battle = game.battle;
+      const steam = Array.from({ length: battle.maxSteam }, (_, index) => `<i class="steam-pip ${index < battle.steam ? "on" : ""}"></i>`).join("");
+      headerResources.classList.add("battle-steam-strip");
+      headerResources.innerHTML = `<div class="header-steam" aria-label="共有蒸気 ${battle.steam}/${battle.maxSteam}">${icon("i-steam")}<span><small>共有蒸気</small><b>${battle.steam}/${battle.maxSteam}</b></span><span class="header-steam-pips">${steam}</span></div>`;
+      return;
+    }
+    headerResources.classList.remove("battle-steam-strip");
+    headerResources.classList.remove("tutorial-focus");
     const items = [
       ["fuel", "燃料", game.resources.fuel], ["scrap", "部品", game.resources.scrap], ["medkits", "医療", game.resources.medkits], ["morale", "士気", game.resources.morale]
     ];
@@ -197,6 +209,7 @@
   }
 
   function setView(name) {
+    const viewChanged = currentView !== name;
     currentView = name;
     app.dataset.view = name;
     document.body.dataset.view = name;
@@ -211,7 +224,7 @@
           : "journey";
     DT.audio.setScene(scene);
     syncViewportMetrics();
-    window.scrollTo({ top: 0, behavior: settings.reduceMotion ? "auto" : "smooth" });
+    if (viewChanged) window.scrollTo({ top: 0, behavior: settings.reduceMotion ? "auto" : "smooth" });
     app.focus({ preventScroll: true });
   }
 
@@ -521,6 +534,35 @@
     return parts.join("・") || "報酬なし";
   }
 
+  function renderActionExplainer(action, actor, battle) {
+    if (!action || !actor || !settings.actionHints) return "";
+    const actorDef = DATA.crew[actor.id];
+    const carDef = DATA.cars[battle.cars[actor.pos.car].type];
+    const source = action.key === "operate"
+      ? `${carDef.name}の車両設備`
+      : action.key.startsWith("skill:") ? `${actorDef.name}の固有技` : "基本行動";
+    const targetText = {
+      cell: "明るく表示された移動先を選んでください。",
+      enemy: "赤く表示された敵を選んでください。",
+      ally: "明るく表示された味方を選んでください。",
+      car: "明るく表示された車両名を選んでください。",
+      none: "説明を確認したら、同じ行動をもう一度押すと実行します。"
+    }[action.targetType] || "対象を選んでください。";
+    const costs = [`${action.ap}AP`];
+    if (action.steam) costs.push(`共有蒸気${action.steam}`);
+    return `<aside id="actionExplainer" class="action-explainer" role="status"><small>${escapeHtml(source)}</small><b>${escapeHtml(action.name)}</b><p>${escapeHtml(action.text)}</p><div><span>消費 ${escapeHtml(costs.join("・"))}</span>${action.cooldown ? `<span>再使用まで ${action.cooldown}R</span>` : ""}</div><em>${escapeHtml(targetText)}</em></aside>`;
+  }
+
+  function armActionExplainer() {
+    window.clearTimeout(actionHintTimer);
+    const panel = document.getElementById("actionExplainer");
+    if (!panel) return;
+    actionHintTimer = window.setTimeout(() => {
+      panel.classList.add("leaving");
+      window.setTimeout(() => panel.remove(), 220);
+    }, 4200);
+  }
+
   function renderBattle() {
     setView("battle");
     showTopbar(true);
@@ -532,6 +574,7 @@
     ensureGuidance(game);
     const isFirstLesson = ["c1_safe", "c1_risky"].includes(battle.encounterId) && game.guidance.battle < 12;
     const lesson = isFirstLesson ? game.guidance.battle : 12;
+    headerResources.classList.toggle("tutorial-focus", lesson === 8);
     if ([5, 6].includes(lesson)) selectedActor = battle.crew.find(unit => unit.id === "sui" && unit.hp > 0)?.uid || selectedActor;
     if ([10, 11].includes(lesson)) selectedActor = battle.crew.find(unit => unit.id === "gaku" && unit.hp > 0)?.uid || selectedActor;
     if ((!selectedActor || !battle.crew.some(unit => unit.uid === selectedActor && unit.hp > 0)) && lesson > 1) {
@@ -582,14 +625,13 @@
       const percent = Math.max(0, car.hp / car.maxHp * 100);
       return `<button class="car-label ${targetCars.has(index) ? "selectable" : ""}" data-car-target="${index}" style="--car-color:${DATA.cars[car.type].color}"><b>${escapeHtml(DATA.cars[car.type].name)}</b><span>${car.hp}/${car.maxHp}${car.barrier ? ` +壁${car.barrier}` : ""}</span><div class="hp-bar ${percent < 35 ? "low" : ""}"><i style="width:${percent}%"></i></div></button>`;
     }).join("");
-    const steam = Array.from({ length: battle.maxSteam }, (_, index) => `<i class="steam-pip ${index < battle.steam ? "on" : ""}"></i>`).join("");
     const actorDef = actor ? DATA.crew[actor.id] : null;
+    const activeAction = actions.find(action => action.key === selectedAction);
     app.innerHTML = `
       <section class="screen battle-screen" style="--battle-art:url('${chapterArt(encounter.chapter)}')">
         <div class="battle-head">
-          <div class="objective-box">${icon("i-target")}<span><small>勝利条件</small><b>${escapeHtml(encounter.objective.text)}</b></span></div>
+          <div class="objective-box">${icon("i-target")}<span><small>${escapeHtml(encounter.name)}・勝利条件</small><b>${escapeHtml(encounter.objective.text)}</b></span></div>
           <div class="round-box"><small>ROUND</small><b>${battle.round}</b></div>
-          <div class="steam-box ${lesson === 8 ? "tutorial-focus" : ""}" aria-label="蒸気 ${battle.steam}/${battle.maxSteam}">${icon("i-steam")}${steam}</div>
         </div>
         ${isFirstLesson ? renderBattleCoach(lesson) : ""}
         <div class="intent-strip ${lesson === 0 ? "tutorial-focus" : ""}" aria-label="敵の次行動">${intentHtml || `<div class="intent-card"><b>敵影なし</b><small>増援に備えよ</small></div>`}</div>
@@ -606,11 +648,11 @@
             ${actor ? `<img src="${ART.portraits[actor.id]}" alt=""><div><h3>${escapeHtml(actorDef.name)} <small>${escapeHtml(actorDef.role)}</small></h3><div class="unit-stats"><span>HP ${actor.hp}/${actor.maxHp}</span><span>AP ${actor.ap}/${actor.maxAp}</span><span>障壁 ${actor.shield}</span></div><p>${escapeHtml(actorDef.passive.name)}：${escapeHtml(actorDef.passive.text)}</p></div>` : `<div class="empty-unit">${icon("i-arrow")}<p>車内の乗員を選択してください</p></div>`}
           </div>
           <div class="action-panel">
-            <div class="action-grid">${actions.map((action, index) => { const allowed = lesson >= 12 || (lesson === 2 && action.key === "move") || (lesson === 5 && action.key === "attack") || (lesson === 10 && action.key === "operate"); return `<button class="action-button ${selectedAction === action.key ? "active" : ""} ${(lesson === 2 && action.key === "move") || (lesson === 5 && action.key === "attack") || (lesson === 10 && action.key === "operate") ? "tutorial-focus" : ""}" data-action="${action.key}" ${(action.enabled && allowed) ? "" : "disabled"}><i>${index + 1}</i>${actionIcon(action.key)}<span>${escapeHtml(action.name)}<small>${action.cooldown ? `再使用 ${action.cooldown}R` : `${action.ap}AP${action.steam ? `・蒸気${action.steam}` : ""}`}</small></span></button>`; }).join("")}</div>
+            <div class="action-grid">${actions.map((action, index) => { const allowed = lesson >= 12 || (lesson === 2 && action.key === "move") || (lesson === 5 && action.key === "attack") || (lesson === 10 && action.key === "operate"); const label = `${action.name}。${action.text}。${action.ap}AP${action.steam ? `、共有蒸気${action.steam}` : ""}`; return `<button class="action-button ${selectedAction === action.key ? "active" : ""} ${(lesson === 2 && action.key === "move") || (lesson === 5 && action.key === "attack") || (lesson === 10 && action.key === "operate") ? "tutorial-focus" : ""}" data-action="${action.key}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" ${(action.enabled && allowed) ? "" : "disabled"}><i>${index + 1}</i>${actionIcon(action.key)}<span>${escapeHtml(action.name)}<small>${action.cooldown ? `再使用 ${action.cooldown}R` : `${action.ap}AP${action.steam ? `・蒸気${action.steam}` : ""}`}</small></span></button>`; }).join("")}</div>
             <div class="battle-controls"><button id="cancelAction" class="secondary-button" ${selectedAction && lesson >= 12 ? "" : "disabled"}>選択解除</button><button id="undoMove" class="secondary-button" ${battle.undo && lesson >= 12 ? "" : "disabled"}>移動取消</button><button id="endTurn" class="primary-button ${lesson === 7 ? "tutorial-focus" : ""}" ${lesson < 12 && lesson !== 7 ? "disabled" : ""}>ターン終了 <kbd>E</kbd></button></div>
           </div>
-        <div class="battle-log" aria-label="戦闘記録"><small>戦闘ログ</small>${battle.log.slice(0, 5).map(item => `<p>${escapeHtml(item.text)}</p>`).join("")}</div>
         </div>
+        ${!isFirstLesson ? renderActionExplainer(activeAction, actor, battle) : ""}
       </section>`;
     app.querySelectorAll(".battle-cell").forEach(cell => cell.addEventListener("click", () => handleCellClick(Number(cell.dataset.car), Number(cell.dataset.lane))));
     app.querySelectorAll(".car-label").forEach(label => label.addEventListener("click", () => handleCarTarget(Number(label.dataset.carTarget))));
@@ -630,6 +672,7 @@
       saveGame();
       renderBattle();
     });
+    armActionExplainer();
     revealBossIfNeeded(battle, encounter);
   }
 
@@ -641,7 +684,7 @@
       ["移動先を決める", "明るくなった空き区画を押してください。「移動」を選んだだけでは、まだAPを使いません。", ""],
       ["別の乗員へ指示する", "退避できました。次は右下の通路にいる医師スイを押してください。乗員は一手ごとに自由に切り替えられます。", ""],
       ["攻撃を選ぶ", "スイは敵の隣にいます。「攻撃」を押すと、届く範囲にいる敵だけが赤く表示されます。", ""],
-      ["攻撃する敵を決める", "赤く光る敵を押してください。敵のHPは足元に、攻撃の結果は戦闘ログに表示されます。", ""],
+      ["攻撃する敵を決める", "赤く光る敵を押してください。敵のHPは足元に表示されます。詳しい結果は右上メニューの「戦闘ログ」でいつでも確認できます。", ""],
       ["敵の行動を確認する", "今回は「ターン終了」を押してください。敵が予告どおりに動き、次のラウンドが始まります。", ""],
       ["蒸気は全員で共有する", "ラウンドが変わり、蒸気が3から5へ増えました。固有技と車両の装置は、この蒸気を共通で使います。必要な量は各ボタンに表示されます。", "車両の装置を試す"],
       ["ガクを選ぶ", "中央通路にいるガクを押してください。乗員がいる車両の装置は、その乗員の行動メニューに追加されます。", ""],
@@ -690,7 +733,13 @@
     const action = E.getActions(battle, actor.uid).find(item => item.key === actionKey);
     if (!action?.enabled) return;
     const targets = E.getTargets(battle, actor.uid, actionKey);
-    if (action.targetType === "none") return executeBattleAction(actionKey, null);
+    if (action.targetType === "none") {
+      if (!settings.actionHints || selectedAction === actionKey) return executeBattleAction(actionKey, null);
+      selectedAction = actionKey;
+      DT.audio.play("confirm");
+      renderBattle();
+      return;
+    }
     if (!targets.length) return showToast("有効な対象がありません", "error");
     selectedAction = selectedAction === actionKey ? null : actionKey;
     if (["c1_safe", "c1_risky"].includes(battle.encounterId) && game.guidance?.battle === 2 && actionKey === "move" && selectedAction) game.guidance.battle = 3;
@@ -1030,6 +1079,70 @@
     document.getElementById("modalConfirm").addEventListener("click", () => { closeModal(); onConfirm(); });
   }
 
+  function menuBack() {
+    return `<button id="menuBack" class="secondary-button">メニューへ戻る</button>`;
+  }
+
+  function bindMenuBack() {
+    document.getElementById("menuBack")?.addEventListener("click", openGameMenu);
+  }
+
+  function openResourceGuide() {
+    const values = Object.assign({ fuel: 0, scrap: 0, medkits: 0, morale: 0 }, game?.resources || {});
+    if (currentView === "battle" && game?.battle) values.morale = game.battle.morale;
+    const rows = [
+      ["i-fuel", "燃料", values.fuel, "路線を出発する時に使います。戦闘中には消費しません。"],
+      ["i-scrap", "部品", values.scrap, "停車中の車両修理や強化に使います。戦闘中の応急修理では消費しません。"],
+      ["i-med", "医療品", values.medkits, "停車中に負傷した乗員を治療します。戦闘中には消費しません。"],
+      ["i-morale", "士気", values.morale, "8以上なら戦闘開始時の蒸気+1、2以下なら乗員の最大HP-1。一部の車両設備を使うと戦闘中にも減ります。"]
+    ];
+    openModal(`<div class="menu-sheet"><p class="eyebrow">SUPPLIES</p><h2>資源について</h2>${currentView === "battle" ? `<p class="menu-notice">戦闘で主に使うのはAPと共有蒸気です。車両によっては士気も消費します。燃料・部品・医療品は戦闘中に消費しません。</p>` : ""}<div class="resource-reference">${rows.map(([iconId, name, value, text]) => `<article>${icon(iconId)}<div><h3>${name}<b>${value}</b></h3><p>${text}</p></div></article>`).join("")}</div><div class="modal-actions">${menuBack()}<button class="primary-button modal-close">閉じる</button></div></div>`);
+    bindMenuBack();
+  }
+
+  function openBattleLog() {
+    const entries = game?.battle?.log || [];
+    openModal(`<div class="menu-sheet"><p class="eyebrow">BATTLE LOG</p><h2>戦闘ログ</h2><div class="full-battle-log">${entries.length ? entries.slice(0, 40).map(item => `<p>${escapeHtml(item.text)}</p>`).join("") : `<p>表示できる戦闘記録はありません。</p>`}</div><div class="modal-actions">${menuBack()}<button class="primary-button modal-close">閉じる</button></div></div>`);
+    bindMenuBack();
+  }
+
+  function referenceCost(item, operation = false) {
+    const parts = [`${operation ? 1 : item.ap}AP`];
+    const steam = operation ? item.cost || 0 : item.steam || 0;
+    if (steam) parts.push(`蒸気${steam}`);
+    if (item.morale) parts.push(`士気${item.morale}`);
+    if (item.cooldown) parts.push(`再使用まで${item.cooldown}R`);
+    return parts.join("・");
+  }
+
+  function openActionReference() {
+    const activeIds = game?.activeCrew?.filter(id => game.crew[id]) || [];
+    const crewCards = activeIds.map(id => {
+      const member = DATA.crew[id];
+      return `<article class="reference-card"><h3>${escapeHtml(member.name)}<small>${escapeHtml(member.role)}</small></h3><p><b>${escapeHtml(member.passive.name)}</b>　${escapeHtml(member.passive.text)}</p>${member.skills.map(skill => `<p><b>${escapeHtml(skill.name)}</b><em>${referenceCost(skill)}</em>${escapeHtml(skill.text)}</p>`).join("")}</article>`;
+    }).join("");
+    const seenCars = new Set();
+    const carCards = (game?.train || []).map(car => DATA.cars[car.type]).filter(car => {
+      if (!car?.operation || seenCars.has(car.id)) return false;
+      seenCars.add(car.id);
+      return true;
+    }).map(car => `<article class="reference-card"><h3>${escapeHtml(car.name)}<small>車両設備</small></h3><p><b>${escapeHtml(car.operation.name)}</b><em>${referenceCost(car.operation, true)}</em>${escapeHtml(car.operation.text)}。乗員がこの車両にいる時だけ使え、各ラウンド1回までです。</p></article>`).join("");
+    openModal(`<div class="menu-sheet action-reference-sheet"><p class="eyebrow">ACTION REFERENCE</p><h2>行動・設備一覧</h2><p class="menu-notice">APは乗員ごと、蒸気は全員と全車両で共有します。固有技には再使用までの待ち時間があります。</p><h3 class="reference-heading">基本行動</h3><div class="reference-grid"><article class="reference-card"><p><b>移動</b><em>1AP</em>隣の空いている区画へ移ります。</p><p><b>攻撃</b><em>1AP</em>乗員ごとの射程内にいる敵へダメージを与えます。</p><p><b>応急修理</b><em>1AP・部品不要</em>今いる車両を1修理します。ガクなら2修理します。</p></article></div><h3 class="reference-heading">出撃中の乗員</h3><div class="reference-grid">${crewCards}</div><h3 class="reference-heading">現在の列車設備</h3><div class="reference-grid">${carCards}</div><div class="modal-actions">${menuBack()}<button class="primary-button modal-close">閉じる</button></div></div>`);
+    bindMenuBack();
+  }
+
+  function openGameMenu() {
+    const battle = currentView === "battle" ? game?.battle : null;
+    const encounter = battle ? DATA.encounters[battle.encounterId] : null;
+    openModal(`<div class="menu-sheet"><p class="eyebrow">TRAIN MENU</p><h2>メニュー</h2>${battle ? `<div class="menu-battle-summary"><span><small>戦闘</small><b>${escapeHtml(encounter.name)}</b></span><span><small>ラウンド</small><b>${battle.round}</b></span><span><small>共有蒸気</small><b>${battle.steam}/${battle.maxSteam}</b></span><span><small>士気</small><b>${battle.morale}</b></span><p>${icon("i-target")} ${escapeHtml(encounter.objective.text)}</p></div>` : ""}<div class="menu-grid"><button id="menuResources" class="menu-button">${icon("i-fuel")}<span><b>資源について</b><small>燃料・部品・医療品・士気</small></span></button>${battle ? `<button id="menuBattleLog" class="menu-button">${icon("i-rail")}<span><b>戦闘ログ</b><small>直前までの行動結果</small></span></button><button id="menuActions" class="menu-button">${icon("i-skill")}<span><b>行動・設備一覧</b><small>固有技と車両ごとの特殊行動</small></span></button>` : ""}<button id="menuHelp" class="menu-button">${icon("i-help")}<span><b>車掌手帳</b><small>戦闘と旅の基本</small></span></button><button id="menuSettings" class="menu-button">${icon("i-menu")}<span><b>設定</b><small>音量・行動説明・終了確認</small></span></button>${game ? `<button id="menuSave" class="menu-button">${icon("i-rail")}<span><b>セーブ管理</b><small>書き出し・読み込み・章の復元</small></span></button>` : ""}</div><div class="modal-actions"><button class="primary-button modal-close">ゲームへ戻る</button></div></div>`);
+    document.getElementById("menuResources")?.addEventListener("click", openResourceGuide);
+    document.getElementById("menuBattleLog")?.addEventListener("click", openBattleLog);
+    document.getElementById("menuActions")?.addEventListener("click", openActionReference);
+    document.getElementById("menuHelp")?.addEventListener("click", openHelp);
+    document.getElementById("menuSettings")?.addEventListener("click", openSettings);
+    document.getElementById("menuSave")?.addEventListener("click", openSaveManager);
+  }
+
   function openHelp() {
     openModal(`<div class="help-sheet"><p class="eyebrow">CONDUCTOR'S FIELD NOTES</p><h2>車掌手帳</h2><div class="help-grid"><article>${icon("i-target")}<h3>攻撃をかわす</h3><p>赤い区画は、敵が次に攻撃する場所です。乗員を移動させるか、障壁や修理で備えましょう。</p></article><article>${icon("i-steam")}<h3>APと蒸気</h3><p>各乗員は毎ラウンド2APを使えます。蒸気は固有技と車両の装置で共有します。</p></article><article>${icon("i-scrap")}<h3>ダメージは持ち越す</h3><p>車両の損傷と乗員のHPは戦闘後も残ります。停車中に、部品と医療品で回復できます。</p></article><article>${icon("i-rail")}<h3>全7章の旅</h3><p>行動するたびに自動保存されます。各章の開始時には、やり直し用のバックアップも作られます。</p></article></div><p class="key-notes"><kbd>E</kbd> ターン終了　<kbd>Esc</kbd> 選択解除　<kbd>1–6</kbd> 行動選択　<kbd>WASD</kbd> 移動</p>${game ? `<button id="replayGuides" class="secondary-button">操作ガイドを最初から表示</button>` : ""}<div class="modal-actions"><button class="primary-button modal-close">手帳を閉じる</button></div></div>`);
     document.getElementById("replayGuides")?.addEventListener("click", () => {
@@ -1053,6 +1166,7 @@
       <div class="settings-row"><label for="settingBgmVolume">BGM音量</label><input id="settingBgmVolume" type="range" min="0" max="1" step="0.05" value="${settings.bgmVolume}"></div>
       <div class="settings-row"><label for="settingSfxVolume">効果音量</label><input id="settingSfxVolume" type="range" min="0" max="1" step="0.05" value="${settings.sfxVolume}"></div>
       <div class="settings-row"><label for="settingMotion">演出を減らす</label><input id="settingMotion" type="checkbox" ${settings.reduceMotion ? "checked" : ""}></div>
+      <div class="settings-row"><label for="settingActionHints">行動選択時に説明を表示</label><input id="settingActionHints" type="checkbox" ${settings.actionHints ? "checked" : ""}></div>
       <div class="settings-row"><label for="settingConfirm">APを残してターンを終える時は確認</label><input id="settingConfirm" type="checkbox" ${settings.confirmTurn ? "checked" : ""}></div>
       <div class="modal-actions"><button class="secondary-button modal-close">閉じる</button><button id="saveSettingsButton" class="primary-button">保存</button></div>`);
     document.getElementById("saveSettingsButton").addEventListener("click", () => {
@@ -1060,11 +1174,13 @@
       settings.bgmVolume = Number(document.getElementById("settingBgmVolume").value);
       settings.sfxVolume = Number(document.getElementById("settingSfxVolume").value);
       settings.reduceMotion = document.getElementById("settingMotion").checked;
+      settings.actionHints = document.getElementById("settingActionHints").checked;
       settings.confirmTurn = document.getElementById("settingConfirm").checked;
       saveSettings();
       closeModal();
       if (settings.sound && currentView !== "title") DT.audio.startRail();
       showToast("設定を保存しました");
+      if (currentView === "battle") renderBattle();
     });
   }
 
@@ -1145,7 +1261,7 @@
     if (settings.sound) { DT.audio.ensure(); DT.audio.play("confirm"); if (currentView !== "title") DT.audio.startRail(); }
     showToast(settings.sound ? "サウンド ON" : "サウンド OFF");
   });
-  document.getElementById("helpButton").addEventListener("click", openHelp);
+  document.getElementById("menuButton").addEventListener("click", openGameMenu);
   modalRoot.addEventListener("click", event => { if (event.target === modalRoot) closeModal(); });
 
   window.addEventListener("keydown", event => {

@@ -81,7 +81,7 @@ window.DT = window.DT || {};
   const cars = {
     engine: {
       id: "engine", name: "黎明機関車", short: "機", color: "#d59a4b", maxHp: 24,
-      operation: { name: "過給運転", text: "蒸気2を使って蒸気3を得る", kind: "gainSteam", cost: 2, power: 3 }
+      operation: { name: "過給運転", text: "共有蒸気を2使って3補給する（差し引き+1）", kind: "gainSteam", cost: 2, power: 3 }
     },
     cannon: {
       id: "cannon", name: "砲台車", short: "砲", color: "#9e6664", maxHp: 18,
@@ -254,7 +254,7 @@ window.DT = window.DT || {};
 
   DT.DATA = {
     title: "黎明列車 ― 七夜の終着点",
-    version: "2.1.1",
+    version: "2.2.0",
     saveVersion: 1,
     crew,
     cars,
