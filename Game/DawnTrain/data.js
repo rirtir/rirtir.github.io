@@ -254,7 +254,7 @@ window.DT = window.DT || {};
 
   DT.DATA = {
     title: "黎明列車 ― 七夜の終着点",
-    version: "2.1.0",
+    version: "2.1.1",
     saveVersion: 1,
     crew,
     cars,

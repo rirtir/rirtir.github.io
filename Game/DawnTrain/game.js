@@ -45,6 +45,20 @@
   let lastClock = Date.now();
   let routeSelection = null;
   let prologuePage = 0;
+  let viewportFrame = 0;
+
+  function syncViewportMetrics() {
+    window.cancelAnimationFrame(viewportFrame);
+    viewportFrame = window.requestAnimationFrame(() => {
+      const visual = window.visualViewport;
+      const viewportHeight = visual && Math.abs((visual.scale || 1) - 1) < 0.01
+        ? visual.height
+        : window.innerHeight;
+      const topbarHeight = topbar.classList.contains("hidden") ? 0 : topbar.getBoundingClientRect().height;
+      document.documentElement.style.setProperty("--viewport-height", `${Math.max(1, Math.floor(viewportHeight))}px`);
+      document.documentElement.style.setProperty("--topbar-height", `${Math.max(0, Math.ceil(topbarHeight))}px`);
+    });
+  }
 
   function icon(id, label = "") {
     return `<svg class="ui-icon" ${label ? `aria-label="${escapeHtml(label)}" role="img"` : "aria-hidden=\"true\""}><use href="#${id}"></use></svg>`;
@@ -161,6 +175,7 @@
 
   function showTopbar(show = true) {
     topbar.classList.toggle("hidden", !show);
+    syncViewportMetrics();
     if (!show || !game) return;
     const brandButton = document.getElementById("brandButton");
     const journeyUnavailable = ["battle", "result", "defeat", "epilogue"].includes(currentView);
@@ -195,6 +210,7 @@
           ? "ending"
           : "journey";
     DT.audio.setScene(scene);
+    syncViewportMetrics();
     window.scrollTo({ top: 0, behavior: settings.reduceMotion ? "auto" : "smooth" });
     app.focus({ preventScroll: true });
   }
@@ -1169,6 +1185,11 @@
     if (game) saveGame();
   });
   window.addEventListener("beforeunload", () => { if (game) saveGame(); });
+  window.addEventListener("resize", syncViewportMetrics, { passive: true });
+  window.addEventListener("orientationchange", syncViewportMetrics, { passive: true });
+  window.addEventListener("pageshow", syncViewportMetrics, { passive: true });
+  window.visualViewport?.addEventListener("resize", syncViewportMetrics, { passive: true });
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(syncViewportMetrics).observe(topbar);
 
   if (new URLSearchParams(location.search).has("test")) {
     DT.TestApp = {
@@ -1185,6 +1206,7 @@
     };
   }
 
+  syncViewportMetrics();
   saveSettings();
   renderTitle();
 })(window.DT);

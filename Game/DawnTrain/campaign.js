@@ -446,5 +446,5 @@
   }
   D.encounters.c7_boss.reward.fuel = 0;
 
-  D.version = "2.1.0";
+  D.version = "2.1.1";
 })(window.DT);
