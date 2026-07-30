@@ -7,7 +7,7 @@ window.DT = window.DT || {};
     kureha: {
       id: "kureha", name: "クレハ", short: "ク", role: "車掌", color: "#e9ad58",
       maxHp: 12, damage: 2, range: 1,
-      passive: { id: "conductor", name: "車掌の眼", text: "選んだ敵の行動予告を詳しく確認できる" },
+      passive: { id: "conductor", name: "車掌の眼", text: "選んだ敵の攻撃予兆を詳しく確認できる" },
       skills: [
         { id: "order", name: "号令", text: "3マス以内の味方にAP+1", kind: "grantAp", power: 1, range: 3, ap: 1, steam: 1, cooldown: 3 },
         { id: "exchange", name: "配置転換", text: "味方と場所を交換し、双方に障壁1", kind: "swapAlly", power: 1, range: 4, ap: 1, steam: 0, cooldown: 2 }
@@ -254,7 +254,7 @@ window.DT = window.DT || {};
 
   DT.DATA = {
     title: "黎明列車 ― 七夜の終着点",
-    version: "2.2.0",
+    version: "2.3.0",
     saveVersion: 1,
     crew,
     cars,

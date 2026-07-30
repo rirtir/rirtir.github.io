@@ -543,7 +543,7 @@
       : action.key.startsWith("skill:") ? `${actorDef.name}の固有技` : "基本行動";
     const targetText = {
       cell: "明るく表示された移動先を選んでください。",
-      enemy: "赤く表示された敵を選んでください。",
+      enemy: "青白く縁取られた敵を選んでください。",
       ally: "明るく表示された味方を選んでください。",
       car: "明るく表示された車両名を選んでください。",
       none: "説明を確認したら、同じ行動をもう一度押すと実行します。"
@@ -634,7 +634,7 @@
           <div class="round-box"><small>ROUND</small><b>${battle.round}</b></div>
         </div>
         ${isFirstLesson ? renderBattleCoach(lesson) : ""}
-        <div class="intent-strip ${lesson === 0 ? "tutorial-focus" : ""}" aria-label="敵の次行動">${intentHtml || `<div class="intent-card"><b>敵影なし</b><small>増援に備えよ</small></div>`}</div>
+        <div class="intent-strip ${lesson === 0 ? "tutorial-focus" : ""}" aria-label="敵の攻撃予兆"><span class="intent-heading"><small>ENEMY</small><b>攻撃予兆</b></span>${intentHtml || `<div class="intent-card"><b>敵影なし</b><small>増援に備えよ</small></div>`}</div>
         ${battle.cars.length > 4 ? `<p class="board-scroll-hint">列車盤面は横にスワイプして確認できます →</p>` : ""}
         <div class="battle-field" style="--car-count:${battle.cars.length}">
           <div class="battle-landscape"></div>
@@ -645,7 +645,7 @@
         </div>
         <div class="battle-bottom">
           <div class="unit-panel ${lesson === 1 ? "tutorial-focus" : ""}">
-            ${actor ? `<img src="${ART.portraits[actor.id]}" alt=""><div><h3>${escapeHtml(actorDef.name)} <small>${escapeHtml(actorDef.role)}</small></h3><div class="unit-stats"><span>HP ${actor.hp}/${actor.maxHp}</span><span>AP ${actor.ap}/${actor.maxAp}</span><span>障壁 ${actor.shield}</span></div><p>${escapeHtml(actorDef.passive.name)}：${escapeHtml(actorDef.passive.text)}</p></div>` : `<div class="empty-unit">${icon("i-arrow")}<p>車内の乗員を選択してください</p></div>`}
+            ${actor ? `<img src="${ART.portraits[actor.id]}" alt=""><div class="unit-info"><div class="unit-heading"><h3>${escapeHtml(actorDef.name)} <small>${escapeHtml(actorDef.role)}</small></h3><div class="unit-stats"><span>HP ${actor.hp}/${actor.maxHp}</span><span>AP ${actor.ap}/${actor.maxAp}</span><span>障壁 ${actor.shield}</span></div></div><p>${escapeHtml(actorDef.passive.name)}：${escapeHtml(actorDef.passive.text)}</p></div>` : `<div class="empty-unit">${icon("i-arrow")}<p>車内の乗員を選択してください</p></div>`}
           </div>
           <div class="action-panel">
             <div class="action-grid">${actions.map((action, index) => { const allowed = lesson >= 12 || (lesson === 2 && action.key === "move") || (lesson === 5 && action.key === "attack") || (lesson === 10 && action.key === "operate"); const label = `${action.name}。${action.text}。${action.ap}AP${action.steam ? `、共有蒸気${action.steam}` : ""}`; return `<button class="action-button ${selectedAction === action.key ? "active" : ""} ${(lesson === 2 && action.key === "move") || (lesson === 5 && action.key === "attack") || (lesson === 10 && action.key === "operate") ? "tutorial-focus" : ""}" data-action="${action.key}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" ${(action.enabled && allowed) ? "" : "disabled"}><i>${index + 1}</i>${actionIcon(action.key)}<span>${escapeHtml(action.name)}<small>${action.cooldown ? `再使用 ${action.cooldown}R` : `${action.ap}AP${action.steam ? `・蒸気${action.steam}` : ""}`}</small></span></button>`; }).join("")}</div>
@@ -678,18 +678,18 @@
 
   function renderBattleCoach(stage) {
     const content = [
-      ["攻撃予告を見る", "赤く脈打つ車内区画が、敵が次に攻撃する場所です。敵はターン終了後、表示どおりに動きます。", "予告を確認した"],
+      ["攻撃予兆を見る", "赤く脈打つ車内区画が、敵が次に攻撃する場所です。敵はターン終了後、表示どおりに動きます。", "予兆を確認した"],
       ["乗員を選ぶ", "光っているクレハを車内で押してください。選んだ乗員の顔、HP、AP、行動メニューが下に表示されます。", ""],
       ["移動を指示する", "行動にはAPを使います。まず「移動」を押すと、移れる区画だけが明るくなります。", ""],
       ["移動先を決める", "明るくなった空き区画を押してください。「移動」を選んだだけでは、まだAPを使いません。", ""],
       ["別の乗員へ指示する", "退避できました。次は右下の通路にいる医師スイを押してください。乗員は一手ごとに自由に切り替えられます。", ""],
-      ["攻撃を選ぶ", "スイは敵の隣にいます。「攻撃」を押すと、届く範囲にいる敵だけが赤く表示されます。", ""],
-      ["攻撃する敵を決める", "赤く光る敵を押してください。敵のHPは足元に表示されます。詳しい結果は右上メニューの「戦闘ログ」でいつでも確認できます。", ""],
+      ["攻撃を選ぶ", "スイは敵の隣にいます。「攻撃」を押すと、届く範囲にいる敵だけが青白く縁取られます。赤い縞は敵からの攻撃予兆です。", ""],
+      ["攻撃する敵を決める", "青白く縁取られた敵を押してください。敵のHPは赤、味方のHPは緑のバーで表示されます。詳しい結果は右上メニューの「戦闘ログ」で確認できます。", ""],
       ["敵の行動を確認する", "今回は「ターン終了」を押してください。敵が予告どおりに動き、次のラウンドが始まります。", ""],
       ["蒸気は全員で共有する", "ラウンドが変わり、蒸気が3から5へ増えました。固有技と車両の装置は、この蒸気を共通で使います。必要な量は各ボタンに表示されます。", "車両の装置を試す"],
       ["ガクを選ぶ", "中央通路にいるガクを押してください。乗員がいる車両の装置は、その乗員の行動メニューに追加されます。", ""],
       ["砲台車の主砲を起動する", "ガクは砲台車にいます。「主砲」は1APと共有蒸気2を使い、距離に関係なく敵を狙えます。", ""],
-      ["主砲で敵を狙う", "赤く表示された敵を押してください。蒸気が減り、敵にダメージが入れば操作ガイドは完了です。", ""]
+      ["主砲で敵を狙う", "青白く縁取られた敵を押してください。蒸気が減り、敵にダメージが入れば操作ガイドは完了です。", ""]
     ][stage];
     return `<aside class="field-guide battle-guide"><span>操作ガイド ${Math.min(stage + 1, 12)}/12</span><b>${content[0]}</b><p>${content[1]}</p>${content[2] ? `<button id="lessonAdvance" class="guide-button">${content[2]}</button>` : ""}</aside>`;
   }
@@ -709,7 +709,8 @@
     const percent = Math.max(0, unit.hp / unit.maxHp * 100);
     const portrait = isEnemy && def.boss ? ART.bosses[unit.type] : !isEnemy ? ART.portraits[unit.id] : null;
     const figure = portrait ? `<img src="${portrait}" alt="">` : renderEnemyFigure(unit.type);
-    return `<span class="unit ${isEnemy ? "enemy" : "crew"} ${unit.hp <= 0 ? "down" : ""}" style="--unit-color:${def.color}" title="${escapeHtml(def.name)}">${figure}<b>${escapeHtml(def.name)}</b><i class="unit-hp"><i style="width:${percent}%"></i></i>${!isEnemy && unit.hp > 0 ? `<i class="unit-ap">${unit.ap}<small>AP</small></i>` : ""}</span>`;
+    const title = `${def.name}・${isEnemy ? "敵" : "味方"}・HP ${unit.hp}/${unit.maxHp}・基礎攻撃 ${def.damage}`;
+    return `<span class="unit ${isEnemy ? "enemy" : "crew"} unit-${escapeHtml(isEnemy ? unit.type : unit.id)} ${unit.hp <= 0 ? "down" : ""}" style="--unit-color:${def.color}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">${figure}<b><small>${isEnemy ? "敵" : "味"}</small>${escapeHtml(def.name)}</b><i class="unit-power" aria-label="基礎攻撃 ${def.damage}">${icon("i-target")}<span>${def.damage}</span></i><i class="unit-hp"><i style="width:${percent}%"></i></i>${!isEnemy && unit.hp > 0 ? `<i class="unit-ap">${unit.ap}<small>AP</small></i>` : ""}</span>`;
   }
 
   function renderEnemyFigure(type) {

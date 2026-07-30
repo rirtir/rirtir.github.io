@@ -80,7 +80,7 @@
 
   test("2.1新規ゲームは操作ガイドを未完了で開始する", () => {
     const game = E.createNewGame();
-    equal(D.version, "2.2.0");
+    equal(D.version, "2.3.0");
     equal(game.guidance.prologue, false);
     equal(game.guidance.route, 0);
     equal(game.guidance.battle, 0);
@@ -225,7 +225,7 @@
     equal(actor.cooldowns.stoke, 3);
   });
 
-  test("敵の行動予告は対象と効果を持つ", () => {
+  test("敵の攻撃予兆は対象と効果を持つ", () => {
     const game = E.createNewGame();
     E.createBattle(game, "c1_risky");
     game.battle.enemies.forEach(enemy => {
