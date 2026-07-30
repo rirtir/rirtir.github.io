@@ -626,6 +626,7 @@
       return `<button class="car-label ${targetCars.has(index) ? "selectable" : ""}" data-car-target="${index}" style="--car-color:${DATA.cars[car.type].color}"><b>${escapeHtml(DATA.cars[car.type].name)}</b><span>${car.hp}/${car.maxHp}${car.barrier ? ` +壁${car.barrier}` : ""}</span><div class="hp-bar ${percent < 35 ? "low" : ""}"><i style="width:${percent}%"></i></div></button>`;
     }).join("");
     const actorDef = actor ? DATA.crew[actor.id] : null;
+    const normalAttackDamage = actorDef ? actorDef.damage + (battle.crewDamageBonus || 0) : 0;
     const activeAction = actions.find(action => action.key === selectedAction);
     app.innerHTML = `
       <section class="screen battle-screen" style="--battle-art:url('${chapterArt(encounter.chapter)}')">
@@ -645,10 +646,19 @@
         </div>
         <div class="battle-bottom">
           <div class="unit-panel ${lesson === 1 ? "tutorial-focus" : ""}">
-            ${actor ? `<img src="${ART.portraits[actor.id]}" alt=""><div class="unit-info"><div class="unit-heading"><h3>${escapeHtml(actorDef.name)} <small>${escapeHtml(actorDef.role)}</small></h3><div class="unit-stats"><span>HP ${actor.hp}/${actor.maxHp}</span><span>AP ${actor.ap}/${actor.maxAp}</span><span>障壁 ${actor.shield}</span></div></div><p>${escapeHtml(actorDef.passive.name)}：${escapeHtml(actorDef.passive.text)}</p></div>` : `<div class="empty-unit">${icon("i-arrow")}<p>車内の乗員を選択してください</p></div>`}
+            ${actor ? `<img src="${ART.portraits[actor.id]}" alt=""><div class="unit-info"><div class="unit-heading"><h3>${escapeHtml(actorDef.name)} <small>${escapeHtml(actorDef.role)}</small></h3><div class="unit-stats"><span>HP ${actor.hp}/${actor.maxHp}</span><span>AP ${actor.ap}/${actor.maxAp}</span><span>攻撃 ${normalAttackDamage}</span><span>障壁 ${actor.shield}</span></div></div><p>${escapeHtml(actorDef.passive.name)}：${escapeHtml(actorDef.passive.text)}</p></div>` : `<div class="empty-unit">${icon("i-arrow")}<p>車内の乗員を選択してください</p></div>`}
           </div>
           <div class="action-panel">
-            <div class="action-grid">${actions.map((action, index) => { const allowed = lesson >= 12 || (lesson === 2 && action.key === "move") || (lesson === 5 && action.key === "attack") || (lesson === 10 && action.key === "operate"); const label = `${action.name}。${action.text}。${action.ap}AP${action.steam ? `、共有蒸気${action.steam}` : ""}`; return `<button class="action-button ${selectedAction === action.key ? "active" : ""} ${(lesson === 2 && action.key === "move") || (lesson === 5 && action.key === "attack") || (lesson === 10 && action.key === "operate") ? "tutorial-focus" : ""}" data-action="${action.key}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" ${(action.enabled && allowed) ? "" : "disabled"}><i>${index + 1}</i>${actionIcon(action.key)}<span>${escapeHtml(action.name)}<small>${action.cooldown ? `再使用 ${action.cooldown}R` : `${action.ap}AP${action.steam ? `・蒸気${action.steam}` : ""}`}</small></span></button>`; }).join("")}</div>
+            <div class="action-grid">${actions.map((action, index) => {
+              const allowed = lesson >= 12 || (lesson === 2 && action.key === "move") || (lesson === 5 && action.key === "attack") || (lesson === 10 && action.key === "operate");
+              const label = `${action.name}。${action.text}。${action.ap}AP${action.steam ? `、共有蒸気${action.steam}` : ""}`;
+              const actionMeta = action.cooldown
+                ? `再使用 ${action.cooldown}R`
+                : action.key === "attack"
+                  ? `${action.ap}AP・${normalAttackDamage}D`
+                  : `${action.ap}AP${action.steam ? `・蒸気${action.steam}` : ""}`;
+              return `<button class="action-button ${selectedAction === action.key ? "active" : ""} ${(lesson === 2 && action.key === "move") || (lesson === 5 && action.key === "attack") || (lesson === 10 && action.key === "operate") ? "tutorial-focus" : ""}" data-action="${action.key}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" ${(action.enabled && allowed) ? "" : "disabled"}><i>${index + 1}</i>${actionIcon(action.key)}<span>${escapeHtml(action.name)}<small>${escapeHtml(actionMeta)}</small></span></button>`;
+            }).join("")}</div>
             <div class="battle-controls"><button id="cancelAction" class="secondary-button" ${selectedAction && lesson >= 12 ? "" : "disabled"}>選択解除</button><button id="undoMove" class="secondary-button" ${battle.undo && lesson >= 12 ? "" : "disabled"}>移動取消</button><button id="endTurn" class="primary-button ${lesson === 7 ? "tutorial-focus" : ""}" ${lesson < 12 && lesson !== 7 ? "disabled" : ""}>ターン終了 <kbd>E</kbd></button></div>
           </div>
         </div>

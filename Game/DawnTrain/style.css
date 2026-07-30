@@ -1298,3 +1298,163 @@ kbd { padding:2px 5px; color:#dfc58f; background:#211d15; border:1px solid #6253
     width:min(330px,58vw);
   }
 }
+
+@media (max-width: 760px) {
+  body[data-view="battle"] .brand-button b { font-size:13px; }
+  body[data-view="battle"] .brand-button small { font-size:9px; }
+  body[data-view="battle"] .header-steam b { font-size:16px; }
+  .objective-box small { font-size:10px; letter-spacing:.06em; }
+  .objective-box b { font-size:15px; }
+  .round-box small { font-size:8px; }
+  .round-box b { font-size:20px; }
+  .intent-heading small { font-size:7px; }
+  .intent-heading b { font-size:11px; }
+  .intent-card { font-size:11px; }
+  .intent-card small { font-size:10px; }
+  .car-label b { font-size:9.5px; }
+  .unit-panel { height:64px; }
+  .battle-bottom { grid-template-rows:64px auto; }
+  .unit-panel>img { width:49px; height:56px; }
+  .unit-panel h3 { font-size:16px; }
+  .unit-panel h3 small { font-size:10px; }
+  .unit-stats { gap:6px; font-size:11px; }
+  .unit-panel p { font-size:11px; }
+  .action-button { min-height:41px; padding:4px 3px 4px 22px; font-size:13px; }
+  .action-button>i { width:15px; height:15px; font-size:8px; }
+  .action-button>.ui-icon { width:15px; height:15px; }
+  .action-button small { font-size:10px; }
+  .battle-controls button { min-height:37px; font-size:13px; }
+  #endTurn { font-size:14px; }
+  .battle-guide { max-height:180px; }
+  .battle-guide span { font-size:9px; }
+  .battle-guide b { font-size:14px; }
+  .battle-guide p { font-size:11px; }
+  .battle-guide .guide-button { font-size:12px; }
+  .action-explainer { padding:13px 15px; }
+  .action-explainer>small { font-size:11px; }
+  .action-explainer>b { font-size:22px; }
+  .action-explainer>p { font-size:14px; }
+  .action-explainer>div span { font-size:12px; }
+  .action-explainer>em { font-size:13px; }
+  .modal { padding:22px 18px; font-size:14px; }
+  .menu-button b { font-size:13px; }
+  .menu-button small { font-size:10px; }
+
+  body[data-view="route"] {
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:var(--viewport-height);
+    min-height:0;
+    overflow:hidden;
+    overscroll-behavior:none;
+  }
+  body[data-view="route"] #shell { height:100%; min-height:0; }
+  body[data-view="route"] #app {
+    height:calc(var(--viewport-height) - var(--topbar-height));
+    min-height:0;
+    padding:4px;
+    overflow:hidden;
+  }
+  .route-screen {
+    position:relative;
+    width:100%;
+    height:100%;
+    display:grid;
+    grid-template-rows:60px 52px minmax(0,1fr) 54px;
+    gap:4px;
+    overflow:hidden;
+  }
+  .route-skyline {
+    min-height:0;
+    height:60px;
+    align-items:center;
+    gap:7px;
+    padding:6px 8px;
+    box-shadow:none;
+  }
+  .route-skyline>div { min-width:0; }
+  .route-skyline .eyebrow { display:none; }
+  .route-skyline h1 { overflow:hidden; margin:0; font-size:20px; white-space:nowrap; text-overflow:ellipsis; }
+  .route-skyline p:not(.eyebrow) { margin:2px 0 0; overflow:hidden; font-size:10px; white-space:nowrap; text-overflow:ellipsis; }
+  .route-skyline .secondary-button { flex:none; min-height:34px; padding:5px 8px; font-size:11px; }
+  .fuel-brief {
+    grid-template-columns:auto auto auto auto minmax(0,1fr);
+    height:52px;
+    gap:5px;
+    margin:0;
+    padding:4px 7px;
+  }
+  .fuel-brief>.ui-icon { font-size:22px; }
+  .fuel-brief small { font-size:8px; letter-spacing:.04em; }
+  .fuel-brief b { font-size:22px; }
+  .fuel-arrow { font-size:17px; }
+  .fuel-brief p { margin:0 0 0 3px; padding:0 0 0 6px; overflow:hidden; border-top:0; border-left:1px solid rgba(216,180,111,.2); font-size:11px; line-height:1.25; }
+  .route-screen>.route-guide {
+    position:absolute;
+    z-index:48;
+    top:0;
+    right:0;
+    left:0;
+    max-height:60px;
+    margin:0;
+    padding:7px 10px;
+    overflow:hidden;
+    pointer-events:none;
+  }
+  .route-guide span { font-size:9px; }
+  .route-guide b { margin:1px 0; font-size:13px; }
+  .route-guide p { overflow:hidden; font-size:11px; line-height:1.2; white-space:nowrap; text-overflow:ellipsis; }
+  .route-choice-grid { height:100%; grid-template-columns:1fr 1fr; gap:4px; overflow:hidden; }
+  .route-choice-card {
+    min-width:0;
+    min-height:0;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    padding:10px 8px;
+  }
+  .route-choice-card::after { inset:3px; }
+  .route-choice-card.selected::before { right:-38px; top:11px; font-size:8px; }
+  .route-choice-card>.tag { align-self:flex-start; }
+  .route-choice-card h2 { margin:7px 0 4px; font-size:18px; letter-spacing:.04em; }
+  .route-choice-card p {
+    min-height:0;
+    margin:0;
+    display:-webkit-box;
+    overflow:hidden;
+    font-size:12px;
+    line-height:1.4;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:3;
+  }
+  .route-line { margin:7px 0 5px; }
+  .route-line span { font-size:9px; }
+  .route-cost,.route-reward { gap:3px; margin-top:5px; }
+  .route-reward { margin-top:auto; }
+  .route-choice-card .tag { padding:4px 6px; font-size:10px; }
+  .dispatch-lever { min-height:54px; display:grid; grid-template-columns:minmax(0,1fr) minmax(164px,1.3fr); align-items:center; gap:5px; margin:0; padding:5px 6px 5px 9px; }
+  .dispatch-lever>div { min-width:0; }
+  .dispatch-lever small { font-size:8px; }
+  .dispatch-lever b { overflow:hidden; font-size:13px; white-space:nowrap; text-overflow:ellipsis; }
+  .dispatch-lever .primary-button { width:100%; min-width:0; min-height:42px; padding:7px 6px; font-size:13px; }
+}
+
+@media (max-width: 760px) and (max-height: 500px) {
+  .car-label { padding:1px; line-height:1; }
+  .car-label b { font-size:7px; white-space:nowrap; }
+  .unit-panel { height:58px; }
+  .battle-bottom { grid-template-rows:58px minmax(0,1fr); }
+  .unit-panel>img { width:42px; height:50px; }
+  .unit-panel h3 { font-size:13px; }
+  .unit-panel h3 small { font-size:8px; }
+  .unit-stats { font-size:9px; }
+  .unit-panel p { font-size:9px; }
+  .action-button { min-height:34px; font-size:10.5px; }
+  .action-button>.ui-icon { display:none; }
+  .action-button>span { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .action-button small { font-size:8.5px; }
+  .battle-controls button { min-height:30px; font-size:10px; }
+  .battle-controls { grid-template-columns:1fr 1fr 1.25fr; }
+  .battle-controls #endTurn { grid-column:auto; font-size:11px; }
+}
