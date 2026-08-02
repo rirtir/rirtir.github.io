@@ -80,7 +80,7 @@
 
   test("2.1新規ゲームは操作ガイドを未完了で開始する", () => {
     const game = E.createNewGame();
-    equal(D.version, "2.4.0");
+    equal(D.version, "2.4.1");
     equal(game.guidance.prologue, false);
     equal(game.guidance.route, 0);
     equal(game.guidance.battle, 0);

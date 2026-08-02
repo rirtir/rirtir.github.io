@@ -536,11 +536,9 @@
 
   function renderActionExplainer(action, actor, battle) {
     if (!action || !actor || !settings.actionHints) return "";
-    const actorDef = DATA.crew[actor.id];
-    const carDef = DATA.cars[battle.cars[actor.pos.car].type];
     const source = action.key === "operate"
-      ? `${carDef.name}の車両設備`
-      : action.key.startsWith("skill:") ? `${actorDef.name}の固有技` : "基本行動";
+      ? "車両設備"
+      : action.key.startsWith("skill:") ? "固有技" : "基本行動";
     const targetText = {
       cell: "明るく表示された移動先を選んでください。",
       enemy: "青白く縁取られた敵を選んでください。",
@@ -548,9 +546,7 @@
       car: "明るく表示された車両名を選んでください。",
       none: "説明を確認したら、同じ行動をもう一度押すと実行します。"
     }[action.targetType] || "対象を選んでください。";
-    const costs = [`${action.ap}AP`];
-    if (action.steam) costs.push(`共有蒸気${action.steam}`);
-    return `<aside id="actionExplainer" class="action-explainer" role="status"><small>${escapeHtml(source)}</small><b>${escapeHtml(action.name)}</b><p>${escapeHtml(action.text)}</p><div><span>消費 ${escapeHtml(costs.join("・"))}</span>${action.cooldown ? `<span>再使用まで ${action.cooldown}R</span>` : ""}</div><em>${escapeHtml(targetText)}</em></aside>`;
+    return `<aside id="actionExplainer" class="action-explainer" role="status"><div class="action-explainer-heading"><b>${escapeHtml(action.name)}</b><small>${escapeHtml(source)}</small></div><p>${escapeHtml(action.text)}</p><em>${escapeHtml(targetText)}</em></aside>`;
   }
 
   function armActionExplainer() {
