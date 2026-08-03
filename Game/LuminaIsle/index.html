@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#8accf2">
+  <meta name="description" content="明るい島で採集・クラフト・建築・農耕・釣りを楽しむ、俯瞰型2Dサバイバルクラフト。">
+  <meta property="og:title" content="陽だまりクラフト — LUMINA ISLE">
+  <meta property="og:description" content="三つの自然プリズムを集め、島の灯台を再点灯しよう。">
+  <meta property="og:image" content="https://rirtir.com/Game/LuminaIsle/assets/og-image.jpg">
+  <title>陽だまりクラフト — LUMINA ISLE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="loading" class="screen loading-screen" aria-live="polite">
+    <div class="sun-loader" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <p class="eyebrow">LUMINA ISLE</p>
+    <p id="loadingText">島に陽ざしを広げています…</p>
+  </div>
+
+  <main id="titleScreen" class="screen title-screen is-hidden">
+    <img class="title-art" src="assets/title-art.webp" alt="灯台、森、畑、海辺が広がる明るいルミナ島">
+    <div class="title-shade"></div>
+    <a class="home-link pixel-button quiet" href="../../" aria-label="ポータルへ戻る">← ポータル</a>
+    <section class="title-card">
+      <p class="eyebrow">TOP-DOWN SURVIVAL CRAFT</p>
+      <h1><span>陽だまり</span>クラフト</h1>
+      <p class="latin">LUMINA ISLE</p>
+      <p class="tagline">拾って、作って、島に光を灯そう。</p>
+      <div id="slotList" class="slot-list" aria-label="セーブスロット"></div>
+      <div class="title-actions">
+        <button id="openSettingsTitle" class="pixel-button quiet" type="button">設定</button>
+        <button id="openSaveTitle" class="pixel-button quiet" type="button">セーブ管理</button>
+        <button id="openCredits" class="pixel-button quiet" type="button">クレジット</button>
+      </div>
+    </section>
+    <p class="title-tip">キーボード・マウス / タッチ / ゲームパッド対応</p>
+  </main>
+
+  <main id="gameShell" class="game-shell is-hidden" aria-label="陽だまりクラフト ゲーム画面">
+    <canvas id="gameCanvas" tabindex="0" aria-label="ルミナ島のゲームフィールド"></canvas>
+
+    <section id="survivalHud" class="survival-hud" aria-label="生存状態">
+      <div class="meter hp" title="体力"><span class="meter-icon">♥</span><i><b id="hpBar"></b></i><em id="hpText">100</em></div>
+      <div class="meter food" title="満腹"><span class="meter-icon">●</span><i><b id="foodBar"></b></i><em id="foodText">100</em></div>
+      <div class="meter water" title="潤い"><span class="meter-icon">◆</span><i><b id="waterBar"></b></i><em id="waterText">100</em></div>
+      <div class="meter stamina" title="スタミナ"><span class="meter-icon">ϟ</span><i><b id="staminaBar"></b></i><em id="staminaText">100</em></div>
+    </section>
+
+    <section class="day-hud" aria-label="日時と天候">
+      <span id="dayText">1日目</span><span id="clockText">朝 07:00</span><span id="weatherIcon" aria-hidden="true">☀</span><span id="weatherText">晴れ</span>
+    </section>
+
+    <section id="objectiveHud" class="objective-hud" aria-live="polite">
+      <span class="objective-star">◆</span><div><small>手帳</small><strong id="objectiveText">枝と石を集めよう</strong><span id="objectiveProgress"></span></div>
+    </section>
+
+    <button id="miniMap" class="mini-map" type="button" aria-label="地図を開く"><canvas width="96" height="96"></canvas><span>M</span></button>
+
+    <nav class="top-actions" aria-label="メニュー">
+      <button data-panel="inventory" type="button" title="バッグ (I)"><svg><use href="assets/ui-icons.svg#i-bag"/></svg><span>バッグ</span></button>
+      <button data-panel="craft" type="button" title="クラフト (C)"><svg><use href="assets/ui-icons.svg#i-craft"/></svg><span>作る</span></button>
+      <button data-panel="build" type="button" title="建築 (B)"><svg><use href="assets/ui-icons.svg#i-build"/></svg><span>建てる</span></button>
+      <button data-panel="journal" type="button" title="手帳 (J)"><svg><use href="assets/ui-icons.svg#i-journal"/></svg><span>手帳</span></button>
+      <button data-panel="pause" type="button" title="ポーズ (Esc)"><span class="pause-bars">Ⅱ</span><span>休憩</span></button>
+    </nav>
+
+    <div id="interactionHint" class="interaction-hint is-hidden"><kbd>E</kbd><span>拾う</span></div>
+    <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
+    <div id="pickupFeed" class="pickup-feed" aria-live="polite"></div>
+
+    <section id="hotbar" class="hotbar" aria-label="ホットバー"></section>
+
+    <div id="touchControls" class="touch-controls">
+      <div id="joystick" class="joystick"><span></span></div>
+      <div class="touch-actions">
+        <button id="touchDodge" type="button" aria-label="回避">回避</button>
+        <button id="touchAction" type="button" aria-label="使う">使う</button>
+      </div>
+    </div>
+
+    <div id="buildHud" class="build-hud is-hidden">
+      <strong id="buildName">焚き火</strong><span>配置: クリック / 回転: R / 中止: Esc</span><button id="cancelBuild" type="button">中止</button>
+    </div>
+
+    <div id="modalBackdrop" class="modal-backdrop is-hidden">
+      <section id="modal" class="game-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <header><div><p id="modalKicker" class="eyebrow"></p><h2 id="modalTitle">バッグ</h2></div><button id="modalClose" class="icon-close" type="button" aria-label="閉じる">×</button></header>
+        <nav id="modalTabs" class="modal-tabs"></nav>
+        <div id="modalBody" class="modal-body"></div>
+        <footer id="modalFooter" class="modal-footer"></footer>
+      </section>
+    </div>
+
+    <section id="fishingGame" class="fishing-game is-hidden" aria-label="釣り">
+      <div class="fishing-card">
+        <p class="eyebrow">FISHING</p><h2 id="fishingTitle">魚がかかった！</h2>
+        <p id="fishingHelp">左右キーかドラッグで、魚を光の帯にとどめよう。</p>
+        <div id="fishTrack" class="fish-track"><span id="safeZone"></span><i id="fishMarker">🐟</i><b id="catchMeter"></b></div>
+        <button id="fishingButton" class="pixel-button" type="button">引き上げる！</button>
+      </div>
+    </section>
+
+    <section id="endingScreen" class="ending-screen is-hidden">
+      <div class="sunburst"></div>
+      <div class="ending-card"><p class="eyebrow">LIGHT RESTORED</p><h2>島に、光が戻った。</h2><p>灯りは帰る道だけでなく、<br>ここで暮らす場所も照らした。</p><button id="continueAfterEnding" class="pixel-button" type="button">島の暮らしを続ける</button></div>
+    </section>
+  </main>
+
+  <template id="itemTemplate"><button class="item-cell" type="button"><span class="sprite-icon"></span><strong></strong><em></em><small></small></button></template>
+
+  <script src="assets/sprites.js"></script>
+  <script src="data.js"></script>
+  <script src="save.js"></script>
+  <script src="audio.js"></script>
+  <script src="world.js"></script>
+  <script src="game.js"></script>
+  <script src="selftest.js"></script>
+</body>
+</html>
