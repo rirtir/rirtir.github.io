@@ -130,12 +130,12 @@
   ].map(([id,name,desc])=>({id,name,desc}));
 
   const mastery=[
-    {id:"gather",name:"採集",icon:"♣",metric:s=>s.stats.gathered,thresholds:[0,15,40,80,140,230,350,500,700,950,1250],perk:"素材の追加獲得率が上がる"},
-    {id:"craft",name:"工作",icon:"◆",metric:s=>s.stats.crafted+s.stats.built,thresholds:[0,6,15,28,45,70,100,140,190,250,330],perk:"制作時に素材が戻ることがある"},
-    {id:"farm",name:"農耕",icon:"✿",metric:s=>s.stats.planted+s.stats.harvested*2,thresholds:[0,5,14,28,50,80,120,170,230,300,400],perk:"収穫量が増える"},
-    {id:"fish",name:"釣り",icon:"≈",metric:s=>s.stats.fishCaught,thresholds:[0,3,8,16,28,45,65,90,120,160,210],perk:"金色の帯が広がる"},
-    {id:"combat",name:"守り",icon:"✦",metric:s=>s.stats.enemiesCalmed+s.stats.dodges*.25,thresholds:[0,3,8,16,28,45,65,90,120,160,210],perk:"攻撃力と無敵時間が伸びる"},
-    {id:"explore",name:"探索",icon:"▲",metric:s=>s.explored.filter(Boolean).length+s.stats.relics*20,thresholds:[0,12,28,50,80,115,155,200,245,285,324],perk:"移動速度が上がる"},
+    {id:"gather",name:"採集",metric:s=>s.stats.gathered,thresholds:[0,15,40,80,140,230,350,500,700,950,1250],perk:"素材の追加獲得率が上がる"},
+    {id:"craft",name:"工作",metric:s=>s.stats.crafted+s.stats.built,thresholds:[0,6,15,28,45,70,100,140,190,250,330],perk:"制作時に素材が戻ることがある"},
+    {id:"farm",name:"農耕",metric:s=>s.stats.planted+s.stats.harvested*2,thresholds:[0,5,14,28,50,80,120,170,230,300,400],perk:"収穫量が増える"},
+    {id:"fish",name:"釣り",metric:s=>s.stats.fishCaught,thresholds:[0,3,8,16,28,45,65,90,120,160,210],perk:"金色の帯が広がる"},
+    {id:"combat",name:"守り",metric:s=>s.stats.enemiesCalmed+s.stats.dodges*.25,thresholds:[0,3,8,16,28,45,65,90,120,160,210],perk:"攻撃力と無敵時間が伸びる"},
+    {id:"explore",name:"探索",metric:s=>s.explored.filter(Boolean).length+s.stats.relics*20,thresholds:[0,12,28,50,80,115,155,200,245,285,324],perk:"移動速度が上がる"},
   ];
 
   const upgrades=[
@@ -174,7 +174,7 @@
 
   LI.DATA={items,recipes,buildings,enemies,objectives,achievements,mastery,upgrades,commissions,relics,outfits,
     fish:["fish","fish_sun","fish_moon","fish_rain","fish_rock","fish_glow","fish_leaf","fish_coral","fish_star","fish_prism"],
-    weather:[{id:"sunny",name:"晴れ",icon:"☀"},{id:"rain",name:"小雨",icon:"☂"},{id:"glow",name:"光雨",icon:"✦"}],
-    credits:{title:"陽だまりクラフト — LUMINA ISLE",version:"2.0.0",author:"rirtir / OpenAI Codex",year:"2026"}
+    weather:[{id:"sunny",name:"晴れ"},{id:"rain",name:"小雨"},{id:"glow",name:"光雨"}],
+    credits:{title:"陽だまりクラフト — LUMINA ISLE",version:"3.0.0",author:"rirtir / OpenAI Codex",year:"2026"}
   };
 })();

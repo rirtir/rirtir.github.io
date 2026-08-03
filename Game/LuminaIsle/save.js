@@ -29,7 +29,7 @@
         spawnX:36.5*16,spawnY:54.5*16,invulnerable:0,buffUntil:0,glowUntil:0,watering:0},
       inventory:{branch:2,berry:2},hotbar:["axe","pickaxe","spear","rod","berry","cooked_fish","watering_can","hammer"],selectedHotbar:4,
       buildings:[],storage:{},crops:[],terrainChanges:[],removedResources:{},discovered:[],
-      progress:{objective:0,lighthouseSeen:false,lighthouseStage:0,prisms:{forest:false,tide:false,rock:false},forestPlanted:0,fishOffered:[],windstones:[false,false,false],endingSeen:false,postgameRewardDay:0,regions:{grass:false,forest:false,beach:false,rock:false},tutorialDone:false,enemyGraceUntil:120,relics:Array(8).fill(false),commissionsDay:0,commissions:[],sunBadges:0,upgrades:{},masteryLevels:{},masteryRewards:{},outfit:"island"},
+      progress:{objective:0,lighthouseSeen:false,lighthouseStage:0,prisms:{forest:false,tide:false,rock:false},forestPlanted:0,fishOffered:[],windstones:[false,false,false],endingSeen:false,postgameRewardDay:0,regions:{grass:false,forest:false,beach:false,rock:false},tutorialDone:false,enemyGraceUntil:0,relics:Array(8).fill(false),commissionsDay:0,commissions:[],sunBadges:0,upgrades:{},masteryLevels:{},masteryRewards:{},outfit:"island"},
       achievements:{},crafted:{},fishCaught:{},stats:{gathered:0,gatheredBranch:0,gatheredStone:0,crafted:0,cooked:0,built:0,harvested:0,fishCaught:0,enemiesCalmed:0,dodges:0,damageTaken:0,planted:0,passedNights:0,knockouts:0,relics:0,commissions:0,distance:0},
       explored:Array(18*18).fill(0),messagesSeen:{},settings:loadSettings()};
   }

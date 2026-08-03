@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#8accf2">
-  <meta name="description" content="明るい島で採集・クラフト・建築・農耕・釣りを楽しむ、俯瞰型2Dサバイバルクラフト。">
+  <meta name="description" content="島で採集・クラフト・建築・農耕・釣りを楽しむ、俯瞰型2Dサバイバルクラフト。">
   <meta property="og:title" content="陽だまりクラフト — LUMINA ISLE">
   <meta property="og:description" content="三つの自然プリズムを集め、島の灯台を再点灯しよう。">
   <meta property="og:image" content="https://rirtir.com/Game/LuminaIsle/assets/og-image.jpg">
@@ -41,32 +41,33 @@
     <canvas id="gameCanvas" tabindex="0" aria-label="ルミナ島のゲームフィールド"></canvas>
 
     <section id="survivalHud" class="survival-hud" aria-label="生存状態">
-      <div class="meter hp" title="体力"><span class="meter-icon">♥</span><i><b id="hpBar"></b></i><em id="hpText">100</em></div>
-      <div class="meter food" title="満腹"><span class="meter-icon">●</span><i><b id="foodBar"></b></i><em id="foodText">100</em></div>
-      <div class="meter water" title="潤い"><span class="meter-icon">◆</span><i><b id="waterBar"></b></i><em id="waterText">100</em></div>
-      <div class="meter stamina" title="スタミナ"><span class="meter-icon">ϟ</span><i><b id="staminaBar"></b></i><em id="staminaText">100</em></div>
+      <div class="meter hp" title="体力"><span class="ui-raster" data-ui="health"></span><i><b id="hpBar"></b></i><em id="hpText">100</em></div>
+      <div class="meter food" title="満腹"><span class="ui-raster" data-ui="food"></span><i><b id="foodBar"></b></i><em id="foodText">100</em></div>
+      <div class="meter water" title="潤い"><span class="ui-raster" data-ui="water"></span><i><b id="waterBar"></b></i><em id="waterText">100</em></div>
+      <div class="meter stamina" title="スタミナ"><span class="ui-raster" data-ui="stamina"></span><i><b id="staminaBar"></b></i><em id="staminaText">100</em></div>
     </section>
 
     <section class="day-hud" aria-label="日時と天候">
-      <span id="dayText">1日目</span><span id="clockText">朝 07:00</span><span id="weatherIcon" aria-hidden="true">☀</span><span id="weatherText">晴れ</span>
+      <span id="dayText">1日目</span><span id="clockText">朝 07:00</span><span id="weatherIcon" class="weather-glyph weather-sunny" aria-hidden="true"></span><span id="weatherText">晴れ</span>
     </section>
 
     <section id="objectiveHud" class="objective-hud" aria-live="polite">
-      <span class="objective-star">◆</span><div><small>手帳</small><strong id="objectiveText">枝と石を集めよう</strong><span id="objectiveProgress"></span></div>
+      <span class="ui-raster objective-star" data-ui="journal"></span><div><small>次の目標</small><strong id="objectiveText">枝と石を集めよう</strong><span id="objectiveProgress"></span></div>
     </section>
 
     <button id="miniMap" class="mini-map" type="button" aria-label="地図を開く"><canvas width="96" height="96"></canvas><span>M</span></button>
 
-    <nav class="top-actions" aria-label="メニュー">
-      <button data-panel="inventory" type="button" title="バッグ (I)"><svg><use href="assets/ui-icons.svg#i-bag"/></svg><span>バッグ</span></button>
-      <button data-panel="craft" type="button" title="クラフト (C)"><svg><use href="assets/ui-icons.svg#i-craft"/></svg><span>作る</span></button>
-      <button data-panel="build" type="button" title="建築 (B)"><svg><use href="assets/ui-icons.svg#i-build"/></svg><span>建てる</span></button>
-      <button data-panel="journal" type="button" title="手帳 (J)"><svg><use href="assets/ui-icons.svg#i-journal"/></svg><span>手帳</span></button>
-      <button data-panel="help" type="button" title="操作説明"><span class="help-mark">?</span><span>操作</span></button>
-      <button data-panel="pause" type="button" title="ポーズ (Esc)"><span class="pause-bars">Ⅱ</span><span>休憩</span></button>
+    <nav class="top-actions primary-actions" aria-label="基本メニュー">
+      <button data-panel="inventory" type="button" title="バッグ (I)"><span class="ui-raster" data-ui="bag"></span><span>バッグ</span></button>
+      <button data-panel="craft" type="button" title="クラフト (C)"><span class="ui-raster" data-ui="craft"></span><span>作る</span></button>
+      <button data-panel="build" type="button" title="建築 (B)"><span class="ui-raster" data-ui="build"></span><span>建てる</span></button>
+      <button data-panel="journal" type="button" title="手帳 (J)"><span class="ui-raster" data-ui="journal"></span><span>手帳</span></button>
+    </nav>
+    <nav class="utility-actions" aria-label="補助メニュー">
+      <button data-panel="help" type="button" title="操作説明"><span class="ui-raster" data-ui="help"></span><span>遊び方</span></button>
+      <button data-panel="pause" type="button" title="ポーズ (Esc)"><span class="ui-raster" data-ui="pause"></span><span>メニュー</span></button>
     </nav>
 
-    <div id="safeBadge" class="safe-badge is-hidden"><span>☀</span><strong>陽だまり安全地帯</strong><small>敵は入ってきません</small></div>
     <div id="interactionHint" class="interaction-hint is-hidden"><kbd id="interactionKey">E</kbd><span>拾う</span></div>
     <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
     <div id="pickupFeed" class="pickup-feed" aria-live="polite"></div>
@@ -77,15 +78,20 @@
       <div id="joystick" class="joystick"><span></span></div>
       <div id="touchSelected" class="touch-selected"><span id="touchSelectedIcon" class="sprite-icon"></span><strong id="touchSelectedName">陽ベリー</strong></div>
       <div class="touch-actions">
-        <button id="touchDodge" class="touch-dodge" type="button" aria-label="回避"><span>↯</span><strong>回避</strong></button>
-        <button id="touchTool" class="touch-tool" type="button" aria-label="選択中のアイテムを使う"><span id="touchToolIcon">✦</span><strong id="touchToolLabel">食べる</strong></button>
-        <button id="touchAction" class="touch-context" type="button" aria-label="近くの対象を調べる"><span id="touchActionIcon">◎</span><strong id="touchActionLabel">調べる</strong></button>
+        <button id="touchDodge" class="touch-dodge" type="button" aria-label="回避"><span class="ui-raster" data-ui="dodge"></span><strong>回避</strong></button>
+        <button id="touchRotate" class="touch-rotate is-hidden" type="button" aria-label="建築物を回転"><span class="ui-raster" data-ui="rotate"></span><strong>回転</strong></button>
+        <button id="touchAction" class="touch-context" type="button" aria-label="近くの対象へ行動"><span id="touchActionIcon" class="ui-raster" data-ui="interact"></span><strong id="touchActionLabel">使う</strong></button>
       </div>
     </div>
 
     <div id="buildHud" class="build-hud is-hidden">
-      <strong id="buildName">焚き火</strong><span>配置: クリック / 回転: R / 中止: Esc</span><button id="cancelBuild" type="button">中止</button>
+      <span id="buildPreview" class="building-preview"></span><div><strong id="buildName">焚き火</strong><span id="buildGuide">地面をタップして位置を決める</span></div><button id="buildRotate" type="button"><span class="ui-raster" data-ui="rotate"></span>回転</button><button id="buildPlace" type="button"><span class="ui-raster" data-ui="place"></span>ここに置く</button><button id="cancelBuild" type="button">中止</button>
     </div>
+
+    <section id="coachOverlay" class="coach-overlay is-hidden" aria-live="polite">
+      <div id="coachSpotlight" class="coach-spotlight"></div><div id="coachArrow" class="coach-arrow"></div>
+      <article id="coachBubble" class="coach-bubble"><span id="coachPortrait" class="coach-portrait-pixel" role="img" aria-label="主人公ヒナ"></span><div><small id="coachStep"></small><h2 id="coachTitle"></h2><p id="coachText"></p><button id="coachNext" type="button">次へ</button></div></article>
+    </section>
 
     <div id="modalBackdrop" class="modal-backdrop is-hidden">
       <section id="modal" class="game-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -100,7 +106,7 @@
       <div class="fishing-card">
         <p class="eyebrow">FISHING</p><h2 id="fishingTitle">魚がかかった！</h2>
         <p id="fishingHelp">左右キーかドラッグで、魚を光の帯にとどめよう。</p>
-        <div id="fishTrack" class="fish-track"><span id="safeZone"></span><i id="fishMarker">🐟</i><b id="catchMeter"></b></div>
+        <div id="fishTrack" class="fish-track"><span id="safeZone"></span><i id="fishMarker" class="sprite-icon" data-icon="fish"></i><b id="catchMeter"></b></div>
         <button id="fishingButton" class="pixel-button" type="button">引き上げる！</button>
       </div>
     </section>

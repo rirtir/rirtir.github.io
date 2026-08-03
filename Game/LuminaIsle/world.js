@@ -1,7 +1,7 @@
 (function(){
   "use strict";
   const LI=window.LI=window.LI||{};
-  const W=72,H=72,TILE=16,SANCTUARY={x:36.5*16,y:54.5*16,r:10*16};
+  const W=72,H=72,TILE=16,START={x:36.5*16,y:54.5*16,enemyClearRadius:10*16};
   const TILE_ID={sea:0,shallow:1,sand:2,grass:3,forest:4,rock:5,path:6};
   const TILE_NAME=["sea","shallow","sand","grass","forest","rock_ground","path"];
   class RNG{
@@ -71,7 +71,7 @@
     for(let i=resources.length-1;i>=0;i--)if(landmarks.some(l=>Math.hypot(l.x-resources[i].x,l.y-resources[i].y)<13))resources.splice(i,1);
     const enemies=[];let eid=0;
     const enemy=(type,x,y)=>enemies.push({id:`e${eid++}`,type,x:(x+.5)*TILE,y:(y+.5)*TILE,homeX:(x+.5)*TILE,homeY:(y+.5)*TILE,hp:LI.DATA.enemies[type].hp,maxHp:LI.DATA.enemies[type].hp,state:"idle",timer:rng.next()*2,attackTimer:0,deadUntil:0,hitFlash:0,angle:rng.next()*Math.PI*2});
-    const placeEnemies=(type,count,minX,maxX,minY,maxY)=>{let placed=0,tries=0;while(placed<count&&tries++<300){const x=rng.int(minX,maxX),y=rng.int(minY,maxY),wx=(x+.5)*TILE,wy=(y+.5)*TILE,tile=tiles[idx(x,y)],biome=biomes[idx(x,y)];if(tile===TILE_ID.sea||tile===TILE_ID.shallow||Math.hypot(wx-SANCTUARY.x,wy-SANCTUARY.y)<SANCTUARY.r+32||biome!==LI.DATA.enemies[type].biome)continue;if(enemies.some(e=>Math.hypot(e.x-wx,e.y-wy)<42))continue;enemy(type,x,y);placed++;}};
+    const placeEnemies=(type,count,minX,maxX,minY,maxY)=>{let placed=0,tries=0;while(placed<count&&tries++<300){const x=rng.int(minX,maxX),y=rng.int(minY,maxY),wx=(x+.5)*TILE,wy=(y+.5)*TILE,tile=tiles[idx(x,y)],biome=biomes[idx(x,y)];if(tile===TILE_ID.sea||tile===TILE_ID.shallow||Math.hypot(wx-START.x,wy-START.y)<START.enemyClearRadius+32||biome!==LI.DATA.enemies[type].biome)continue;if(enemies.some(e=>Math.hypot(e.x-wx,e.y-wy)<42))continue;enemy(type,x,y);placed++;}};
     placeEnemies("slime",5,20,50,40,65);
     placeEnemies("thorn",5,7,31,10,38);
     placeEnemies("crab",4,7,30,42,62);
@@ -98,6 +98,5 @@
     const mx=Math.max(0,Math.min(17,Math.floor(x/(W*TILE)*18))),my=Math.max(0,Math.min(17,Math.floor(y/(H*TILE)*18)));
     for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){const nx=mx+ox,ny=my+oy;if(nx>=0&&ny>=0&&nx<18&&ny<18)state.explored[ny*18+nx]=1;}
   }
-  function inSanctuary(x,y,padding=0){return Math.hypot(x-SANCTUARY.x,y-SANCTUARY.y)<SANCTUARY.r+padding;}
-  LI.World={W,H,TILE,TILE_ID,TILE_NAME,SANCTUARY,RNG,generate,tileAt,biomeAt,buildingAt,passable,activeResource,nearby,explore,inSanctuary};
+  LI.World={W,H,TILE,TILE_ID,TILE_NAME,START,RNG,generate,tileAt,biomeAt,buildingAt,passable,activeResource,nearby,explore};
 })();
