@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#050812">
+  <meta name="theme-color" content="#07111f">
   <meta name="description" content="指で立体経路を描き、無人機が高速で敵を斬り抜けるスマートフォン向け3Dアクション・ローグライト。">
   <meta property="og:title" content="ANCHOR//VECTOR — 星環の残響">
   <meta property="og:description" content="操作は静か、結果は激しい。一筆経路型3Dアクション。">
@@ -32,6 +32,7 @@
         <div class="encounter-display">
           <span id="encounter-label" class="eyebrow">ENCOUNTER 1/7</span>
           <strong id="enemy-count">敵 0</strong>
+          <small id="par-display">ROUTE 0 / PAR 1</small>
         </div>
         <button class="icon-button pause-button" data-action="pause" aria-label="一時停止">
           <svg aria-hidden="true"><use href="./assets/ui-icons.svg#pause"></use></svg>
@@ -39,9 +40,10 @@
       </div>
       <div id="boss-bar" class="boss-bar" hidden><span id="boss-name">BOSS</span><i><b id="boss-fill"></b></i></div>
       <div id="route-readout" class="route-readout" hidden>
-        <span id="route-nodes">0 / 3 NODE</span>
-        <strong id="route-length">0.0 m</strong>
+        <span id="route-hits">HIT 0</span>
+        <strong id="route-cores">CORE 0</strong>
       </div>
+      <div id="combat-callout" class="combat-callout" hidden><strong></strong><span></span></div>
       <div class="hud-bottom">
         <div id="flow-meter" class="flow-meter" style="--flow:0">
           <div><span>FLOW</span><strong id="flow-value">0</strong></div>

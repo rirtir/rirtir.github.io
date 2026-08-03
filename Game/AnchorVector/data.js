@@ -1,4 +1,4 @@
-export const GAME_VERSION = '1.0.0';
+export const GAME_VERSION = '1.1.0';
 export const SAVE_SCHEMA = 1;
 
 export const RECORDS = [
@@ -21,8 +21,8 @@ export const CHASSIS = {
     id: 'lancer',
     name: 'AV-7 LANCER',
     shortName: 'LANCER',
-    description: '長い直線と弱点への初撃に優れる標準機。',
-    passive: '10m以上の線分で最初に命中した敵はクリティカル。',
+    description: '長い直線と弱点への直撃に優れる標準機。',
+    passive: '10m以上離れた核への直撃威力+35%。',
     unlock: '初期機体',
     shield: 3,
     damage: 2,
@@ -147,10 +147,10 @@ function depth(id, name, description, hpMultiplier, attackMultiplier, extraEnemi
 }
 
 export const MODES = {
-  expedition: { id: 'expedition', name: '潜行', description: '7遭遇を進み、資源を持ち帰る標準モード。', icon: 'expedition' },
-  daily: { id: 'daily', name: '日替わり航路', description: '全員に共通する日付シード。自己記録へ挑戦。', icon: 'daily', unlock: '通常エンド' },
-  endless: { id: 'endless', name: '無限残響', description: '敵が強くなり続けるエンドレスモード。', icon: 'endless', unlock: '深度3' },
-  bossRush: { id: 'bossRush', name: '中枢連戦', description: '3体のボスへ連続挑戦。', icon: 'boss', unlock: '深度6' },
+  expedition: { id: 'expedition', name: '潜行', description: '7戦を突破して帰還。', icon: 'expedition' },
+  daily: { id: 'daily', name: '日替わり航路', description: '本日の固定航路で記録更新。', icon: 'daily', unlock: '通常エンド' },
+  endless: { id: 'endless', name: '無限残響', description: '限界まで連戦。', icon: 'endless', unlock: '深度3' },
+  bossRush: { id: 'bossRush', name: '中枢連戦', description: 'ボス3機を連続撃破。', icon: 'boss', unlock: '深度6' },
 };
 
 export const SKINS = [
@@ -192,10 +192,10 @@ function achievement(id, name, description) {
 }
 
 export const TUTORIAL_STEPS = [
-  { title: '線を描く', body: '画面を押し続けると時間が遅くなります。青い円まで指を動かし、離してください。', goal: 'route' },
-  { title: '敵を横切る', body: '赤い核を経路に入れると斬撃します。敵を通って次の円へ進んでください。', goal: 'kill' },
-  { title: '予告から離れる', body: '琥珀の範囲は攻撃予告です。発動する前に安全な円へ移動してください。', goal: 'dodge' },
-  { title: '面を閉じる', body: '3点を結び、始点近くへ戻るとVECTOR SEAL。複数の敵を囲んでください。', goal: 'seal' },
+  { title: '① 長押し', body: '時間が遅くなる。青い円へなぞって離す。', goal: 'route' },
+  { title: '② 赤い核', body: '核を直接なぞって離す。一筆で撃破。', goal: 'kill' },
+  { title: '③ 黄から離れる', body: '攻撃予告の外へ移動。', goal: 'dodge' },
+  { title: '④ 囲む', body: '3点で敵を囲む。VECTOR SEAL発動。', goal: 'seal' },
 ];
 
 export const INITIAL_UNLOCKS_AFTER_ENDING = ['execute', 'firstLight', 'afterline', 'snare', 'heavyVector', 'kineticShield'];

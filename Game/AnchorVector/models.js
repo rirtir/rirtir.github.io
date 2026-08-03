@@ -1,9 +1,9 @@
 import * as THREE from './vendor/three.module.min.js';
 
 export const PALETTE = Object.freeze({
-  void: 0x050812,
-  deepNavy: 0x0b1221,
-  slate: 0x1b2a3a,
+  void: 0x07111f,
+  deepNavy: 0x10243a,
+  slate: 0x314a63,
   ceramic: 0xdce7e5,
   muted: 0x91a3ae,
   cyan: 0x43f5d0,
@@ -11,14 +11,14 @@ export const PALETTE = Object.freeze({
   coral: 0xff5e73,
   amber: 0xffb84a,
   violet: 0xb889ff,
-  blackMetal: 0x080d15,
+  blackMetal: 0x172333,
 });
 
 const shared = {
   ceramic: new THREE.MeshStandardMaterial({ color: PALETTE.ceramic, roughness: 0.28, metalness: 0.18, flatShading: true }),
-  dark: new THREE.MeshStandardMaterial({ color: PALETTE.blackMetal, roughness: 0.64, metalness: 0.72, flatShading: true }),
-  slate: new THREE.MeshStandardMaterial({ color: PALETTE.slate, roughness: 0.82, metalness: 0.42, flatShading: true }),
-  enemy: new THREE.MeshStandardMaterial({ color: 0x111925, roughness: 0.58, metalness: 0.82, flatShading: true }),
+  dark: new THREE.MeshStandardMaterial({ color: PALETTE.blackMetal, emissive: 0x07111b, emissiveIntensity: 0.24, roughness: 0.58, metalness: 0.66, flatShading: true }),
+  slate: new THREE.MeshStandardMaterial({ color: PALETTE.slate, emissive: 0x0b1824, emissiveIntensity: 0.22, roughness: 0.7, metalness: 0.38, flatShading: true }),
+  enemy: new THREE.MeshStandardMaterial({ color: 0x445a72, emissive: 0x162536, emissiveIntensity: 0.68, roughness: 0.42, metalness: 0.62, flatShading: true }),
   cyan: glowMaterial(PALETTE.cyan, 1.8),
   blue: glowMaterial(PALETTE.blue, 1.4),
   coral: glowMaterial(PALETTE.coral, 1.7),
@@ -80,6 +80,20 @@ function addCore(parent, colorMaterial = shared.coral, radius = 0.22, position =
   const core = mesh(parent, new THREE.OctahedronGeometry(radius, 1), colorMaterial, position);
   core.userData.pulse = { speed: 3.2, amount: 0.1 };
   return core;
+}
+
+function addEnemyReticle(parent, type, elite = false) {
+  const radius = type === 'forge' ? 0.88 : type === 'null' ? 0.94 : 0.72;
+  const colorMaterial = elite ? shared.violet : shared.coral;
+  const ring = mesh(parent, new THREE.TorusGeometry(radius, 0.028, 4, 28), colorMaterial, [0, 0, -0.42]);
+  ring.castShadow = false;
+  ring.receiveShadow = false;
+  ring.userData.pulse = { speed: elite ? 3.2 : 2.4, amount: 0.055 };
+  for (let i = 0; i < 3; i += 1) {
+    const angle = i * Math.PI * 2 / 3;
+    const marker = mesh(parent, new THREE.ConeGeometry(0.08, 0.24, 3), colorMaterial, [Math.cos(angle) * radius, Math.sin(angle) * radius, -0.39], [0, 0, -angle - Math.PI / 2]);
+    marker.castShadow = false;
+  }
 }
 
 function finalize(group, kind, radius) {
@@ -217,6 +231,7 @@ export function createEnemyModel(type = 'seeker', elite = false) {
     const halo = mesh(group, new THREE.TorusGeometry(0.82, 0.035, 4, 24), shared.violet);
     markSpin(halo, 'z', 0.8);
   }
+  addEnemyReticle(group, type, elite);
   return finalize(group, `enemy-${type}`, type === 'forge' ? 0.75 : 0.62);
 }
 
@@ -282,11 +297,11 @@ export function createBossModel(type = 'ringWarden') {
 export function createAnchorNode(state = 'neutral') {
   const group = new THREE.Group();
   const color = state === 'danger' ? shared.amber : state === 'selected' ? shared.cyan : shared.blue;
-  mesh(group, new THREE.SphereGeometry(0.12, 8, 6), color);
-  const ring = mesh(group, new THREE.TorusGeometry(0.3, 0.035, 5, 20), color);
+  mesh(group, new THREE.SphereGeometry(0.09, 8, 6), color);
+  const ring = mesh(group, new THREE.TorusGeometry(0.25, 0.026, 5, 20), color);
   markSpin(ring, 'z', state === 'selected' ? 1.8 : 0.65);
-  const halo = mesh(group, new THREE.RingGeometry(0.34, 0.42, 24), translucent(state === 'danger' ? PALETTE.amber : PALETTE.blue, 0.2));
-  halo.userData.pulse = { speed: 2.2, amount: 0.12 };
+  const halo = mesh(group, new THREE.RingGeometry(0.3, 0.36, 24), translucent(state === 'danger' ? PALETTE.amber : PALETTE.blue, 0.13));
+  halo.userData.pulse = { speed: 2.2, amount: 0.08 };
   return finalize(group, `anchor-${state}`, 0.45);
 }
 
@@ -340,6 +355,29 @@ export function createArenaEnvironment(theme = 'rim', seed = 1, quality = 'high'
   const group = new THREE.Group();
   group.name = `environment-${theme}`;
   const random = mulberry32(seed);
+  const floorColor = theme === 'core' ? 0x1c213d : theme === 'fracture' ? 0x29313a : 0x123149;
+  const floorMaterial = new THREE.MeshStandardMaterial({ color: floorColor, emissive: floorColor, emissiveIntensity: 0.24, roughness: 0.92, metalness: 0.12, transparent: true, opacity: 0.92, side: THREE.DoubleSide });
+  floorMaterial.userData.owned = true;
+  const floor = mesh(group, new THREE.CylinderGeometry(10.8, 11.15, 0.34, 48), floorMaterial, [0, 0, -2.3], [Math.PI / 2, 0, 0]);
+  floor.castShadow = false;
+  floor.receiveShadow = true;
+
+  const gridMaterial = new THREE.LineBasicMaterial({ color: theme === 'core' ? PALETTE.violet : PALETTE.blue, transparent: true, opacity: 0.24, depthWrite: false, toneMapped: false });
+  gridMaterial.userData.owned = true;
+  const gridPoints = [];
+  for (let i = 0; i < 12; i += 1) {
+    const angle = i * Math.PI / 6;
+    gridPoints.push(new THREE.Vector3(Math.cos(angle) * 1.2, Math.sin(angle) * 1.2, -2.1), new THREE.Vector3(Math.cos(angle) * 10.35, Math.sin(angle) * 10.35, -2.1));
+  }
+  const spokes = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gridPoints), gridMaterial);
+  spokes.renderOrder = 1;
+  group.add(spokes);
+  for (const radius of [3.4, 6.7, 10.1]) {
+    const ringMaterial = translucent(theme === 'core' ? PALETTE.violet : PALETTE.blue, radius === 10.1 ? 0.34 : 0.18);
+    const floorRing = mesh(group, new THREE.RingGeometry(radius - 0.035, radius + 0.035, 64), ringMaterial, [0, 0, -2.08]);
+    floorRing.castShadow = false;
+    floorRing.renderOrder = 2;
+  }
   const count = quality === 'low' ? 10 : quality === 'medium' ? 16 : 24;
   const baseMaterial = theme === 'core' ? shared.dark : shared.slate;
   const accentMaterial = theme === 'fracture' ? shared.amber : theme === 'core' ? shared.violet : shared.cyan;
@@ -348,11 +386,12 @@ export function createArenaEnvironment(theme = 'rim', seed = 1, quality = 'high'
   const dummy = new THREE.Object3D();
   for (let i = 0; i < count; i += 1) {
     const angle = random() * Math.PI * 2;
-    const radius = 9 + random() * 16;
-    dummy.position.set(Math.cos(angle) * radius, (random() - 0.5) * 12, Math.sin(angle) * radius);
+    const radius = 12 + random() * 14;
+    // 背景構造物は必ず戦闘面より奥へ置き、スマホの狭い画角へ侵入させない。
+    dummy.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.55, -8 - random() * 16);
     dummy.rotation.set(random() * Math.PI, random() * Math.PI, random() * Math.PI);
     if (theme === 'fracture') dummy.scale.set(0.4 + random() * 1.8, 0.3 + random(), 0.8 + random() * 2.8);
-    else dummy.scale.set(0.35 + random() * 1.2, 0.25 + random() * 0.8, 2 + random() * 6);
+    else dummy.scale.set(0.3 + random(), 0.22 + random() * 0.65, 1.4 + random() * 3.8);
     dummy.updateMatrix();
     instances.setMatrixAt(i, dummy.matrix);
   }

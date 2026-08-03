@@ -9,6 +9,7 @@ import {
   hashString,
   pointInPolygonXY,
   polygonAreaXY,
+  routeHitProfile,
 } from './logic.js';
 import { createArenaEnvironment, createBossModel, createEnemyModel, createPlayerModel } from './models.js';
 import { createDefaultSave, SaveManager, validateSave } from './save.js';
@@ -78,6 +79,22 @@ export function runSelfTests() {
     near(polygonAreaXY(triangle), 8);
     assert(pointInPolygonXY([1, 1, 0], triangle), 'inside polygon');
     assert(!pointInPolygonXY([4, 4, 0], triangle), 'outside polygon');
+  });
+
+  test('direct-core-rule', () => {
+    const randomLongCrossing = routeHitProfile('lancer', false, 14);
+    assert(!randomLongCrossing.critical, 'long graze must not become critical');
+    equal(randomLongCrossing.multiplier, 1);
+    const aimedLongStrike = routeHitProfile('lancer', true, 14);
+    assert(aimedLongStrike.critical, 'selected core must be critical');
+    near(aimedLongStrike.multiplier, 1.35);
+    const otherChassis = routeHitProfile('weaver', true, 14);
+    assert(otherChassis.critical, 'direct core remains critical');
+    equal(otherChassis.multiplier, 1);
+    const firstArena = generateArena({ index: 0, type: 'battle', seed: 42, theme: 'rim' }, 0);
+    equal(firstArena.enemies.map((enemy) => enemy.type).join(','), 'seeker,lancer');
+    const secondArena = generateArena({ index: 1, type: 'battle', seed: 43, theme: 'rim' }, 0);
+    equal(secondArena.enemies[0].type, 'warden');
   });
 
   test('module-candidates', () => {

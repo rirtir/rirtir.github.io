@@ -48,6 +48,7 @@ class AnchorVectorApp {
     };
     this.tutorialIndex = 0;
     this.tutorialTimer = 0;
+    this.calloutTimer = 0;
     this.pendingResult = null;
     this.lastHud = null;
     this.startedAt = performance.now();
@@ -66,6 +67,7 @@ class AnchorVectorApp {
         onDefeat: (result) => this.handleDefeat(result),
         onTutorialGoal: (goal) => this.handleTutorialGoal(goal),
         onNotice: (message, type) => this.notice(message, type),
+        onCallout: (data) => this.showCombatCallout(data),
         onContext: (state) => this.handleContext(state),
       });
       this.game.setSettings(this.save.settings);
@@ -279,13 +281,18 @@ class AnchorVectorApp {
     this.setScreen('title', `
       <section class="screen title-screen">
         <div class="title-copy">
-          <p class="eyebrow">TACTICAL ROUTE ACTION</p>
+          <p class="eyebrow">3D ROUTE COMBAT</p>
           <h1>ANCHOR<span>//</span>VECTOR</h1>
           <p class="subtitle">星環の残響</p>
-          <p class="lead">画面を押して時間を遅くし、立体空間に経路を描く。指を離せば、静かな計画が高速の斬撃へ変わる。</p>
+          <p class="lead">赤い核を、一筆で貫け。</p>
+          <div class="core-loop" aria-label="基本操作：長押し、核を狙う、離して斬る">
+            <div>${icon('flow')}<span>長押し</span></div><i></i>
+            <div class="core-target">${icon('core')}<span>核を狙う</span></div><i></i>
+            <div>${icon('strike')}<span>離して斬る</span></div>
+          </div>
           <div class="title-actions">
-            <button class="primary-button" data-action="start">${this.save.progress.tutorialCompleted ? 'ハンガーへ' : 'システムを起動'}</button>
-            ${hasRun ? '<button class="secondary-button" data-action="continue-saved-run">中断した潜行を再開</button>' : ''}
+            <button class="primary-button" data-action="start">${this.save.progress.tutorialCompleted ? '出撃準備' : '訓練開始'}</button>
+            ${hasRun ? '<button class="secondary-button" data-action="continue-saved-run">出撃を再開</button>' : ''}
             <a class="ghost-button" href="../../" style="display:grid;place-items:center;text-decoration:none">ポータルへ戻る</a>
           </div>
           <span class="version-label">VERSION ${GAME_VERSION} / LOCAL SAVE / NO SERVER</span>
@@ -298,12 +305,12 @@ class AnchorVectorApp {
     this.setScreen('intro', `
       <section class="screen intro-screen">
         <div class="intro-copy">
-          <p class="eyebrow">VESPER RING / MAINTENANCE LOG</p>
-          <h2>居住信号、なし。<br>保守命令、継続。</h2>
-          <p>無人軌道施設は、自らを分解して都市への落下を避けた。長い休眠の後、保守機AV-7が再起動する。散逸した記録核を回収し、星環の最後の命令を完了せよ。</p>
+          <p class="eyebrow">MISSION</p>
+          <h2>止める。描く。斬る。</h2>
+          <p class="mission-copy"><b>赤い核</b>を、<b>PAR以内</b>の一筆で破壊する。</p>
           <div class="panel-actions">
             <button class="ghost-button" data-action="skip-tutorial">訓練を省略</button>
-            <button class="primary-button" data-action="intro-start">航路訓練を開始</button>
+            <button class="primary-button" data-action="intro-start">操作を試す</button>
           </div>
         </div>
       </section>
@@ -332,14 +339,14 @@ class AnchorVectorApp {
           <div class="hangar-card">
             <p class="eyebrow">READY FOR DEPARTURE</p>
             <h2>${chassis.name}</h2>
-            <p>${chassis.description}</p>
+            <div class="mission-strip"><span>MISSION</span><strong>赤い核を最短経路で破壊</strong></div>
             <div class="hangar-status">
               <div><span>MODE</span><strong>${mode.name}</strong></div>
               <div><span>DEPTH</span><strong>${this.selection.depth}</strong></div>
               <div><span>MAX CLEAR</span><strong>${Math.max(0, progress.maxDepthCleared)}</strong></div>
             </div>
             <div class="hangar-actions">
-              <button class="primary-button launch-button" data-action="modes">潜行準備</button>
+              <button class="primary-button launch-button" data-action="modes">出撃する</button>
               ${this.save.activeRun ? '<button class="secondary-button" data-action="continue-saved-run">中断地点から</button>' : ''}
               <button class="secondary-button" data-action="chassis">機体・外装</button>
               <button class="ghost-button" data-action="archive">記録庫</button>
@@ -372,7 +379,7 @@ class AnchorVectorApp {
     this.setScreen('selection', `
       <section class="screen choice-screen">
         <div class="screen-panel wide">
-          ${panelHeader('SORTIE PROGRAM', '潜行プログラム', '目的と深度を選択します。', 'hangar')}
+          ${panelHeader('SORTIE PROGRAM', '出撃条件', '', 'hangar')}
           <div class="selection-grid">${cards}</div>
           <div class="depth-picker">
             <label for="depth-range"><span>出撃深度</span><strong id="depth-current">深度 ${this.selection.depth} — ${DEPTHS[this.selection.depth].name}</strong></label>
@@ -413,7 +420,7 @@ class AnchorVectorApp {
     this.setScreen('selection', `
       <section class="screen choice-screen">
         <div class="screen-panel wide">
-          ${panelHeader('CHASSIS / TRACE', '機体と軌跡', '性能は横方向の違いです。外装色に能力差はありません。', 'hangar')}
+          ${panelHeader('CHASSIS / TRACE', '機体と軌跡', '', 'hangar')}
           <div class="selection-grid">${chassisCards}</div>
           <h3>軌跡色</h3>
           <div class="skin-grid">${skins}</div>
@@ -550,6 +557,8 @@ class AnchorVectorApp {
       maxChain: 0,
       maxSealHits: 0,
       kills: 0,
+      ranks: { S: 0, A: 0, B: 0, C: 0 },
+      rankPoints: 0,
       bosses: [],
       pendingModules: null,
       pendingBattleResult: null,
@@ -621,6 +630,13 @@ class AnchorVectorApp {
       skinColor: skin.color,
     });
     this.setEncounterLabel();
+    const hasWarden = arena.enemies.some((enemy) => enemy.type === 'warden');
+    this.showCombatCallout({
+      label: hasWarden ? '盾の背後を斬る' : '赤い核を斬る',
+      detail: `PAR ${this.game.battlePar}以内で高評価`,
+      tone: 'objective',
+      duration: 1650,
+    });
   }
 
   showBattle() {
@@ -679,6 +695,9 @@ class AnchorVectorApp {
     this.run.maxChain = Math.max(this.run.maxChain, result.maxChain);
     this.run.maxSealHits = Math.max(this.run.maxSealHits, result.maxSealHits);
     this.run.kills += result.kills;
+    this.run.ranks ??= { S: 0, A: 0, B: 0, C: 0 };
+    this.run.ranks[result.rank] = (this.run.ranks[result.rank] || 0) + 1;
+    this.run.rankPoints = (this.run.rankPoints || 0) + ({ S: 4, A: 3, B: 2, C: 1 }[result.rank] || 0);
     this.save.stats.kills += result.kills;
     if (result.bossId) {
       this.run.bosses.push(result.bossId);
@@ -700,7 +719,7 @@ class AnchorVectorApp {
       return;
     }
     this.run.pendingModules = [...candidates];
-    this.run.pendingBattleResult = { kills: result.kills, fragments: result.fragments };
+    this.run.pendingBattleResult = { kills: result.kills, fragments: result.fragments, rank: result.rank, par: result.par, routeCount: result.routeCount, rankBonus: result.rankBonus };
     this.persistRun();
     this.showModuleChoice(candidates, result);
   }
@@ -719,7 +738,7 @@ class AnchorVectorApp {
     }).join('');
     this.setScreen('module', `
       <section class="screen choice-screen"><div class="screen-panel wide">
-        <div class="panel-header"><div><p class="eyebrow">ROUTE RECOMPILE</p><h2>モジュールを選択</h2><p>敵 ${result.kills}体 / FRAGMENT +${result.fragments}</p></div></div>
+        <div class="panel-header compact-result"><div class="battle-grade ${result.rank || 'B'}"><strong>${result.rank || 'B'}</strong><span>ROUTE ${result.routeCount ?? '-'} / PAR ${result.par ?? '-'}</span></div><div><p class="eyebrow">RECOMPILE</p><h2>強化を1つ選ぶ</h2><p>+${result.fragments} FRAGMENT${result.rankBonus ? ` / RANK BONUS +${result.rankBonus}` : ''}</p></div></div>
         <div class="module-grid">${cards}</div>
       </div></section>`);
   }
@@ -846,7 +865,7 @@ class AnchorVectorApp {
     const key = /^\d{4}-\d{2}-\d{2}$/.test(run.dailyKey || '')
       ? run.dailyKey
       : localDateKey(Number.isNaN(started.getTime()) ? new Date() : started);
-    const score = Math.max(0, Math.round(banked + run.kills * 12 + run.maxChain * 8 + run.bosses.length * 150 - run.damageTaken * 40));
+    const score = Math.max(0, Math.round(banked + run.kills * 12 + run.maxChain * 8 + run.bosses.length * 150 + (run.rankPoints || 0) * 25 - run.damageTaken * 40));
     this.save.stats.dailyBest[key] = Math.max(this.save.stats.dailyBest[key] || 0, score);
     return score;
   }
@@ -865,12 +884,13 @@ class AnchorVectorApp {
     if (!result) return this.showHangar();
     const run = result.run;
     const title = result.reason === 'victory' ? '潜行完了' : result.reason === 'retreat' ? '帰還完了' : '残存資源を回収';
+    const sortieRank = this.runRank(run);
     const achievements = result.newAchievements.length
       ? `<p class="eyebrow">NEW ACHIEVEMENT</p><p>${result.newAchievements.map((id) => ACHIEVEMENTS.find((item) => item.id === id)?.name).filter(Boolean).join(' / ')}</p>` : '';
     this.setScreen('result', `
       <section class="screen result-screen"><div class="screen-panel">
-        <p class="eyebrow">SORTIE REPORT</p><h2>${title}</h2>
-        <div class="reward-summary"><div><span>確定資源</span><strong>${result.banked}</strong></div><div><span>最大CHAIN</span><strong>${run.maxChain}</strong></div><div><span>撃破</span><strong>${run.kills}</strong></div>${result.dailyScore === null || result.dailyScore === undefined ? '' : `<div><span>DAILY SCORE</span><strong>${result.dailyScore}</strong></div>`}</div>
+        <p class="eyebrow">SORTIE REPORT</p><div class="result-title"><div class="battle-grade ${sortieRank}"><strong>${sortieRank}</strong><span>SORTIE RANK</span></div><h2>${title}</h2></div>
+        <div class="reward-summary"><div><span>確定資源</span><strong>${result.banked}</strong></div><div><span>S RANK</span><strong>${run.ranks?.S || 0}</strong></div><div><span>撃破</span><strong>${run.kills}</strong></div>${result.dailyScore === null || result.dailyScore === undefined ? '' : `<div><span>DAILY SCORE</span><strong>${result.dailyScore}</strong></div>`}</div>
         ${achievements}
         <div class="panel-actions"><button class="primary-button" data-action="result-hangar">ハンガーへ</button></div>
       </div></section>`);
@@ -880,6 +900,17 @@ class AnchorVectorApp {
     if (!this.run) return;
     this.save.activeRun = structuredClone(this.run);
     this.saveManager.markDirty(true);
+  }
+
+  runRank(run) {
+    const ranks = run.ranks || {};
+    const count = Object.values(ranks).reduce((sum, value) => sum + Number(value || 0), 0);
+    if (!count) return 'C';
+    const average = (run.rankPoints || 0) / count;
+    if (average >= 3.5) return 'S';
+    if (average >= 2.7) return 'A';
+    if (average >= 1.8) return 'B';
+    return 'C';
   }
 
   checkAchievements() {
@@ -981,6 +1012,7 @@ class AnchorVectorApp {
     shield.innerHTML = Array.from({ length: data.maxShields }, (_, index) => `<i class="shield-segment ${index < data.shields ? '' : 'empty'}"></i>`).join('');
     shield.setAttribute('aria-label', `シールド ${data.shields}/${data.maxShields}`);
     document.querySelector('#enemy-count').textContent = `敵 ${data.alive}`;
+    document.querySelector('#par-display').textContent = `ROUTE ${data.routeCount} / PAR ${data.par}`;
     document.querySelector('#flow-value').textContent = Math.round(data.flow);
     document.querySelector('#flow-meter').style.setProperty('--flow', data.flow.toFixed(1));
     const chain = document.querySelector('#chain-display');
@@ -988,8 +1020,8 @@ class AnchorVectorApp {
     document.querySelector('#chain-value').textContent = data.chain;
     const route = document.querySelector('#route-readout');
     route.hidden = !data.planning;
-    document.querySelector('#route-nodes').textContent = `${data.routeNodes} / ${data.maxRouteNodes} NODE`;
-    document.querySelector('#route-length').textContent = `${data.routeLength.toFixed(1)} m`;
+    document.querySelector('#route-hits').textContent = `HIT ${data.routeHits}`;
+    document.querySelector('#route-cores').textContent = `CORE ${data.routeCores}`;
     const overtrace = document.querySelector('#overtrace-button');
     overtrace.disabled = !data.overtraceReady;
     const bossBar = document.querySelector('#boss-bar');
@@ -998,6 +1030,17 @@ class AnchorVectorApp {
       document.querySelector('#boss-fill').style.width = `${Math.max(0, data.bossHp * 100)}%`;
       if (this.currentEncounter?.bossId) document.querySelector('#boss-name').textContent = BOSSES[this.currentEncounter.bossId].name;
     }
+  }
+
+  showCombatCallout({ label, detail = '', tone = 'objective', duration = 900 }) {
+    const callout = document.querySelector('#combat-callout');
+    if (!callout || this.hud.hidden) return;
+    window.clearTimeout(this.calloutTimer);
+    callout.className = `combat-callout ${tone}`;
+    callout.querySelector('strong').textContent = label;
+    callout.querySelector('span').textContent = detail;
+    callout.hidden = false;
+    this.calloutTimer = window.setTimeout(() => { callout.hidden = true; }, duration);
   }
 
   pauseBattle() {
@@ -1157,7 +1200,7 @@ function resourceChip(type, value, core = false) {
 }
 
 function panelHeader(eyebrow, title, description, backAction) {
-  return `<header class="panel-header"><div><p class="eyebrow">${eyebrow}</p><h2>${title}</h2><p>${description}</p></div><button class="icon-button" data-action="${backAction}" aria-label="戻る">${icon('back')}</button></header>`;
+  return `<header class="panel-header"><div><p class="eyebrow">${eyebrow}</p><h2>${title}</h2>${description ? `<p>${description}</p>` : ''}</div><button class="icon-button" data-action="${backAction}" aria-label="戻る">${icon('back')}</button></header>`;
 }
 
 function rangeSetting(key, label, value) {

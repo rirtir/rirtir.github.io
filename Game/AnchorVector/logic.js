@@ -130,7 +130,11 @@ export function generateArena(encounter, depth = 0) {
   const enemies = [];
   const shuffledNodes = random.shuffle(nodes);
   for (let i = 0; i < enemyCount; i += 1) {
-    const type = encounter.type === 'elite' && i === 0 ? 'null' : random.pick(pool);
+    let type = encounter.type === 'elite' && i === 0 ? 'null' : random.pick(pool);
+    // 最初の2戦だけは学習順を固定する。核への直撃、次に盾の背後という
+    // このゲーム固有の判断を、ランダム抽選より先に体験させる。
+    if (depth === 0 && encounter.type === 'battle' && encounter.index === 0) type = i === 0 ? 'seeker' : 'lancer';
+    if (depth === 0 && encounter.type === 'battle' && encounter.index === 1 && i === 0) type = 'warden';
     const definition = ENEMIES[type];
     const base = shuffledNodes[i % shuffledNodes.length].position;
     enemies.push({
@@ -190,6 +194,12 @@ export function distancePointToSegment(point, start, end) {
   return Math.hypot(dx, dy, dz);
 }
 
+export function routeHitProfile(chassis, direct, segmentLength) {
+  const critical = Boolean(direct);
+  const multiplier = critical && chassis === 'lancer' && segmentLength >= 10 ? 1.35 : 1;
+  return { critical, multiplier };
+}
+
 export function pathLength(points) {
   let total = 0;
   for (let i = 1; i < points.length; i += 1) {
@@ -232,4 +242,3 @@ export function chooseModuleCandidates(unlockedIds, owned, seed) {
   while (result.length < 3 && missing.length > 1) result.push(missing[result.length]);
   return result.slice(0, 3);
 }
-

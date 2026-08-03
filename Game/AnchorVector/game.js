@@ -2,7 +2,7 @@ import * as THREE from './vendor/three.module.min.js';
 import { AudioEngine } from './audio.js';
 import { EffectsEngine } from './effects.js';
 import { BOSSES, CHASSIS, DEPTHS, ENEMIES, MODULES } from './data.js';
-import { distancePointToSegment, pathLength, pointInPolygonXY, polygonAreaXY, SeededRandom } from './logic.js';
+import { distancePointToSegment, pathLength, pointInPolygonXY, polygonAreaXY, routeHitProfile, SeededRandom } from './logic.js';
 import {
   PALETTE,
   createAnchorNode,
@@ -26,12 +26,13 @@ export class GameEngine {
     this.onDefeat = options.onDefeat || (() => {});
     this.onTutorialGoal = options.onTutorialGoal || (() => {});
     this.onNotice = options.onNotice || (() => {});
+    this.onCallout = options.onCallout || (() => {});
     this.onContext = options.onContext || (() => {});
     this.audio = options.audio || new AudioEngine();
     this.settings = { planningSpeed: 0.16, gameSpeed: 1, quality: 'auto', particleLevel: 'high', reducedMotion: false, screenShake: true, cameraGesture: true, colorSymbols: true };
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(PALETTE.void);
-    this.scene.fog = new THREE.FogExp2(PALETTE.void, 0.024);
+    this.scene.fog = new THREE.FogExp2(PALETTE.void, 0.014);
     this.camera = new THREE.PerspectiveCamera(48, 1, 0.1, 140);
     this.camera.position.set(0, -11.5, 22);
     this.camera.lookAt(ZERO);
@@ -69,6 +70,7 @@ export class GameEngine {
     this.random = new SeededRandom(1);
     this.routeHistory = [];
     this.battleStats = this.newBattleStats();
+    this.battlePar = 1;
     this.ambientHazardTimer = 8;
     this.lastHudAt = 0;
     this.lowFpsSeconds = 0;
@@ -93,7 +95,7 @@ export class GameEngine {
     const renderer = new THREE.WebGLRenderer({ canvas: this.canvas, context, antialias: false, powerPreference: 'high-performance' });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.08;
+    renderer.toneMappingExposure = 1.34;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
     this.canvas.addEventListener('webglcontextlost', (event) => {
@@ -109,8 +111,8 @@ export class GameEngine {
   }
 
   addLights() {
-    const hemisphere = new THREE.HemisphereLight(0x86a9c9, 0x050812, 1.15);
-    const key = new THREE.DirectionalLight(0xe7ffff, 3.2);
+    const hemisphere = new THREE.HemisphereLight(0xb7dcf6, 0x10243a, 2.15);
+    const key = new THREE.DirectionalLight(0xf2ffff, 4.8);
     key.position.set(-7, -8, 13);
     key.castShadow = true;
     key.shadow.mapSize.set(512, 512);
@@ -118,9 +120,9 @@ export class GameEngine {
     key.shadow.camera.right = 12;
     key.shadow.camera.top = 9;
     key.shadow.camera.bottom = -9;
-    const rim = new THREE.PointLight(PALETTE.cyan, 18, 28, 2);
+    const rim = new THREE.PointLight(PALETTE.cyan, 28, 34, 1.7);
     rim.position.set(7, 4, 6);
-    const enemyRim = new THREE.PointLight(PALETTE.coral, 10, 18, 2);
+    const enemyRim = new THREE.PointLight(PALETTE.coral, 28, 26, 1.65);
     enemyRim.position.set(-8, 3, 2);
     this.scene.add(hemisphere, key, rim, enemyRim);
   }
@@ -183,6 +185,7 @@ export class GameEngine {
       flowIdle: 0,
     };
     this.player = createPlayerModel(this.options.chassis);
+    this.player.scale.setScalar(1.14);
     this.player.position.fromArray(arena.playerStart || [0, -4, 0]);
     this.player.traverse((child) => {
       if (child.material?.emissive && child.material.emissive.getHex() === PALETTE.cyan) {
@@ -204,6 +207,7 @@ export class GameEngine {
 
     arena.enemies.forEach((enemyData) => this.addEnemy(enemyData));
     if (arena.boss) this.addBoss(arena.boss);
+    this.battlePar = this.calculateBattlePar();
     this.cameraTarget.copy(this.player.position).multiplyScalar(0.1);
     this.resize();
     this.emitHud(true);
@@ -217,6 +221,7 @@ export class GameEngine {
 
   addEnemy(enemyData) {
     const model = createEnemyModel(enemyData.type, enemyData.elite);
+    model.scale.setScalar(enemyData.elite ? 1.28 : 1.18);
     model.position.fromArray(enemyData.position);
     model.rotation.z = enemyData.facing || 0;
     this.entitiesGroup.add(model);
@@ -236,7 +241,7 @@ export class GameEngine {
   addBoss(bossData) {
     const model = createBossModel(bossData.type);
     model.position.fromArray(bossData.position);
-    model.scale.setScalar(0.82);
+    model.scale.setScalar(0.9);
     this.entitiesGroup.add(model);
     this.boss = {
       ...bossData,
@@ -483,6 +488,7 @@ export class GameEngine {
       hitIds: new Set(),
       hits: 0,
       kills: 0,
+      criticals: 0,
       totalLength,
       overtrace: Boolean(options.overtrace),
       damageMultiplier: options.damageMultiplier || 1,
@@ -533,10 +539,12 @@ export class GameEngine {
       if (distancePointToSegment(target.model.position.toArray(), start.toArray(), end.toArray()) > target.radius + 0.42) return;
       segmentHitIndex += 1;
       const direct = target.id === targetId;
-      const critical = direct || (this.options.chassis === 'lancer' && segmentLength >= 10 && segmentHitIndex === 1);
+      const hitProfile = routeHitProfile(this.options.chassis, direct, segmentLength);
+      const critical = hitProfile.critical;
       const back = this.isBackAttack(target, start);
-      const damage = this.calculateDamage(target, segmentLength, execution.hits, critical, back, execution.damageMultiplier * tensionMultiplier * backTraceMultiplier);
+      const damage = this.calculateDamage(target, segmentLength, execution.hits, critical, back, execution.damageMultiplier * tensionMultiplier * backTraceMultiplier * hitProfile.multiplier);
       this.damageTarget(target, damage, critical, start, end);
+      if (critical) execution.criticals += 1;
       execution.hits += 1;
       execution.hitIds.add(target.id);
       if (target.dead) execution.kills += 1;
@@ -568,6 +576,7 @@ export class GameEngine {
   calculateDamage(target, segmentLength, actionHitIndex, critical, back, multiplier = 1) {
     let damage = CHASSIS[this.options.chassis].damage * multiplier;
     if (critical) damage *= 1.5;
+    else damage *= 0.38;
     if (segmentLength >= 8 && this.moduleLevel('longEdge')) damage *= 1 + this.moduleValue('longEdge') / 100;
     if (actionHitIndex > 0 && this.moduleLevel('secondCut')) damage *= 1 + this.moduleValue('secondCut') / 100;
     if (target.hp / target.maxHp <= 0.25 && this.moduleLevel('execute')) damage *= 1 + this.moduleValue('execute') / 100;
@@ -655,6 +664,10 @@ export class GameEngine {
     if (execution.hits > 0) this.playerData.chain += Math.max(0, execution.hits - 1);
     else this.playerData.chain = Math.max(0, this.playerData.chain - 1);
     this.battleStats.maxChain = Math.max(this.battleStats.maxChain, this.playerData.chain);
+    if (execution.kills >= 2) this.onCallout({ label: `MULTI ×${execution.kills}`, detail: '一筆撃破', tone: 'success' });
+    else if (execution.criticals > 0) this.onCallout({ label: `CORE ×${execution.criticals}`, detail: '弱点直撃', tone: 'critical' });
+    else if (execution.hits > 0) this.onCallout({ label: `GRAZE ×${execution.hits}`, detail: '核を直接狙う', tone: 'warning' });
+    else this.onCallout({ label: 'MISS', detail: '赤い核へ線を通す', tone: 'warning' });
     this.execution = null;
     this.effects.clearRoute();
     this.emitHud(true);
@@ -1089,16 +1102,51 @@ export class GameEngine {
     return MODULE_MAP.get(id)?.values[level - 1] || 0;
   }
 
+  calculateBattlePar() {
+    const criticalDamage = CHASSIS[this.options.chassis].damage * 1.5 * (this.options.chassis === 'lancer' ? 1.35 : 1);
+    if (this.boss) return Math.max(6, Math.ceil(this.boss.maxHp / criticalDamage));
+    const requiredHits = this.enemies.map((enemy) => Math.max(1, Math.ceil(enemy.maxHp / criticalDamage)));
+    if (!requiredHits.length) return 1;
+    return Math.max(Math.max(...requiredHits), Math.ceil(requiredHits.reduce((sum, value) => sum + value, 0) / this.maxRouteNodes()));
+  }
+
+  battleRank() {
+    const routesOver = this.battleStats.routeCount - this.battlePar;
+    if (routesOver <= 0 && this.battleStats.damageTaken === 0) return 'S';
+    if (routesOver <= 1 && this.battleStats.damageTaken <= 1) return 'A';
+    if (routesOver <= 3) return 'B';
+    return 'C';
+  }
+
+  predictRoute(points) {
+    if (!points || points.length < 2) return { hits: 0, cores: 0 };
+    const targets = [...this.enemies.filter((enemy) => !enemy.dead), ...(this.boss && !this.boss.dead ? [this.boss] : [])];
+    let hits = 0;
+    for (let index = 1; index < points.length; index += 1) {
+      targets.forEach((target) => {
+        if (distancePointToSegment(target.model.position.toArray(), points[index - 1].toArray(), points[index].toArray()) <= target.radius + 0.42) hits += 1;
+      });
+    }
+    const cores = this.input.selected.filter((id) => id.startsWith('enemy') || id.startsWith('boss-') || id.startsWith('spawn-')).length;
+    return { hits, cores };
+  }
+
   finishBattle(victory) {
     if (this.state !== 'running') return;
     this.state = victory ? 'victory' : 'defeat';
     this.cancelPlanning();
     this.hazards.forEach((hazard) => this.removeHazard(hazard));
     this.audio.sfx(victory ? 'victory' : 'defeat');
+    const rank = victory ? this.battleRank() : 'C';
+    const rankBonus = victory ? ({ S: 40, A: 24, B: 10, C: 0 }[rank] || 0) : 0;
+    this.battleStats.fragments += rankBonus;
     const result = {
       victory,
       bossId: this.boss?.type || null,
       ...this.battleStats,
+      par: this.battlePar,
+      rank,
+      rankBonus,
       shields: Math.max(0, this.playerData.shields),
       noDamage: this.battleStats.damageTaken === 0,
     };
@@ -1199,7 +1247,7 @@ export class GameEngine {
     this.cameraTarget.lerp(desired, 1 - Math.exp(-delta * 3));
     const rect = this.canvas.getBoundingClientRect();
     const portrait = rect.height > rect.width;
-    const base = new THREE.Vector3(...(portrait ? [0, -16.5, 29] : [0, -11.5, 22])).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraYaw);
+    const base = new THREE.Vector3(...(portrait ? [0, -19.2, 36] : [0, -10.5, 20])).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraYaw);
     let shakeX = 0; let shakeY = 0;
     if (this.shake > 0) {
       this.shake = Math.max(0, this.shake - delta * 2.8);
@@ -1237,6 +1285,7 @@ export class GameEngine {
     this.lastHudAt = time;
     const alive = this.enemies.filter((enemy) => !enemy.dead).length + (this.boss && !this.boss.dead ? 1 : 0);
     const bossHp = this.boss ? Math.max(0, this.boss.hp / this.boss.maxHp) : null;
+    const prediction = this.predictRoute(this.input.route);
     this.onHud({
       state: this.state,
       shields: this.playerData.shields,
@@ -1249,6 +1298,10 @@ export class GameEngine {
       routeNodes: this.input.route.length ? this.input.route.length - 1 : 0,
       maxRouteNodes: this.maxRouteNodes(),
       routeLength: this.input.route.length > 1 ? pathLength(this.input.route.map((point) => point.toArray())) : 0,
+      routeHits: prediction.hits,
+      routeCores: prediction.cores,
+      routeCount: this.battleStats.routeCount,
+      par: this.battlePar,
       overtraceReady: this.playerData.flow >= 100 && this.routeHistory.length > 1,
       kineticShield: this.playerData.kineticShield,
       fragments: this.battleStats.fragments,
