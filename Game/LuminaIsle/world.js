@@ -1,7 +1,7 @@
 (function(){
   "use strict";
   const LI=window.LI=window.LI||{};
-  const W=72,H=72,TILE=16;
+  const W=72,H=72,TILE=16,SANCTUARY={x:36.5*16,y:54.5*16,r:10*16};
   const TILE_ID={sea:0,shallow:1,sand:2,grass:3,forest:4,rock:5,path:6};
   const TILE_NAME=["sea","shallow","sand","grass","forest","rock_ground","path"];
   class RNG{
@@ -35,6 +35,8 @@
     // Safe clearings and fixed objective sites.
     const clear=(cx,cy,r,type="grass",biome="grass")=>{for(let y=cy-r;y<=cy+r;y++)for(let x=cx-r;x<=cx+r;x++)if(x>=0&&y>=0&&x<W&&y<H&&Math.hypot(x-cx,y-cy)<=r+.2){tiles[idx(x,y)]=TILE_ID[type];biomes[idx(x,y)]=biome;}};
     clear(36,54,5);clear(36,43,4);clear(18,23,3,"forest","forest");clear(16,50,3,"sand","beach");clear(55,22,4,"rock","rock");
+    const relicPoints=[[29,44],[20,32],[17,55],[27,59],[46,43],[54,31],[59,24],[35,18]],relicGround=[["grass","grass"],["forest","forest"],["sand","beach"],["grass","grass"],["grass","grass"],["rock","rock"],["rock","rock"],["forest","forest"]];
+    relicPoints.forEach(([x,y],i)=>clear(x,y,1,relicGround[i][0],relicGround[i][1]));
 
     const resources=[];let rid=0;
     const add=(type,x,y)=>resources.push(resourceDef(type,x,y,`r${rid++}`));
@@ -55,6 +57,7 @@
     if(resources.length>350){const guaranteed=resources.slice(-7);resources.length=343;resources.push(...guaranteed);}
 
     const landmarks=[
+      {id:"guide_sign",type:"guide",name:"ヒナの旅立ち案内",x:36.5*TILE,y:51.5*TILE,sortY:53*TILE},
       {id:"lighthouse",type:"lighthouse",name:"古い灯台",x:36.5*TILE,y:43.8*TILE,sortY:46*TILE},
       {id:"forest_altar",type:"altar",region:"forest",name:"こもれびの祠",x:18.5*TILE,y:23.5*TILE,sortY:25*TILE},
       {id:"tide_altar",type:"altar",region:"tide",name:"潮の祭壇",x:16.5*TILE,y:50.5*TILE,sortY:52*TILE},
@@ -64,12 +67,15 @@
       {id:"wind_2",type:"windstone",index:2,name:"風車石",x:61.5*TILE,y:18.5*TILE,sortY:20*TILE},
       {id:"well_old",type:"well",name:"古い井戸",x:29.5*TILE,y:47.5*TILE,sortY:49*TILE},
     ];
+    relicPoints.forEach(([x,y],index)=>landmarks.push({id:`relic_${index}`,type:"relic",index,name:LI.DATA.relics[index].name,x:(x+.5)*TILE,y:(y+.65)*TILE,sortY:(y+1)*TILE}));
+    for(let i=resources.length-1;i>=0;i--)if(landmarks.some(l=>Math.hypot(l.x-resources[i].x,l.y-resources[i].y)<13))resources.splice(i,1);
     const enemies=[];let eid=0;
     const enemy=(type,x,y)=>enemies.push({id:`e${eid++}`,type,x:(x+.5)*TILE,y:(y+.5)*TILE,homeX:(x+.5)*TILE,homeY:(y+.5)*TILE,hp:LI.DATA.enemies[type].hp,maxHp:LI.DATA.enemies[type].hp,state:"idle",timer:rng.next()*2,attackTimer:0,deadUntil:0,hitFlash:0,angle:rng.next()*Math.PI*2});
-    for(let i=0;i<5;i++)enemy("slime",rng.int(25,45),rng.int(46,61));
-    for(let i=0;i<5;i++)enemy("thorn",rng.int(9,29),rng.int(12,35));
-    for(let i=0;i<4;i++)enemy("crab",rng.int(8,27),rng.int(45,59));
-    for(let i=0;i<5;i++)enemy("rockling",rng.int(46,63),rng.int(10,35));
+    const placeEnemies=(type,count,minX,maxX,minY,maxY)=>{let placed=0,tries=0;while(placed<count&&tries++<300){const x=rng.int(minX,maxX),y=rng.int(minY,maxY),wx=(x+.5)*TILE,wy=(y+.5)*TILE,tile=tiles[idx(x,y)],biome=biomes[idx(x,y)];if(tile===TILE_ID.sea||tile===TILE_ID.shallow||Math.hypot(wx-SANCTUARY.x,wy-SANCTUARY.y)<SANCTUARY.r+32||biome!==LI.DATA.enemies[type].biome)continue;if(enemies.some(e=>Math.hypot(e.x-wx,e.y-wy)<42))continue;enemy(type,x,y);placed++;}};
+    placeEnemies("slime",5,20,50,40,65);
+    placeEnemies("thorn",5,7,31,10,38);
+    placeEnemies("crab",4,7,30,42,62);
+    placeEnemies("rockling",5,43,65,8,38);
     if(!state.progress.prisms.forest)enemy("forest_warden",18,20);
     if(!state.progress.prisms.rock)enemy("stone_warden",55,19);
     return{width:W,height:H,tileSize:TILE,tiles,biomes,resources,landmarks,enemies,seed,rng,day:state.day};
@@ -92,5 +98,6 @@
     const mx=Math.max(0,Math.min(17,Math.floor(x/(W*TILE)*18))),my=Math.max(0,Math.min(17,Math.floor(y/(H*TILE)*18)));
     for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){const nx=mx+ox,ny=my+oy;if(nx>=0&&ny>=0&&nx<18&&ny<18)state.explored[ny*18+nx]=1;}
   }
-  LI.World={W,H,TILE,TILE_ID,TILE_NAME,RNG,generate,tileAt,biomeAt,buildingAt,passable,activeResource,nearby,explore};
+  function inSanctuary(x,y,padding=0){return Math.hypot(x-SANCTUARY.x,y-SANCTUARY.y)<SANCTUARY.r+padding;}
+  LI.World={W,H,TILE,TILE_ID,TILE_NAME,SANCTUARY,RNG,generate,tileAt,biomeAt,buildingAt,passable,activeResource,nearby,explore,inSanctuary};
 })();

@@ -62,10 +62,12 @@
       <button data-panel="craft" type="button" title="クラフト (C)"><svg><use href="assets/ui-icons.svg#i-craft"/></svg><span>作る</span></button>
       <button data-panel="build" type="button" title="建築 (B)"><svg><use href="assets/ui-icons.svg#i-build"/></svg><span>建てる</span></button>
       <button data-panel="journal" type="button" title="手帳 (J)"><svg><use href="assets/ui-icons.svg#i-journal"/></svg><span>手帳</span></button>
+      <button data-panel="help" type="button" title="操作説明"><span class="help-mark">?</span><span>操作</span></button>
       <button data-panel="pause" type="button" title="ポーズ (Esc)"><span class="pause-bars">Ⅱ</span><span>休憩</span></button>
     </nav>
 
-    <div id="interactionHint" class="interaction-hint is-hidden"><kbd>E</kbd><span>拾う</span></div>
+    <div id="safeBadge" class="safe-badge is-hidden"><span>☀</span><strong>陽だまり安全地帯</strong><small>敵は入ってきません</small></div>
+    <div id="interactionHint" class="interaction-hint is-hidden"><kbd id="interactionKey">E</kbd><span>拾う</span></div>
     <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
     <div id="pickupFeed" class="pickup-feed" aria-live="polite"></div>
 
@@ -73,9 +75,11 @@
 
     <div id="touchControls" class="touch-controls">
       <div id="joystick" class="joystick"><span></span></div>
+      <div id="touchSelected" class="touch-selected"><span id="touchSelectedIcon" class="sprite-icon"></span><strong id="touchSelectedName">陽ベリー</strong></div>
       <div class="touch-actions">
-        <button id="touchDodge" type="button" aria-label="回避">回避</button>
-        <button id="touchAction" type="button" aria-label="使う">使う</button>
+        <button id="touchDodge" class="touch-dodge" type="button" aria-label="回避"><span>↯</span><strong>回避</strong></button>
+        <button id="touchTool" class="touch-tool" type="button" aria-label="選択中のアイテムを使う"><span id="touchToolIcon">✦</span><strong id="touchToolLabel">食べる</strong></button>
+        <button id="touchAction" class="touch-context" type="button" aria-label="近くの対象を調べる"><span id="touchActionIcon">◎</span><strong id="touchActionLabel">調べる</strong></button>
       </div>
     </div>
 

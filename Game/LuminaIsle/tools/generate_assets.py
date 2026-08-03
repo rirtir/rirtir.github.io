@@ -104,19 +104,32 @@ def item_icon(name: str):
         pts = [(2, 11), (5, 3), (11, 2), (14, 8), (11, 13), (5, 14)]
         d.polygon(pts, fill=C["ink"]); d.polygon([(4, 10), (6, 4), (10, 4), (12, 8), (10, 11), (6, 12)], fill=color)
         d.line((6, 5, 10, 4), fill=C["cream"])
-    elif name in ("fiber", "seed", "sunroot"):
+    elif name in ("fiber", "seed", "sunroot", "moonbean_seed", "moonbean", "tide_seed", "tide_melon", "herb"):
         d.line((8, 13, 8, 5), fill=C["deep"], width=2)
-        d.ellipse((3, 3, 8, 8), fill=C["grass"], outline=C["ink"])
+        leaf_col = C["lav"] if "moonbean" in name else C["water"] if "tide" in name else C["grass"]
+        d.ellipse((3, 3, 8, 8), fill=leaf_col, outline=C["ink"])
         d.ellipse((8, 5, 13, 10), fill=C["leaf"], outline=C["ink"])
         if name == "sunroot": d.polygon([(6, 9), (11, 9), (9, 15)], fill=C["orange"], outline=C["ink"])
+        elif name == "moonbean": d.ellipse((5, 9, 11, 14), fill=C["lav"], outline=C["ink"])
+        elif name == "tide_melon": d.ellipse((4, 8, 12, 14), fill=C["water"], outline=C["ink"]); d.line((6, 9, 6, 13), fill=C["cream"])
     elif name in ("berry", "cooked_berry"):
         col = C["coral"] if name == "berry" else C["orange"]
         for x, y in ((5, 8), (9, 7), (7, 11)): d.ellipse((x-2, y-2, x+2, y+2), fill=col, outline=C["ink"])
         d.line((7, 5, 9, 2), fill=C["deep"], width=2)
-    elif name in ("fish", "cooked_fish"):
-        col = C["water"] if name == "fish" else C["orange"]
+    elif name == "fish" or name == "cooked_fish" or name.startswith("fish_"):
+        fish_colors={"fish":C["water"],"fish_sun":C["orange"],"fish_moon":C["lav"],"fish_rain":C["sky"],"fish_rock":C["rock"],"fish_glow":C["sun"],"fish_leaf":C["leaf"],"fish_coral":C["coral"],"fish_star":C["night"],"fish_prism":C["lav"],"cooked_fish":C["orange"]}
+        col = fish_colors[name]
         d.ellipse((3, 5, 12, 11), fill=col, outline=C["ink"]); d.polygon([(3, 8), (0, 4), (0, 12)], fill=col, outline=C["ink"])
         d.point((10, 7), fill=C["ink"])
+        if name=="fish_sun": d.line((5,6,7,10),fill=C["cream"])
+        elif name=="fish_moon": d.arc((5,6,9,10),80,280,fill=C["cream"])
+        elif name=="fish_rain": d.point((7,7),fill=C["cream"]); d.point((5,9),fill=C["cream"])
+        elif name=="fish_rock": d.rectangle((5,7,7,9),fill=C["copper"])
+        elif name=="fish_glow": d.point((6,7),fill=C["white"]); d.point((8,9),fill=C["white"])
+        elif name=="fish_leaf": d.line((5,9,8,6),fill=C["cream"])
+        elif name=="fish_coral": d.rectangle((5,7,6,8),fill=C["sun"]); d.rectangle((8,8,9,9),fill=C["sun"])
+        elif name=="fish_star": px(d,[(6,7),(5,8),(7,8),(6,9)],C["white"])
+        elif name=="fish_prism": d.line((5,6,9,10),fill=C["sun"]); d.line((5,10,9,6),fill=C["water"])
     elif name in ("water", "shell"):
         if name == "water":
             d.polygon([(8, 1), (13, 9), (11, 14), (5, 14), (3, 9)], fill=C["water"], outline=C["ink"])
@@ -134,17 +147,25 @@ def item_icon(name: str):
         d.polygon([(8, 1), (14, 8), (8, 15), (2, 8)], fill=C["ink"])
         d.polygon([(8, 3), (12, 8), (8, 13), (4, 8)], fill=col)
         d.line((6, 7, 8, 4), fill=C["cream"])
-    elif name in ("axe", "pickaxe", "spear", "rod", "watering_can", "hammer"):
+    elif name in ("axe", "pickaxe", "spear", "rod", "watering_can", "hammer", "sun_axe", "sun_pickaxe", "sun_spear", "sun_rod", "sun_watering_can"):
+        base = name.removeprefix("sun_")
         d.line((4, 13, 11, 4), fill=C["ink"], width=3); d.line((4, 13, 11, 4), fill="#B7784E")
-        if name == "axe": d.polygon([(8, 3), (14, 2), (13, 8), (10, 7)], fill=C["rock"], outline=C["ink"])
-        elif name == "pickaxe": d.line((6, 3, 14, 6), fill=C["ink"], width=3); d.line((7, 4, 13, 6), fill=C["rock"])
-        elif name == "spear": d.polygon([(11, 1), (15, 0), (14, 5)], fill=C["cream"], outline=C["ink"])
-        elif name == "rod": d.arc((5, 1, 15, 11), 210, 355, fill=C["ink"], width=2); d.line((13, 6, 14, 13), fill=C["ink"])
-        elif name == "watering_can": d.rounded_rectangle((2, 7, 11, 14), 2, fill=C["water"], outline=C["ink"]); d.line((10, 8, 15, 5), fill=C["ink"], width=2)
+        metal = C["sun"] if name.startswith("sun_") else C["rock"]
+        if base == "axe": d.polygon([(8, 3), (14, 2), (13, 8), (10, 7)], fill=metal, outline=C["ink"])
+        elif base == "pickaxe": d.line((6, 3, 14, 6), fill=C["ink"], width=3); d.line((7, 4, 13, 6), fill=metal)
+        elif base == "spear": d.polygon([(11, 1), (15, 0), (14, 5)], fill=C["sun"] if name.startswith("sun_") else C["cream"], outline=C["ink"])
+        elif base == "rod": d.arc((5, 1, 15, 11), 210, 355, fill=C["sun"] if name.startswith("sun_") else C["ink"], width=2); d.line((13, 6, 14, 13), fill=C["ink"])
+        elif base == "watering_can": d.rounded_rectangle((2, 7, 11, 14), 2, fill=C["sun"] if name.startswith("sun_") else C["water"], outline=C["ink"]); d.line((10, 8, 15, 5), fill=C["ink"], width=2)
         else: d.rectangle((8, 2, 14, 7), fill=C["sun"], outline=C["ink"])
-    elif name in ("soup", "glow_skewer"):
+        if name.startswith("sun_"): d.point((3, 2), fill=C["cream"]); d.point((14, 10), fill=C["cream"])
+    elif name in ("soup", "glow_skewer", "field_ration", "moon_tea", "tide_salad", "prism_stew"):
         d.ellipse((2, 6, 14, 14), fill=C["ink"]); d.ellipse((3, 6, 13, 11), fill=C["orange"])
+        if name == "moon_tea": d.ellipse((3, 6, 13, 11), fill=C["lav"])
+        elif name == "tide_salad": d.ellipse((3, 6, 13, 11), fill=C["water"])
+        elif name == "prism_stew": d.ellipse((3, 6, 13, 11), fill=C["sun"]); d.point((6,8),fill=C["lav"]); d.point((10,8),fill=C["water"])
         d.line((5, 4, 11, 2), fill=C["cream"])
+    elif name == "rope":
+        d.ellipse((2, 2, 13, 13), outline=C["ink"], width=3); d.ellipse((4, 4, 11, 11), outline=C["sand"], width=2); d.line((10, 11, 14, 14), fill=C["ink"], width=2)
     else:
         d.rounded_rectangle((3, 3, 12, 12), 2, fill=C["sun"], outline=C["ink"])
     return im
@@ -182,30 +203,44 @@ def resource(name: str, frame=0):
 DIRS = ["down", "down_right", "right", "up_right", "up", "up_left", "left", "down_left"]
 
 
-def player(direction: str, frame=0):
-    im = canvas(16, 32)
+def player(direction: str, frame=0, outfit="island"):
+    """Hina v2: a readable 20x34 silhouette based on the approved character sheet."""
+    im = canvas(20, 34)
     d = ImageDraw.Draw(im)
-    d.ellipse((2, 26, 14, 30), fill=C["night"])
+    outfits={"island":("#2CB9A8",C["sun"],C["coral"]),"grove":(C["leaf"],C["sun"],C["coral"]),"tide":(C["water"],C["coral"],C["sun"]),"starlight":(C["lav"],C["water"],C["coral"]),"keeper":(C["cream"],C["sun"],C["deep"])}
+    overall,scarf,boots=outfits.get(outfit,outfits["island"])
+    d.ellipse((2, 29, 18, 33), fill=C["night"])
     bob = 1 if frame in (1, 3) else 0
-    # legs
-    if frame % 2: d.rectangle((4, 22+bob, 7, 27+bob), fill=C["ink"]); d.rectangle((9, 21+bob, 12, 26+bob), fill=C["deep"])
-    else: d.rectangle((4, 21+bob, 7, 26+bob), fill=C["deep"]); d.rectangle((9, 22+bob, 12, 27+bob), fill=C["ink"])
-    # coat and scarf
-    d.rounded_rectangle((3, 12+bob, 12, 23+bob), 2, fill=C["ink"])
-    d.rectangle((4, 13+bob, 11, 22+bob), fill=C["white"])
-    d.rectangle((3, 13+bob, 12, 16+bob), fill=C["coral"])
-    # hood/head
-    d.ellipse((2, 3+bob, 13, 15+bob), fill=C["ink"])
-    d.rectangle((3, 6+bob, 12, 12+bob), fill=C["sun"])
-    d.rectangle((5, 9+bob, 10, 14+bob), fill="#E7A86D")
+    # Coral boots, teal overalls and ivory sleeves.
+    legs = ((5, 25+bob, 8, 30+bob), (12, 24+bob, 15, 29+bob)) if frame % 2 else ((5, 24+bob, 8, 29+bob), (12, 25+bob, 15, 30+bob))
+    for box in legs: d.rectangle(box, fill=C["ink"]); d.rectangle((box[0],box[3]-2,box[2],box[3]), fill=boots)
+    d.rounded_rectangle((3, 15+bob, 16, 27+bob), 3, fill=C["ink"])
+    d.rectangle((4, 17+bob, 15, 26+bob), fill=overall)
+    d.rectangle((2, 17+bob, 4, 23+bob), fill=C["white"]); d.rectangle((15, 17+bob, 17, 23+bob), fill=C["white"])
+    d.rectangle((6, 16+bob, 7, 24+bob), fill=C["sun"]); d.rectangle((12, 16+bob, 13, 24+bob), fill=C["sun"])
+    # Cross-body tool satchel strap remains visible from every direction.
+    if "left" in direction: d.line((14, 16+bob, 6, 25+bob), fill=C["cream"], width=2)
+    else: d.line((5, 16+bob, 13, 25+bob), fill=C["cream"], width=2)
+    # Large chestnut hair mass and warm face create a distinct human silhouette.
+    d.ellipse((1, 2+bob, 18, 18+bob), fill=C["ink"])
+    d.ellipse((2, 3+bob, 17, 17+bob), fill="#7A4934")
+    d.rectangle((1, 10+bob, 4, 17+bob), fill=C["ink"]); d.rectangle((15, 10+bob, 18, 17+bob), fill=C["ink"])
+    d.line((9, 3+bob, 12, 0+bob), fill=C["ink"], width=3); d.line((9, 3+bob, 12, 1+bob), fill="#A86644", width=1)
     vx = 0 if "left" not in direction and "right" not in direction else (-1 if "left" in direction else 1)
     vy = -1 if direction.startswith("up") else (1 if direction.startswith("down") else 0)
-    eye_y = 11+bob if vy >= 0 else 8+bob
-    eye_x = 5 if vx < 0 else 10 if vx > 0 else 6
-    if direction != "up": d.point((eye_x, eye_y), fill=C["ink"])
-    # scarf tail opposite travel direction
-    if vx >= 0: d.rectangle((1, 15+bob, 4, 17+bob), fill=C["coral"])
-    else: d.rectangle((11, 15+bob, 14, 17+bob), fill=C["coral"])
+    if vy >= 0:
+        d.rounded_rectangle((5+vx, 7+bob, 14+vx, 16+bob), 3, fill="#B96F49")
+        eye_y=11+bob
+        if vx == 0: d.rectangle((7,eye_y,8,eye_y+1),fill=C["ink"]); d.rectangle((12,eye_y,13,eye_y+1),fill=C["ink"])
+        else: d.rectangle((9+vx*2,eye_y,10+vx*2,eye_y+1),fill=C["ink"])
+        d.point((10+vx,14+bob), fill=C["coral"])
+    # Star hair clip and sunflower scarf are readable identity anchors.
+    if direction not in ("up","up_left"):
+        sx=14 if vx>=0 else 5; sy=7+bob; px(d,[(sx,sy),(sx-1,sy),(sx+1,sy),(sx,sy-1),(sx,sy+1)],C["sun"])
+    d.rectangle((4, 15+bob, 15, 17+bob), fill=scarf)
+    tail_left = vx >= 0
+    if tail_left: d.polygon([(4,16+bob),(1,18+bob),(4,20+bob)],fill=scarf,outline=C["ink"])
+    else: d.polygon([(15,16+bob),(18,18+bob),(15,20+bob)],fill=scarf,outline=C["ink"])
     return im
 
 
@@ -328,14 +363,20 @@ def main():
 
     items = ("branch", "wood", "stone", "fiber", "berry", "seed", "resin", "shell", "fish", "cooked_fish",
              "water", "ore", "copper_bar", "crystal", "light_shard", "prism_forest", "prism_tide", "prism_rock",
-             "axe", "pickaxe", "spear", "rod", "watering_can", "hammer", "sunroot", "cooked_berry", "soup", "glow_skewer")
+             "axe", "pickaxe", "spear", "rod", "watering_can", "hammer", "sunroot", "cooked_berry", "soup", "glow_skewer",
+             "fish_sun", "fish_moon", "fish_rain", "fish_rock", "fish_glow", "fish_leaf", "fish_coral", "fish_star", "fish_prism",
+             "rope", "herb", "moonbean_seed", "moonbean", "tide_seed", "tide_melon", "field_ration", "moon_tea", "tide_salad", "prism_stew",
+             "sun_axe", "sun_pickaxe", "sun_spear", "sun_rod", "sun_watering_can")
     for name in items: a.add(f"item.{name}", item_icon(name), [8, 8])
 
     for name in ("tree", "berry_bush", "rock", "ore", "crystal", "fiber", "branch"):
         for frame in range(2): a.add(f"resource.{name}.{frame}", resource(name, frame), [16, 43])
 
     for direction in DIRS:
-        for frame in range(4): a.add(f"player.{direction}.{frame}", player(direction, frame), [8, 28])
+        for frame in range(4): a.add(f"player.{direction}.{frame}", player(direction, frame), [10, 31])
+    for outfit in ("grove", "tide", "starlight", "keeper"):
+        for direction in DIRS:
+            for frame in range(4): a.add(f"player.{outfit}.{direction}.{frame}", player(direction, frame, outfit), [10, 31])
 
     for name in ("slime", "thorn", "crab", "rockling", "forest_warden", "stone_warden"):
         for frame in range(2):

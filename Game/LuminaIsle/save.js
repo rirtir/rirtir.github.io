@@ -1,7 +1,7 @@
 (function(){
   "use strict";
   const LI=window.LI=window.LI||{};
-  const VERSION=1, PREFIX="luminaIsle_save_v1_slot_", SETTINGS_KEY="luminaIsle_settings_v1";
+  const VERSION=2, PREFIX="luminaIsle_save_v1_slot_", SETTINGS_KEY="luminaIsle_settings_v1";
   const copy=value=>JSON.parse(JSON.stringify(value));
 
   function hash(text){
@@ -19,18 +19,18 @@
     const contrast=window.matchMedia?.("(prefers-contrast: more)")?.matches||false;
     return {master:.8,music:.62,sfx:.82,ambient:.5,muted:false,uiScale:1,needsRate:1,enemyDamage:1,
       fishingAssist:1,highContrast:contrast,reducedMotion:reduced,screenShake:!reduced,particles:"high",quality:"auto",
-      touchLayout:"right",joystick:"fixed",tapMove:false,autoRun:false,vibration:true};
+      touchLayout:"right",joystick:"fixed",tapMove:false,autoRun:false,vibration:true,touchButtonScale:1};
   }
   function newState(slot,seedText){
     const seed=seedFrom(seedText);
     return {schemaVersion:VERSION,slot,seed,seedText:String(seedText||seed.toString(36).toUpperCase()),rngState:seed,
       createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),playSeconds:0,day:1,clock:60,weather:"sunny",
-      player:{x:36.5*16,y:54.5*16,dir:"up",hp:100,food:88,water:90,stamina:100,maxHp:100,maxStamina:100,
+      player:{x:36.5*16,y:54.5*16,dir:"down",hp:100,food:88,water:90,stamina:100,maxHp:100,maxStamina:100,
         spawnX:36.5*16,spawnY:54.5*16,invulnerable:0,buffUntil:0,glowUntil:0,watering:0},
       inventory:{branch:2,berry:2},hotbar:["axe","pickaxe","spear","rod","berry","cooked_fish","watering_can","hammer"],selectedHotbar:4,
       buildings:[],storage:{},crops:[],terrainChanges:[],removedResources:{},discovered:[],
-      progress:{objective:0,lighthouseSeen:false,lighthouseStage:0,prisms:{forest:false,tide:false,rock:false},forestPlanted:0,fishOffered:[],windstones:[false,false,false],endingSeen:false,postgameRewardDay:0,regions:{grass:false,forest:false,beach:false,rock:false}},
-      achievements:{},crafted:{},fishCaught:{},stats:{gathered:0,gatheredBranch:0,gatheredStone:0,crafted:0,cooked:0,built:0,harvested:0,fishCaught:0,enemiesCalmed:0,dodges:0,damageTaken:0,planted:0,passedNights:0,knockouts:0},
+      progress:{objective:0,lighthouseSeen:false,lighthouseStage:0,prisms:{forest:false,tide:false,rock:false},forestPlanted:0,fishOffered:[],windstones:[false,false,false],endingSeen:false,postgameRewardDay:0,regions:{grass:false,forest:false,beach:false,rock:false},tutorialDone:false,enemyGraceUntil:120,relics:Array(8).fill(false),commissionsDay:0,commissions:[],sunBadges:0,upgrades:{},masteryLevels:{},masteryRewards:{},outfit:"island"},
+      achievements:{},crafted:{},fishCaught:{},stats:{gathered:0,gatheredBranch:0,gatheredStone:0,crafted:0,cooked:0,built:0,harvested:0,fishCaught:0,enemiesCalmed:0,dodges:0,damageTaken:0,planted:0,passedNights:0,knockouts:0,relics:0,commissions:0,distance:0},
       explored:Array(18*18).fill(0),messagesSeen:{},settings:loadSettings()};
   }
   function loadSettings(){
@@ -56,7 +56,9 @@
     const base=newState(state.slot||1,state.seedText||state.seed);
     const merged={...base,...state};
     merged.player={...base.player,...state.player};
-    merged.progress={...base.progress,...state.progress,prisms:{...base.progress.prisms,...state.progress?.prisms},regions:{...base.progress.regions,...state.progress?.regions}};
+    merged.progress={...base.progress,...state.progress,prisms:{...base.progress.prisms,...state.progress?.prisms},regions:{...base.progress.regions,...state.progress?.regions},upgrades:{...base.progress.upgrades,...state.progress?.upgrades},masteryLevels:{...base.progress.masteryLevels,...state.progress?.masteryLevels},masteryRewards:{...base.progress.masteryRewards,...state.progress?.masteryRewards}};
+    merged.progress.relics=Array.from({length:8},(_,i)=>!!state.progress?.relics?.[i]);
+    merged.progress.commissions=Array.isArray(state.progress?.commissions)?state.progress.commissions:[];
     merged.stats={...base.stats,...state.stats};merged.settings={...loadSettings(),...state.settings};
     merged.schemaVersion=VERSION;return merged;
   }
