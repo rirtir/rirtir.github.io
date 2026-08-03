@@ -3,6 +3,13 @@ const data = [
         category: "ゲーム",
         links: [
             {
+                title: "ANCHOR//VECTOR — 星環の残響",
+                url: "https://rirtir.com/Game/AnchorVector/",
+                desc: "時間を遅くして3D空間に経路を描き、高速斬撃へ変えるスマホ向けアクション・ローグライト。",
+                tags: ["ソロ", "3Dアクション", "やり込み", "ゲーム"],
+                main: true,
+            },
+            {
                 title: "黎明列車 ― 七夜の終着点",
                 url: "https://rirtir.com/Game/DawnTrain/",
                 desc: "手描きの装甲列車を指揮し、夜に沈む世界を七夜で横断する全7章の戦術RPG。",
