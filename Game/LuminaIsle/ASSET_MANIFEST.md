@@ -1,4 +1,4 @@
-# 陽だまりクラフト — P8アセット台帳
+# 陽だまりクラフト — P9アセット台帳
 
 状態記号: `[x] 完了 / [ ] 未完了 / [-] 保守用・実行時未使用`
 
@@ -15,10 +15,15 @@
 - [x] `assets/world-objects-v3-source.png` / `world-objects-v3.png` — 資源・敵・作物6×4
 - [x] `assets/buildings-v3-source.png` / `buildings-v3.png` — 建築・ランドマーク6×5
 - [x] `assets/ui-icons-v3-source.png` / `ui-icons-v3.png` — UIアイコン4×4
+- [x] `assets/generated-v4/` — 主人公16、アイテム48、世界24、建築30、UI16の独立透過PNG、計134点
+- [x] `assets/generated-v4.js` / `.json` — 実行時パスと検査用の独立アセット台帳
+- [x] `assets/terrain-v4/*-source.png` — imagegen地表原本5点（草原、林床、砂、岩、水）
+- [x] `assets/terrain-v4/{meadow,forest,sand,rock,water}.png` — 512×512・192色の実行時最適化版
 - [x] 全読込用PNGへクロマキー除去、ソフトマット、デスピル処理
-- [x] 文字、透かし、第三者ロゴ、セル越境、欠落を目視監査
+- [x] 文字、透かし、第三者ロゴ、欠落を目視監査
+- [x] 連結画素を所属セルへ割り当て、別セルを透明化。独立PNG134点の端接触0
 
-`*-source.png` は生成原本、末尾が `-v3.png` の同名ファイルは実行時の透過版。全シートの正確なセル順と最終プロンプトは `assets/IMAGE_PROMPT.md` に記録する。
+`*-source.png` は生成原本、末尾が `-v3.png` のシートは分離元の透過版。実行時は `generated-v4/` の独立画像を使い、シートを数値グリッドで切り出さない。全シートのセル順と最終プロンプト、地表生成プロンプトは `assets/IMAGE_PROMPT.md` に記録する。
 
 ## 2. ゲーム内適用
 
@@ -36,10 +41,12 @@
 
 - [x] `assets/sprites.png` / `.json` / `.js` — 地形、海岸線、補助物、旧セーブ互換用
 - [x] `tools/generate_assets.py` — 上記決定的アトラスの生成元
+- [x] `tools/split_generated_assets.py` — 生成シートを連結画素単位で134点へ分離し、主人公を足元揃え
+- [x] `tools/process_terrain.py` — 地表原本をドット境界のまま512×512へ最適化
 - [x] Canvasコード演出 — 海、雨、影、危険予告、粒子、照明、配置枠
 - [-] `assets/ui-icons.svg` — P7履歴用ソース。P8では読込も表示もしない
 
-主要キャラクター、道具、資源、敵、建築、手帳アイコンは旧16pxスプライトへフォールバックさせず、生成PNGの対応セルを使用する。地形タイルは低密度の背景として残し、操作対象より主張しない。
+主要キャラクター、道具、資源、敵、建築、手帳アイコンは旧16pxスプライトや生成シートへフォールバックさせず、独立PNGを使用する。地形は生成した5種の連続テクスチャをCanvasパターンで描き、海の光と危険予告だけをコード演出する。
 
 ## 4. UIでの現物表示
 
@@ -61,7 +68,7 @@
 
 ## 6. 生成方式と権利
 
-- [x] P8画像はOpenAI built-in imagegenの通常生成
+- [x] P8キャラクター・物品画像とP9地表画像はOpenAI built-in imagegenの通常生成
 - [x] `assets/IMAGE_PROMPT.md` に実行方式、参照有無、最終プロンプト、セル順を記録
 - [x] 外部由来素材、第三者ロゴ、外部フォント、実行時素材通信なし
 - [x] 生成原本と加工版をリポジトリ内へ同梱

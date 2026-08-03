@@ -1,10 +1,10 @@
 # 画像生成記録
 
-## 実行方式
+## キービジュアル実行方式
 
 - 方式: built-in imagegen（通常生成、プロジェクト用）
 - 分類: `stylized-concept`
-- 参照画像: なし
+- 参照画像: なし（P9地表は後段記載の世界オブジェクト画像を参照）
 - 出力: 生成後にこのフォルダへ保存し、WebP/JPEG派生版を制作する
 
 ## キービジュアル最終プロンプト
@@ -193,3 +193,46 @@ Style/medium: polished high-detail 2D pixel art, hard square pixels, dark-navy o
 Constraints: exactly 16 icons; meanings must be obvious without labels; full symbols visible; no emoji; no people; no extra text other than the single question-mark symbol; no letters; no numbers; no watermark; #ff00ff background perfectly uniform and absent from icons.
 Avoid: abstract circles, diamonds, suits, generic runes, ambiguous crossed tools, thin line-only icons, smooth vector art, UI button backgrounds.
 ```
+
+## P9 地表テクスチャ生成
+
+- 方式: OpenAI built-in imagegen、通常生成（generate）
+- 分類: `stylized-concept`
+- スタイル参照: `assets/world-objects-v3.png`
+- 生成原本: `assets/terrain-v4/*-source.png`
+- 実行時版: `assets/terrain-v4/{meadow,sand,forest,rock,water}.png`
+- 後処理: `tools/process_terrain.py` でNEAREST 512×512、192色、ディザなしへ最適化。生成原本は変更せず保存。
+
+### 草原
+
+```text
+Create one seamless tileable top-down meadow ground texture for a bright, friendly survival-crafting game. Match the attached reference sheet's polished high-resolution pixel-art style: crisp hand-placed pixel clusters, warm outlines where appropriate, readable color grouping, cheerful high-key lighting, and moderately rich detail. Camera is perfectly orthographic top-down. Fill the entire square edge-to-edge with continuous short spring-green grass, subtle mint and yellow-green blade clusters, tiny neutral soil flecks, and very sparse miniature cream flower pixels. This is terrain only: no standalone plants, bushes, trees, stones, items, characters, paths, shadows, border, frame, grid, labels, text, UI, or empty transparent areas. Keep contrast gentle so foreground characters remain legible. All four edges must tile seamlessly with no visible seam. Pixel art, no blur, no anti-aliased painted look.
+```
+
+### 砂浜
+
+```text
+Create one seamless tileable top-down warm beach-sand ground texture for a bright, friendly survival-crafting game. Match the attached reference sheet's polished high-resolution pixel-art style: crisp hand-placed pixel clusters, warm cheerful palette, readable color grouping, high-key daylight, moderately rich but quiet terrain detail. Camera is perfectly orthographic top-down. Fill the entire square edge-to-edge with continuous pale honey-cream sand, fine ochre pixel stippling, subtle shallow wind ripples, and a few tiny coral-pink mineral flecks integrated into the ground. Terrain only: absolutely no shells, stones, plants, water, footprints, items, characters, shadows, border, frame, grid, labels, text, UI, or transparent areas. Keep contrast gentle so foreground objects remain legible. All four edges must tile seamlessly with no visible seam. Pixel art, no blur, no painted gradients.
+```
+
+### 林床
+
+```text
+Create one seamless tileable top-down sunlit forest-floor ground texture for a bright, friendly survival-crafting game. Match the attached reference sheet's polished high-resolution pixel-art style: crisp hand-placed pixel clusters, warm outlines, readable color grouping, high-key lighting, moderately rich detail. Camera is perfectly orthographic top-down. Fill the entire square edge-to-edge with continuous soft moss-green earth, muted teal grass fragments, warm brown leaf-litter pixels, a few tiny golden leaf flecks, and subtle exposed soil patches blended into the ground. Terrain only: no standalone plants, ferns, mushrooms, bushes, trees, rocks, roots, items, characters, cast shadows, border, frame, grid, labels, text, UI, or transparent areas. Keep contrast gentle and values slightly deeper than meadow grass so foreground objects remain clear. All four edges must tile seamlessly with no visible seam. Pixel art, no blur, no painterly gradients.
+```
+
+### 岩丘
+
+```text
+Create one seamless tileable top-down pale stone-plateau ground texture for a bright, friendly survival-crafting game. Match the attached reference sheet's polished high-resolution pixel-art style: crisp hand-placed pixel clusters, warm cheerful palette, readable shapes, high-key daylight, moderately rich but quiet detail. Camera is perfectly orthographic top-down. Fill the entire square edge-to-edge with continuous light blue-gray and warm ivory worn stone, small irregular interlocking mineral patches, extremely shallow hairline seams, and sparse muted lavender mineral flecks embedded in the surface. It must read as walkable natural stone ground, not separate rocks. Terrain only: no boulders, loose stones, crystals, grass, plants, cliffs, holes, items, characters, cast shadows, border, frame, grid, labels, text, UI, or transparent areas. Keep contrast gentle so foreground enemies and resources remain legible. All four edges must tile seamlessly with no visible seam. Pixel art, no blur, no realistic photo texture, no painted gradients.
+```
+
+### 水面
+
+```text
+Create one seamless tileable perfectly top-down shallow tropical seawater texture for a bright, friendly survival-crafting game. Match the attached reference sheet's polished high-resolution pixel-art style: crisp hand-placed pixel clusters, high-key luminous palette, readable color grouping, moderately rich but calm detail. Fill the entire square edge-to-edge with continuous turquoise and aqua water, small soft horizontal wavelet clusters, occasional pale cyan glints, and subtly darker teal depth patches. Terrain only: no shore, sand, foam border, fish, coral, shells, rocks, plants, boats, items, characters, cast shadows, border, frame, grid, labels, text, UI, or transparent areas. Keep contrast gentle so shoreline objects remain legible. All four edges must tile seamlessly with no visible seam. Pixel art, no blur, no realistic photo water, no large waves, no painted gradients.
+```
+
+## P9 シート分離（生成ではなく機械処理）
+
+`tools/split_generated_assets.py` はP8透過シート6枚からアルファ連結成分を検出し、重心が属する意図セルへ割り当てる。出力時は割当外ラベルを透明化して隣セル混入を除き、5pxの余白を加える。主人公16枚だけは最大幅・高さの共通キャンバスへ足元中央揃えする。出力は `assets/generated-v4/` の134枚、パス台帳は `assets/generated-v4.js` / `.json`。
