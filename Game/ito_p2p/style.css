@@ -865,6 +865,62 @@ footer {
   color: #ffb2bc;
 }
 
+.diagnostic-details {
+  margin: 0 24px 24px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(4, 12, 25, 0.55);
+}
+
+.diagnostic-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+.diagnostic-details summary strong {
+  color: var(--cyan);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+.diagnostic-details[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.diagnostic-hint {
+  margin: 14px 15px 0;
+  color: #d9e5f5;
+  font-size: 0.84rem;
+  line-height: 1.65;
+}
+
+.diagnostic-text {
+  max-height: 250px;
+  margin: 12px 15px;
+  padding: 12px;
+  overflow: auto;
+  border-radius: 10px;
+  background: #050b15;
+  color: #aebed3;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diagnostic-details > .small-button {
+  margin: 0 15px 15px;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding-right: 14px;
@@ -952,6 +1008,11 @@ footer {
   .role-panel,
   .dialog-pane {
     padding: 20px;
+  }
+
+  .diagnostic-details {
+    margin-right: 20px;
+    margin-left: 20px;
   }
 
   .session-actions .small-button {

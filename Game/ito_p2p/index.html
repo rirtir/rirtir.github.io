@@ -248,10 +248,20 @@
     </div>
 
     <div id="signalError" class="dialog-pane error-pane hidden">
-      <h3>接続情報を処理できませんでした</h3>
+      <h3 id="signalErrorTitle">接続情報を処理できませんでした</h3>
       <p id="signalErrorText"></p>
       <button id="retryScanBtn" class="small-button">もう一度読み取る</button>
     </div>
+
+    <details id="diagnosticDetails" class="diagnostic-details hidden">
+      <summary>
+        <span>接続診断</span>
+        <strong id="diagnosticHeadline">確認中</strong>
+      </summary>
+      <p id="diagnosticHint" class="diagnostic-hint"></p>
+      <pre id="diagnosticText" class="diagnostic-text"></pre>
+      <button id="copyDiagnosticBtn" class="small-button">診断結果をコピー</button>
+    </details>
   </dialog>
 
   <noscript>このゲームにはJavaScriptが必要です。</noscript>
