@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10203d">
+  <meta name="description" content="サーバーを使わず、WebRTCでスマホ同士を直接つないで遊ぶito">
+  <title>ito P2P — サーバーレス対戦</title>
+  <link rel="stylesheet" href="../../css/common-style.css">
+  <link rel="stylesheet" href="style.css">
+  <script defer src="vendor/qrcode-generator-1.4.4.js"></script>
+  <script defer src="vendor/jsQR-1.4.0.js"></script>
+  <script defer src="game-core.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="site-header">
+      <a class="back-link" href="../../" aria-label="ポータルへ戻る">← ポータル</a>
+      <div>
+        <p class="eyebrow">PEER TO PEER PARTY GAME</p>
+        <h1>ito <span>P2P</span></h1>
+      </div>
+      <span class="experiment-badge">実験版</span>
+    </header>
+
+    <section id="setupScreen" class="screen setup-screen">
+      <div class="hero-copy">
+        <p class="hero-kicker">ゲームサーバー不要</p>
+        <h2>スマホ同士を直接つないで、<br>数字の感覚を合わせよう。</h2>
+        <p>
+          片方がホストになり、QRコードをお互いに1回ずつ読み取ります。
+          ゲーム中のデータはWebRTCで端末間を直接移動します。
+        </p>
+      </div>
+
+      <div class="setup-grid">
+        <article class="panel role-panel host-panel">
+          <div class="role-number">01</div>
+          <p class="panel-label">最初のスマホ</p>
+          <h3>部屋を作る</h3>
+          <p class="muted">この端末がカード配布とゲーム進行を担当します。</p>
+          <label class="field-label" for="hostName">表示名</label>
+          <input id="hostName" class="text-input" maxlength="16" value="ホスト" autocomplete="nickname">
+          <label class="check-row" for="useStun">
+            <input id="useStun" type="checkbox">
+            <span>
+              <strong>STUNを利用する</strong>
+              <small>別ネットワークでも直接接続を試します。Cloudflareの外部サービスを利用します。</small>
+            </span>
+          </label>
+          <button id="createRoomBtn" class="primary-action">この端末で部屋を作る</button>
+        </article>
+
+        <article class="panel role-panel guest-panel">
+          <div class="role-number">02</div>
+          <p class="panel-label">参加するスマホ</p>
+          <h3>QRから参加する</h3>
+          <p class="muted">ホストに表示された招待QRを読み取ってください。</p>
+          <label class="field-label" for="guestName">表示名</label>
+          <input id="guestName" class="text-input" maxlength="16" value="ゲスト" autocomplete="nickname">
+          <label class="field-label" for="guestRole">参加方法</label>
+          <select id="guestRole" class="text-input">
+            <option value="player">プレイヤーとして参加</option>
+            <option value="spectator">観戦者として参加</option>
+          </select>
+          <button id="joinRoomBtn" class="secondary-action">招待QRを読み取る</button>
+          <p id="guestConnectStatus" class="inline-status" aria-live="polite"></p>
+        </article>
+      </div>
+
+      <details class="howto panel">
+        <summary>接続手順と注意点</summary>
+        <ol>
+          <li>可能なら全端末を同じWi-Fiに接続します。</li>
+          <li>ホストの招待QRを参加端末で読み取ります。</li>
+          <li>参加端末に出た回答QRを、ホストで読み取ります。</li>
+          <li>接続後はホストが参加者ごとに同じ操作を繰り返します。</li>
+        </ol>
+        <p>
+          STUNなしなら外部の通信補助サービスも使いません。STUNを使っても通信環境によっては接続できず、
+          TURN中継には対応していません。ホストはゲーム中、この画面を開いたままにしてください。
+        </p>
+      </details>
+    </section>
+
+    <section id="sessionScreen" class="screen session-screen hidden">
+      <div class="session-bar panel">
+        <div>
+          <p class="panel-label">CONNECTION</p>
+          <div class="status-line">
+            <span id="connectionDot" class="status-dot"></span>
+            <strong id="connectionLabel">準備中</strong>
+            <span id="networkModeBadge" class="mini-badge"></span>
+          </div>
+        </div>
+        <div class="session-actions">
+          <button id="addPeerBtn" class="small-button hidden">参加者を追加</button>
+          <button id="scanAnswerBtn" class="small-button accent-button hidden">回答QRを読む</button>
+          <button id="leaveSessionBtn" class="small-button danger-button">退出</button>
+        </div>
+      </div>
+
+      <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+
+      <section id="lobbyView" class="game-view">
+        <div class="view-heading">
+          <div>
+            <p class="eyebrow">LOBBY</p>
+            <h2>参加者を待っています</h2>
+          </div>
+          <span id="playerCountBadge" class="count-badge">0人</span>
+        </div>
+
+        <div class="lobby-layout">
+          <div class="panel roster-panel">
+            <h3>プレイヤー</h3>
+            <div id="playerList" class="roster-list"></div>
+            <h3 class="spectator-heading">観戦</h3>
+            <div id="spectatorList" class="roster-list"></div>
+          </div>
+          <div class="panel start-panel">
+            <div class="big-mark">↗</div>
+            <h3 id="lobbyActionTitle">接続を待っています</h3>
+            <p id="lobbyActionText" class="muted">ホストがゲームを開始すると、自動的に画面が切り替わります。</p>
+            <button id="startGameBtn" class="primary-action hidden">ゲームを開始する</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="confirmView" class="game-view hidden">
+        <div class="view-heading compact-heading">
+          <div>
+            <p class="eyebrow">CHECK YOUR NUMBER</p>
+            <h2>自分の数字を確認</h2>
+          </div>
+          <span id="confirmProgress" class="count-badge">0 / 0</span>
+        </div>
+        <div class="phase-layout">
+          <div id="privateCard" class="number-card private-card">
+            <span id="privateCardSlot" class="card-owner">1P</span>
+            <strong id="privateCardNumber">?</strong>
+          </div>
+          <div class="panel instruction-panel">
+            <h3 id="confirmInstruction">数字を覚えてください</h3>
+            <p class="muted">ほかの人には見せず、確認できたらボタンを押します。</p>
+            <button id="confirmNumberBtn" class="primary-action">確認しました</button>
+            <p id="confirmWaitingText" class="inline-status"></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="discussionView" class="game-view hidden">
+        <div class="view-heading compact-heading">
+          <div>
+            <p class="eyebrow">DISCUSSION</p>
+            <h2>相談して、小さい順に出そう</h2>
+          </div>
+          <span id="revealProgress" class="count-badge">0 / 0</span>
+        </div>
+        <div class="topic-panel panel">
+          <p class="panel-label">今回のお題</p>
+          <p id="topicText" class="topic-text"></p>
+        </div>
+        <div>
+          <p class="section-label">場に出たカード</p>
+          <div id="revealedCards" class="card-row empty-cards"></div>
+        </div>
+        <div id="handPanel" class="hand-panel panel">
+          <div id="handCard" class="number-card hand-card">
+            <span id="handCardSlot" class="card-owner">1P</span>
+            <strong id="handCardNumber">?</strong>
+          </div>
+          <div>
+            <h3 id="handTitle">あなたの手札</h3>
+            <p id="handDescription" class="muted">順番が来たと思ったら公開してください。</p>
+            <button id="revealCardBtn" class="primary-action">このカードを公開する</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="resultView" class="game-view hidden">
+        <div id="resultHero" class="result-hero success">
+          <p class="eyebrow">RESULT</p>
+          <h2 id="resultTitle">成功！</h2>
+          <p id="resultSubtitle"></p>
+        </div>
+        <div id="resultCards" class="card-row result-cards"></div>
+        <div class="result-actions panel">
+          <p id="resultWaiting" class="muted">ホストが次のゲームを準備するまでお待ちください。</p>
+          <button id="restartGameBtn" class="primary-action hidden">もう一度遊ぶ</button>
+          <button id="backToLobbyBtn" class="secondary-action hidden">ロビーへ戻る</button>
+        </div>
+      </section>
+    </section>
+
+    <footer>
+      <p>WebRTC DataChannelによる端末間通信。ゲームサーバーにプレイ内容は保存されません。</p>
+      <p><a href="README.md">技術情報・制限事項</a></p>
+    </footer>
+  </main>
+
+  <dialog id="signalDialog" class="signal-dialog">
+    <div class="dialog-header">
+      <div>
+        <p class="panel-label">PAIRING</p>
+        <h2 id="dialogTitle">端末を接続</h2>
+      </div>
+      <button id="closeDialogBtn" class="icon-button" aria-label="閉じる">×</button>
+    </div>
+
+    <div id="signalPreparing" class="dialog-pane">
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="preparingText">接続情報を準備しています…</p>
+    </div>
+
+    <div id="signalDisplay" class="dialog-pane hidden">
+      <p id="displayInstruction" class="dialog-instruction"></p>
+      <div id="qrDisplay" class="qr-display"></div>
+      <div id="qrPager" class="qr-pager hidden">
+        <button id="prevQrBtn" class="pager-button">← 前</button>
+        <span id="qrPageLabel">1 / 1</span>
+        <button id="nextQrBtn" class="pager-button">次 →</button>
+      </div>
+      <div class="dialog-actions">
+        <button id="copySignalBtn" class="small-button">接続コードをコピー</button>
+        <button id="displayNextActionBtn" class="small-button accent-button hidden">回答QRを読み取る</button>
+      </div>
+      <details class="manual-details">
+        <summary>QRを使えない場合</summary>
+        <textarea id="outgoingSignalText" class="signal-text" readonly></textarea>
+      </details>
+    </div>
+
+    <div id="signalScanner" class="dialog-pane hidden">
+      <p id="scannerInstruction" class="dialog-instruction"></p>
+      <div class="camera-frame">
+        <video id="scannerVideo" playsinline muted></video>
+        <div class="scan-guide" aria-hidden="true"></div>
+      </div>
+      <canvas id="scannerCanvas" class="hidden"></canvas>
+      <p id="scanProgress" class="inline-status" aria-live="polite"></p>
+      <details class="manual-details">
+        <summary>コードを貼り付けて接続</summary>
+        <textarea id="incomingSignalText" class="signal-text" placeholder="ITOP2P1: から始まる接続コード"></textarea>
+        <button id="applySignalBtn" class="small-button">貼り付けたコードを適用</button>
+      </details>
+    </div>
+
+    <div id="signalError" class="dialog-pane error-pane hidden">
+      <h3>接続情報を処理できませんでした</h3>
+      <p id="signalErrorText"></p>
+      <button id="retryScanBtn" class="small-button">もう一度読み取る</button>
+    </div>
+  </dialog>
+
+  <noscript>このゲームにはJavaScriptが必要です。</noscript>
+</body>
+</html>

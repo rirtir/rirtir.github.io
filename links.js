@@ -45,6 +45,13 @@ const data = [
                 main: false,
             },
             {
+                title: "ito P2P",
+                url: "https://rirtir.com/Game/ito_p2p/",
+                desc: "QRでスマホ同士を直接接続する、サーバーレス版ito（実験版）",
+                tags: ["みんなで", "スマホ複数台", "P2P", "わいわい", "ゲーム"],
+                main: false,
+            },
+            {
                 title: "ブレインビータ",
                 url: "https://rirtir.com/Game/BrainVita/",
                 desc: "玉を飛び越して消していくゲーム。楽しいよ",
