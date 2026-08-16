@@ -29,7 +29,7 @@
         <p class="hero-kicker">ゲームサーバー不要</p>
         <h2>スマホ同士を直接つないで、<br>数字の感覚を合わせよう。</h2>
         <p>
-          片方がホストになり、QRコードをお互いに1回ずつ読み取ります。
+          片方がホストになり、招待リンクを送るかQRコードを読み取ってもらいます。
           ゲーム中のデータはWebRTCで端末間を直接移動します。
         </p>
       </div>
@@ -56,7 +56,7 @@
           <div class="role-number">02</div>
           <p class="panel-label">参加するスマホ</p>
           <h3>QRから参加する</h3>
-          <p class="muted">ホストに表示された招待QRを読み取ってください。</p>
+          <p id="guestPanelHint" class="muted">ホストから届いた招待リンクを開くか、招待QRを読み取ってください。</p>
           <label class="field-label" for="guestName">表示名</label>
           <input id="guestName" class="text-input" maxlength="16" value="ゲスト" autocomplete="nickname">
           <label class="field-label" for="guestRole">参加方法</label>
@@ -73,7 +73,7 @@
         <summary>接続手順と注意点</summary>
         <ol>
           <li>可能なら全端末を同じWi-Fiに接続します。</li>
-          <li>ホストの招待QRを参加端末で読み取ります。</li>
+          <li>ホストの招待リンクを参加端末で開きます（リンクが使えない場合は招待QRを読み取ります）。</li>
           <li>参加端末に出た回答QRを、ホストで読み取ります。</li>
           <li>接続後はホストが参加者ごとに同じ操作を繰り返します。</li>
         </ol>
@@ -216,6 +216,15 @@
 
     <div id="signalDisplay" class="dialog-pane hidden">
       <p id="displayInstruction" class="dialog-instruction"></p>
+      <div id="shareLinkBlock" class="share-link-block hidden">
+        <label class="field-label" for="shareLinkInput">招待リンク</label>
+        <div class="share-link-row">
+          <input id="shareLinkInput" class="text-input signal-link-input" type="text" readonly>
+          <button id="shareLinkCopyBtn" class="small-button">コピー</button>
+          <button id="shareLinkBtn" class="small-button accent-button hidden">共有</button>
+        </div>
+        <p class="muted small-note">このリンクを送れば、相手はQRを読み取らずに参加できます。</p>
+      </div>
       <div id="qrDisplay" class="qr-display"></div>
       <div id="qrPager" class="qr-pager hidden">
         <button id="prevQrBtn" class="pager-button">← 前</button>

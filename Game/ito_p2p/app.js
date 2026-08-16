@@ -3,7 +3,9 @@
 
   const HOST_ID = "host";
   const SIGNAL_PREFIX = "ITOP2P1";
-  const QR_CHUNK_SIZE = 720;
+  // Base45をQRのAlphanumericモード（1文字5.5bit）で運ぶため、Base64+Byteモード（1文字8bit）だった
+  // 旧実装の720文字より大きい枠を1枚のQRに収められる。同程度の見た目の密度になるよう逆算した値。
+  const QR_CHUNK_SIZE = 1024;
   const STUN_URL = "stun:stun.cloudflare.com:3478";
   const ICE_GATHER_TIMEOUT_WITH_STUN = 30000;
   const ICE_GATHER_TIMEOUT_LOCAL = 10000;
@@ -27,6 +29,7 @@
     createRoomBtn: byId("createRoomBtn"),
     joinRoomBtn: byId("joinRoomBtn"),
     guestConnectStatus: byId("guestConnectStatus"),
+    guestPanelHint: byId("guestPanelHint"),
     connectionDot: byId("connectionDot"),
     connectionLabel: byId("connectionLabel"),
     networkModeBadge: byId("networkModeBadge"),
@@ -83,6 +86,10 @@
     copySignalBtn: byId("copySignalBtn"),
     displayNextActionBtn: byId("displayNextActionBtn"),
     outgoingSignalText: byId("outgoingSignalText"),
+    shareLinkBlock: byId("shareLinkBlock"),
+    shareLinkInput: byId("shareLinkInput"),
+    shareLinkCopyBtn: byId("shareLinkCopyBtn"),
+    shareLinkBtn: byId("shareLinkBtn"),
     signalScanner: byId("signalScanner"),
     scannerInstruction: byId("scannerInstruction"),
     scannerVideo: byId("scannerVideo"),
@@ -112,6 +119,7 @@
   let guestPeer = null;
   let guestProfile = null;
   let wakeLock = null;
+  let pendingUrlOffer = null;
   const hostPeers = new Map();
 
   let currentQrChunks = [];
@@ -484,20 +492,54 @@
     return false;
   }
 
-  function bytesToBase64Url(bytes) {
-    let binary = "";
-    for (let offset = 0; offset < bytes.length; offset += 0x8000) {
-      const slice = bytes.subarray(offset, Math.min(offset + 0x8000, bytes.length));
-      binary += String.fromCharCode(...slice);
+  // RFC 9285 Base45。QRコードのAlphanumericモードの文字集合と完全に一致するため、
+  // Base64+ByteモードよりもQRコード上のデータ密度を下げられる（EUのデジタル証明書QRと同じ理由）。
+  const BASE45_CHARSET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+  const BASE45_LOOKUP = new Map(Array.from(BASE45_CHARSET, (char, index) => [char, index]));
+
+  function base45Encode(bytes) {
+    let text = "";
+    let index = 0;
+    for (; index + 1 < bytes.length; index += 2) {
+      const value = bytes[index] * 256 + bytes[index + 1];
+      const e = Math.floor(value / 2025);
+      const remainder = value % 2025;
+      const d = Math.floor(remainder / 45);
+      const c = remainder % 45;
+      text += BASE45_CHARSET[c] + BASE45_CHARSET[d] + BASE45_CHARSET[e];
     }
-    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    if (index < bytes.length) {
+      const value = bytes[index];
+      const d = Math.floor(value / 45);
+      const c = value % 45;
+      text += BASE45_CHARSET[c] + BASE45_CHARSET[d];
+    }
+    return text;
   }
 
-  function base64UrlToBytes(value) {
-    const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
-    const binary = atob(padded);
-    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  function base45Decode(text) {
+    const codes = [];
+    for (const character of text) {
+      const value = BASE45_LOOKUP.get(character);
+      if (value === undefined) throw new Error("接続コードにBase45として解釈できない文字が含まれています。");
+      codes.push(value);
+    }
+    const bytes = [];
+    let index = 0;
+    for (; index + 2 < codes.length; index += 3) {
+      const value = codes[index] + codes[index + 1] * 45 + codes[index + 2] * 2025;
+      if (value > 0xffff) throw new Error("接続コードのBase45デコードに失敗しました。");
+      bytes.push((value >> 8) & 0xff, value & 0xff);
+    }
+    const remaining = codes.length - index;
+    if (remaining === 2) {
+      const value = codes[index] + codes[index + 1] * 45;
+      if (value > 0xff) throw new Error("接続コードのBase45デコードに失敗しました。");
+      bytes.push(value);
+    } else if (remaining !== 0) {
+      throw new Error("接続コードの長さが正しくありません。");
+    }
+    return Uint8Array.from(bytes);
   }
 
   async function gzip(bytes) {
@@ -516,20 +558,23 @@
       try {
         const compressed = await gzip(raw);
         if (compressed.length < raw.length) {
-          return `${SIGNAL_PREFIX}:g:${bytesToBase64Url(compressed)}`;
+          return `${SIGNAL_PREFIX}:g:${base45Encode(compressed)}`;
         }
       } catch (_error) {
         // 圧縮非対応の実装では非圧縮形式にフォールバックする。
       }
     }
-    return `${SIGNAL_PREFIX}:n:${bytesToBase64Url(raw)}`;
+    return `${SIGNAL_PREFIX}:n:${base45Encode(raw)}`;
   }
 
   async function decodeSignal(code) {
-    const compact = String(code).replace(/\s+/g, "");
-    const match = compact.match(/^ITOP2P1:([gn]):([A-Za-z0-9_-]+)$/);
+    // Base45は半角スペースを有効な符号として使う。QRスキャン結果は前後に余分な
+    // 空白が付かないため、ここでは改行・タブだけを除き、末尾の空白は保持する
+    // （末尾のtrimは貼り付け操作側でのみ行う）。
+    const compact = String(code).replace(/[\r\n\t]+/g, "");
+    const match = compact.match(/^ITOP2P1:([gn]):([0-9A-Z $%*+./:-]+)$/);
     if (!match) throw new Error("ito P2P用の接続コードではありません。");
-    let bytes = base64UrlToBytes(match[2]);
+    let bytes = base45Decode(match[2]);
     if (match[1] === "g") {
       if (!("DecompressionStream" in window)) {
         throw new Error("このブラウザは圧縮された接続コードを展開できません。ブラウザを更新してください。");
@@ -544,7 +589,8 @@
   }
 
   function splitForQr(code) {
-    const transferId = createId().replace(/-/g, "").slice(0, 8);
+    // QRはAlphanumericモード（大文字英数字のみ）で符号化するため、transferIdも大文字に揃える。
+    const transferId = createId().replace(/-/g, "").slice(0, 8).toUpperCase();
     const pieces = [];
     for (let index = 0; index < code.length; index += QR_CHUNK_SIZE) {
       pieces.push(code.slice(index, index + QR_CHUNK_SIZE));
@@ -559,7 +605,7 @@
     if (!value) return;
     try {
       const qr = qrcode(0, "M");
-      qr.addData(value, "Byte");
+      qr.addData(value, "Alphanumeric");
       qr.make();
       elements.qrDisplay.innerHTML = qr.createSvgTag(5, 3);
     } catch (error) {
@@ -572,13 +618,22 @@
     elements.qrPager.classList.toggle("hidden", currentQrChunks.length <= 1);
   }
 
-  function displaySignal({ title, instruction, code, nextAction = false }) {
+  function buildInviteUrl(code) {
+    return `${location.origin}${location.pathname}#i=${encodeURIComponent(code)}`;
+  }
+
+  function displaySignal({ title, instruction, code, shareUrl = null, nextAction = false }) {
     openDialog();
     stopCamera();
     elements.dialogTitle.textContent = title;
     elements.displayInstruction.textContent = instruction;
     elements.outgoingSignalText.value = code;
     elements.displayNextActionBtn.classList.toggle("hidden", !nextAction);
+    elements.shareLinkBlock.classList.toggle("hidden", !shareUrl);
+    if (shareUrl) {
+      elements.shareLinkInput.value = shareUrl;
+      elements.shareLinkBtn.classList.toggle("hidden", !navigator.share);
+    }
     currentSignalCode = code;
     currentQrChunks = splitForQr(code);
     currentQrIndex = 0;
@@ -586,15 +641,38 @@
     setPane(elements.signalDisplay);
   }
 
-  async function copyCurrentSignal() {
+  async function copyText(button, text) {
     try {
-      await navigator.clipboard.writeText(currentSignalCode);
-      const original = elements.copySignalBtn.textContent;
-      elements.copySignalBtn.textContent = "コピーしました";
-      setTimeout(() => { elements.copySignalBtn.textContent = original; }, 1400);
+      await navigator.clipboard.writeText(text);
+      const original = button.textContent;
+      button.textContent = "コピーしました";
+      setTimeout(() => { button.textContent = original; }, 1400);
+      return true;
     } catch (_error) {
+      return false;
+    }
+  }
+
+  async function copyCurrentSignal() {
+    if (!(await copyText(elements.copySignalBtn, currentSignalCode))) {
       elements.outgoingSignalText.focus();
       elements.outgoingSignalText.select();
+    }
+  }
+
+  async function copyShareLink() {
+    if (!(await copyText(elements.shareLinkCopyBtn, elements.shareLinkInput.value))) {
+      elements.shareLinkInput.focus();
+      elements.shareLinkInput.select();
+    }
+  }
+
+  async function shareInviteLink() {
+    if (!navigator.share) return;
+    try {
+      await navigator.share({ title: "ito P2Pに参加する", url: elements.shareLinkInput.value });
+    } catch (_error) {
+      // ユーザーが共有シートを閉じた場合などは何もしない。
     }
   }
 
@@ -784,7 +862,7 @@
   async function createInvite() {
     if (mode !== "host") return;
     closePendingHostPeer();
-    showPreparing("招待QRを作成", "この端末の接続情報を集めています…");
+    showPreparing("招待を作成", "この端末の接続情報を集めています…");
     try {
       const pc = createPeerConnection(useStunForSession);
       const connectionId = createId();
@@ -816,9 +894,10 @@
       });
       elements.scanAnswerBtn.classList.remove("hidden");
       displaySignal({
-        title: "招待QR",
-        instruction: "参加する端末でこのQRをすべて読み取り、その端末に表示される回答QRをこちらで読み取ります。",
+        title: "招待",
+        instruction: "招待リンクを参加者に送ってください。開くだけで参加準備ができ、QRを読み取ってもらう必要がありません。リンクを使えない場合はQRを読み取ってもらいます。",
         code,
+        shareUrl: buildInviteUrl(code),
         nextAction: true,
       });
     } catch (error) {
@@ -1088,6 +1167,22 @@
     else throw new Error("未対応の接続情報です。");
   }
 
+  async function tryLoadOfferFromUrl() {
+    const match = location.hash.match(/^#i=(.+)$/);
+    if (!match) return;
+    try {
+      const signal = await decodeSignal(decodeURIComponent(match[1]));
+      if (signal.kind !== "offer") return;
+      pendingUrlOffer = signal;
+      elements.joinRoomBtn.textContent = "参加する";
+      elements.guestPanelHint.textContent = "招待リンクから開きました。QRを読み取る必要はありません。";
+      elements.guestConnectStatus.textContent = "表示名を入れて「参加する」を押してください。";
+    } catch (error) {
+      elements.guestConnectStatus.textContent = "招待リンクを読み込めませんでした。QRで参加してください。";
+      console.error(error);
+    }
+  }
+
   function syncAllStates() {
     if (mode !== "host" || !game) return;
     for (const peer of hostPeers.values()) {
@@ -1290,12 +1385,19 @@
       name: ItoGameCore.cleanName(elements.guestName.value, "ゲスト"),
       role: elements.guestRole.value === "spectator" ? "spectator" : "player",
     };
-    elements.guestConnectStatus.textContent = "招待QRを読み取ってください。";
-    openScanner("offer");
+    if (pendingUrlOffer) {
+      elements.guestConnectStatus.textContent = "ホストに接続しています…";
+      void handleIncomingSignal(pendingUrlOffer).catch((error) => showSignalError(error, false));
+    } else {
+      elements.guestConnectStatus.textContent = "招待QRを読み取ってください。";
+      openScanner("offer");
+    }
   });
   elements.addPeerBtn.addEventListener("click", () => void createInvite());
   elements.scanAnswerBtn.addEventListener("click", () => openScanner("answer"));
   elements.displayNextActionBtn.addEventListener("click", () => openScanner("answer"));
+  elements.shareLinkCopyBtn.addEventListener("click", () => void copyShareLink());
+  elements.shareLinkBtn.addEventListener("click", () => void shareInviteLink());
   elements.closeDialogBtn.addEventListener("click", closeDialog);
   elements.signalDialog.addEventListener("close", stopCamera);
   elements.prevQrBtn.addEventListener("click", () => {
@@ -1339,4 +1441,6 @@
     if (document.visibilityState === "visible" && mode !== "setup") void requestWakeLock();
   });
   window.addEventListener("beforeunload", shutdownSession);
+
+  void tryLoadOfferFromUrl();
 })();

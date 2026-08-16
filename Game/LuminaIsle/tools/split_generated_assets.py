@@ -143,6 +143,10 @@ def main() -> None:
         "window.LI_GENERATED_ASSETS = " + payload + ";\n", encoding="utf-8"
     )
     print(f"Wrote {len(manifest)} independent assets to {OUT}")
+    # 切り出し直後に透明余白・可視中心・足元基準も更新する。
+    from audit_assets import main as audit_assets
+
+    audit_assets()
 
 
 if __name__ == "__main__":

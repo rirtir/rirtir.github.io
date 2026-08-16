@@ -788,6 +788,37 @@ footer {
   to { transform: rotate(360deg); }
 }
 
+.share-link-block {
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(93, 226, 213, 0.06);
+  text-align: left;
+}
+
+.share-link-block .field-label {
+  margin-top: 0;
+}
+
+.share-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.signal-link-input {
+  flex: 1 1 220px;
+  min-height: 42px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.76rem;
+}
+
+.small-note {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+}
+
 .qr-display {
   display: grid;
   min-height: 270px;

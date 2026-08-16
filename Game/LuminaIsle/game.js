@@ -41,7 +41,7 @@
     constructor(){
       this.canvas=$("#gameCanvas");this.ctx=this.canvas.getContext("2d",{alpha:false});this.ctx.imageSmoothingEnabled=false;
       this.atlas=new Image();this.atlas.src="assets/sprites.png";this.sprites=window.LI_SPRITES?.sprites||{};
-      this.assetPaths=window.LI_GENERATED_ASSETS||{};this.assets={};
+      this.assetPaths=window.LI_GENERATED_ASSETS||{};this.assetMetrics=window.LI_ASSET_METRICS||{};this.assets={};
       for(const [key,src] of Object.entries(this.assetPaths)){const image=new Image();image.src=src;this.assets[key]=image;}
       this.terrain={};this.terrainPatterns={};
       for(const [key,src] of Object.entries({meadow:"assets/terrain-v4/meadow.png",sand:"assets/terrain-v4/sand.png",forest:"assets/terrain-v4/forest.png",rock:"assets/terrain-v4/rock.png",water:"assets/terrain-v4/water.png"})){const image=new Image();image.src=src;this.terrain[key]=image;}
@@ -68,12 +68,24 @@
       requestAnimationFrame(t=>this.frame(t));
     }
     loadImage(image){return new Promise((resolve,reject)=>{if(image.complete&&image.naturalWidth)return resolve();image.onload=resolve;image.onerror=()=>reject(new Error("sprite atlas load failed"));});}
-    assetStyle(el,key){if(!el)return false;const src=this.assetPaths[key];if(!src)return false;el.textContent="";el.style.backgroundImage=`url('${src}')`;el.style.backgroundSize="contain";el.style.backgroundPosition="center";el.style.backgroundRepeat="no-repeat";return true;}
+    assetStyle(el,key){if(!el)return false;const src=this.assetPaths[key];if(!src)return false;el.textContent="";el.dataset.assetKey=key;el.style.backgroundImage=`url('${src}')`;el.style.backgroundRepeat="no-repeat";this.fitAssetBackground(el,key);requestAnimationFrame(()=>this.fitAssetBackground(el,key));return true;}
+    fitAssetBackground(el,key=el?.dataset?.assetKey){
+      const metric=this.assetMetrics[key];if(!el||!metric){if(el){el.style.backgroundSize="contain";el.style.backgroundPosition="center";}return;}
+      const style=getComputedStyle(el),ew=el.clientWidth||parseFloat(style.width)||48,eh=el.clientHeight||parseFloat(style.height)||48;
+      const [iw,ih]=metric.size,[bx,by,bw,bh]=metric.bbox,scale=Math.min(ew/bw,eh/bh);
+      el.style.backgroundSize=`${iw*scale}px ${ih*scale}px`;
+      el.style.backgroundPosition=`${(ew-bw*scale)/2-bx*scale}px ${(eh-bh*scale)/2-by*scale}px`;
+    }
     setUIIcon(el,key){this.assetStyle(el,`ui_${key}`);}
     setBuildingIcon(el,key){this.assetStyle(el,`building_${key}`);}
     setWorldIcon(el,key){this.assetStyle(el,`world_${key}`);}
     hydrateUIIcons(root=document){root.querySelectorAll?.("[data-ui]").forEach(el=>this.setUIIcon(el,el.dataset.ui));root.querySelectorAll?.("[data-building]").forEach(el=>this.setBuildingIcon(el,el.dataset.building));root.querySelectorAll?.("[data-world]").forEach(el=>this.setWorldIcon(el,el.dataset.world));}
-    drawAsset(key,x,y,height,alpha=1,rotation=0,maxWidth=Infinity){const image=this.assets[key];if(!image?.naturalWidth)return false;let drawHeight=height,drawWidth=height*image.naturalWidth/image.naturalHeight;if(drawWidth>maxWidth){const fit=maxWidth/drawWidth;drawWidth*=fit;drawHeight*=fit;}const c=this.ctx;c.save();c.globalAlpha=alpha;c.translate(Math.round(x),Math.round(y));if(rotation)c.rotate(rotation);c.drawImage(image,Math.round(-drawWidth/2),Math.round(-drawHeight),Math.round(drawWidth),Math.round(drawHeight));c.restore();return true;}
+    drawAsset(key,x,y,height,alpha=1,rotation=0,maxWidth=Infinity,flipX=false){
+      const image=this.assets[key];if(!image?.naturalWidth)return false;const metric=this.assetMetrics[key],crop=metric?.bbox||[0,0,image.naturalWidth,image.naturalHeight];
+      const [sx,sy,sw,sh]=crop;let drawHeight=height,drawWidth=height*sw/sh;if(drawWidth>maxWidth){const fit=maxWidth/drawWidth;drawWidth*=fit;drawHeight*=fit;}
+      const c=this.ctx;c.save();c.globalAlpha=alpha;c.translate(Math.round(x),Math.round(y));if(rotation)c.rotate(rotation);if(flipX)c.scale(-1,1);
+      c.drawImage(image,sx,sy,sw,sh,Math.round(-drawWidth/2),Math.round(-drawHeight),Math.round(drawWidth),Math.round(drawHeight));c.restore();return true;
+    }
 
     bindUI(){
       document.body.appendChild(this.dom.backdrop);
@@ -214,13 +226,13 @@
       const s=this.state;s.day++;s.clock=fromSleep?35:s.clock-720;s.stats.passedNights++;
       const r=new W.RNG((s.seed^Math.imul(s.day,2654435761))>>>0).next();s.weather=r<.7?"sunny":r<.9?"rain":"glow";
       Object.keys(s.removedResources).forEach(id=>{if(s.removedResources[id]<=s.day)delete s.removedResources[id];});
-      const sprinklers=s.buildings.filter(b=>D.buildings[b.type]?.autoWater),greenhouses=s.buildings.filter(b=>D.buildings[b.type]?.greenhouse);
-      s.buildings.forEach(b=>{if(b.type==="plot"&&b.crop){const px=(b.x+.5)*W.TILE,py=(b.y+.5)*W.TILE,auto=sprinklers.some(o=>Math.hypot((o.x+.5)*W.TILE-px,(o.y+.5)*W.TILE-py)<=D.buildings[o.type].autoWater*W.TILE),warm=greenhouses.some(o=>Math.hypot((o.x+o.w/2)*W.TILE-px,(o.y+o.h/2)*W.TILE-py)<=D.buildings[o.type].greenhouse*W.TILE);if(b.watered||s.weather==="rain"||auto||warm){b.stage=Math.min(3,(b.stage||0)+1);}b.watered=false;}});
+      const sprinklers=s.buildings.filter(b=>D.buildings[b.type]?.autoWater),greenhouses=s.buildings.filter(b=>D.buildings[b.type]?.greenhouse);let forestRestored=0;
+      s.buildings.forEach(b=>{if(b.type==="plot"&&b.crop){const px=(b.x+.5)*W.TILE,py=(b.y+.5)*W.TILE,auto=sprinklers.some(o=>Math.hypot((o.x+.5)*W.TILE-px,(o.y+.5)*W.TILE-py)<=D.buildings[o.type].autoWater*W.TILE),warm=greenhouses.some(o=>Math.hypot((o.x+o.w/2)*W.TILE-px,(o.y+o.h/2)*W.TILE-py)<=D.buildings[o.type].greenhouse*W.TILE);if(b.watered||s.weather==="rain"||auto||warm)b.stage=Math.min(3,(b.stage||0)+1);if(b.stage>=3&&b.forestOffering&&!b.forestCounted){b.forestCounted=true;s.progress.forestPlanted++;forestRestored++;}b.watered=false;}});
       this.world.enemies.forEach(e=>{if(e.deadUntil&&e.deadUntil<=s.day&&!D.enemies[e.type].boss){e.hp=e.maxHp;e.deadUntil=0;e.state="idle";e.x=e.homeX;e.y=e.homeY;}});
       if(s.progress.lighthouseStage>=4&&s.progress.postgameRewardDay<s.day){this.addItem("light_shard",s.progress.upgrades.beacon?2:1,false);s.progress.postgameRewardDay=s.day;}
       this.ensureDailyContent(true);
       this.unlock("first_night");if(s.day>=10)this.unlock("day10");if(fromSleep){s.player.hp=s.player.maxHp;s.player.food=Math.max(55,s.player.food);s.player.water=Math.max(60,s.player.water);LI.audio.effect("sleep");}
-      this.safeSave(true);this.status(`${s.day}日目の朝 · ${D.weather.find(w=>w.id===s.weather)?.name||"晴れ"}`);
+      this.safeSave(true);this.status(`${s.day}日目の朝 · ${D.weather.find(w=>w.id===s.weather)?.name||"晴れ"}`);if(forestRestored)this.status(`森で育った植物 ${s.progress.forestPlanted}/3 · こもれびの祠へ光が届いた`);
     }
 
     findTarget(){
@@ -251,14 +263,14 @@
       const tool=this.currentItem()?.tool||"hand";
       if(r.tool!=="hand"&&tool!==r.tool){this.toast(r.tool==="axe"?"斧を選ぶと切れます":"つるはしを選ぶと掘れます","warn");LI.audio.effect("ui_cancel");this.actionCooldown=.25;return;}
       const power=Math.max(1,this.currentItem()?.power||1);r.hp-=power;this.actionCooldown=.28;const sound=r.tool==="axe"?"chop":r.tool==="pickaxe"?"mine":"pickup";LI.audio.effect(sound,.94+Math.random()*.1);
-      const colors={tree:"#4faf72",berry_bush:"#ef6a67",rock:"#9da7b8",ore:"#d87951",crystal:"#71dce1",branch:"#c98b5b",fiber:"#93d96b",shell:"#fff4c7"};this.burst(r.x,r.y-6,colors[r.type]||"#ffd166",7);
+      const colors={tree:"#4faf72",stump:"#c98b5b",berry_bush:"#ef6a67",rock:"#9da7b8",ore:"#d87951",crystal:"#71dce1",branch:"#c98b5b",fiber:"#93d96b",shell:"#fff4c7",herb:"#72d6b3",resin:"#f7a24b",sunroot:"#ffd166",moonbean:"#a99be8",tide_melon:"#71dce1"};this.burst(r.x,r.y-6,colors[r.type]||"#ffd166",7);
       if(r.hp<=0){r.hp=r.maxHp;this.state.removedResources[r.id]=this.state.day+r.respawn;this.resourceDrops(r);}
     }
     resourceDrops(r){
-      const drops={branch:{branch:1},fiber:{fiber:2},berry_bush:{berry:3,seed:1},tree:{wood:5,resin:Math.random()<.45?1:0},rock:{stone:4},ore:{ore:3,stone:1},crystal:{crystal:2,stone:1},shell:{shell:1}}[r.type]||{};
+      const drops={branch:{branch:1},fiber:{fiber:2},berry_bush:{berry:3,seed:1},tree:{wood:5,resin:Math.random()<.45?1:0},stump:{wood:3,resin:1},rock:{stone:4},ore:{ore:3,stone:1},crystal:{crystal:2,stone:1},shell:{shell:1},herb:{herb:2},resin:{resin:1},sunroot:{sunroot:1,seed:1},moonbean:{moonbean:2,moonbean_seed:1},tide_melon:{tide_melon:2,tide_seed:1}}[r.type]||{};
       const biome=W.biomeAt(this.world,this.state,r.x,r.y),gatherLv=this.masteryLevel("gather");
       if(r.tool==="hand"&&this.state.progress.upgrades.forager&&Math.random()<.45)drops[r.type==="shell"?"herb":"fiber"]=(drops[r.type==="shell"?"herb":"fiber"]||0)+1;
-      if(r.type==="tree"&&this.state.progress.upgrades.logger)drops.wood+=1;if(["rock","ore","crystal"].includes(r.type)&&this.state.progress.upgrades.miner)drops[r.type==="ore"?"ore":"stone"]=(drops[r.type==="ore"?"ore":"stone"]||0)+1;
+      if(["tree","stump"].includes(r.type)&&this.state.progress.upgrades.logger)drops.wood+=1;if(["rock","ore","crystal"].includes(r.type)&&this.state.progress.upgrades.miner)drops[r.type==="ore"?"ore":"stone"]=(drops[r.type==="ore"?"ore":"stone"]||0)+1;
       if(Math.random()<gatherLv*.025){const bonusKey=Object.keys(drops).find(k=>drops[k]>0);if(bonusKey)drops[bonusKey]++;}
       if(r.type==="berry_bush"&&biome==="forest"&&Math.random()<.3)drops.moonbean_seed=1;if(r.type==="shell"&&Math.random()<.28)drops.tide_seed=1;if(r.type==="shell"&&Math.random()<.45)drops.herb=1;
       Object.entries(drops).forEach(([key,count])=>{if(count)this.addItem(key,count);});this.state.stats.gathered+=Object.values(drops).reduce((a,b)=>a+b,0);
@@ -340,17 +352,19 @@
     usePlot(b){
       const key=this.currentKey(),tool=D.items[key]?.tool;
       const cropItems={sunroot:["sunroot","seed"],moonbean:["moonbean","moonbean_seed"],tide_melon:["tide_melon","tide_seed"]};
-      if(b.crop&&b.stage>=3){const [produce,seedReturn]=cropItems[b.crop]||cropItems.sunroot,bonus=this.state.progress.upgrades.farmer?1:0;this.addItem(produce,2+bonus);this.addItem(seedReturn,1);b.crop=null;b.stage=0;b.watered=false;this.state.stats.harvested++;this.unlock("first_harvest");LI.audio.effect("pickup");this.checkProgressSystems();return;}
+      if(b.crop&&b.stage>=3){const [produce,seedReturn]=cropItems[b.crop]||cropItems.sunroot,bonus=this.state.progress.upgrades.farmer?1:0;this.addItem(produce,2+bonus);this.addItem(seedReturn,1);b.crop=null;b.stage=0;b.watered=false;b.forestOffering=false;b.forestCounted=false;this.state.stats.harvested++;this.unlock("first_harvest");LI.audio.effect("pickup");this.checkProgressSystems();return;}
       const selectedSeed=D.items[key]?.seedCrop?key:(key==="seed"?"seed":null),fallback=["seed","moonbean_seed","tide_seed"].find(k=>(this.state.inventory[k]||0)>0),seedKey=selectedSeed||fallback;
-      if(!b.crop&&seedKey&&(this.state.inventory[seedKey]||0)>0){this.removeItem(seedKey,1);b.crop=D.items[seedKey]?.seedCrop||"sunroot";b.stage=0;b.watered=false;this.state.stats.planted++;this.state.progress.forestPlanted++;this.toast(`${D.items[seedKey].name}を植えた`,"good");this.burst((b.x+.5)*W.TILE,(b.y+.5)*W.TILE,"#93d96b",7);if(this.state.stats.planted>=100)this.unlock("plant100");this.checkProgressSystems();return;}
+      if(!b.crop&&seedKey&&(this.state.inventory[seedKey]||0)>0){this.removeItem(seedKey,1);b.crop=D.items[seedKey]?.seedCrop||"sunroot";b.stage=0;b.watered=false;b.forestOffering=W.biomeAt(this.world,this.state,(b.x+.5)*W.TILE,(b.y+.5)*W.TILE)==="forest";b.forestCounted=false;this.state.stats.planted++;this.toast(`${D.items[seedKey].name}を植えた${b.forestOffering?" · 森で育てると祠へ光が届く":""}`,"good");this.burst((b.x+.5)*W.TILE,(b.y+.5)*W.TILE,"#93d96b",7);if(this.state.stats.planted>=100)this.unlock("plant100");this.checkProgressSystems();return;}
       if(b.crop&&tool==="water"){if(this.state.player.watering<=0){this.toast("井戸でじょうろを満たそう","warn");return;}const radius=this.currentKey()==="sun_watering_can"?2:this.currentKey()==="copper_watering_can"?1:0;let watered=0;for(const plot of this.state.buildings.filter(o=>o.type==="plot"&&o.crop)){if(Math.abs(plot.x-b.x)<=radius&&Math.abs(plot.y-b.y)<=radius){plot.watered=true;watered++;}}this.state.player.watering=Math.max(0,this.state.player.watering-Math.max(1,watered));this.toast(`${watered}区画に水をまいた`,"good");this.burst((b.x+.5)*W.TILE,(b.y+.5)*W.TILE,"#71dce1",8);return;}
       this.toast(b.crop?(b.watered?"水やり済み。朝を待とう":"じょうろを選んで水をまこう"):"種を選ぶと植えられます","good");
     }
     useLandmark(l){
       if(l.type==="guide"){this.openTutorial(1,true);return;}
       if(l.type==="relic"){this.collectRelic(l);return;}
+      if(l.type==="cache"){this.collectCache(l);return;}
+      if(l.type==="waymark"){this.activateWaymark(l);return;}
       if(l.type==="lighthouse"){this.state.progress.lighthouseSeen=true;this.openPanel("lighthouse");this.updateObjective(true);return;}
-      if(l.type==="well"){this.fillWater();return;}
+      if(l.type==="well"||l.type==="spring"){this.fillWater();return;}
       if(l.type==="windstone"){if(!this.state.progress.windstones[l.index]){this.state.progress.windstones[l.index]=true;LI.audio.effect("craft");this.burst(l.x,l.y,"#ffd166",14);this.toast(`風車石 ${this.state.progress.windstones.filter(Boolean).length}/3 を整えた`,"good");}else this.toast("風車石は風に向いている","good");return;}
       if(l.region==="forest"){
         if(this.state.progress.prisms.forest){this.toast("森の光は穏やかだ","good");return;}
@@ -362,6 +376,14 @@
       }
     }
     collectRelic(l){if(this.state.progress.relics[l.index]){this.toast(`${D.relics[l.index].name}の記憶がきらめいている`,"good");return;}this.state.progress.relics[l.index]=true;this.state.stats.relics++;this.state.progress.sunBadges+=2;this.burst(l.x,l.y-6,"#ffd166",24);LI.audio.effect("discover",1.12);this.toast(`${D.relics[l.index].name}を発見！ 記章 +2`,"good");if(this.state.progress.relics.every(Boolean))this.addItem("light_shard",5);this.checkProgressSystems();this.safeSave(true);}
+    collectCache(l){
+      const opened=this.state.progress.caches||(this.state.progress.caches={});if(opened[l.id]){this.toast(`${l.name}は空になっている`,"good");return;}
+      opened[l.id]=true;for(const [key,count] of Object.entries(l.reward||{}))this.addItem(key,count);this.state.progress.sunBadges++;this.burst(l.x,l.y-8,"#ffd166",24);LI.audio.effect("discover",1.06);this.toast(`${l.name}を発見！ 記章 +1`,"good");this.safeSave(true);
+    }
+    activateWaymark(l){
+      const active=this.state.progress.waymarks||(this.state.progress.waymarks={});if(active[l.id]){this.toast("標石の光が周囲の地形を映している","good");return;}
+      active[l.id]=true;W.reveal(this.state,l.x,l.y,4);this.state.progress.sunBadges++;this.burst(l.x,l.y-18,"#71dce1",30);LI.audio.effect("discover",1.12);this.toast(`${l.name}を起動。周辺の地図が見えるようになった！`,"good");this.drawMiniMap();this.safeSave(true);
+    }
     offerFish(){
       const prog=this.state.progress;if(prog.prisms.tide){this.toast("潮の光は満ちている","good");return;}
       let added=0;for(const key of D.fish){if(!prog.fishOffered.includes(key)&&(this.state.inventory[key]||0)>0){this.removeItem(key,1);prog.fishOffered.push(key);added++;if(prog.fishOffered.length>=3)break;}}
@@ -381,9 +403,9 @@
       if(!this.stationAvailable(recipe.station)){this.toast(`${{workbench:"作業台",campfire:"焚き火",furnace:"炉"}[recipe.station]}の近くで作れます`,`warn`);return;}
       if(D.items[recipe.output]?.unique&&(this.state.inventory[recipe.output]||0)>0){this.toast("すでに持っています","warn");return;}
       if(!this.pay(recipe.cost)){this.toast("素材が足りません","warn");LI.audio.effect("ui_cancel");return;}
-      let made=recipe.count;if(recipe.station==="campfire"&&this.state.progress.upgrades.cook&&Math.random()<.25&&!D.items[recipe.output]?.unique)made+=recipe.count;this.addItem(recipe.output,made,false);
+      const first=!this.state.crafted[recipe.output];let made=recipe.count;if(recipe.station==="campfire"&&this.state.progress.upgrades.cook&&Math.random()<.25&&!D.items[recipe.output]?.unique)made+=recipe.count;this.addItem(recipe.output,made,false);
       const refundChance=(this.state.progress.upgrades.craftsman ? .2 : 0)+this.masteryLevel("craft")*.01;if(refundChance&&Math.random()<refundChance){const key=Object.keys(recipe.cost)[0];this.addItem(key,1,false);this.toast(`${D.items[key].name}を端材から回収した`,"good");}
-      this.state.crafted[recipe.output]=(this.state.crafted[recipe.output]||0)+made;this.state.stats.crafted++;if(recipe.station==="campfire")this.state.stats.cooked++;LI.audio.effect(recipe.station==="campfire"?"cook":"craft");this.unlock("first_craft");if(recipe.station==="campfire")this.unlock("first_cook");this.toast(`${recipe.name}${made>recipe.count?"が2個":""}完成！`,"good");this.burst(this.state.player.x,this.state.player.y-8,"#ffd166",14);this.checkProgressSystems();this.renderPanel();
+      this.state.crafted[recipe.output]=(this.state.crafted[recipe.output]||0)+made;this.state.stats.crafted++;if(recipe.station==="campfire")this.state.stats.cooked++;LI.audio.effect(recipe.station==="campfire"?"cook":"craft",first?1.1:1);this.unlock("first_craft");if(recipe.station==="campfire")this.unlock("first_cook");this.toast(`${first?"新しい作り方を発見 · ":""}${recipe.name}${made>recipe.count?"が2個":""}完成！`,"good");this.burst(this.state.player.x,this.state.player.y-8,first?"#71dce1":"#ffd166",first?28:14);if(first){this.shake(3);this.vibrate(24);}this.checkProgressSystems();this.renderPanel();
     }
     beginBuild(type){const def=D.buildings[type];if(!def)return;if(def.postgame&&this.state.progress.lighthouseStage<4){this.toast("灯台の完成後に作れます","warn");return;}this.buildMode={type,rotation:0,hasPosition:false};this.closePanel();this.updateBuildGhost(true);this.dom.buildHud.classList.remove("is-hidden");$("#touchRotate").classList.remove("is-hidden");$("#buildName").textContent=def.name;this.setBuildingIcon($("#buildPreview"),type);this.updateBuildHUD();this.updateHUD();}
     cancelBuild(){this.buildMode=null;this.dom.buildHud.classList.add("is-hidden");$("#touchRotate").classList.add("is-hidden");this.updateHUD();}
@@ -406,7 +428,7 @@
     }
     placeBuilding(){
       if(!this.buildMode)return;if(!this.buildMode.hasPosition){this.status("地面をタップして場所を選びます");return;}this.updateBuildGhost(false);const {type,rotation}=this.buildMode,{x,y,valid}=this.buildGhost,def=D.buildings[type];if(!valid){this.toast(this.canAfford(def.cost)?"赤い場所には置けません":"素材が足りません","warn");LI.audio.effect("ui_cancel");return;}
-      if(!this.pay(def.cost))return;const [bw,bh]=this.orientedSize(type,rotation),b={id:`b${Date.now().toString(36)}${Math.random().toString(36).slice(2,5)}`,type,x,y,w:bw,h:bh,rotation};if(type==="plot"){b.crop=null;b.stage=0;b.watered=false;}this.state.buildings.push(b);this.state.stats.built++;LI.audio.effect("build");this.burst((x+bw/2)*W.TILE,(y+bh/2)*W.TILE,"#ffd166",16);this.unlock("first_build");this.status(`${def.name}を建てました`);this.safeSave(true);this.buildMode.hasPosition=false;this.updateBuildGhost(true);
+      if(!this.pay(def.cost))return;const first=!this.state.discovered.includes(`building:${type}`),[bw,bh]=this.orientedSize(type,rotation),b={id:`b${Date.now().toString(36)}${Math.random().toString(36).slice(2,5)}`,type,x,y,w:bw,h:bh,rotation};if(type==="plot"){b.crop=null;b.stage=0;b.watered=false;}this.state.buildings.push(b);this.discover(`building:${type}`);this.state.stats.built++;LI.audio.effect("build",first?1.08:1);const bx=(x+bw/2)*W.TILE,by=(y+bh/2)*W.TILE;this.burst(bx,by,first?"#71dce1":"#ffd166",first?32:16);this.unlock("first_build");this.status(first?`初めての${def.name}が完成。拠点の景色が変わった！`:`${def.name}を建てました`);if(first){this.cameraFocus={x:bx,y:by,until:this.state.playSeconds+1.4};this.shake(3);this.vibrate(28);}this.safeSave(true);this.buildMode.hasPosition=false;this.updateBuildGhost(true);
     }
     focusBuilding(id){const b=this.state.buildings.find(o=>o.id===id);if(!b)return;this.closePanel();const x=(b.x+b.w/2)*W.TILE,y=(b.y+b.h/2)*W.TILE;this.cameraFocus={x,y,until:this.state.playSeconds+2.2};setTimeout(()=>{if(this.running)this.confirmDismantle(b);},520);}
     confirmDismantle(b){if(!b||!this.state.buildings.includes(b))return;const def=D.buildings[b.type];this.openCustom(`${def.name}を解体しますか？`,"DISMANTLE",`<div class="confirm-building"><span class="building-preview large" data-building="${b.type}"></span><div><p>背景の画面中央に表示している建築物です。</p><p>使った素材はすべてバッグへ戻ります。</p></div></div><div class="confirm-actions"><button id="cancelDismantle" type="button">やめる</button><button id="confirmDismantle" class="danger-button" type="button"><span class="ui-raster" data-ui="dismantle"></span>解体する</button></div>`);this.dom.modal.classList.add("dismantle-modal");this.dom.backdrop.classList.add("dismantle-backdrop");this.hydrateUIIcons(this.dom.body);$("#cancelDismantle").onclick=()=>this.closePanel();$("#confirmDismantle").onclick=()=>{this.closePanel();this.dismantleBuilding(b.id);};}
@@ -447,7 +469,11 @@
       const explored=s.explored.filter(Boolean).length/s.explored.length,relics=s.progress.relics.filter(Boolean).length,levels=D.mastery.map(m=>this.masteryLevel(m.id));if(explored>=.98)this.unlock("map100");if(s.progress.lighthouseStage>=4)this.unlock("lighthouse");if(this.islandRating().total>=15)this.unlock("rating15");if(this.islandRating().total>=30)this.unlock("rating30");if(relics>=1)this.unlock("relic1");if(relics>=4)this.unlock("relic4");if(relics>=8)this.unlock("relic8");if(s.stats.commissions>=1)this.unlock("commission1");if(s.stats.commissions>=10)this.unlock("commission10");if(s.stats.commissions>=30)this.unlock("commission30");if(Math.max(...levels)>=5)this.unlock("mastery5");if(Math.max(...levels)>=10)this.unlock("mastery10");if(levels.every(n=>n>=5))this.unlock("all_mastery5");if(fish>=10)this.unlock("fish10");if(s.day>=30)this.unlock("day30");if(s.stats.built>=50)this.unlock("build50");if(s.stats.gathered>=500)this.unlock("gather500");if(["sun_axe","sun_pickaxe","sun_spear","sun_rod","sun_watering_can"].every(k=>s.inventory[k]))this.unlock("all_masterwork");
     }
     checkProgressSystems(){this.checkMasteries();this.checkAchievements();}
-    updateRegion(){const b=W.biomeAt(this.world,this.state,this.state.player.x,this.state.player.y);if(["grass","forest","beach","rock"].includes(b)){this.discover(`region:${b}`);if(!this.state.progress.regions[b]){this.state.progress.regions[b]=true;const names={grass:"陽だまり草原",forest:"こもれび林",beach:"きらめき浜",rock:"ひかり岩丘"};this.toast(`新しい地域: ${names[b]}`,"good");LI.audio.effect("discover",.95);}}}
+    updateRegion(){
+      const p=this.state.player,b=W.biomeAt(this.world,this.state,p.x,p.y),zone=W.zoneAt(this.world,p.x,p.y);
+      if(["grass","forest","beach","rock"].includes(b)){this.discover(`region:${b}`);if(!this.state.progress.regions[b]){this.state.progress.regions[b]=true;const names={grass:"陽だまり草原",forest:"こもれび林",beach:"きらめき浜",rock:"ひかり岩丘"};this.toast(`新しい地域: ${names[b]}`,"good");LI.audio.effect("discover",.95);}}
+      if(W.ZONE_NAMES[zone]){const zones=this.state.progress.zones||(this.state.progress.zones={});if(!zones[zone]){zones[zone]=true;this.discover(`zone:${zone}`);this.toast(`新しい場所: ${W.ZONE_NAMES[zone]}`,"good");LI.audio.effect("discover",1.02);}}
+    }
 
     updateParticles(dt){for(const p of this.particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=15*dt;p.life-=dt;}this.particles=this.particles.filter(p=>p.life>0).slice(-250);}
     burst(x,y,color,count=8){const quality=this.state?.settings?.particles||"high";if(quality==="off")return;if(quality==="low")count=Math.ceil(count/2);for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,s=10+Math.random()*28;this.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-8,life:.28+Math.random()*.35,max:.65,color,size:1+Math.floor(Math.random()*2)});}}
@@ -475,13 +501,23 @@
       this.drawLighting(time);this.drawWeather(time);
     }
     drawSprite(key,x,y,alpha=1,anchor=null){const s=this.sprites[key];if(!s)return false;const a=anchor||s.anchor||[s.w/2,s.h];this.ctx.globalAlpha=alpha;this.ctx.drawImage(this.atlas,s.x,s.y,s.w,s.h,Math.round(x-a[0]),Math.round(y-a[1]),s.w,s.h);this.ctx.globalAlpha=1;return true;}
-    drawTerrain(name,x,y,tileX,tileY,time){const textureKey={grass:"meadow",forest:"forest",sand:"sand",rock_ground:"rock",sea:"water",shallow:"water",path:"sand"}[name]||"meadow",image=this.terrain[textureKey],c=this.ctx;if(!image?.naturalWidth){this.drawSprite(`tile.${name==="sea"?"water":name}.0`,x,y,1,[0,0]);return;}let pattern=this.terrainPatterns[textureKey];if(!pattern){pattern=c.createPattern(image,"repeat");if(pattern?.setTransform)pattern.setTransform(new DOMMatrix([.25,0,0,.25,0,0]));this.terrainPatterns[textureKey]=pattern;}c.fillStyle=pattern;c.fillRect(x,y,W.TILE,W.TILE);if(name==="sea"){c.fillStyle="rgba(25,72,137,.28)";c.fillRect(x,y,W.TILE,W.TILE);}else if(name==="shallow"){c.fillStyle="rgba(210,255,239,.12)";c.fillRect(x,y,W.TILE,W.TILE);}else if(name==="path"){c.fillStyle="rgba(181,126,74,.24)";c.fillRect(x,y,W.TILE,W.TILE);}if((name==="sea"||name==="shallow")&&((tileX*13+tileY*7+Math.floor(time*1.5))%19===0)){c.globalAlpha=.34;c.fillStyle="#e6fff5";c.fillRect(x+3+(tileY%4),y+5+(tileX%3),5,1);c.globalAlpha=1;}}
-    drawResource(r,time){if(WORLD_ART[r.type]){const heights={tree:58,berry_bush:38,rock:30,ore:32,crystal:38,branch:25,fiber:29,shell:23},sway=r.type==="fiber"?Math.sin(time*1.35+(r.x||0)*.07)*.012:0;this.drawAsset(`world_${r.type}`,r.x,r.y,heights[r.type]||32,1,sway);return;}this.drawSprite(`resource.${r.type}.0`,r.x,r.y);}
+    drawTerrain(name,x,y,tileX,tileY,time){
+      const textureKey={grass:"meadow",forest:"forest",sand:"sand",rock_ground:"rock",sea:"water",shallow:"water",path:"sand"}[name]||"meadow",image=this.terrain[textureKey],c=this.ctx,zone=this.world.zones[tileY*W.W+tileX];
+      const zoneColors={old_meadow:"#84c966",moon_meadow:"#75c79a",sunreach:"#a3cf69",whisper_forest:"#438e61",amber_grove:"#65a957",north_coast:"#e8c77f",tideflats:"#d9c98b",old_quarry:"#8f9aac",crystal_ridge:"#9595b5"};
+      const base={sea:"#3b98b9",shallow:"#68c9cf",path:"#d5b271"}[name]||zoneColors[zone]||({grass:"#84c966",forest:"#4f9d69",sand:"#e8c77f",rock_ground:"#8f9aac"}[name]||"#84c966");c.fillStyle=base;c.fillRect(x,y,W.TILE,W.TILE);
+      if(image?.naturalWidth){let pattern=this.terrainPatterns[textureKey];if(!pattern){pattern=c.createPattern(image,"repeat");if(pattern?.setTransform)pattern.setTransform(new DOMMatrix([.25,0,0,.25,0,0]));this.terrainPatterns[textureKey]=pattern;}c.save();c.globalAlpha=name==="sea"?.42:name==="shallow"?.34:.3;c.fillStyle=pattern;c.fillRect(x,y,W.TILE,W.TILE);c.restore();}
+      const shade=((tileX*17+tileY*31)%11)-5;if(shade){c.fillStyle=shade>0?`rgba(255,244,199,${shade*.006})`:`rgba(35,50,75,${-shade*.005})`;c.fillRect(x,y,W.TILE,W.TILE);}
+      if(name==="sea"){c.fillStyle="rgba(25,72,137,.2)";c.fillRect(x,y,W.TILE,W.TILE);}else if(name==="shallow"){c.fillStyle="rgba(210,255,239,.12)";c.fillRect(x,y,W.TILE,W.TILE);}else if(name==="path"){c.fillStyle="rgba(181,126,74,.16)";c.fillRect(x,y,W.TILE,W.TILE);}
+      if((name==="sea"||name==="shallow")&&((tileX*13+tileY*7+Math.floor(time*1.5))%19===0)){c.globalAlpha=.34;c.fillStyle="#e6fff5";c.fillRect(x+3+(tileY%4),y+5+(tileX%3),5,1);c.globalAlpha=1;}
+    }
+    drawResource(r,time){if(WORLD_ART[r.type]){const heights={tree:58,stump:31,berry_bush:38,rock:30,ore:32,crystal:38,branch:25,fiber:29,shell:23,herb:25,resin:23,sunroot:29,moonbean:31,tide_melon:32},sway=["fiber","herb","sunroot","moonbean"].includes(r.type)?Math.sin(time*1.35+(r.x||0)*.07)*.012:0;this.drawAsset(`world_${r.type}`,r.x,r.y,(heights[r.type]||32)*(r.scale||1),1,sway,Infinity,!!r.flip);return;}this.drawSprite(`resource.${r.type}.0`,r.x,r.y);}
     drawLandmark(l,time){
       const c=this.ctx;if(l.type==="lighthouse"){this.drawAsset("building_lighthouse",l.x,l.y,98,this.state.progress.lighthouseStage?1:.68,0,72);if(this.state.progress.lighthouseStage>=4){c.globalAlpha=.22+.08*Math.sin(time*3);c.fillStyle="#fff4c7";c.beginPath();c.moveTo(l.x,l.y-68);c.lineTo(l.x-120,l.y-86);c.lineTo(l.x-120,l.y-66);c.fill();c.globalAlpha=1;}return;}
-      if(l.type==="well"){this.drawAsset("building_well",l.x,l.y,55,1,0,48);return;}
+      if(l.type==="well"||l.type==="spring"){this.drawAsset("building_well",l.x,l.y,l.type==="spring"?48:55,1,0,48);return;}
       if(l.type==="guide"){this.drawAsset("building_guide",l.x,l.y,45,1,0,34);return;}
       if(l.type==="relic"){const found=this.state.progress.relics[l.index];this.drawAsset("world_relic",l.x,l.y,37,found?.3:1,0,29);return;}
+      if(l.type==="cache"){const opened=this.state.progress.caches?.[l.id];this.drawAsset("building_chest",l.x,l.y,42,opened?.42:1,0,42);return;}
+      if(l.type==="waymark"){const active=this.state.progress.waymarks?.[l.id];this.drawAsset("building_waystone",l.x,l.y,57,active?1:.66,0,43);if(active){c.globalAlpha=.3+.12*Math.sin(time*2.4);c.strokeStyle="#71dce1";c.beginPath();c.arc(l.x,l.y-20,18,0,Math.PI*2);c.stroke();c.globalAlpha=1;}return;}
       if(l.type==="windstone"){this.drawAsset("building_windstone",l.x,l.y,52,1,0,42);return;}
       c.fillStyle="#6c73a8";c.fillRect(l.x-10,l.y+7,20,4);
       if(l.type==="altar"){const col={forest:"#4faf72",tide:"#71dce1",rock:"#a99be8"}[l.region];c.fillStyle="#27324d";c.fillRect(l.x-12,l.y-8,24,17);c.fillStyle="#9da7b8";c.fillRect(l.x-10,l.y-10,20,15);c.fillStyle=col;c.beginPath();c.moveTo(l.x,l.y-20);c.lineTo(l.x+7,l.y-12);c.lineTo(l.x,l.y-4);c.lineTo(l.x-7,l.y-12);c.fill();c.fillStyle="#fff4c7";c.fillRect(l.x-1,l.y-17,2,7);}
@@ -536,13 +572,13 @@
       const action=this.actionDescriptor();if(this.target||this.buildMode){this.dom.hint.querySelector("span").textContent=action.label;$("#interactionKey").textContent="E";this.dom.hint.classList.remove("is-hidden");}else this.dom.hint.classList.add("is-hidden");
       $("#touchActionLabel").textContent=action.label;const actionIcon=$("#touchActionIcon");if(action.iconKey)this.setIcon(actionIcon,action.iconKey);else this.setUIIcon(actionIcon,this.buildMode?"place":"interact");$("#touchAction").classList.toggle("is-ready",action.ready);$("#touchDodge strong").textContent=this.buildMode?"中止":"回避";const current=this.currentKey(),currentItem=D.items[current];$("#touchSelectedName").textContent=currentItem?.name||"素手";const selectedIcon=$("#touchSelectedIcon");selectedIcon.style.backgroundImage="none";if(currentItem)this.setIcon(selectedIcon,current);
     }
-    actionDescriptor(){const key=this.currentKey(),item=D.items[key];if(this.buildMode)return{label:this.buildMode.hasPosition?"ここに置く":"場所を選ぶ",ready:this.buildGhost.valid&&this.buildMode.hasPosition};if(!this.target){if(item?.food||item?.water||item?.heal)return{label:item.water&&!item.food?"飲む":"食べる",iconKey:key,ready:true};if(item?.tool==="rod")return{label:"釣る",iconKey:key,ready:this.nearWater()};if(item?.tool==="hammer")return{label:"建築",iconKey:key,ready:true};if(item?.tool)return{label:item.tool==="weapon"?"攻撃":"振る",iconKey:key,ready:true};return{label:"調べる",ready:false};}if(this.target.kind==="enemy")return{label:"攻撃",iconKey:item?.tool?key:null,ready:true};if(this.target.kind==="resource"){const r=this.target.obj,labels={branch:"拾う",fiber:"採る",berry_bush:"摘む",tree:"切る",rock:"掘る",ore:"掘る",crystal:"掘る",shell:"拾う"},tool=item?.tool;if(r.tool!=="hand"&&tool!==r.tool)return{label:r.tool==="axe"?"斧を選ぶ":"つるはしを選ぶ",iconKey:r.tool==="axe"?"axe":"pickaxe",ready:false};return{label:labels[r.type]||"採る",iconKey:r.tool!=="hand"?key:null,ready:true};}if(this.target.kind==="landmark"){const labels={lighthouse:"調べる",altar:"捧げる",windstone:"整える",well:"汲む",guide:"説明",relic:"記憶を見る"};return{label:labels[this.target.obj.type]||"調べる",ready:true};}const def=D.buildings[this.target.obj.type];if(item?.tool==="hammer")return{label:"解体",iconKey:key,ready:true};const label=def?.farm?(this.target.obj.crop?(this.target.obj.stage>=3?"収穫":"手入れ"):"植える"):def?.water?"汲む":def?.commission?"おねがい":def?.travel?"移動":"使う";return{label,ready:true};}
+    actionDescriptor(){const key=this.currentKey(),item=D.items[key];if(this.buildMode)return{label:this.buildMode.hasPosition?"ここに置く":"場所を選ぶ",ready:this.buildGhost.valid&&this.buildMode.hasPosition};if(!this.target){if(item?.food||item?.water||item?.heal)return{label:item.water&&!item.food?"飲む":"食べる",iconKey:key,ready:true};if(item?.tool==="rod")return{label:"釣る",iconKey:key,ready:this.nearWater()};if(item?.tool==="hammer")return{label:"建築",iconKey:key,ready:true};if(item?.tool)return{label:item.tool==="weapon"?"攻撃":"振る",iconKey:key,ready:true};return{label:"調べる",ready:false};}if(this.target.kind==="enemy")return{label:"攻撃",iconKey:item?.tool?key:null,ready:true};if(this.target.kind==="resource"){const r=this.target.obj,labels={branch:"拾う",fiber:"採る",berry_bush:"摘む",tree:"切る",stump:"割る",rock:"掘る",ore:"掘る",crystal:"掘る",shell:"拾う",herb:"摘む",resin:"拾う",sunroot:"抜く",moonbean:"摘む",tide_melon:"収穫"},tool=item?.tool;if(r.tool!=="hand"&&tool!==r.tool)return{label:r.tool==="axe"?"斧を選ぶ":"つるはしを選ぶ",iconKey:r.tool==="axe"?"axe":"pickaxe",ready:false};return{label:labels[r.type]||"採る",iconKey:r.tool!=="hand"?key:null,ready:true};}if(this.target.kind==="landmark"){const labels={lighthouse:"調べる",altar:"捧げる",windstone:"整える",well:"汲む",spring:"汲む",guide:"説明",relic:"記憶を見る",cache:"開ける",waymark:"起動する"};return{label:labels[this.target.obj.type]||"調べる",ready:true};}const def=D.buildings[this.target.obj.type];if(item?.tool==="hammer")return{label:"解体",iconKey:key,ready:true};const label=def?.farm?(this.target.obj.crop?(this.target.obj.stage>=3?"収穫":"手入れ"):"植える"):def?.water?"汲む":def?.commission?"おねがい":def?.travel?"移動":"使う";return{label,ready:true};}
     objectiveDetail(obj){
       const s=this.state;if(obj.id==="gather")return `枝 ${Math.min(3,s.stats.gatheredBranch)}/3 · 石 ${Math.min(3,s.stats.gatheredStone)}/3`;if(obj.id==="prisms")return `森 ${s.progress.prisms.forest?"済":"未"} · 潮 ${s.progress.prisms.tide?"済":"未"} · 岩 ${s.progress.prisms.rock?"済":"未"}`;return obj.detail;
     }
     drawMiniMap(targetCanvas=this.dom.mini){
-      if(!this.world||!targetCanvas)return;const c=targetCanvas.getContext("2d"),w=targetCanvas.width,h=targetCanvas.height,colors=["#4baac8","#71dce1","#f4d58d","#93d96b","#67bd78","#9da7b8","#e2b875"];c.imageSmoothingEnabled=false;c.fillStyle=colors[0];c.fillRect(0,0,w,h);for(let y=0;y<W.H;y++)for(let x=0;x<W.W;x++){const ex=Math.floor(x/W.W*18),ey=Math.floor(y/W.H*18),seen=this.state.explored[ey*18+ex];c.fillStyle=seen?colors[this.world.tiles[y*W.W+x]]:"#dce9dd";c.fillRect(Math.floor(x/W.W*w),Math.floor(y/W.H*h),Math.ceil(w/W.W),Math.ceil(h/W.H));}
-      for(const l of this.world.landmarks){const ex=Math.floor(l.x/(W.W*16)*18),ey=Math.floor(l.y/(W.H*16)*18);if(!this.state.explored[ey*18+ex])continue;c.fillStyle=l.type==="lighthouse"?"#ffd166":"#fffdf0";c.fillRect(l.x/(W.W*16)*w-1,l.y/(W.H*16)*h-1,3,3);}c.fillStyle="#27324d";const px=this.state.player.x/(W.W*16)*w,py=this.state.player.y/(W.H*16)*h;c.beginPath();c.moveTo(px,py-3);c.lineTo(px+3,py+3);c.lineTo(px-3,py+3);c.fill();
+      if(!this.world||!targetCanvas)return;const c=targetCanvas.getContext("2d"),w=targetCanvas.width,h=targetCanvas.height,colors=["#4baac8","#71dce1","#f4d58d","#93d96b","#67bd78","#9da7b8","#e2b875"],zoneColors={old_meadow:"#93d96b",moon_meadow:"#72d6b3",sunreach:"#b7df72",whisper_forest:"#4faf72",amber_grove:"#79b95b",north_coast:"#f4d58d",tideflats:"#ddcf91",old_quarry:"#9da7b8",crystal_ridge:"#a99be8"};c.imageSmoothingEnabled=false;c.fillStyle=colors[0];c.fillRect(0,0,w,h);for(let y=0;y<W.H;y++)for(let x=0;x<W.W;x++){const ex=Math.floor(x/W.W*W.FOG_COLS),ey=Math.floor(y/W.H*W.FOG_ROWS),seen=this.state.explored[ey*W.FOG_COLS+ex],tile=this.world.tiles[y*W.W+x],zone=this.world.zones[y*W.W+x];c.fillStyle=seen?(tile===W.TILE_ID.sea||tile===W.TILE_ID.shallow||tile===W.TILE_ID.path?colors[tile]:zoneColors[zone]||colors[tile]):"#dce9dd";c.fillRect(Math.floor(x/W.W*w),Math.floor(y/W.H*h),Math.ceil(w/W.W),Math.ceil(h/W.H));}
+      for(const l of this.world.landmarks){const ex=Math.floor(l.x/(W.W*16)*W.FOG_COLS),ey=Math.floor(l.y/(W.H*16)*W.FOG_ROWS);if(!this.state.explored[ey*W.FOG_COLS+ex])continue;c.fillStyle=l.type==="lighthouse"?"#ffd166":l.type==="waymark"?"#71dce1":"#fffdf0";c.fillRect(l.x/(W.W*16)*w-1,l.y/(W.H*16)*h-1,3,3);}c.fillStyle="#27324d";const px=this.state.player.x/(W.W*16)*w,py=this.state.player.y/(W.H*16)*h;c.beginPath();c.moveTo(px,py-3);c.lineTo(px+3,py+3);c.lineTo(px-3,py+3);c.fill();
     }
     renderHotbar(){
       if(!this.state)return;this.dom.hotbar.innerHTML="";this.state.hotbar.forEach((key,i)=>{const b=document.createElement("button");b.type="button";b.className=`hot-slot${i===this.state.selectedHotbar?" selected":""}`;b.setAttribute("aria-label",key&&D.items[key]?`${i+1}: ${D.items[key].name}`:`${i+1}: 空`);b.innerHTML=`<small>${i+1}</small><span class="sprite-icon"></span><em>${key?(this.state.inventory[key]||0)||"":""}</em>`;if(key&&D.items[key]&&(this.state.inventory[key]||0)>0)this.setIcon(b.querySelector(".sprite-icon"),key);else b.style.opacity=.45;b.addEventListener("click",()=>{this.state.selectedHotbar=i;this.renderHotbar();});this.dom.hotbar.appendChild(b);});

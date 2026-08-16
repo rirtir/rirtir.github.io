@@ -129,3 +129,13 @@ button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 @media(max-width:350px){.hot-slot{min-width:34px;width:34px;height:42px}.hot-slot .sprite-icon{width:29px;height:29px;left:2px;top:4px}}
 .game-shell.qa-mobile390 .hotbar{overflow-x:hidden}.game-shell.qa-mobile390 .hot-slot{min-width:42px;width:42px;height:46px}.game-shell.qa-mobile390 .hot-slot .sprite-icon{width:34px;height:34px;left:3px;top:3px}
 @media(max-width:700px){.day-hud #weatherText{display:inline!important}}
+
+/* 片手操作時にも島そのものが見えるよう、操作域を44px以上に保ったまま圧縮する。 */
+@media(pointer:coarse) and (max-width:760px) and (min-height:501px),(max-width:760px) and (min-height:501px){
+  .joystick{width:108px;height:108px}.joystick span{left:32px;top:32px;width:40px;height:40px}
+  .touch-actions{width:158px;height:116px}.touch-actions .touch-context{width:82px;height:82px}.touch-actions .touch-context .ui-raster{width:39px;height:39px}.touch-actions .touch-dodge{width:54px;height:54px}
+  .primary-actions{bottom:max(174px,calc(env(safe-area-inset-bottom) + 174px))}.primary-actions button{width:48px;height:48px}.primary-actions button .ui-raster{width:27px;height:27px}
+  .hotbar{bottom:max(118px,calc(env(safe-area-inset-bottom) + 118px))}
+  .objective-hud{top:150px;max-width:52vw;min-height:44px;align-items:center;padding:5px 7px}.objective-hud .objective-star,.objective-hud small{display:none}.objective-hud strong{font-size:.68rem}.objective-hud div>span{font-size:.58rem}
+  .pickup-feed{bottom:max(220px,calc(env(safe-area-inset-bottom) + 220px))}.toast-stack{bottom:max(225px,calc(env(safe-area-inset-bottom) + 225px))}
+}
