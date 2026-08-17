@@ -37,7 +37,7 @@
   }
   function resourceDef(type,x,y,seed){
     const defs={
-      branch:[1,"hand",1],fiber:[1,"hand",1],berry_bush:[2,"hand",2],tree:[4,"axe",3],
+      branch:[1,"hand",1],loose_stone:[1,"hand",2],fiber:[1,"hand",1],berry_bush:[2,"hand",2],tree:[4,"axe",3],
       rock:[3,"pickaxe",3],ore:[4,"pickaxe",4],crystal:[5,"pickaxe",5],shell:[1,"hand",1],
       herb:[1,"hand",2],resin:[1,"hand",3],stump:[4,"axe",5],sunroot:[1,"hand",3],
       moonbean:[1,"hand",4],tide_melon:[2,"hand",4]
@@ -129,10 +129,11 @@
         if(r<(lush?.025:.007))add("tree",x,y);
         else if(r<(lush?.047:.024))add("fiber",x,y);
         else if(r<(lush?.064:.037))add("branch",x,y);
-        else if(r<(lush?.081:.048))add("berry_bush",x,y);
-        else if(r<(zone==="sunreach"?.103:.059))add("sunroot",x,y);
-        else if(r<(zone==="moon_meadow"?.087:.067))add("moonbean",x,y);
-        else if(r<.075)add("herb",x,y);
+        else if(r<(lush?.071:.043))add("loose_stone",x,y);
+        else if(r<(lush?.087:.054))add("berry_bush",x,y);
+        else if(r<(zone==="sunreach"?.109:.065))add("sunroot",x,y);
+        else if(r<(zone==="moon_meadow"?.093:.073))add("moonbean",x,y);
+        else if(r<.081)add("herb",x,y);
       }else if(biome==="forest"){
         const dense=cluster>.42;
         if(r<(dense?.115:.052))add("tree",x,y);
@@ -144,7 +145,7 @@
         else if(r<(dense?.224:.145))add("stump",x,y);
         else if(zone==="amber_grove"&&r<.235)add("moonbean",x,y);
       }else if(tile==="sand"){
-        if(r<.035)add("shell",x,y);else if(r<.043)add("branch",x,y);else if(zone==="tideflats"&&r<.065)add("tide_melon",x,y);
+        if(r<.035)add("shell",x,y);else if(r<.043)add("branch",x,y);else if(r<.049)add("loose_stone",x,y);else if(zone==="tideflats"&&r<.071)add("tide_melon",x,y);
       }else if(biome==="rock"){
         const rich=cluster>.52||zone==="crystal_ridge";
         if(r<(rich?.075:.043))add("rock",x,y);
@@ -153,7 +154,7 @@
         else if(r<.084)add("herb",x,y);
       }
     }
-    [["branch",34,54],["branch",37,53],["branch",34,51],["rock",38,54],["rock",39,52],["rock",34,49],["berry_bush",32,54],["herb",31,52]].forEach(([type,x,y])=>add(type,x,y,true));
+    [["branch",34,54],["branch",37,53],["branch",34,51],["loose_stone",38,54],["loose_stone",39,52],["loose_stone",34,49],["rock",40,50],["berry_bush",32,54],["herb",31,52]].forEach(([type,x,y])=>add(type,x,y,true));
     if(resources.length>950){
       const guaranteed=resources.filter(r=>Math.hypot(r.x-START.x,r.y-START.y)<110);
       const keep=resources.filter(r=>!guaranteed.includes(r)).sort((a,b)=>cellNoise(Math.floor(a.x/TILE),Math.floor(a.y/TILE),seed^0x165667b1)-cellNoise(Math.floor(b.x/TILE),Math.floor(b.y/TILE),seed^0x165667b1)).slice(0,950-guaranteed.length);
@@ -164,6 +165,7 @@
     const enemy=(type,x,y)=>enemies.push({id:`e${eid++}`,type,x:(x+.5)*TILE,y:(y+.5)*TILE,homeX:(x+.5)*TILE,homeY:(y+.5)*TILE,hp:LI.DATA.enemies[type].hp,maxHp:LI.DATA.enemies[type].hp,state:"idle",timer:rng.next()*2,attackTimer:0,deadUntil:0,hitFlash:0,angle:rng.next()*Math.PI*2});
     const placeEnemies=(type,count,minX,maxX,minY,maxY)=>{let placed=0,tries=0;while(placed<count&&tries++<900){const x=rng.int(minX,maxX),y=rng.int(minY,maxY),wx=(x+.5)*TILE,wy=(y+.5)*TILE,tile=tiles[idx(x,y)],biome=biomes[idx(x,y)];if(tile===TILE_ID.sea||tile===TILE_ID.shallow||Math.hypot(wx-START.x,wy-START.y)<START.enemyClearRadius+32||biome!==LI.DATA.enemies[type].biome)continue;if(enemies.some(e=>Math.hypot(e.x-wx,e.y-wy)<56))continue;enemy(type,x,y);placed++;}};
     placeEnemies("slime",6,20,86,40,112);placeEnemies("thorn",7,7,53,8,91);placeEnemies("crab",6,7,116,42,118);placeEnemies("rockling",7,43,119,7,82);
+    placeEnemies("moss_beetle",3,8,52,8,90);placeEnemies("sand_wisp",3,7,116,42,118);placeEnemies("crystal_moth",3,48,119,7,82);
     if(!state.progress.prisms.forest)enemy("forest_warden",18,20);
     if(!state.progress.prisms.rock)enemy("stone_warden",55,19);
     return{width:W,height:H,tileSize:TILE,tiles,biomes,zones,resources,landmarks,enemies,seed,rng,day:state.day};

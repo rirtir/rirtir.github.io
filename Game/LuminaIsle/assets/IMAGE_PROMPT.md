@@ -236,3 +236,28 @@ Create one seamless tileable perfectly top-down shallow tropical seawater textur
 ## P9 シート分離（生成ではなく機械処理）
 
 `tools/split_generated_assets.py` はP8透過シート6枚からアルファ連結成分を検出し、重心が属する意図セルへ割り当てる。出力時は割当外ラベルを透明化して隣セル混入を除き、5pxの余白を加える。主人公16枚だけは最大幅・高さの共通キャンバスへ足元中央揃えする。出力は `assets/generated-v4/` の134枚、パス台帳は `assets/generated-v4.js` / `.json`。
+
+## P11 戦闘・世界追加シート生成
+
+- 方式: OpenAI built-in imagegen、通常生成（generate）
+- 用途: stylized-concept
+- 参照画像: `assets/world-objects-v3.png`
+- 出力: `assets/combat-world-v5.png`、1536×1024、4列×2行
+- セル順: 苔甲虫、浜辺のウィスプ、結晶蛾、回収バッグ / トゲ種弾、結晶弾、泡弾、古い祭壇
+- 後処理: 生成画像がRGBの無彩色背景を含んだため、読込時に768×512へNEAREST縮小し、画像端から連結する低彩度・高明度画素だけを一度除去して透過Canvasへ保持する。
+
+```text
+Use case: stylized-concept
+Asset type: production combat and world-interaction sprite sheet for the existing bright top-down pixel-art survival crafting game LUMINA ISLE
+Input images: Image 1 is the style and perspective reference; match its crisp pixel clusters, navy outlines, bright high-key palette, object scale, and top-down three-quarter viewpoint
+Primary request: create exactly 8 separate game sprites in an exact 4-column by 2-row grid
+Scene/backdrop: genuinely transparent background; no ground plane, cast shadows, texture, frames, grid lines, or dividers
+Exact order left to right:
+Row 1: a small moss-backed beetle creature with leaf-like wing cases; a floating pale-gold beach wisp with a tiny shell-shaped core; a luminous blue-violet crystal moth creature; a small cream explorer recovery satchel tied with a coral scarf
+Row 2: a sharp orange thorn seed projectile pointing right with a leafy motion trail; a bright cyan crystal shard projectile pointing right with sparkling motion trail; a round aqua bubble projectile pointing right with foamy crescent trail; an ancient low stone altar with a central empty diamond socket and subtle moss, suitable for recoloring to forest, tide, or rock variants
+Style/medium: polished high-detail 2D pixel art, modern 16-bit-inspired, hard square pixels, no blur or antialiasing, consistent with Image 1
+Composition/framing: equal cells, exactly one complete centered sprite in every cell, generous transparent padding, no sprite crosses a cell boundary; creatures and altar use top-down three-quarter perspective; projectiles point horizontally right
+Lighting/mood: bright daylight, inviting and readable rather than frightening
+Constraints: exactly 8 sprites; transparent background with alpha; all sprites fully visible; clear silhouettes at 48–72 px; no people; no text; no labels; no numbers; no watermark
+Avoid: black or colored background, UI cards, realistic rendering, smooth vector art, duplicated objects, extra particles outside each projectile cell
+```

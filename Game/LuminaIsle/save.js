@@ -1,7 +1,7 @@
 (function(){
   "use strict";
   const LI=window.LI=window.LI||{};
-  const VERSION=3, FOG_COLS=32,FOG_ROWS=32,PREFIX="luminaIsle_save_v1_slot_", SETTINGS_KEY="luminaIsle_settings_v1";
+  const VERSION=4, FOG_COLS=32,FOG_ROWS=32,PREFIX="luminaIsle_save_v1_slot_", SETTINGS_KEY="luminaIsle_settings_v1";
   const copy=value=>JSON.parse(JSON.stringify(value));
 
   function hash(text){
@@ -27,9 +27,9 @@
       createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),playSeconds:0,day:1,clock:60,weather:"sunny",
       player:{x:36.5*16,y:54.5*16,dir:"down",hp:100,food:88,water:90,stamina:100,maxHp:100,maxStamina:100,
         spawnX:36.5*16,spawnY:54.5*16,invulnerable:0,buffUntil:0,glowUntil:0,watering:0},
-      inventory:{branch:2,berry:2},hotbar:["axe","pickaxe","spear","rod","berry","cooked_fish","watering_can","hammer"],selectedHotbar:4,
-      buildings:[],storage:{},crops:[],terrainChanges:[],removedResources:{},discovered:[],
-      progress:{objective:0,lighthouseSeen:false,lighthouseStage:0,prisms:{forest:false,tide:false,rock:false},forestPlanted:0,fishOffered:[],windstones:[false,false,false],endingSeen:false,postgameRewardDay:0,regions:{grass:false,forest:false,beach:false,rock:false},zones:{},caches:{},waymarks:{},tutorialDone:false,enemyGraceUntil:0,relics:Array(8).fill(false),commissionsDay:0,commissions:[],sunBadges:0,upgrades:{},masteryLevels:{},masteryRewards:{},outfit:"island"},
+      inventory:{branch:2,berry:2},hotbar:[null,null,null,null,"berry",null,null,null],selectedHotbar:4,
+      buildings:[],storage:{},crops:[],terrainChanges:[],removedResources:{},discovered:[],recovery:null,
+      progress:{objective:0,lighthouseSeen:false,lighthouseStage:0,prisms:{forest:false,tide:false,rock:false},forestPlanted:0,fishOffered:[],windstones:[false,false,false],endingSeen:false,postgameRewardDay:0,regions:{grass:false,forest:false,beach:false,rock:false},zones:{},caches:{},waymarks:{},tutorialDone:false,enemyGraceUntil:0,relics:Array(8).fill(false),commissionsDay:0,commissions:[],sunBadges:0,upgrades:{},masteryLevels:{},masteryRewards:{},enemyTrophies:{},outfit:"island"},
       achievements:{},crafted:{},fishCaught:{},stats:{gathered:0,gatheredBranch:0,gatheredStone:0,crafted:0,cooked:0,built:0,harvested:0,fishCaught:0,enemiesCalmed:0,dodges:0,damageTaken:0,planted:0,passedNights:0,knockouts:0,relics:0,commissions:0,distance:0},
       explored:Array(FOG_COLS*FOG_ROWS).fill(0),messagesSeen:{},settings:loadSettings()};
   }
@@ -57,7 +57,7 @@
     const base=newState(state.slot||1,state.seedText||state.seed);
     const merged={...base,...state};
     merged.player={...base.player,...state.player};
-    merged.progress={...base.progress,...state.progress,prisms:{...base.progress.prisms,...state.progress?.prisms},regions:{...base.progress.regions,...state.progress?.regions},zones:{...base.progress.zones,...state.progress?.zones},caches:{...base.progress.caches,...state.progress?.caches},waymarks:{...base.progress.waymarks,...state.progress?.waymarks},upgrades:{...base.progress.upgrades,...state.progress?.upgrades},masteryLevels:{...base.progress.masteryLevels,...state.progress?.masteryLevels},masteryRewards:{...base.progress.masteryRewards,...state.progress?.masteryRewards}};
+    merged.progress={...base.progress,...state.progress,prisms:{...base.progress.prisms,...state.progress?.prisms},regions:{...base.progress.regions,...state.progress?.regions},zones:{...base.progress.zones,...state.progress?.zones},caches:{...base.progress.caches,...state.progress?.caches},waymarks:{...base.progress.waymarks,...state.progress?.waymarks},upgrades:{...base.progress.upgrades,...state.progress?.upgrades},masteryLevels:{...base.progress.masteryLevels,...state.progress?.masteryLevels},masteryRewards:{...base.progress.masteryRewards,...state.progress?.masteryRewards},enemyTrophies:{...base.progress.enemyTrophies,...state.progress?.enemyTrophies}};
     merged.progress.relics=Array.from({length:8},(_,i)=>!!state.progress?.relics?.[i]);
     merged.progress.commissions=Array.isArray(state.progress?.commissions)?state.progress.commissions:[];
     const oldExplored=Array.isArray(state.explored)?state.explored:[];
@@ -69,6 +69,11 @@
     }
     // v3では資源IDを座標ベースへ変更したため、旧IDの一時的な採取済み状態だけを破棄する。
     if(previousVersion<3)merged.removedResources={};
+    // v4で「木槌を作る」を導入目標へ追加したため、以降の目標番号を一つ送る。
+    if(previousVersion<4&&merged.progress.objective>=2)merged.progress.objective++;
+    merged.hotbar=Array.from({length:8},(_,i)=>{const key=state.hotbar?.[i];return key&&(merged.inventory[key]||0)>0?key:null;});
+    merged.selectedHotbar=Math.max(0,Math.min(7,Number(state.selectedHotbar)||0));
+    merged.recovery=state.recovery&&state.recovery.items&&Object.values(state.recovery.items).some(n=>n>0)?state.recovery:null;
     merged.stats={...base.stats,...state.stats};merged.settings={...loadSettings(),...state.settings};
     merged.schemaVersion=VERSION;return merged;
   }

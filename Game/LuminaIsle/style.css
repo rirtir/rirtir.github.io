@@ -139,3 +139,24 @@ button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
   .objective-hud{top:150px;max-width:52vw;min-height:44px;align-items:center;padding:5px 7px}.objective-hud .objective-star,.objective-hud small{display:none}.objective-hud strong{font-size:.68rem}.objective-hud div>span{font-size:.58rem}
   .pickup-feed{bottom:max(220px,calc(env(safe-area-inset-bottom) + 220px))}.toast-stack{bottom:max(225px,calc(env(safe-area-inset-bottom) + 225px))}
 }
+
+/* P11: inventory hotbar, progressive discovery, and axis-locked journal tabs */
+.modal-tabs{overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;overscroll-behavior-y:none;touch-action:pan-x;scroll-snap-type:x proximity;scrollbar-width:thin}
+.modal-tabs button{flex:0 0 auto;scroll-snap-align:start}
+.hot-slot.empty{opacity:.42;background:rgba(255,250,240,.64)}
+.hot-slot.empty .sprite-icon{background-image:none!important}
+.inventory-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;padding:9px 11px;border:2px solid var(--ink);border-radius:7px;background:linear-gradient(90deg,#fff4c7,#e4f5d5)}
+.inventory-summary strong{white-space:nowrap}.inventory-summary span{font-size:.68rem;text-align:right;color:var(--ink2)}
+.inventory-hotbar-wrap{position:sticky;z-index:4;bottom:-14px;display:grid;grid-template-columns:minmax(170px,1fr) auto;align-items:center;gap:10px;margin:14px -14px -14px;padding:8px 14px max(8px,env(safe-area-inset-bottom));border-top:3px solid var(--ink);background:rgba(246,239,207,.98);box-shadow:0 -5px 12px rgba(39,50,77,.16)}
+.inventory-hotbar-wrap>div:first-child{display:grid}.inventory-hotbar-wrap small{font-size:.62rem;color:var(--ink2)}
+.inventory-hotbar{display:flex;gap:4px;max-width:100%;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;overscroll-behavior-x:contain;padding-top:5px}
+.inventory-slot{flex:0 0 47px}.inventory-slot.selected{transform:translateY(-3px)}
+.recipe-discovery{margin-bottom:10px;padding:12px 14px;border:2px dashed var(--deep);border-radius:8px;background:linear-gradient(115deg,#fff7d8,#e4f5d5)}
+.recipe-discovery strong,.recipe-discovery p{display:block;margin:0}.recipe-discovery p{margin-top:4px;font-size:.72rem}
+.hammer-required{display:inline-flex;align-items:center;gap:2px;margin-left:auto;padding:2px 5px;border:1px solid var(--ink2);border-radius:4px;background:#fff4c7;font-size:.6rem;font-weight:900;white-space:nowrap}.hammer-required-icon{position:relative!important;left:auto!important;top:auto!important;width:17px!important;height:17px!important;transform:scale(.62);transform-origin:center}
+
+@media(max-width:700px){
+  .inventory-summary{align-items:flex-start}.inventory-summary span{max-width:58%;font-size:.62rem}
+  .inventory-hotbar-wrap{bottom:-10px;grid-template-columns:1fr;margin:12px -10px -10px;padding:7px 9px max(7px,env(safe-area-inset-bottom));gap:4px}
+  .inventory-hotbar{width:100%;justify-content:flex-start}.inventory-slot{flex-basis:44px;width:44px;height:46px}
+}
