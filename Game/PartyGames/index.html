@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090d18">
+  <title>みんなのミニゲーム集</title>
+  <style>
+    :root { color-scheme:dark; font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif; --bg:#090d18; --panel:#151d2f; --text:#f8fafc; --muted:#aab4ca; --accent:#8b5cf6; }
+    * { box-sizing:border-box; }
+    body { min-height:100vh; margin:0; color:var(--text); background:radial-gradient(circle at 15% 0,rgba(139,92,246,.25),transparent 38rem),var(--bg); }
+    main { width:min(100%,960px); margin:auto; padding:44px 16px max(50px,env(safe-area-inset-bottom)); }
+    .eyebrow { margin:0 0 8px; color:#67e8f9; font-size:.75rem; font-weight:900; letter-spacing:.16em; }
+    h1 { max-width:750px; margin:0; font-size:clamp(2.7rem,11vw,6rem); line-height:.95; letter-spacing:-.055em; }
+    h1 span { color:#a78bfa; }
+    .lead { max-width:650px; margin:24px 0 30px; color:var(--muted); line-height:1.8; }
+    .mode-grid { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+    .launch { display:grid; align-content:center; width:100%; min-height:82px; padding:16px; border:0; border-radius:17px; background:var(--accent); color:white; text-align:center; text-decoration:none; font-size:1.08rem; font-weight:900; box-shadow:0 16px 35px rgba(139,92,246,.24); }
+    .launch.secondary { border:1px solid rgba(103,232,249,.28); background:#16354a; box-shadow:none; }
+    .launch small { display:block; margin-top:5px; color:rgba(255,255,255,.72); font-size:.72rem; }
+    .note { margin:10px 0 30px; color:var(--muted); text-align:center; font-size:.78rem; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+    .card { display:grid; grid-template-columns:42px 1fr; gap:11px; min-width:0; padding:15px; border:1px solid rgba(255,255,255,.09); border-radius:17px; background:var(--panel); }
+    .icon { display:grid; place-items:center; width:42px; height:42px; border-radius:13px; background:rgba(139,92,246,.15); font-size:1.35rem; }
+    .card h2 { margin:0 0 4px; font-size:.98rem; }
+    .card p { margin:0; color:var(--muted); font-size:.77rem; line-height:1.45; }
+    .legacy { margin-top:25px; padding:18px; border:1px solid rgba(255,255,255,.09); border-radius:18px; background:rgba(21,29,47,.8); }
+    .legacy h2 { margin:0 0 7px; font-size:1.1rem; }
+    .legacy p { margin:0 0 13px; color:var(--muted); }
+    .links { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .links a { padding:12px; border-radius:12px; background:#25304a; color:white; text-align:center; text-decoration:none; font-weight:800; }
+    @media(max-width:620px){ .mode-grid,.grid,.links{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">LOOK UP, TALK MORE</p>
+  <h1>スマホを伏せても<br><span>続くゲーム。</span></h1>
+  <p class="lead">同じ場所にいる2〜12人で遊ぶ、会話中心のミニゲーム集。スマホ1台を回す遊び方と、各自のスマホで参加するオンライン版を選べます。</p>
+  <section class="mode-grid">
+    <a class="launch secondary" href="one-device/">📱 1台で遊ぶ<small>通信不要・スマホを順番に渡す</small></a>
+    <a class="launch" id="launch" href="https://minigame-online.onrender.com/">🌐 オンラインで遊ぶ<small>各自のスマホからルームへ参加</small></a>
+  </section>
+  <p class="note">オンライン版の初回はRender無料サーバーの起動に少し時間がかかる場合があります</p>
+  <section class="grid" id="games"></section>
+  <section class="legacy"><h2>既存のitoはそのまま残しています</h2><p>スマホ1台版と、従来のオンライン版も引き続き遊べます。</p><div class="links"><a href="../ito/">スマホ1台版 ito</a><a href="https://ito-online.onrender.com/">ito online</a></div></section>
+</main>
+<script>
+  const ONLINE_URL = "https://minigame-online.onrender.com/";
+  const games = [
+    ["🐺","ワードウルフ","少数派を会話で探す"],["🚫","NGワード","禁止ワードを言わせる"],
+    ["🎯","全員一致","同じ答えを目指す"],["👥","多数派を読め","多数派を予想する二択"],
+    ["🦊","少数派サバイバル","少ない方を選ぶ"],["🤝","ペアシンクロ","ペアで答えを合わせる"],
+    ["🧠","テレパシーワード","同じ回答で得点"],["⏱️","5秒で3つ","5秒の瞬発回答"],
+    ["🤐","タブー説明","禁止語なしで説明"],["📏","ぴったり予想","一番近い数値を狙う"],
+    ["🌡️","ひみつの温度計","秘密の位置を例えで伝える"],["📚","ウソ定義選手権","偽の意味でみんなを騙す"],
+    ["🔢","協力カウント","かぶらず声をつなぐ"],["🤣","答えが先大喜利","答えに合う質問を作る"]
+  ];
+  document.getElementById("launch").href = ONLINE_URL;
+  document.getElementById("games").innerHTML = games.map(([icon,name,desc]) => `<article class="card"><div class="icon">${icon}</div><div><h2>${name}</h2><p>${desc}</p></div></article>`).join("");
+</script>
+</body>
+</html>

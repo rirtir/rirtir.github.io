@@ -31,6 +31,13 @@ const data = [
                 main: true,
             },
             {
+                title: "みんなのミニゲーム集",
+                url: "https://rirtir.com/Game/PartyGames/",
+                desc: "スマホ1台でもオンラインでも遊べる、会話中心のミニゲーム14本。",
+                tags: ["みんなで", "スマホ一台", "スマホ複数台", "オンライン", "わいわい", "ゲーム"],
+                main: true,
+            },
+            {
                 title: "ボブジテン",
                 url: "https://rirtir.com/Game/bob/",
                 desc: "相手のお題を当てろ",

@@ -1,0 +1,1741 @@
+{
+  "count": 217,
+  "items": [
+    {
+      "question": "北海道の面積はおよそ何平方km？",
+      "answer": 83422.27,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "青森県の面積はおよそ何平方km？",
+      "answer": 9645.11,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "岩手県の面積はおよそ何平方km？",
+      "answer": 15275.05,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "宮城県の面積はおよそ何平方km？",
+      "answer": 7282.3,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "秋田県の面積はおよそ何平方km？",
+      "answer": 11637.46,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "山形県の面積はおよそ何平方km？",
+      "answer": 9323.15,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "福島県の面積はおよそ何平方km？",
+      "answer": 13784.41,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "茨城県の面積はおよそ何平方km？",
+      "answer": 6098.32,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "栃木県の面積はおよそ何平方km？",
+      "answer": 6408.09,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "群馬県の面積はおよそ何平方km？",
+      "answer": 6362.28,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "埼玉県の面積はおよそ何平方km？",
+      "answer": 3797.75,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "千葉県の面積はおよそ何平方km？",
+      "answer": 5156.48,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "東京都の面積はおよそ何平方km？",
+      "answer": 2199.94,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "神奈川県の面積はおよそ何平方km？",
+      "answer": 2416.55,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "新潟県の面積はおよそ何平方km？",
+      "answer": 12583.94,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "富山県の面積はおよそ何平方km？",
+      "answer": 4247.55,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "石川県の面積はおよそ何平方km？",
+      "answer": 4190.94,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "福井県の面積はおよそ何平方km？",
+      "answer": 4190.59,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "山梨県の面積はおよそ何平方km？",
+      "answer": 4465.27,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "長野県の面積はおよそ何平方km？",
+      "answer": 13561.57,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "岐阜県の面積はおよそ何平方km？",
+      "answer": 10621.29,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "静岡県の面積はおよそ何平方km？",
+      "answer": 7777.0,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "愛知県の面積はおよそ何平方km？",
+      "answer": 5173.23,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "三重県の面積はおよそ何平方km？",
+      "answer": 5774.48,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "滋賀県の面積はおよそ何平方km？",
+      "answer": 4017.38,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "京都府の面積はおよそ何平方km？",
+      "answer": 4612.09,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "大阪府の面積はおよそ何平方km？",
+      "answer": 1905.26,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "兵庫県の面積はおよそ何平方km？",
+      "answer": 8400.82,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "奈良県の面積はおよそ何平方km？",
+      "answer": 3690.94,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "和歌山県の面積はおよそ何平方km？",
+      "answer": 4724.65,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "鳥取県の面積はおよそ何平方km？",
+      "answer": 3507.04,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "島根県の面積はおよそ何平方km？",
+      "answer": 6707.79,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "岡山県の面積はおよそ何平方km？",
+      "answer": 7114.44,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "広島県の面積はおよそ何平方km？",
+      "answer": 8478.16,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "山口県の面積はおよそ何平方km？",
+      "answer": 6112.92,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "徳島県の面積はおよそ何平方km？",
+      "answer": 4146.96,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "香川県の面積はおよそ何平方km？",
+      "answer": 1876.83,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "愛媛県の面積はおよそ何平方km？",
+      "answer": 5675.87,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "高知県の面積はおよそ何平方km？",
+      "answer": 7102.28,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "福岡県の面積はおよそ何平方km？",
+      "answer": 4987.66,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "佐賀県の面積はおよそ何平方km？",
+      "answer": 2440.64,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "長崎県の面積はおよそ何平方km？",
+      "answer": 4131.21,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "熊本県の面積はおよそ何平方km？",
+      "answer": 7409.13,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "大分県の面積はおよそ何平方km？",
+      "answer": 6340.71,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "宮崎県の面積はおよそ何平方km？",
+      "answer": 7734.16,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "鹿児島県の面積はおよそ何平方km？",
+      "answer": 9186.21,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "沖縄県の面積はおよそ何平方km？",
+      "answer": 2282.11,
+      "unit": "平方km",
+      "explanation": "総務省統計局『日本の統計2026』掲載の令和7年面積。",
+      "source": "総務省統計局『日本の統計2026』",
+      "source_url": "https://www.stat.go.jp/data/nihon/pdf/26nihon.pdf"
+    },
+    {
+      "question": "富士山＜剣ヶ峯＞の標高は何m？",
+      "answer": 3776.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "北岳の標高は何m？",
+      "answer": 3193.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "奥穂高岳の標高は何m？",
+      "answer": 3190.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "間ノ岳の標高は何m？",
+      "answer": 3190.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "槍ヶ岳の標高は何m？",
+      "answer": 3180.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "東岳（悪沢岳）の標高は何m？",
+      "answer": 3141.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "赤石岳の標高は何m？",
+      "answer": 3121.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "涸沢岳の標高は何m？",
+      "answer": 3110.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "北穂高岳の標高は何m？",
+      "answer": 3106.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "大喰岳の標高は何m？",
+      "answer": 3101.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "前穂高岳の標高は何m？",
+      "answer": 3090.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "中岳の標高は何m？",
+      "answer": 3084.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "荒川岳＜中岳＞の標高は何m？",
+      "answer": 3084.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "荒川岳＜前岳＞の標高は何m？",
+      "answer": 3068.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "御嶽山＜剣ヶ峰＞の標高は何m？",
+      "answer": 3067.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "塩見岳の標高は何m？",
+      "answer": 3052.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "農鳥岳＜西農鳥岳＞の標高は何m？",
+      "answer": 3051.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "南岳の標高は何m？",
+      "answer": 3033.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "仙丈ヶ岳の標高は何m？",
+      "answer": 3033.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "乗鞍岳＜剣ヶ峰＞の標高は何m？",
+      "answer": 3026.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "農鳥岳の標高は何m？",
+      "answer": 3026.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "立山＜大汝山＞の標高は何m？",
+      "answer": 3015.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "聖岳＜前聖岳＞の標高は何m？",
+      "answer": 3013.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "剱岳の標高は何m？",
+      "answer": 2999.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "水晶岳（黒岳）の標高は何m？",
+      "answer": 2986.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "駒ヶ岳の標高は何m？",
+      "answer": 2967.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "白馬岳の標高は何m？",
+      "answer": 2932.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "駒ヶ岳＜宝剣岳＞の標高は何m？",
+      "answer": 2931.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "薬師岳の標高は何m？",
+      "answer": 2926.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "野口五郎岳の標高は何m？",
+      "answer": 2924.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "鷲羽岳の標高は何m？",
+      "answer": 2924.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "大天井岳の標高は何m？",
+      "answer": 2922.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "西穂高岳の標高は何m？",
+      "answer": 2909.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "鑓ヶ岳の標高は何m？",
+      "answer": 2903.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "赤岳の標高は何m？",
+      "answer": 2899.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "笠ヶ岳の標高は何m？",
+      "answer": 2897.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "広河内岳の標高は何m？",
+      "answer": 2895.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "鹿島槍ヶ岳の標高は何m？",
+      "answer": 2889.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "別山の標高は何m？",
+      "answer": 2880.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "龍王岳の標高は何m？",
+      "answer": 2872.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "旭岳の標高は何m？",
+      "answer": 2867.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "蝙蝠岳の標高は何m？",
+      "answer": 2865.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "赤牛岳の標高は何m？",
+      "answer": 2864.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "空木岳の標高は何m？",
+      "answer": 2864.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "真砂岳の標高は何m？",
+      "answer": 2861.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "双六岳の標高は何m？",
+      "answer": 2860.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "常念岳の標高は何m？",
+      "answer": 2857.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "三沢岳の標高は何m？",
+      "answer": 2847.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "三ッ岳の標高は何m？",
+      "answer": 2845.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "三俣蓮華岳の標高は何m？",
+      "answer": 2841.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "南駒ヶ岳の標高は何m？",
+      "answer": 2841.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "観音ヶ岳の標高は何m？",
+      "answer": 2841.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "黒部五郎岳（中ノ俣岳）の標高は何m？",
+      "answer": 2840.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "龍王岳＜浄土山＞の標高は何m？",
+      "answer": 2831.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "横岳の標高は何m？",
+      "answer": 2830.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "祖父岳の標高は何m？",
+      "answer": 2825.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "針ノ木岳の標高は何m？",
+      "answer": 2821.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "大沢岳の標高は何m？",
+      "answer": 2820.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "兎岳の標高は何m？",
+      "answer": 2818.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "五龍岳の標高は何m？",
+      "answer": 2814.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "東天井岳の標高は何m？",
+      "answer": 2814.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "抜戸岳の標高は何m？",
+      "answer": 2813.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "杓子岳の標高は何m？",
+      "answer": 2812.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "中盛丸山の標高は何m？",
+      "answer": 2807.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "阿弥陀岳の標高は何m？",
+      "answer": 2805.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "上河内岳の標高は何m？",
+      "answer": 2803.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "小河内岳の標高は何m？",
+      "answer": 2802.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "蓮華岳の標高は何m？",
+      "answer": 2799.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "アサヨ峰の標高は何m？",
+      "answer": 2799.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "南駒ヶ岳＜赤梛岳＞の標高は何m？",
+      "answer": 2798.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "薬師ヶ岳の標高は何m？",
+      "answer": 2780.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "高嶺の標高は何m？",
+      "answer": 2779.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "熊沢岳の標高は何m？",
+      "answer": 2778.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "剱御前の標高は何m？",
+      "answer": 2777.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "赤岩岳の標高は何m？",
+      "answer": 2769.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "横通岳の標高は何m？",
+      "answer": 2767.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "大籠岳の標高は何m？",
+      "answer": 2767.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "小蓮華山の標高は何m？",
+      "answer": 2766.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "地蔵ヶ岳の標高は何m？",
+      "answer": 2764.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "燕岳の標高は何m？",
+      "answer": 2763.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "硫黄岳の標高は何m？",
+      "answer": 2760.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "西岳の標高は何m？",
+      "answer": 2758.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "樅沢岳の標高は何m？",
+      "answer": 2755.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "スバリ岳の標高は何m？",
+      "answer": 2752.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "駒津峰の標高は何m？",
+      "answer": 2752.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "仙涯嶺の標高は何m？",
+      "answer": 2734.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "駒ヶ岳＜麦草岳＞の標高は何m？",
+      "answer": 2733.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "笹山の標高は何m？",
+      "answer": 2733.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "将棊頭山の標高は何m？",
+      "answer": 2730.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "檜尾岳の標高は何m？",
+      "answer": 2728.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "烏帽子岳の標高は何m？",
+      "answer": 2726.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "小太郎山の標高は何m？",
+      "answer": 2725.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "権現岳の標高は何m？",
+      "answer": 2715.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "アサヨ峰＜栗沢山＞の標高は何m？",
+      "answer": 2714.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "南真砂岳の標高は何m？",
+      "answer": 2713.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "白山＜御前峰＞の標高は何m？",
+      "answer": 2702.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "北荒川岳の標高は何m？",
+      "answer": 2698.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "唐松岳の標高は何m？",
+      "answer": 2696.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "安倍荒倉岳の標高は何m？",
+      "answer": 2693.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "鋸岳の標高は何m？",
+      "answer": 2685.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "赤沢岳の標高は何m？",
+      "answer": 2678.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "蝶ヶ岳の標高は何m？",
+      "answer": 2677.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "東川岳の標高は何m？",
+      "answer": 2671.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "爺ヶ岳の標高は何m？",
+      "answer": 2670.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "赤沢山の標高は何m？",
+      "answer": 2670.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "新蛇抜山の標高は何m？",
+      "answer": 2667.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "北ノ俣岳（上ノ岳）の標高は何m？",
+      "answer": 2662.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "将棊頭山＜茶臼山＞の標高は何m？",
+      "answer": 2658.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "本谷山の標高は何m？",
+      "answer": 2658.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "双児山の標高は何m？",
+      "answer": 2649.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "餓鬼岳の標高は何m？",
+      "answer": 2647.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "天狗岳の標高は何m？",
+      "answer": 2646.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "霞沢岳の標高は何m？",
+      "answer": 2646.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "板屋岳の標高は何m？",
+      "answer": 2646.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "鳴沢岳の標高は何m？",
+      "answer": 2641.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "唐沢岳の標高は何m？",
+      "answer": 2632.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "岩小屋沢岳の標高は何m？",
+      "answer": 2630.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "笊ヶ岳の標高は何m？",
+      "answer": 2629.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "南沢岳の標高は何m？",
+      "answer": 2625.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "国見岳の標高は何m？",
+      "answer": 2621.0,
+      "unit": "m",
+      "explanation": "国土地理院『日本の主な山岳標高一覧』の標高値。",
+      "source": "国土地理院『日本の主な山岳標高一覧』",
+      "source_url": "https://www.gsi.go.jp/kihonjohochousa/kihonjohochousa41139.html"
+    },
+    {
+      "question": "1年は通常何日？",
+      "answer": 365.0,
+      "unit": "日",
+      "explanation": "暦の基本値",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "うるう年は何日？",
+      "answer": 366.0,
+      "unit": "日",
+      "explanation": "暦の基本値",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "1日は何時間？",
+      "answer": 24.0,
+      "unit": "時間",
+      "explanation": "時間の単位",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "1時間は何分？",
+      "answer": 60.0,
+      "unit": "分",
+      "explanation": "時間の単位",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "1分は何秒？",
+      "answer": 60.0,
+      "unit": "秒",
+      "explanation": "時間の単位",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "1週間は何時間？",
+      "answer": 168.0,
+      "unit": "時間",
+      "explanation": "7日×24時間",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "1キロメートルは何メートル？",
+      "answer": 1000.0,
+      "unit": "m",
+      "explanation": "メートル法",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "1メートルは何センチメートル？",
+      "answer": 100.0,
+      "unit": "cm",
+      "explanation": "メートル法",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "1リットルは何ミリリットル？",
+      "answer": 1000.0,
+      "unit": "mL",
+      "explanation": "メートル法",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "直角は何度？",
+      "answer": 90.0,
+      "unit": "度",
+      "explanation": "角度",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "三角形の内角の和は何度？",
+      "answer": 180.0,
+      "unit": "度",
+      "explanation": "ユークリッド幾何",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "四角形の内角の和は何度？",
+      "answer": 360.0,
+      "unit": "度",
+      "explanation": "ユークリッド幾何",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "五角形の内角の和は何度？",
+      "answer": 540.0,
+      "unit": "度",
+      "explanation": "ユークリッド幾何",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "六角形の内角の和は何度？",
+      "answer": 720.0,
+      "unit": "度",
+      "explanation": "ユークリッド幾何",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "将棋の盤は縦何マス？",
+      "answer": 9.0,
+      "unit": "マス",
+      "explanation": "将棋盤は9×9",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "将棋の盤は全部で何マス？",
+      "answer": 81.0,
+      "unit": "マス",
+      "explanation": "9×9",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "チェス盤は全部で何マス？",
+      "answer": 64.0,
+      "unit": "マス",
+      "explanation": "8×8",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "トランプはジョーカーを除いて何枚？",
+      "answer": 52.0,
+      "unit": "枚",
+      "explanation": "4スート×13枚",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "トランプのスートは何種類？",
+      "answer": 4.0,
+      "unit": "種類",
+      "explanation": "スペード・ハート・ダイヤ・クラブ",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "サイコロ1個の向かい合う面の合計はいくつ？",
+      "answer": 7.0,
+      "unit": "",
+      "explanation": "一般的な六面体サイコロ",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "オリンピックの輪はいくつ？",
+      "answer": 5.0,
+      "unit": "個",
+      "explanation": "五輪マーク",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "日本の都道府県はいくつ？",
+      "answer": 47.0,
+      "unit": "都道府県",
+      "explanation": "総務省",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "日本の地方区分は一般にいくつ？",
+      "answer": 8.0,
+      "unit": "地方",
+      "explanation": "北海道・東北・関東・中部・近畿・中国・四国・九州",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "太陽系の惑星はいくつ？",
+      "answer": 8.0,
+      "unit": "個",
+      "explanation": "国立天文台",
+      "source": "国立天文台",
+      "source_url": "https://eco.mtk.nao.ac.jp/koyomi/wiki/"
+    },
+    {
+      "question": "地球の衛星はいくつ？",
+      "answer": 1.0,
+      "unit": "個",
+      "explanation": "月",
+      "source": "国立天文台",
+      "source_url": "https://eco.mtk.nao.ac.jp/koyomi/wiki/"
+    },
+    {
+      "question": "水星の衛星はいくつ？",
+      "answer": 0.0,
+      "unit": "個",
+      "explanation": "国立天文台",
+      "source": "国立天文台",
+      "source_url": "https://eco.mtk.nao.ac.jp/koyomi/wiki/"
+    },
+    {
+      "question": "金星の衛星はいくつ？",
+      "answer": 0.0,
+      "unit": "個",
+      "explanation": "国立天文台",
+      "source": "国立天文台",
+      "source_url": "https://eco.mtk.nao.ac.jp/koyomi/wiki/"
+    },
+    {
+      "question": "地球の平均半径はおよそ何km？",
+      "answer": 6371.0,
+      "unit": "km",
+      "explanation": "国立天文台の値を丸めた値",
+      "source": "国立天文台",
+      "source_url": "https://eco.mtk.nao.ac.jp/koyomi/wiki/"
+    },
+    {
+      "question": "月の平均半径はおよそ何km？",
+      "answer": 1737.4,
+      "unit": "km",
+      "explanation": "国立天文台",
+      "source": "国立天文台",
+      "source_url": "https://eco.mtk.nao.ac.jp/koyomi/wiki/"
+    },
+    {
+      "question": "太陽の半径はおよそ何km？",
+      "answer": 696000.0,
+      "unit": "km",
+      "explanation": "国立天文台の代表値",
+      "source": "国立天文台",
+      "source_url": "https://eco.mtk.nao.ac.jp/koyomi/wiki/"
+    },
+    {
+      "question": "地球から月までの平均距離はおよそ何km？",
+      "answer": 384400.0,
+      "unit": "km",
+      "explanation": "国立天文台の代表値",
+      "source": "国立天文台",
+      "source_url": "https://eco.mtk.nao.ac.jp/koyomi/wiki/"
+    },
+    {
+      "question": "光が1秒で進む距離はおよそ何km？",
+      "answer": 299792.0,
+      "unit": "km",
+      "explanation": "真空中の光速度",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "音速は気温15℃の空気中でおよそ秒速何m？",
+      "answer": 340.0,
+      "unit": "m",
+      "explanation": "標準的な近似値",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "水の凍る温度は標準気圧で何℃？",
+      "answer": 0.0,
+      "unit": "℃",
+      "explanation": "セルシウス温度",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "水の沸騰温度は標準気圧で何℃？",
+      "answer": 100.0,
+      "unit": "℃",
+      "explanation": "セルシウス温度",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "富士山の標高は何m？",
+      "answer": 3776.0,
+      "unit": "m",
+      "explanation": "国土地理院",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "日本の島の数は国土地理院の2023年公表値でいくつ？",
+      "answer": 14125.0,
+      "unit": "島",
+      "explanation": "国土地理院",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "日本の国土面積はおよそ何平方km？",
+      "answer": 377980.0,
+      "unit": "平方km",
+      "explanation": "総務省統計局「日本の統計2026」",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "琵琶湖の面積はおよそ何平方km？",
+      "answer": 670.3,
+      "unit": "平方km",
+      "explanation": "国土地理院資料の代表値",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "日本で観測された歴代最高気温は2025年8月時点で何℃？",
+      "answer": 41.8,
+      "unit": "℃",
+      "explanation": "気象庁・群馬県伊勢崎",
+      "source": "国立天文台",
+      "source_url": "https://eco.mtk.nao.ac.jp/koyomi/wiki/"
+    },
+    {
+      "question": "野球で守備につく選手は1チーム何人？",
+      "answer": 9.0,
+      "unit": "人",
+      "explanation": "一般的な野球規則",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "サッカーでピッチに立つ選手は1チーム何人？",
+      "answer": 11.0,
+      "unit": "人",
+      "explanation": "一般的なサッカー規則",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "バスケットボールでコートに立つ選手は1チーム何人？",
+      "answer": 5.0,
+      "unit": "人",
+      "explanation": "一般的なバスケットボール規則",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "バレーボールでコートに立つ選手は1チーム何人？",
+      "answer": 6.0,
+      "unit": "人",
+      "explanation": "6人制バレーボール",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "ラグビー15人制でフィールドに立つ選手は1チーム何人？",
+      "answer": 15.0,
+      "unit": "人",
+      "explanation": "15人制ラグビー",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "マラソンの距離は何km？",
+      "answer": 42.195,
+      "unit": "km",
+      "explanation": "公式マラソン距離",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "陸上競技のトラック1周は標準で何m？",
+      "answer": 400.0,
+      "unit": "m",
+      "explanation": "標準屋外トラック",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "テニスのグランドスラム大会は年間いくつ？",
+      "answer": 4.0,
+      "unit": "大会",
+      "explanation": "四大大会",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "野球の塁間は約何m？",
+      "answer": 27.43,
+      "unit": "m",
+      "explanation": "90フィート",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    },
+    {
+      "question": "ボウリングのピンは何本？",
+      "answer": 10.0,
+      "unit": "本",
+      "explanation": "テンピンボウリング",
+      "source": "公開されている基礎資料",
+      "source_url": "https://www.stat.go.jp/"
+    }
+  ]
+}
