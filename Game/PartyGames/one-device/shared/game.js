@@ -2,6 +2,8 @@
   "use strict";
 
   const META = {
+    "ito": { icon:"🧵", name:"ito", min:2, short:"感覚で小さい順に並べる", rule:"1〜100の秘密の数字を、お題に沿った例えで伝えます。相談して小さいと思う人から公開し、全員が昇順なら成功です。" },
+    "bob-jiten": { icon:"🗣️", name:"ボブジテン", min:2, short:"カタカナなしで説明", rule:"説明役だけがカタカナ語のお題を確認。カタカナ語や英語を使わず、45秒以内に当ててもらいます。" },
     "word-wolf": { icon:"🐺", name:"ワードウルフ", min:3, short:"少数派のお題を会話で探す", rule:"各自のお題を秘密に確認して会話します。投票で少数派を当てれば市民、逃げ切ればウルフの得点です。" },
     "ng-word": { icon:"🚫", name:"NGワード", min:2, short:"自分だけ知らない禁止語", rule:"自分以外のNGワードを確認して会話します。誰かが自分のNGワードを言ったら中央の画面で捕まえます。" },
     "unanimous": { icon:"🎯", name:"全員一致", min:2, short:"同じ答えを目指す", rule:"お題から連想する答えを一人ずつ秘密に入力。全員一致で2点、部分一致で1点です。" },
@@ -106,6 +108,12 @@
     state.tempPrediction = null;
     state.prompt = pickPrompt();
     const ids = allIds();
+    if (slug === "ito") {
+      const numbers=shuffle(Array.from({length:100},(_,i)=>i+1)).slice(0,ids.length);
+      state.assignments=Object.fromEntries(ids.map((id,i)=>[id,numbers[i]])); state.revealed=[];
+      return beginTurns("ito-secret",ids,"ito-secrets");
+    }
+    if (slug === "bob-jiten") { state.active=ids[(state.round-1)%ids.length]; state.phase="bob-pass"; return render(); }
     if (slug === "word-wolf") {
       const wolf = ids[Math.floor(Math.random()*ids.length)];
       const flip = Math.random() < .5;
@@ -151,6 +159,7 @@
   }
 
   function finishTurns(kind) {
+    if (kind === "ito-secrets") { state.phase="ito-discuss"; return render(); }
     if (kind === "wolf-secrets") { state.phase="wolf-discuss"; return render(); }
     if (kind === "wolf-votes") return resolveWolf();
     if (kind === "ng-secrets") { state.phase="ng-discuss"; return render(); }
@@ -183,6 +192,7 @@
 
   function renderTurnView() {
     const pid=currentPid(), name=pname(pid), p=state.prompt;
+    if (state.turnView === "ito-secret") return shell(`<p class="phase-label">ONLY ${esc(name)}</p><h2>あなたの数字</h2><div class="prompt-card"><div class="big-word">${esc(p)}</div></div><div class="prompt-card secret-card"><div class="big-word">${state.assignments[pid]}</div></div><p>覚えたら画面を隠して次へ進んでください。</p><button class="primary wide" data-action="turn-done">覚えた・画面を隠す</button>`);
     if (state.turnView === "wolf-secret") return shell(`<p class="phase-label">ONLY ${esc(name)}</p><h2>あなたのお題</h2><div class="prompt-card secret-card"><small>${esc(p.category)}</small><div class="big-word">${esc(state.assignments[pid])}</div></div><p>覚えたら必ず画面を隠して次へ進んでください。</p><button class="primary wide" data-action="turn-done">覚えた・画面を隠す</button>`);
     if (state.turnView === "ng-secret") {
       const others=state.players.filter(x=>x.id!==pid).map(x=>`<div class="answer-item"><strong>${esc(x.name)}</strong>　${esc(state.assignments[x.id])}</div>`).join("");
@@ -321,6 +331,14 @@
 
   function renderSpecial() {
     const p=state.prompt;
+    if(state.phase==="ito-discuss") {
+      const rows=state.revealed.map((id,i)=>`<div class="answer-item"><strong>${i+1}. ${esc(pname(id))}</strong><b style="float:right">${state.assignments[id]}</b></div>`).join("");
+      const buttons=state.players.filter(x=>!state.revealed.includes(x.id)).map(x=>`<button class="choice" data-action="ito-reveal" data-player="${x.id}">${esc(x.name)}が次だと思う</button>`).join("");
+      return shell(`<p class="phase-label">TALK & REVEAL</p><h2>${esc(p)}</h2><p>数字を言わずに例えを話し、小さいと思う人から本人がボタンを押します。一度公開すると戻せません。</p><div class="answer-list">${rows}</div><div class="stack">${buttons}</div>`);
+    }
+    if(state.phase==="bob-pass") return shell(`<div class="handoff"><div class="avatar">🗣️</div><p class="phase-label">SECRET</p><h2>${esc(pname(state.active))}さんだけ<br>画面を見る</h2><button class="primary wide" data-action="reveal-bob">説明役です・見る</button></div>`);
+    if(state.phase==="bob-secret") return shell(`<p class="phase-label">ONLY EXPLAINER</p><h2>カタカナなしで説明</h2><div class="prompt-card secret-card"><div class="big-word">${esc(p)}</div></div><p>お題そのもの、カタカナ語、英語は禁止。覚えたら画面を伏せます。</p><button class="primary wide" data-action="start-bob">45秒スタート</button>`);
+    if(state.phase==="bob-running"||state.phase==="bob-judge") return shell(`<p class="phase-label">PHONE DOWN · JAPANESE ONLY</p><h2>${esc(pname(state.active))}さんが説明中</h2><div class="timer" id="timer">${Math.max(0,Math.ceil((state.deadline-Date.now())/1000))}</div><div class="button-row"><button class="good" data-action="bob-result" data-success="1">正解！</button><button class="danger" data-action="bob-result" data-success="0">パス／失敗</button></div>`);
     if(state.phase==="wolf-discuss") return shell(`<p class="phase-label">TALK · PHONE DOWN</p><h2>スマホを伏せて話そう</h2><p>直接お題を言わず、共通点や経験を話します。怪しい人が決まったら秘密投票へ。</p><button class="primary wide" data-action="start-wolf-vote">投票を始める</button>`);
     if(state.phase==="ng-discuss") {
       const buttons=state.players.map(x=>`<button class="${state.caught[x.id]?"danger":"choice"}" data-action="ng-catch" data-player="${x.id}" ${state.caught[x.id]?"disabled":""}>${esc(x.name)} ${state.caught[x.id]?"は脱落":"が言った！"}</button>`).join("");
@@ -372,6 +390,22 @@
     if(action==="submit-range") { state.answers[currentPid()]=Number(document.getElementById("rangeAnswer").value); return completeTurn(); }
     if(action==="wolf-vote") { state.votes[currentPid()]=button.dataset.player; return completeTurn(); }
     if(action==="start-wolf-vote") return beginTurns("wolf-vote",allIds(),"wolf-votes");
+    if(action==="ito-reveal") {
+      const pid=button.dataset.player;
+      if(state.revealed.includes(pid))return;
+      state.revealed.push(pid);
+      if(state.revealed.length===state.players.length){
+        const nums=state.revealed.map(id=>state.assignments[id]);
+        const ok=nums.every((n,i)=>i===0||nums[i-1]<n);
+        if(ok)allIds().forEach(id=>addScore(id,2));
+        const details=state.revealed.map((id,i)=>`<div class="answer-item"><strong>${i+1}. ${esc(pname(id))}</strong><b style="float:right">${state.assignments[id]}</b></div>`).join("");
+        return endRound(ok?"成功！ 小さい順です":"惜しい！ 順番が逆転しました",details);
+      }
+      return render();
+    }
+    if(action==="reveal-bob") { state.phase="bob-secret"; return render(); }
+    if(action==="start-bob") { state.deadline=Date.now()+45000; state.phase="bob-running"; return render(); }
+    if(action==="bob-result") { const ok=button.dataset.success==="1"; if(ok)addScore(state.active,2); return endRound(ok?"正解！":"今回は得点なし",`<div class="prompt-card"><div class="big-word">${esc(state.prompt)}</div></div><p>${esc(pname(state.active))} ${ok?"＋2点":"得点なし"}</p>`); }
     if(action==="ng-catch") { state.caught[button.dataset.player]=true; showToast(`${pname(button.dataset.player)}さんを捕まえました`); return render(); }
     if(action==="finish-ng") {
       state.players.filter(p=>!state.caught[p.id]).forEach(p=>addScore(p.id,1));
@@ -399,10 +433,10 @@
   });
 
   setInterval(() => {
-    if(!["five-running","taboo-running"].includes(state.phase))return;
+    if(!["five-running","taboo-running","bob-running"].includes(state.phase))return;
     const left=Math.max(0,Math.ceil((state.deadline-Date.now())/1000)); const timer=document.getElementById("timer");
     if(timer){timer.textContent=left; timer.classList.toggle("urgent",left<=3);}
-    if(left<=0){state.phase=state.phase==="five-running"?"five-judge":"taboo-judge"; render();}
+    if(left<=0){state.phase=state.phase==="five-running"?"five-judge":state.phase==="bob-running"?"bob-judge":"taboo-judge"; render();}
   },200);
 
   if(!meta){render();return;}

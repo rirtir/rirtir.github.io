@@ -1,4 +1,4 @@
-"""1台版14ゲームをEdge/CDPで1ラウンドずつ完走させるスモークテスト。"""
+"""1台版16ゲームをEdge/CDPで1ラウンドずつ完走させるスモークテスト。"""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ import websockets
 BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8000").rstrip("/")
 DEBUG = (sys.argv[2] if len(sys.argv) > 2 else "http://127.0.0.1:9224").rstrip("/")
 GAMES = [
+    "ito", "bob-jiten",
     "word-wolf", "ng-word", "unanimous", "majority-predict", "minority-survival",
     "pair-sync", "telepathy-word", "five-seconds-three", "taboo-talk",
     "closest-estimate", "secret-thermometer", "bluff-definition", "coop-count",
@@ -103,6 +104,10 @@ async def complete_game(cdp: Cdp, slug: str):
         if "reveal-turn" in actions: await click(cdp, "reveal-turn")
         elif "turn-done" in actions: await click(cdp, "turn-done")
         elif "start-wolf-vote" in actions: await click(cdp, "start-wolf-vote")
+        elif "ito-reveal" in actions: await click(cdp, "ito-reveal")
+        elif "reveal-bob" in actions: await click(cdp, "reveal-bob")
+        elif "start-bob" in actions: await click(cdp, "start-bob")
+        elif "bob-result" in actions: await click(cdp, "bob-result")
         elif "wolf-vote" in actions: await click(cdp, "wolf-vote")
         elif "finish-ng" in actions: await click(cdp, "finish-ng")
         elif "select-choice" in actions:
@@ -147,7 +152,7 @@ async def main():
             if len(cdp.exceptions) != before:
                 raise RuntimeError(f"JavaScript exception in {slug}: {cdp.exceptions[before:]}")
             print(f"  {slug}: OK")
-    print("1台版14ゲーム: 390px幅・1ラウンド完走 OK")
+    print("1台版16ゲーム: 390px幅・1ラウンド完走 OK")
 
 
 if __name__ == "__main__":

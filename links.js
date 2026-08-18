@@ -28,12 +28,12 @@ const data = [
                 url: "https://rirtir.com/Game/ito/",
                 desc: "互いの数字を当てろ",
                 tags: ["みんなで", "スマホ一台", "わいわい", "ゲーム"],
-                main: true,
+                main: false,
             },
             {
                 title: "みんなのミニゲーム集",
                 url: "https://rirtir.com/Game/PartyGames/",
-                desc: "スマホ1台でもオンラインでも遊べる、会話中心のミニゲーム14本。",
+                desc: "スマホ1台でもオンラインでも遊べる、会話中心のミニゲーム16本。",
                 tags: ["みんなで", "スマホ一台", "スマホ複数台", "オンライン", "わいわい", "ゲーム"],
                 main: true,
             },
@@ -42,7 +42,7 @@ const data = [
                 url: "https://rirtir.com/Game/bob/",
                 desc: "相手のお題を当てろ",
                 tags: ["みんなで", "スマホ一台", "わいわい", "ゲーム"],
-                main: true,
+                main: false,
             },
             {
                 title: "ito-online",

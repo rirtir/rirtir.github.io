@@ -24,9 +24,6 @@
     .icon { display:grid; place-items:center; width:42px; height:42px; border-radius:13px; background:rgba(139,92,246,.15); font-size:1.35rem; }
     .card h2 { margin:0 0 4px; font-size:.98rem; }
     .card p { margin:0; color:var(--muted); font-size:.77rem; line-height:1.45; }
-    .legacy { margin-top:25px; padding:18px; border:1px solid rgba(255,255,255,.09); border-radius:18px; background:rgba(21,29,47,.8); }
-    .legacy h2 { margin:0 0 7px; font-size:1.1rem; }
-    .legacy p { margin:0 0 13px; color:var(--muted); }
     .links { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
     .links a { padding:12px; border-radius:12px; background:#25304a; color:white; text-align:center; text-decoration:none; font-weight:800; }
     @media(max-width:620px){ .mode-grid,.grid,.links{grid-template-columns:1fr} }
@@ -43,11 +40,11 @@
   </section>
   <p class="note">オンライン版の初回はRender無料サーバーの起動に少し時間がかかる場合があります</p>
   <section class="grid" id="games"></section>
-  <section class="legacy"><h2>既存のitoはそのまま残しています</h2><p>スマホ1台版と、従来のオンライン版も引き続き遊べます。</p><div class="links"><a href="../ito/">スマホ1台版 ito</a><a href="https://ito-online.onrender.com/">ito online</a></div></section>
 </main>
 <script>
   const ONLINE_URL = "https://minigame-online.onrender.com/";
   const games = [
+    ["🧵","ito","感覚で小さい順に並べる"],["🗣️","ボブジテン","カタカナなしで説明"],
     ["🐺","ワードウルフ","少数派を会話で探す"],["🚫","NGワード","禁止ワードを言わせる"],
     ["🎯","全員一致","同じ答えを目指す"],["👥","多数派を読め","多数派を予想する二択"],
     ["🦊","少数派サバイバル","少ない方を選ぶ"],["🤝","ペアシンクロ","ペアで答えを合わせる"],
