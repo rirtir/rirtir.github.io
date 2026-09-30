@@ -87,6 +87,7 @@ totalEmissiveRadiance += vec3(0.004, 0.008, 0.01);`
   }
   update(dt, caveF) {
     this.t += dt;
+    this.frame = (this.frame || 0) + 1;
     const t = this.t;
     // 群れの中心はゆっくり島の周りを回る
     const cx = this.center.x + Math.cos(t * 0.09) * 3.2;
@@ -98,8 +99,13 @@ totalEmissiveRadiance += vec3(0.004, 0.008, 0.01);`
       const tx = cx + Math.cos(ang) * f.r * 0.7 + Math.cos(t * 0.4 + f.off * 3) * 0.8;
       const tz = cz + Math.sin(ang) * f.r * 0.7 + Math.sin(t * 0.5 + f.off * 2) * 0.8;
       // 床の高さを見て泳ぐ深さを決める
-      let fl = -0.3;
-      for (let k = 0; k < 40; k++) { if (caveF(tx, fl, tz) > -0.05) break; fl -= 0.25; }
+      // （負荷対策：個体ごとに10フレームに1回だけ再計算）
+      if (f.fl === undefined || ((this.frame + i) % 10) === 0) {
+        let fl = -0.3;
+        for (let k = 0; k < 40; k++) { if (caveF(tx, fl, tz) > -0.05) break; fl -= 0.25; }
+        f.fl = fl;
+      }
+      const fl = f.fl;
       const ty = Math.min(-0.7, Math.max(fl + 0.7, f.y + Math.sin(t * 0.3 + f.off) * 0.5));
       const tgt = new THREE.Vector3(tx, ty, tz);
       // 目標へ加速
@@ -110,7 +116,7 @@ totalEmissiveRadiance += vec3(0.004, 0.008, 0.01);`
       if (sp > maxSp) f.v.multiplyScalar(maxSp / sp);
       f.p.addScaledVector(f.v, dt);
       // 壁・床を避ける
-      if (caveF(f.p.x, f.p.y, f.p.z) > -0.5) f.p.y += 0.06;
+      if (((this.frame + i * 3) % 4) === 0 && caveF(f.p.x, f.p.y, f.p.z) > -0.5) f.p.y += 0.24;
       if (f.p.y > -0.25) f.p.y = -0.25;
       const dir = f.v.lengthSq() > 1e-4 ? f.v.clone().normalize() : up;
       this.q.setFromUnitVectors(up, dir);

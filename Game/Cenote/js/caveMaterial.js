@@ -87,7 +87,7 @@ float sunShadow(vec3 wp, vec3 n) {
     float t = fi * 2.399963;
     vec2 o = vec2(cos(t), sin(t)) * r;
     o = vec2(o.x * ca - o.y * sa, o.x * sa + o.y * ca) * uSunInfo.y;
-    float d = texture2D(tSunDepth, uv + o).r;
+    float d = textureLod(tSunDepth, uv + o, 0.0).r;
     sum += step(z - bias, d);
   }
   return sum / float(N);
@@ -252,9 +252,9 @@ float wS = smoothstep(0.50 + 0.18 * nS, 0.86, upness) * (1.0 - smoothstep(0.6, 3
 
 // 岩の種類の混合（明るいクリーム色の石灰岩を主に、暗いしみと暖色の層を混ぜる）
 float band = 0.5 + 0.5 * sin(P.y * 1.6 + 4.0 * q1);
-float wA = smoothstep(0.45, 0.7, q1 + 0.15 * (q2 - 0.5)) * 0.7;
+float wA = mix(0.42, 1.0, smoothstep(0.42, 0.68, q1 + 0.15 * (q2 - 0.5)));
 float wC = smoothstep(0.4, 0.65, q2 + 0.25 * band) * 0.5;
-float wB = max(0.0, 1.0 - wA - wC);
+float wB = max(0.0, 1.0 - wA - wC) * 0.6;
 float wsum = wA + wB + wC + 1e-4;
 wA /= wsum; wB /= wsum; wC /= wsum;
 

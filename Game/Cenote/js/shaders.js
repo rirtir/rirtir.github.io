@@ -79,7 +79,7 @@ void main() {
     vec2 suv = ndc.xy * 0.5 + 0.5;
     float lit = 1.0;
     if (suv.x > 0.0 && suv.x < 1.0 && suv.y > 0.0 && suv.y < 1.0) {
-      float stored = texture2D(tSunDepth, suv).r;
+      float stored = textureLod(tSunDepth, suv, 0.0).r;
       lit = step(ndc.z * 0.5 + 0.5 - 0.0004, stored);
     }
     bool wet = x.y < uWaterY;

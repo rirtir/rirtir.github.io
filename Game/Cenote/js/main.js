@@ -346,7 +346,7 @@ function goView(i) {
   controls.flyToLook(v.pos, v.look, 2.8);
   toast(v.name, 1600);
 }
-if (MOBILE) document.body.classList.add('touch');
+if (MOBILE || (navigator.maxTouchPoints > 0 && window.matchMedia('(pointer: coarse)').matches)) document.body.classList.add('touch');
 (function touchButtons() {
   const bind = (id, val) => {
     const el = $(id);
@@ -483,7 +483,7 @@ function loop(now) {
   if (particles) particles.update(camera, renderer.getPixelRatio() * quality.scale * window.innerHeight / 900);
   if (drips) drips.update(dt, camera, caveF);
   if (school) school.update(dt, caveF);
-  if (pipeline.cfg.dof) updateFocus(dt);
+  if (pipeline.cfg.dof && (frames % 5) === 0) updateFocus(dt * 5);
 
   // 水面をまたいだときの演出・音
   const under = camera.position.y < WORLD.waterY - 0.02;
@@ -553,6 +553,14 @@ $('start').addEventListener('click', () => {
   controls.enabled = true;
   canvas.focus();
   audio.start();
+  if (!params.has('cam') && !params.has('nointro')) {
+    // オープニング：天窓の高みから光の柱に沿って降りてくる
+    controls.flyPath(
+      [[3.7, 13.2, 0.3], [2.2, 7.5, 2.6], [-2.5, 3.2, 7.0], [-8.5, 1.3, 9.0]],
+      [[1.6, 1.0, 2.5], [1.2, 1.6, 2.2], [1.2, 3.5, 1.8], [1.2, 6.0, 1.5]],
+      10
+    );
+  }
   setTimeout(() => $('help').classList.add('fade'), 14000);
   if (canvas.requestPointerLock && !MOBILE) { try { canvas.requestPointerLock(); } catch (_) { /* noop */ } }
 });

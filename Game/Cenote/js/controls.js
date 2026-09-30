@@ -34,6 +34,16 @@ export class FlyControls {
       q0: this.pitch, q1: pitch,
     };
   }
+  // 複数の通過点を滑らかにたどる（オープニングの降下用）
+  flyPath(poss, looks, dur = 9) {
+    this._path = {
+      t: 0, dur,
+      cp: new THREE.CatmullRomCurve3(poss.map((p) => new THREE.Vector3(...p)), false, 'centripetal'),
+      cl: new THREE.CatmullRomCurve3(looks.map((p) => new THREE.Vector3(...p)), false, 'centripetal'),
+    };
+    this._fly = null;
+  }
+
   flyToLook(pos, look, dur = 2.6) {
     const dx = look[0] - pos[0], dy = look[1] - pos[1], dz = look[2] - pos[2];
     this.flyTo(pos, Math.atan2(-dx, -dz), Math.atan2(dy, Math.hypot(dx, dz)), dur);
@@ -132,6 +142,7 @@ export class FlyControls {
 
   _look(dx, dy) {
     if (this._fly) this._fly = null;
+    if (this._path) this._path = null;
     const s = 0.0022;
     this.targetYaw -= dx * s;
     this.targetPitch -= dy * s;
@@ -145,6 +156,25 @@ export class FlyControls {
 
   update(dt) {
     dt = Math.min(dt, 0.05);
+    if (this._path) {
+      const f = this._path;
+      const anyKey = this.keys.KeyW || this.keys.KeyA || this.keys.KeyS || this.keys.KeyD || this.keys.Space || this.keys.KeyC || this.keys.ArrowUp || this.keys.ArrowDown || this.keys.ArrowLeft || this.keys.ArrowRight || this.touch.moveId !== null;
+      if (anyKey) { this._path = null; }
+      else {
+        f.t += dt / f.dur;
+        const u = Math.min(1, f.t);
+        const k = u * u * u * (u * (u * 6 - 15) + 10); // smootherstep
+        f.cp.getPoint(k, this.pos);
+        const lk = f.cl.getPoint(k);
+        const dx = lk.x - this.pos.x, dy = lk.y - this.pos.y, dz = lk.z - this.pos.z;
+        this.yaw = this.targetYaw = Math.atan2(-dx, -dz);
+        this.pitch = this.targetPitch = Math.atan2(dy, Math.hypot(dx, dz));
+        this.vel.set(0, 0, 0);
+        if (f.t >= 1) this._path = null;
+        this._apply();
+        return;
+      }
+    }
     if (this._fly) {
       const f = this._fly;
       f.t += dt / f.dur;

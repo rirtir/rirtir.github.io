@@ -138,7 +138,7 @@ function solidFeatures(x, y, z, f) {
   // 南のなだらかな棚（水没）
   const m3 = hf(x, y, z, -9.0, 13.0, 8.0, 7.0, -1.3, 10.0, 2.0);
   // 第二の部屋の小さな砂州
-  const m4 = hf(x, y, z, -40.0, -47.3, 6.0, 5.5, 0.32, 6.0, 2.4);
+  const m4 = hf(x, y, z, -40.0, -47.3, 8.5, 7.5, 0.38, 6.5, 2.1);
   let g = smax(f, -m1, 2.2);
   g = smax(g, -m4, 2.0);
   g = smax(g, -m2, 2.5);
@@ -206,7 +206,7 @@ function detail(x, y, z, d) {
   n += amp * (prof - 0.5);
   // 水際の削れ（ノッチ）
   const nb = (y + 0.15) / 0.55;
-  n -= 0.95 * Math.exp(-nb * nb);
+  n -= 0.42 * Math.exp(-nb * nb);
   return n;
 }
 
