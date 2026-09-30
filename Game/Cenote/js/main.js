@@ -8,6 +8,7 @@ import { makeSky } from './sky.js';
 import { buildProps } from './props.js';
 import { Particles, Drips } from './particles.js';
 import { FishSchool } from './fish.js';
+import { Swallows } from './birds.js';
 import { CaveAudio } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
@@ -16,7 +17,7 @@ const DEBUG = params.has('debug');
 
 const MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && Math.min(screen.width, screen.height) < 900);
 const audio = new CaveAudio();
-let particles = null, drips = null, school = null;
+let particles = null, drips = null, school = null, birds = null;
 
 const canvas = $('view');
 let renderer;
@@ -230,6 +231,8 @@ async function init() {
   school = new FishSchool(new THREE.Vector3(-4.2, -2, 3.0), MOBILE ? 36 : 70);
   school.init(caveF);
   scene.add(school.mesh);
+  birds = new Swallows(MOBILE ? 5 : 9);
+  scene.add(birds.mesh);
 
   // ---- カメラ ----
   onResize();
@@ -483,6 +486,7 @@ function loop(now) {
   if (particles) particles.update(camera, renderer.getPixelRatio() * quality.scale * window.innerHeight / 900);
   if (drips) drips.update(dt, camera, caveF);
   if (school) school.update(dt, caveF);
+  if (birds) birds.update(dt);
   if (pipeline.cfg.dof && (frames % 5) === 0) updateFocus(dt * 5);
 
   // 水面をまたいだときの演出・音
