@@ -70,9 +70,8 @@ export class CaveAudio {
     // 1. ルームトーン（低いうなり）
     const brown = loop(mkNoise('brown'));
     const f1 = ctx.createBiquadFilter(); f1.type = 'lowpass'; f1.frequency.value = 260;
-    const g1 = ctx.createGain(); g1.gain.value = 0.55;
+    const g1 = ctx.createGain(); g1.gain.value = 0.4;
     brown.connect(f1); f1.connect(g1); g1.connect(this.dry); g1.connect(this.reverb);
-    brown.start && 0;
 
     // 2. 水面のひたひた（振幅がゆっくり揺れる）
     const pink = loop(mkNoise('pink'));

@@ -198,8 +198,8 @@ async function init() {
   const px = renderer.getPixelRatio();
   const area = window.innerWidth * window.innerHeight * px * px;
   const autoScale = Math.min(1, Math.sqrt(3.2e6 / area));
-  quality.max = MOBILE ? Math.min(0.75, autoScale) : autoScale;
-  quality.scale = parseFloat(params.get('scale') || String(quality.max));
+  quality.max = MOBILE ? 0.75 : 1.0; // 上限（GPUに余裕があれば等倍まで自動で上げる）
+  quality.scale = parseFloat(params.get('scale') || String(Math.min(quality.max, autoScale)));
   pipeline = new Pipeline(renderer, scene, camera, {
     waterY: WORLD.waterY,
     sunDir,
@@ -343,6 +343,20 @@ const VIEWS = [
     box.appendChild(b);
   });
 })();
+(function fullscreenButton() {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.innerHTML = '<b>⛶</b>全画面';
+  b.addEventListener('click', toggleFullscreen);
+  $('views').appendChild(b);
+})();
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+}
+document.addEventListener('pointerlockchange', () => {
+  if (controls.enabled && !MOBILE && document.pointerLockElement !== canvas) toast('画面をクリックすると視点操作を再開します', 2400);
+});
 function goView(i) {
   const v = VIEWS[i];
   if (!v) return;
@@ -514,19 +528,29 @@ function loop(now) {
   frames++;
 
   // 動的解像度：フレーム時間を見て負荷に追従する
+  //  - リフレッシュレート（最小フレーム間隔）を保てていれば解像度を上げる
+  //  - 上げた直後に落ちたら元に戻して、しばらく上げない
   acc += dt; accN++;
-  if (accN >= 45) {
+  if (accN >= 40) {
     const avg = (acc / accN) * 1000;
     acc = 0; accN = 0;
-    if (now - lastAdjust > 1800 && !params.has('scale') && quality.mode === 'auto') {
+    quality.refresh = Math.max(4, Math.min(quality.refresh || 99, avg));
+    if (now - lastAdjust > 1600 && !params.has('scale') && quality.mode === 'auto') {
       let ns = quality.scale;
-      if (avg > 25 && ns > 0.45) ns = Math.max(0.45, ns * 0.86);
-      else if (avg < 13.2 && ns < quality.max) ns = Math.min(quality.max, ns * 1.07);
+      const slow = avg > Math.max(24, quality.refresh * 1.6);
+      if (slow && ns > 0.45) {
+        ns = Math.max(0.45, ns * 0.86);
+        if (quality.justRaised) quality.lockUntil = now + 40000;
+      } else if (!slow && avg < quality.refresh * 1.12 && ns < quality.max && now > (quality.lockUntil || 0)) {
+        ns = Math.min(quality.max, ns * 1.08);
+        quality.justRaised = true;
+      }
       if (Math.abs(ns - quality.scale) > 0.01) {
-        quality.scale = ns;
-        pipeline.cfg.scale = ns;
-        pipeline.setSize(window.innerWidth, window.innerHeight, renderer.getPixelRatio());
+        if (ns < quality.scale) quality.justRaised = false;
+        applyScale(ns);
         lastAdjust = now;
+      } else if (!slow) {
+        quality.justRaised = false;
       }
     }
   }
