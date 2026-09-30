@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>セノーテ ― 光の降る地下の泉</title>
+<meta name="description" content="天井の穴から光の柱が降り注ぐ、メキシコの地下泉（セノーテ）をブラウザで歩き回れる、リアルタイム3D散策体験。水中にも潜れます。">
+<meta property="og:title" content="セノーテ ― 光の降る地下の泉">
+<meta property="og:description" content="実写と見まがう洞窟の泉を、ブラウザで自由に散策。水中にも潜れます。">
+<meta name="theme-color" content="#04121a">
+<link rel="stylesheet" href="./style.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+</head>
+<body>
+<canvas id="view" tabindex="0"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="crosshair"></div>
+  <div id="depth"></div>
+  <div id="toast"></div>
+  <div id="help">
+    <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移動　<kbd>Space</kbd> 上昇　<kbd>C</kbd> 下降　<kbd>Shift</kbd> 加速</div>
+    <div>マウス 視点　ホイール 速度　<kbd>P</kbd> 写真を撮る　<kbd>H</kbd> 表示切替　<kbd>M</kbd> 音</div>
+  </div>
+</div>
+
+<div id="intro">
+  <div class="intro-inner">
+    <div class="eyebrow">CENOTE · 地下水の洞窟</div>
+    <h1>光の降る<br>地下の泉</h1>
+    <p class="lead">天井にぽっかり空いた穴から、光の柱が水面へ降り注ぐ。<br>そのすべてを、ブラウザの中でリアルタイムに描画しています。</p>
+    <div id="loadwrap">
+      <div id="loadbar"><div id="loadfill"></div></div>
+      <div id="loadtext">洞窟を掘っています…</div>
+    </div>
+    <button id="start" class="hidden" type="button">洞窟に入る</button>
+    <div class="tips">
+      <span>水面の下にも潜れます</span><span>光の柱の中へ入ってみてください</span><span>ヘッドホン推奨</span>
+    </div>
+  </div>
+</div>
+
+<div id="err" class="hidden"></div>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

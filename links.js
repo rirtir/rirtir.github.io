@@ -3,6 +3,13 @@ const data = [
         category: "ゲーム",
         links: [
             {
+                title: "セノーテ ― 光の降る地下の泉",
+                url: "https://rirtir.com/Game/Cenote/",
+                desc: "天井の穴から光の柱が降り注ぐ地下の泉をリアルタイム3Dで散策。水中にも潜れる。実写と見まがうことを目指した3D体験。",
+                tags: ["ソロ", "3D", "散策", "ゲーム"],
+                main: true,
+            },
+            {
                 title: "ANCHOR//VECTOR — 星環の残響",
                 url: "https://rirtir.com/Game/AnchorVector/",
                 desc: "時間を遅くして3D空間に経路を描き、高速斬撃へ変えるスマホ向けアクション・ローグライト。",
