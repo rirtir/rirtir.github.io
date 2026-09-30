@@ -190,6 +190,7 @@ varying float vAO;
 uniform sampler2D tA_a, tA_n, tB_a, tB_n, tC_a, tC_n, tS_a, tS_n;
 ${NOISE_GLSL}
 
+const float uNormStr = 1.15;
 struct TP { vec3 alb; vec3 nrm; float rough; };
 
 TP triplanar(sampler2D ta, sampler2D tn, vec3 p, vec3 n, vec3 blend, float sc) {
@@ -202,21 +203,21 @@ TP triplanar(sampler2D ta, sampler2D tn, vec3 p, vec3 n, vec3 blend, float sc) {
   vec3 tnx = vec3(0.0, 0.0, 1.0), tny = tnx, tnz = tnx;
   float rgh = 0.0;
   if (blend.x > 0.01) {
-    col += texture2D(ta, ux).rgb * blend.x;
-    vec4 t = texture2D(tn, ux);
-    tnx = vec3(t.xy * 2.0 - 1.0, 0.0); tnx.z = sqrt(max(0.0, 1.0 - dot(tnx.xy, tnx.xy)));
+    col += texture2D(ta, ux, -0.25).rgb * blend.x;
+    vec4 t = texture2D(tn, ux, -0.25);
+    tnx = vec3((t.xy * 2.0 - 1.0) * uNormStr, 0.0); tnx.z = sqrt(max(0.0, 1.0 - dot(tnx.xy, tnx.xy)));
     rgh += t.b * blend.x;
   }
   if (blend.y > 0.01) {
-    col += texture2D(ta, uy).rgb * blend.y;
-    vec4 t = texture2D(tn, uy);
-    tny = vec3(t.xy * 2.0 - 1.0, 0.0); tny.z = sqrt(max(0.0, 1.0 - dot(tny.xy, tny.xy)));
+    col += texture2D(ta, uy, -0.25).rgb * blend.y;
+    vec4 t = texture2D(tn, uy, -0.25);
+    tny = vec3((t.xy * 2.0 - 1.0) * uNormStr, 0.0); tny.z = sqrt(max(0.0, 1.0 - dot(tny.xy, tny.xy)));
     rgh += t.b * blend.y;
   }
   if (blend.z > 0.01) {
-    col += texture2D(ta, uz).rgb * blend.z;
-    vec4 t = texture2D(tn, uz);
-    tnz = vec3(t.xy * 2.0 - 1.0, 0.0); tnz.z = sqrt(max(0.0, 1.0 - dot(tnz.xy, tnz.xy)));
+    col += texture2D(ta, uz, -0.25).rgb * blend.z;
+    vec4 t = texture2D(tn, uz, -0.25);
+    tnz = vec3((t.xy * 2.0 - 1.0) * uNormStr, 0.0); tnz.z = sqrt(max(0.0, 1.0 - dot(tnz.xy, tnz.xy)));
     rgh += t.b * blend.z;
   }
   tnx.x *= sg.x; tny.x *= sg.y; tnz.x *= -sg.z;

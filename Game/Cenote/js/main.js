@@ -39,7 +39,7 @@ const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerH
 const controls = new FlyControls(camera, canvas);
 let pipeline = null;
 const world = {};
-const quality = { scale: 1, max: 1 };
+const quality = { scale: 1, max: 1, mode: 'auto' };
 
 function setProgress(p, text) {
   $('loadfill').style.width = `${Math.round(p * 100)}%`;
@@ -210,6 +210,8 @@ async function init() {
     dof: params.has('dof') ? true : !MOBILE && !params.has('nodof'),
     volumeSteps: MOBILE ? 24 : 40,
     tone: params.get('tone') || 'aces',
+    key: parseFloat(params.get('key') || '0.12'),
+    maxExp: parseFloat(params.get('maxexp') || '22'),
   });
   pipeline.setSize(window.innerWidth, window.innerHeight, renderer.getPixelRatio());
 
@@ -397,11 +399,25 @@ window.addEventListener('keydown', (e) => {
   } else if (e.code === 'KeyM') {
     audio.setMuted(!audio.muted);
     toast(audio.muted ? '🔇 ミュート' : '🔊 サウンド ON');
+  } else if (e.code === 'KeyG') {
+    cycleQuality();
   } else if (e.code === 'KeyF' && pipeline) {
     pipeline.cfg.dof = !pipeline.cfg.dof;
     toast(pipeline.cfg.dof ? '被写界深度 ON' : '被写界深度 OFF');
   }
 });
+function applyScale(ns) {
+  quality.scale = ns;
+  pipeline.cfg.scale = ns;
+  pipeline.setSize(window.innerWidth, window.innerHeight, renderer.getPixelRatio());
+}
+function cycleQuality() {
+  const modes = ['auto', 'high', 'low'];
+  quality.mode = modes[(modes.indexOf(quality.mode) + 1) % modes.length];
+  if (quality.mode === 'high') { applyScale(quality.max); pipeline.cfg.dof = !MOBILE; }
+  else if (quality.mode === 'low') { applyScale(Math.max(0.45, quality.max * 0.6)); pipeline.cfg.dof = false; }
+  toast(`画質: ${{ auto: '自動', high: '高（固定）', low: '軽量' }[quality.mode]}`, 1600);
+}
 controls.onSpeed = (v) => toast(`移動速度 ×${v.toFixed(2)}`, 900);
 
 // ---------------- メインループ ----------------
@@ -475,6 +491,11 @@ function loop(now) {
     wasUnder = under;
     audio.setUnderwater(under);
     if (controls.enabled) toast(under ? '水中へ' : '水面へ', 1200);
+    if (pipeline) {
+      pipeline.addRipple(camera.position.x, camera.position.z, 2.2);
+      setTimeout(() => pipeline && pipeline.addRipple(camera.position.x + 0.3, camera.position.z - 0.2, 1.4), 220);
+    }
+    if (!under && controls.enabled) world.wet = 1;
   }
   audio.update(dt);
 
@@ -484,7 +505,8 @@ function loop(now) {
     $('depth').textContent = y < 0 ? `水深 ${(-y).toFixed(1)} m` : `水面から +${y.toFixed(1)} m`;
   }
 
-  pipeline.render(dt, { focus: world.focus });
+  world.wet = Math.max(0, (world.wet || 0) - dt / 3.2);
+  pipeline.render(dt, { focus: world.focus, wet: world.wet });
   frames++;
 
   // 動的解像度：フレーム時間を見て負荷に追従する
@@ -492,7 +514,7 @@ function loop(now) {
   if (accN >= 45) {
     const avg = (acc / accN) * 1000;
     acc = 0; accN = 0;
-    if (now - lastAdjust > 1800 && !params.has('scale')) {
+    if (now - lastAdjust > 1800 && !params.has('scale') && quality.mode === 'auto') {
       let ns = quality.scale;
       if (avg > 25 && ns > 0.45) ns = Math.max(0.45, ns * 0.86);
       else if (avg < 13.2 && ns < quality.max) ns = Math.min(quality.max, ns * 1.07);

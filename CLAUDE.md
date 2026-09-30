@@ -31,7 +31,8 @@
   template/             各種UIのテンプレート・実験用HTML断片（本番配信ではない）
 
   Game/                 ゲーム（ito, bob, BrainVita, puzzle, BlockPuzzle,
-                        AirHockey, Nonogram, incremental, ShelteredGirl など）
+                        AirHockey, Nonogram, incremental, ShelteredGirl,
+                        Cenote（three.js の3D洞窟散策。vendor/ に three を同梱）など）
   Image/                画像処理ツール（AlphaTool, Resize, PixelArtMaker,
                         ImageEffectLayerTool, MosaicMask, Video2Image など）
   Audio/                音声処理ツール（Video2Audio, AudioInfo,

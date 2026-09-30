@@ -124,6 +124,31 @@ export function dropToFloor(x, z, yStart = 3.5) {
   return { pos: new THREE.Vector3(x, y, z), normal: new THREE.Vector3(-g[0], -g[1], -g[2]) };
 }
 
+function makeContactShadows(items) {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const g = cv.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+  gr.addColorStop(0, 'rgba(0,0,0,0.75)');
+  gr.addColorStop(0.45, 'rgba(0,0,0,0.42)');
+  gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr;
+  g.fillRect(0, 0, 128, 128);
+  const tex = new THREE.CanvasTexture(cv);
+  const geo = new THREE.PlaneGeometry(1, 1);
+  geo.rotateX(-Math.PI / 2);
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex, transparent: true, depthWrite: false, toneMapped: false, fog: false,
+    polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3,
+  });
+  const im = new THREE.InstancedMesh(geo, mat, items.length);
+  items.forEach((m, i) => im.setMatrixAt(i, m));
+  im.instanceMatrix.needsUpdate = true;
+  im.frustumCulled = false;
+  im.renderOrder = 1;
+  return im;
+}
+
 export async function buildProps({ scene, onProgress = () => {} }) {
   const root = new THREE.Group();
   root.name = 'props';
@@ -157,6 +182,7 @@ export async function buildProps({ scene, onProgress = () => {} }) {
   const mossK = fit(mossSet, 1);
 
   // 岩の配置
+  const decals = [];
   const placeRocks = (proto, list) => {
     const mats = [];
     for (const c of list) {
@@ -164,6 +190,7 @@ export async function buildProps({ scene, onProgress = () => {} }) {
       if (!d) continue;
       const pos = d.pos.clone().addScaledVector(d.normal, -c.sink * c.size * 0.3);
       mats.push(compose(pos, R(0, Math.PI * 2), c.size * proto.k, d.normal, 0.55));
+      decals.push(compose(d.pos.clone().addScaledVector(d.normal, 0.05), R(0, 6.28), c.size * 2.8, d.normal, 1.0));
     }
     return mats;
   };
@@ -198,9 +225,11 @@ export async function buildProps({ scene, onProgress = () => {} }) {
     const d = dropToFloor(c.x, c.z, 3.5);
     if (!d) continue;
     ms.push(compose(d.pos.clone().addScaledVector(d.normal, -0.05), R(0, 6.28), c.size * mossK * 1.0, d.normal, 0.7));
+    decals.push(compose(d.pos.clone().addScaledVector(d.normal, 0.05), R(0, 6.28), c.size * 2.2, d.normal, 1.0));
   }
   if (ms.length) rocksGroup.add(instanced(mossParts, ms));
   root.add(rocksGroup);
+  if (decals.length) root.add(makeContactShadows(decals));
   onProgress(0.7);
 
   // ---------- 沈んだ倒木 ----------

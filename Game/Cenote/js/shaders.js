@@ -450,6 +450,7 @@ uniform float uGrain;
 uniform vec2 resolution;
 uniform float uUnderwater;
 uniform float uExposureBias;
+uniform float uWet;
 
 vec3 acesFit(vec3 x) {
   const mat3 ACESIn = mat3(0.59719, 0.07600, 0.02840, 0.35458, 0.90834, 0.13383, 0.04823, 0.01566, 0.83777);
@@ -465,6 +466,29 @@ vec3 toSRGB(vec3 c) {
 void main() {
   vec2 uv = vUv;
   vec2 cc = uv - 0.5;
+  // 水から上がった直後のレンズの水滴
+  if (uWet > 0.001) {
+    float asp = resolution.x / resolution.y;
+    vec2 g = vec2(uv.x * asp, uv.y) * 9.0;
+    vec2 gi = floor(g), gf = fract(g);
+    float acc = 0.0;
+    vec2 off = vec2(0.0);
+    for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+      vec2 cell = gi + vec2(float(i), float(j));
+      float h1 = hash12(cell), h2 = hash12(cell + 17.3), h3 = hash12(cell + 41.9);
+      vec2 ctr = vec2(h1, h2) + vec2(float(i), float(j));
+      float rad = 0.12 + 0.3 * h3;
+      // 時間とともに小さくなって消える
+      float life = clamp(uWet * 1.6 - h1 * 0.6, 0.0, 1.0);
+      vec2 d = gf - ctr;
+      float m = smoothstep(rad * life, rad * life * 0.55, length(d));
+      off += -d * m * 0.35;
+      acc += m;
+    }
+    uv += off * vec2(1.0 / asp, 1.0) * 0.09;
+    uv += (vec2(hash12(gl_FragCoord.xy), hash12(gl_FragCoord.yx)) - 0.5) * 0.0015 * uWet;
+    cc = uv - 0.5;
+  }
   // ごく弱い色収差（レンズ感）
   float ca = 0.0016 * dot(cc, cc) * 4.0;
   vec3 col;

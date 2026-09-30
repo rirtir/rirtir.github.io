@@ -143,7 +143,7 @@ export class Pipeline {
       fragmentShader: ADAPT_FRAG,
       uniforms: {
         tLum: { value: null }, tPrev: { value: null }, dt: { value: 0.016 }, uKey: { value: c.key },
-        uMinExp: { value: 0.35 }, uMaxExp: { value: 22.0 }, uSpeedUp: { value: 2.2 }, uSpeedDown: { value: 0.9 }, uInit: { value: 1 },
+        uMinExp: { value: 0.35 }, uMaxExp: { value: c.maxExp || 22.0 }, uSpeedUp: { value: 2.2 }, uSpeedDown: { value: 0.9 }, uInit: { value: 1 },
       },
     });
     this.downPass = new FSPass({ fragmentShader: BLOOM_DOWN_FRAG, uniforms: { tColor: { value: null }, texel: { value: new THREE.Vector2() }, uFirst: { value: 0 } } });
@@ -161,7 +161,7 @@ export class Pipeline {
       uniforms: {
         tColor: { value: null }, tBloom: { value: null }, tExposure: { value: null }, uBloom: { value: c.bloom },
         uTime: { value: 0 }, uFade: { value: 1 }, uGrain: { value: 0.022 }, resolution: { value: new THREE.Vector2() },
-        uUnderwater: { value: 0 }, uExposureBias: { value: c.exposureBias }, toneMappingExposure: { value: 1 },
+        uUnderwater: { value: 0 }, uExposureBias: { value: c.exposureBias }, toneMappingExposure: { value: 1 }, uWet: { value: 0 },
       },
     });
   }
@@ -398,6 +398,7 @@ export class Pipeline {
     fu.uBloom.value = c.bloom;
     fu.uExposureBias.value = c.exposureBias;
     fu.uUnderwater.value = under ? 1 : 0;
+    fu.uWet.value = (state && state.wet) || 0;
     this.finalPass.render(r, null);
   }
 }
