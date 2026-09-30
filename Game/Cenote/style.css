@@ -49,3 +49,38 @@ kbd { display: inline-block; min-width: 20px; padding: 0 6px; margin: 0 2px; bor
 #toast.show { opacity: 1; }
 
 #err { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; text-align: center; padding: 30px; background: #03090d; line-height: 2; color: var(--ink-dim); }
+
+.credit { margin-top: 18px; font-size: 10.5px; color: #557; letter-spacing: .06em; color: #4d6a6f; }
+
+#views { position: absolute; right: 14px; top: 12px; display: flex; flex-direction: column; gap: 6px; pointer-events: auto; }
+#views button {
+  appearance: none; border: 1px solid rgba(255,255,255,.22); background: rgba(0,0,0,.35); color: rgba(233,246,246,.85);
+  font: inherit; font-size: 11.5px; letter-spacing: .08em; padding: 6px 12px; border-radius: 16px; cursor: pointer; text-align: left;
+  backdrop-filter: blur(4px); transition: background .2s, border-color .2s;
+}
+#views button:hover { background: rgba(60,180,175,.35); border-color: rgba(159,243,226,.6); }
+#views button b { color: var(--accent); font-weight: 600; margin-right: 6px; }
+
+#timebox {
+  position: absolute; right: 14px; bottom: 16px; display: flex; align-items: center; gap: 8px; pointer-events: auto;
+  background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.18); border-radius: 22px; padding: 6px 12px; backdrop-filter: blur(4px);
+  font-size: 12px; color: rgba(233,246,246,.85);
+}
+#timebox input[type=range] { width: 130px; accent-color: #7fe6d6; }
+#timebox button { appearance: none; border: 0; background: transparent; color: var(--accent); font-size: 13px; cursor: pointer; padding: 2px 4px; }
+#todlabel { min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+
+#touchbtns { display: none; position: absolute; right: 14px; bottom: 72px; flex-direction: column; gap: 10px; pointer-events: auto; }
+#touchbtns button {
+  appearance: none; width: 52px; height: 52px; border-radius: 26px; border: 1px solid rgba(255,255,255,.3);
+  background: rgba(0,0,0,.4); color: #fff; font-size: 18px; backdrop-filter: blur(4px); touch-action: none;
+}
+body.touch #touchbtns { display: flex; }
+body.touch #help { display: none; }
+body.touch #views { top: 40px; }
+body.touch #views button { font-size: 10.5px; padding: 5px 9px; }
+@media (max-width: 640px) {
+  #timebox { left: 10px; right: 10px; justify-content: center; bottom: 12px; }
+  #timebox input[type=range] { flex: 1; width: auto; }
+  #touchbtns { bottom: 70px; }
+}

@@ -195,7 +195,17 @@ export class Pipeline {
     this.rippleIdx = (this.rippleIdx + 1) % this.ripples.length;
   }
 
-  // 太陽視点の深度（影とボリューメトリックで共用・静的）
+  // 太陽の向きが変わったとき：影カメラを追従させ、深度を撮り直す
+  setSun(sunColor) {
+    const cen = this.cfg.sunCenter || new THREE.Vector3(0, 0, 0);
+    this.sunCam.position.copy(cen).addScaledVector(this.cfg.sunDir, -130);
+    this.sunCam.lookAt(cen);
+    this.sunCam.updateMatrixWorld();
+    if (sunColor) this.volPass.material.uniforms.uSunColor.value.copy(sunColor).multiplyScalar(this.cfg.sunVolume);
+    this.sunDepthDirty = true;
+  }
+
+  // 太陽視点の深度（影とボリューメトリックで共用）
   renderSunDepth() {
     const cam = this.sunCam;
     cam.updateProjectionMatrix();

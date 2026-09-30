@@ -42,7 +42,7 @@ export class FishSchool {
     this.center = center.clone();
     const geo = fishGeometry();
     const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(0.75, 0.82, 0.88), metalness: 0.65, roughness: 0.32, side: THREE.DoubleSide,
+      color: new THREE.Color(0.42, 0.5, 0.56), metalness: 0.55, roughness: 0.38, side: THREE.DoubleSide,
     });
     mat.customProgramCacheKey = () => 'fish';
     mat.onBeforeCompile = (shader) => {
@@ -61,7 +61,7 @@ export class FishSchool {
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>\n${WATER_FILL_GLSL}
-totalEmissiveRadiance += vec3(0.03, 0.05, 0.06);`
+totalEmissiveRadiance += vec3(0.004, 0.008, 0.01);`
       );
     };
     this.mesh = new THREE.InstancedMesh(geo, mat, count);
@@ -73,8 +73,8 @@ totalEmissiveRadiance += vec3(0.03, 0.05, 0.06);`
         p: new THREE.Vector3(),
         v: new THREE.Vector3(),
         a: Math.random() * 6.28,
-        r: 3 + Math.random() * 3.5,
-        y: -1.2 - Math.random() * 3.2,
+        r: 2.4 + Math.random() * 3.2,
+        y: -1.2 - Math.random() * 1.8,
         w: 0.4 + Math.random() * 0.25,
         off: Math.random() * 6.28,
         s: 0.13 + Math.random() * 0.08,
@@ -89,15 +89,18 @@ totalEmissiveRadiance += vec3(0.03, 0.05, 0.06);`
     this.t += dt;
     const t = this.t;
     // 群れの中心はゆっくり島の周りを回る
-    const cx = this.center.x + Math.cos(t * 0.09) * 6.0;
-    const cz = this.center.z + Math.sin(t * 0.11) * 5.0;
+    const cx = this.center.x + Math.cos(t * 0.09) * 3.2;
+    const cz = this.center.z + Math.sin(t * 0.11) * 3.0;
     const up = new THREE.Vector3(1, 0, 0);
     for (let i = 0; i < this.count; i++) {
       const f = this.fish[i];
       const ang = t * f.w + f.off;
       const tx = cx + Math.cos(ang) * f.r * 0.7 + Math.cos(t * 0.4 + f.off * 3) * 0.8;
       const tz = cz + Math.sin(ang) * f.r * 0.7 + Math.sin(t * 0.5 + f.off * 2) * 0.8;
-      const ty = f.y + Math.sin(t * 0.3 + f.off) * 0.5;
+      // 床の高さを見て泳ぐ深さを決める
+      let fl = -0.3;
+      for (let k = 0; k < 40; k++) { if (caveF(tx, fl, tz) > -0.05) break; fl -= 0.25; }
+      const ty = Math.min(-0.7, Math.max(fl + 0.7, f.y + Math.sin(t * 0.3 + f.off) * 0.5));
       const tgt = new THREE.Vector3(tx, ty, tz);
       // 目標へ加速
       const acc = tgt.sub(f.p).multiplyScalar(1.6);
@@ -111,7 +114,7 @@ totalEmissiveRadiance += vec3(0.03, 0.05, 0.06);`
       if (f.p.y > -0.25) f.p.y = -0.25;
       const dir = f.v.lengthSq() > 1e-4 ? f.v.clone().normalize() : up;
       this.q.setFromUnitVectors(up, dir);
-      this.sc.setScalar(f.s * 1.7);
+      this.sc.setScalar(f.s * 1.25);
       this.m4.compose(f.p, this.q, this.sc);
       this.mesh.setMatrixAt(i, this.m4);
     }

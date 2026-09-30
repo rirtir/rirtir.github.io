@@ -125,7 +125,7 @@ async function init() {
   world.props = props;
 
   // ---- 光 ----
-  const sunDir = new THREE.Vector3(...WORLD.sunDir);
+  const sunDir = shared.uSunDir.value;
   const sun = new THREE.DirectionalLight(0xfff0dc, 12.0);
   const center = new THREE.Vector3(-13, 0, -20);
   sun.position.copy(center).addScaledVector(sunDir, -130);
@@ -184,6 +184,8 @@ async function init() {
   scene.add(skyMesh);
   world.sky = skyMesh;
   world.bounce = bounce;
+  world.sun = sun;
+  world.center = center;
 
   // 影（スポットライト）は一度だけ描画する（静的）
   renderer.shadowMap.needsUpdate = true;
@@ -199,7 +201,7 @@ async function init() {
   quality.scale = parseFloat(params.get('scale') || String(quality.max));
   pipeline = new Pipeline(renderer, scene, camera, {
     waterY: WORLD.waterY,
-    sunDir: sunDir.clone(),
+    sunDir,
     sunCenter: center.clone(),
     sunHalf: 58,
     scale: quality.scale,
@@ -223,11 +225,12 @@ async function init() {
     audio.drip(pan * 0.8, Math.min(1, 1.6 / (1 + d / 5)));
   });
   scene.add(drips.points);
-  school = new FishSchool(new THREE.Vector3(1.2, -2, 2.0), MOBILE ? 36 : 70);
+  school = new FishSchool(new THREE.Vector3(-4.2, -2, 3.0), MOBILE ? 36 : 70);
   school.init(caveF);
   scene.add(school.mesh);
 
   // ---- カメラ ----
+  onResize();
   const s = WORLD.start;
   controls.pos.set(...s.pos);
   controls.lookAt(...s.look);
@@ -237,8 +240,9 @@ async function init() {
     controls.setPose(v[0], v[1], v[2], THREE.MathUtils.degToRad(v[3] || 0), THREE.MathUtils.degToRad(v[4] || 0));
   }
 
+  setTimeOfDay(0.5);
   setProgress(1, '準備ができました');
-  window.__cenote = { scene, camera, renderer, controls, shared, THREE, sun, sky, quality, audio, get pipeline() { return pipeline; } };
+  window.__cenote = { scene, camera, renderer, controls, shared, THREE, sun, sky, quality, audio, setTOD: (t) => setTimeOfDay(t), get pipeline() { return pipeline; } };
   return { tex };
 }
 
@@ -276,10 +280,84 @@ function onResize() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
+  camera.fov = w >= h ? 58 : 58 + (1 - w / h) * 45;
   camera.updateProjectionMatrix();
   if (pipeline) pipeline.setSize(w, h, renderer.getPixelRatio());
 }
 window.addEventListener('resize', onResize);
+
+
+// ---------------- 時刻（太陽の動き） ----------------
+const TOD = { t: 0.5, auto: false };
+const _S = new THREE.Vector3();
+function setTimeOfDay(t) {
+  TOD.t = t;
+  const e = THREE.MathUtils.degToRad(52 + 21 * Math.sin(Math.PI * t));
+  const phi = THREE.MathUtils.degToRad(-130 + 175 * t);
+  _S.set(Math.cos(phi) * Math.cos(e), Math.sin(e), Math.sin(phi) * Math.cos(e));
+  shared.uSunDir.value.copy(_S).negate();
+  if (world.sun) {
+    world.sun.position.copy(world.center).addScaledVector(_S, 130);
+    world.sun.target.position.copy(world.center);
+    const warm = THREE.MathUtils.smoothstep(Math.sin(e), 0.78, 0.96);
+    const col = new THREE.Color().setRGB(1.0, 0.8 + 0.15 * warm, 0.58 + 0.28 * warm);
+    world.sun.color.copy(col);
+    world.sun.intensity = 12 * (0.78 + 0.22 * Math.sin(e));
+    if (world.sky) world.sky.material.uniforms.uToSun.value.copy(_S);
+    if (pipeline) pipeline.setSun(new THREE.Vector3(col.r, col.g, col.b));
+  }
+  // 表示用の時刻（9:30〜14:30 くらい）
+  const hours = 12 + (t - 0.5) * 6.6;
+  const hh = Math.floor(hours), mm = Math.floor((hours - hh) * 60);
+  $('todlabel').textContent = `${hh}:${String(mm).padStart(2, '0')}`;
+  $('tod').value = t;
+}
+$('tod').addEventListener('input', (e) => setTimeOfDay(parseFloat(e.target.value)));
+$('todauto').addEventListener('click', () => toggleAuto());
+function toggleAuto() {
+  TOD.auto = !TOD.auto;
+  $('todauto').textContent = TOD.auto ? '❚❚' : '▶';
+  toast(TOD.auto ? '時間が流れています' : '時間を止めました', 1400);
+}
+
+// ---------------- 見どころへのジャンプ ----------------
+const VIEWS = [
+  { name: '光の柱', pos: [-8.5, 1.3, 9.0], look: [1.2, 6.0, 1.5] },
+  { name: '水中の窓', pos: [-6.0, -3.5, 5.0], look: [-2.3, 0.7, 2.9] },
+  { name: '天窓を見上げる', pos: [1.5, 1.0, 2.0], look: [2.6, 11.0, 1.6] },
+  { name: '水路のアーチ', pos: [-30.0, 1.5, -32.0], look: [-27.4, 3.6, -24.7] },
+  { name: '奥の部屋', pos: [-34.0, 1.4, -41.0], look: [-40.0, 2.5, -47.0] },
+];
+(function buildViews() {
+  const box = $('views');
+  VIEWS.forEach((v, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = `<b>${i + 1}</b>${v.name}`;
+    b.addEventListener('click', () => goView(i));
+    box.appendChild(b);
+  });
+})();
+function goView(i) {
+  const v = VIEWS[i];
+  if (!v) return;
+  controls.flyToLook(v.pos, v.look, 2.8);
+  toast(v.name, 1600);
+}
+if (MOBILE) document.body.classList.add('touch');
+(function touchButtons() {
+  const bind = (id, val) => {
+    const el = $(id);
+    const on = (e) => { e.preventDefault(); controls.touch.up = val; };
+    const off = (e) => { e.preventDefault(); controls.touch.up = 0; };
+    el.addEventListener('pointerdown', on);
+    el.addEventListener('pointerup', off);
+    el.addEventListener('pointercancel', off);
+    el.addEventListener('pointerleave', off);
+  };
+  bind('tbUp', 1);
+  bind('tbDown', -1);
+})();
 
 // ---------------- HUD ----------------
 let hudVisible = true;
@@ -379,6 +457,11 @@ function loop(now) {
     controls.lookAt(s.look[0] + Math.sin(t * 0.09) * 0.6, s.look[1] + Math.sin(t * 0.17) * 0.4, s.look[2]);
   } else {
     controls.update(dt);
+  }
+  if (TOD.auto) {
+    let nt = TOD.t + dt * 0.012;
+    if (nt > 0.88) nt = 0.12;
+    setTimeOfDay(nt);
   }
   if (world.sky) world.sky.position.copy(camera.position);
   if (particles) particles.update(camera, renderer.getPixelRatio() * quality.scale * window.innerHeight / 900);

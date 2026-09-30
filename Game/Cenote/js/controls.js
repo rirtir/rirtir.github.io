@@ -25,6 +25,24 @@ export class FlyControls {
     this._bind();
   }
 
+  // なめらかに視点を移動する（見どころへのジャンプ）
+  flyTo(pos, yaw, pitch, dur = 2.6) {
+    this._fly = {
+      t: 0, dur,
+      p0: this.pos.clone(), p1: new THREE.Vector3(...pos),
+      y0: this.yaw, y1: this._nearestYaw(yaw),
+      q0: this.pitch, q1: pitch,
+    };
+  }
+  flyToLook(pos, look, dur = 2.6) {
+    const dx = look[0] - pos[0], dy = look[1] - pos[1], dz = look[2] - pos[2];
+    this.flyTo(pos, Math.atan2(-dx, -dz), Math.atan2(dy, Math.hypot(dx, dz)), dur);
+  }
+  _nearestYaw(y) {
+    const d = ((y - this.yaw + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+    return this.yaw + d;
+  }
+
   setPose(x, y, z, yaw, pitch) {
     this.pos.set(x, y, z);
     this.yaw = this.targetYaw = yaw;
@@ -113,6 +131,7 @@ export class FlyControls {
   }
 
   _look(dx, dy) {
+    if (this._fly) this._fly = null;
     const s = 0.0022;
     this.targetYaw -= dx * s;
     this.targetPitch -= dy * s;
@@ -126,6 +145,20 @@ export class FlyControls {
 
   update(dt) {
     dt = Math.min(dt, 0.05);
+    if (this._fly) {
+      const f = this._fly;
+      f.t += dt / f.dur;
+      const k = f.t >= 1 ? 1 : f.t * f.t * (3 - 2 * f.t);
+      this.pos.lerpVectors(f.p0, f.p1, k);
+      // 少し弧を描いて動く
+      this.pos.y += Math.sin(k * Math.PI) * 0.8;
+      this.yaw = this.targetYaw = f.y0 + (f.y1 - f.y0) * k;
+      this.pitch = this.targetPitch = f.q0 + (f.q1 - f.q0) * k;
+      this.vel.set(0, 0, 0);
+      if (f.t >= 1) this._fly = null;
+      this._apply();
+      return;
+    }
     // 視点の滑らかな追従
     const k = 1 - Math.exp(-dt * 22);
     this.yaw += (this.targetYaw - this.yaw) * k;
