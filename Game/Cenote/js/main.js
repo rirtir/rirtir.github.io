@@ -15,7 +15,9 @@ const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
 
-const MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && Math.min(screen.width, screen.height) < 900);
+// スマホ・タブレット判定：マウス等の精密ポインタが無く、タッチのみの端末（タッチ対応ノートPCを誤判定しない）
+const MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+  (window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(any-pointer: fine)').matches);
 const audio = new CaveAudio();
 let particles = null, drips = null, school = null, birds = null;
 
@@ -98,6 +100,7 @@ async function init() {
   shared.uWaterY.value = WORLD.waterY;
 
   const mat = makeCaveMaterial(tex);
+  mat.side = THREE.DoubleSide; // 薄い岩の膜などでも裏抜けして「穴」に見えないように
 
   // 洞窟メッシュ
   const g = new THREE.BufferGeometry();
@@ -147,7 +150,7 @@ async function init() {
   if (params.has('nosun')) sun.visible = false;
 
   // 光の当たった島・水面からの反射光（暖かい白〜ターコイズ）
-  const bounce = new THREE.SpotLight(0xd9fff0, 55, 0, 1.45, 0.9, 2);
+  const bounce = new THREE.SpotLight(0xeafff6, 55, 0, 1.45, 0.9, 2);
   bounce.position.set(1.2, 0.6, 2.0);
   bounce.target.position.set(1.2, 12, 2.0);
   bounce.castShadow = true;
@@ -166,7 +169,7 @@ async function init() {
   sky2.shadow.camera.near = 1; sky2.shadow.camera.far = 60;
   sky2.shadow.bias = -0.0004; sky2.shadow.normalBias = 0.06; sky2.shadow.radius = 5;
   scene.add(sky2, sky2.target);
-  const bounce2 = new THREE.SpotLight(0xd9fff0, 40, 0, 1.45, 0.9, 2);
+  const bounce2 = new THREE.SpotLight(0xeafff6, 40, 0, 1.45, 0.9, 2);
   bounce2.position.set(-40.0, 0.6, -47.3);
   bounce2.target.position.set(-40.0, 10, -47.3);
   bounce2.castShadow = true;
@@ -175,7 +178,17 @@ async function init() {
   bounce2.shadow.bias = -0.0004; bounce2.shadow.normalBias = 0.06; bounce2.shadow.radius = 5;
   scene.add(bounce2, bounce2.target);
 
-  // 環境光（洞窟内のごく弱い間接光）
+  // 竪穴の上部を照らす空光（地表に近い壁や根が真っ黒にならないように。届く範囲は短い）
+  const skyTop = new THREE.SpotLight(0xb4d0ff, 260, 17, 1.25, 0.9, 2);
+  skyTop.position.set(4.4, 24, -1.0);
+  skyTop.target.position.set(4.4, 4, -1.0);
+  scene.add(skyTop, skyTop.target);
+  const skyTop2 = new THREE.SpotLight(0xb4d0ff, 200, 14, 1.25, 0.9, 2);
+  skyTop2.position.set(-38.0, 20, -49.0);
+  skyTop2.target.position.set(-38.0, 2, -49.0);
+  scene.add(skyTop2, skyTop2.target);
+
+  // 環境光（洞窟内のごく弱い間接光）＋ 影の部分が真っ黒な穴に見えないための微弱な半球光
   const env = buildEnvironment(renderer);
   scene.environment = env;
   scene.environmentIntensity = params.has('noenv') ? 0 : 0.35;
@@ -202,6 +215,7 @@ async function init() {
   quality.scale = parseFloat(params.get('scale') || String(Math.min(quality.max, autoScale)));
   pipeline = new Pipeline(renderer, scene, camera, {
     waterY: WORLD.waterY,
+    sky: skyMesh,
     sunDir,
     sunCenter: center.clone(),
     sunHalf: 58,
@@ -231,7 +245,7 @@ async function init() {
   school = new FishSchool(new THREE.Vector3(-4.2, -2, 3.0), MOBILE ? 36 : 70);
   school.init(caveF);
   scene.add(school.mesh);
-  birds = new Swallows(MOBILE ? 5 : 9);
+  birds = new Swallows(MOBILE ? 2 : 3);
   scene.add(birds.mesh);
 
   // ---- カメラ ----
@@ -247,7 +261,7 @@ async function init() {
 
   setTimeOfDay(0.5);
   setProgress(1, '準備ができました');
-  window.__cenote = { scene, camera, renderer, controls, shared, THREE, sun, sky, quality, audio, setTOD: (t) => setTimeOfDay(t), get pipeline() { return pipeline; } };
+  window.__cenote = { scene, camera, renderer, controls, shared, THREE, sun, sky, quality, audio, setTOD: (t) => setTimeOfDay(t), get pipeline() { return pipeline; }, get school() { return school; }, get birds() { return birds; } };
   return { tex };
 }
 
@@ -409,20 +423,40 @@ function takePhoto() {
 
 window.addEventListener('keydown', (e) => {
   if (!controls.enabled) return;
-  if (e.code === 'KeyP') takePhoto();
-  else if (e.code === 'KeyH') {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const c = e.code, k = e.key;
+  // 数字キー（メインキーボード／テンキー）→ 見どころへジャンプ
+  const dm = /^(?:Digit|Numpad)([1-5])$/.exec(c);
+  if (dm) { if (!e.repeat) goView(parseInt(dm[1], 10) - 1); return; }
+  // 時刻：[ ] は配列によって e.code が異なる（JIS では別コード）ので e.key で判定。, . も可
+  if (k === '[' || k === ',' || k === '{' || k === '<') { setTimeOfDay(Math.max(0.12, TOD.t - 0.03)); return; }
+  if (k === ']' || k === '.' || k === '}' || k === '>') { setTimeOfDay(Math.min(0.88, TOD.t + 0.03)); return; }
+  if (k === '?' || c === 'Slash') { if (!e.repeat) toggleHelp(); return; }
+  if (e.repeat) return;
+  if (c === 'KeyP') takePhoto();
+  else if (c === 'KeyH') {
     hudVisible = !hudVisible;
     $('hud').classList.toggle('hidden', !hudVisible);
-  } else if (e.code === 'KeyM') {
+  } else if (c === 'KeyM') {
     audio.setMuted(!audio.muted);
     toast(audio.muted ? '🔇 ミュート' : '🔊 サウンド ON');
-  } else if (e.code === 'KeyG') {
-    cycleQuality();
-  } else if (e.code === 'KeyF' && pipeline) {
+  } else if (c === 'KeyG') cycleQuality();
+  else if (c === 'KeyT') toggleAuto();
+  else if (c === 'KeyX') toggleFullscreen();
+  else if (c === 'KeyF' && pipeline) {
     pipeline.cfg.dof = !pipeline.cfg.dof;
     toast(pipeline.cfg.dof ? '被写界深度 ON' : '被写界深度 OFF');
   }
 });
+
+// 操作ガイド（? キー／ボタンで開閉）
+function toggleHelp(force) {
+  const p = $('helppanel');
+  const on = force === undefined ? p.classList.contains('hidden') : force;
+  p.classList.toggle('hidden', !on);
+}
+$('helpbtn').addEventListener('click', () => toggleHelp());
+$('helpclose').addEventListener('click', () => toggleHelp(false));
 function applyScale(ns) {
   quality.scale = ns;
   pipeline.cfg.scale = ns;

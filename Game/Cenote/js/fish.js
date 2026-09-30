@@ -89,37 +89,79 @@ totalEmissiveRadiance += vec3(0.004, 0.008, 0.01);`
     this.t += dt;
     this.frame = (this.frame || 0) + 1;
     const t = this.t;
+    const g = this._g || (this._g = new THREE.Vector3());
+    const pa = this._pa || (this._pa = new THREE.Vector3());
+    const tgt = this._tgt || (this._tgt = new THREE.Vector3());
+    const X = this._x || (this._x = new THREE.Vector3(1, 0, 0));
+    const grad = (p, out) => {
+      const e = 0.2;
+      out.set(
+        caveF(p.x + e, p.y, p.z) - caveF(p.x - e, p.y, p.z),
+        caveF(p.x, p.y + e, p.z) - caveF(p.x, p.y - e, p.z),
+        caveF(p.x, p.y, p.z + e) - caveF(p.x, p.y, p.z - e)
+      ).normalize(); // 岩のほうを向く
+      return out;
+    };
     // 群れの中心はゆっくり島の周りを回る
     const cx = this.center.x + Math.cos(t * 0.09) * 3.2;
     const cz = this.center.z + Math.sin(t * 0.11) * 3.0;
-    const up = new THREE.Vector3(1, 0, 0);
     for (let i = 0; i < this.count; i++) {
       const f = this.fish[i];
       const ang = t * f.w + f.off;
-      const tx = cx + Math.cos(ang) * f.r * 0.7 + Math.cos(t * 0.4 + f.off * 3) * 0.8;
-      const tz = cz + Math.sin(ang) * f.r * 0.7 + Math.sin(t * 0.5 + f.off * 2) * 0.8;
-      // 床の高さを見て泳ぐ深さを決める
-      // （負荷対策：個体ごとに10フレームに1回だけ再計算）
+      let tx = cx + Math.cos(ang) * f.r * 0.7 + Math.cos(t * 0.4 + f.off * 3) * 0.8;
+      let tz = cz + Math.sin(ang) * f.r * 0.7 + Math.sin(t * 0.5 + f.off * 2) * 0.8;
+      // 床の高さを見て泳ぐ深さを決める（負荷対策：個体ごとに10フレームに1回だけ再計算）
       if (f.fl === undefined || ((this.frame + i) % 10) === 0) {
         let fl = -0.3;
         for (let k = 0; k < 40; k++) { if (caveF(tx, fl, tz) > -0.05) break; fl -= 0.25; }
         f.fl = fl;
       }
-      const fl = f.fl;
-      const ty = Math.min(-0.7, Math.max(fl + 0.7, f.y + Math.sin(t * 0.3 + f.off) * 0.5));
-      const tgt = new THREE.Vector3(tx, ty, tz);
-      // 目標へ加速
-      const acc = tgt.sub(f.p).multiplyScalar(1.6);
-      f.v.addScaledVector(acc, dt).multiplyScalar(1 - Math.min(1, dt * 0.6));
+      let ty = Math.min(-0.8, Math.max(f.fl + 0.9, f.y + Math.sin(t * 0.3 + f.off) * 0.5));
+      // 目標が岩の中・岩すれすれなら、群れの中心の安全な深さへ切り替える
+      tgt.set(tx, ty, tz);
+      if (caveF(tx, ty, tz) > -0.9) tgt.set(f.safeX ?? cx, f.safeY ?? -1.6, f.safeZ ?? cz);
+      else { f.safeX = tx; f.safeY = ty; f.safeZ = tz; }
+
+      // 目標へ向かう加速
+      const ax = (tgt.x - f.p.x) * 1.5, ay = (tgt.y - f.p.y) * 1.5, az = (tgt.z - f.p.z) * 1.5;
+      f.v.x += ax * dt; f.v.y += ay * dt; f.v.z += az * dt;
+
+      // 先読み：進行方向の少し先が岩なら、岩と反対へ舵を切って減速
+      const sp0 = f.v.length();
+      if (sp0 > 0.05) {
+        pa.copy(f.v).multiplyScalar(0.9 / sp0).add(f.p);
+        const fa = caveF(pa.x, pa.y, pa.z);
+        if (fa > -0.7) {
+          grad(f.p, g);
+          const k = Math.min(1, (fa + 0.7) / 0.7);
+          f.v.addScaledVector(g, -k * 7.0 * dt);
+          f.v.multiplyScalar(1 - k * Math.min(1, dt * 2.5));
+        }
+      }
+      f.v.multiplyScalar(1 - Math.min(1, dt * 0.6));
       const sp = f.v.length();
-      const maxSp = 1.8;
+      const maxSp = 1.7, minSp = 0.45;
       if (sp > maxSp) f.v.multiplyScalar(maxSp / sp);
+      else if (sp < minSp && sp > 1e-4) f.v.multiplyScalar(minSp / sp);
       f.p.addScaledVector(f.v, dt);
-      // 壁・床を避ける
-      if (((this.frame + i * 3) % 4) === 0 && caveF(f.p.x, f.p.y, f.p.z) > -0.5) f.p.y += 0.24;
-      if (f.p.y > -0.25) f.p.y = -0.25;
-      const dir = f.v.lengthSq() > 1e-4 ? f.v.clone().normalize() : up;
-      this.q.setFromUnitVectors(up, dir);
+
+      // 万一、岩に触れたら押し戻して、壁向きの速度を消す
+      const fp = caveF(f.p.x, f.p.y, f.p.z);
+      if (fp > -0.3) {
+        grad(f.p, g);
+        f.p.addScaledVector(g, -(fp + 0.3) - 0.02);
+        const vd = f.v.dot(g);
+        if (vd > 0) f.v.addScaledVector(g, -vd * 1.2);
+      }
+      if (f.p.y > -0.3) { f.p.y = -0.3; if (f.v.y > 0) f.v.y = 0; }
+
+      // 向きは滑らかに追従（細かい向きの振動を出さない）
+      if (!f.dir) f.dir = new THREE.Vector3(1, 0, 0);
+      if (f.v.lengthSq() > 1e-5) {
+        this._d = (this._d || new THREE.Vector3()).copy(f.v).normalize();
+        f.dir.lerp(this._d, 1 - Math.exp(-dt * 4)).normalize();
+      }
+      this.q.setFromUnitVectors(X, f.dir);
       this.sc.setScalar(f.s * 1.25);
       this.m4.compose(f.p, this.q, this.sc);
       this.mesh.setMatrixAt(i, this.m4);

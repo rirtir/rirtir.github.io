@@ -158,6 +158,8 @@ export const WATER_FILL_GLSL = /* glsl */ `
     float k = smoothstep(0.0, 0.6, wdepth) * exp(-wdepth * 0.045);
     totalEmissiveRadiance += diffuseColor.rgb * vec3(0.012, 0.16, 0.19) * k * uWaterFill * 0.8;
   }
+  // 洞窟内の微弱な散乱光（影の部分が完全な黒い穴にならないように）
+  totalEmissiveRadiance += diffuseColor.rgb * vec3(0.0052, 0.0058, 0.0068);
 }
 `;
 
@@ -275,7 +277,7 @@ vec3 wnrm = normalize(mix(nrmRock, rS.nrm, wS));
 float rgh = mix(rghRock, rS.rough, wS);
 
 // 石灰岩らしく明るい暖色へ寄せる
-albedo *= vec3(1.0, 0.98, 0.92) * 0.95;
+albedo *= vec3(1.22, 0.98, 0.80) * 0.95;
 
 // 縦の汚れ（雨だれ）
 float streak = vnoise(vec3(P.x * 2.3, P.y * 0.22, P.z * 2.3));
@@ -324,9 +326,9 @@ roughnessFactor = mix(roughnessFactor, 0.55, smoothstep(0.0, 1.0, below) * 0.5);
       .replace(
         '#include <aomap_fragment>',
         /* glsl */ `
-float ambientOcclusion = pow(vAO, 1.5);
+float ambientOcclusion = 0.3 + 0.7 * pow(vAO, 1.3);
 reflectedLight.indirectDiffuse *= ambientOcclusion;
-reflectedLight.directDiffuse *= mix(1.0, vAO, 0.4);
+reflectedLight.directDiffuse *= mix(1.0, vAO, 0.25);
 #if defined( USE_ENVMAP ) && defined( STANDARD )
 float dotNV = saturate( dot( geometryNormal, geometryViewDir ) );
 reflectedLight.indirectSpecular *= computeSpecularOcclusion( dotNV, ambientOcclusion, material.roughness );

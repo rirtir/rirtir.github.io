@@ -36,7 +36,7 @@ export function buildStalactites(list) {
         const b = base + li * RS + ((ri + 1) % RS);
         const c = base + (li + 1) * RS + ri;
         const d = base + (li + 1) * RS + ((ri + 1) % RS);
-        idx.push(a, c, b, b, c, d);
+        idx.push(a, b, c, b, d, c);
       }
     }
     base += (LS + 1) * RS;

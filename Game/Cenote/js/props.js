@@ -27,6 +27,9 @@ function extractParts(scene) {
 
 // 世界座標（vWPos）ベースの太陽影・水中減衰を岩や植物にも適用する
 function patchProp(mat, opt = {}) {
+  // rock_moss_set などは粗さ画像が metallicRoughness として読まれ、青チャンネル=金属度になって真っ黒になる
+  mat.metalnessMap = null;
+  mat.metalness = 0;
   mat.customProgramCacheKey = () => `prop-${opt.kind || 'x'}`;
   mat.onBeforeCompile = (shader) => {
     injectSun(shader);
@@ -111,6 +114,14 @@ function compose(pos, yaw, scale, tiltDir = null, tiltAmt = 0) {
   return new THREE.Matrix4().compose(pos, _q.clone(), _s.clone());
 }
 
+// 竪穴の軸から角度 a の方向へ進んで、壁（岩）にぶつかるまでの距離
+export function wallRadius(sh, a, y) {
+  const ca = Math.cos(a), sa = Math.sin(a);
+  let r = 0.2;
+  for (; r < 10; r += 0.08) if (caveF(sh.x + ca * r, y, sh.z + sa * r) > -0.02) break;
+  return r;
+}
+
 // 洞窟の床（岩）へ真上から落とした点
 export function dropToFloor(x, z, yStart = 3.5) {
   let y = yStart;
@@ -130,8 +141,8 @@ function makeContactShadows(items) {
   cv.width = cv.height = 128;
   const g = cv.getContext('2d');
   const gr = g.createRadialGradient(64, 64, 4, 64, 64, 62);
-  gr.addColorStop(0, 'rgba(0,0,0,0.75)');
-  gr.addColorStop(0.45, 'rgba(0,0,0,0.42)');
+  gr.addColorStop(0, 'rgba(0,0,0,0.5)');
+  gr.addColorStop(0.45, 'rgba(0,0,0,0.26)');
   gr.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = gr;
   g.fillRect(0, 0, 128, 128);
@@ -191,7 +202,7 @@ export async function buildProps({ scene, onProgress = () => {} }) {
       if (!d) continue;
       const pos = d.pos.clone().addScaledVector(d.normal, -c.sink * c.size * 0.3);
       mats.push(compose(pos, R(0, Math.PI * 2), c.size * proto.k, d.normal, 0.55));
-      decals.push(compose(d.pos.clone().addScaledVector(d.normal, 0.05), R(0, 6.28), c.size * 2.8, d.normal, 1.0));
+      decals.push(compose(d.pos.clone().addScaledVector(d.normal, 0.05), R(0, 6.28), c.size * proto.k * 1.9, d.normal, 1.0));
     }
     return mats;
   };
@@ -212,7 +223,7 @@ export async function buildProps({ scene, onProgress = () => {} }) {
     (rand() < 0.6 ? boulderList : rockList).push({ x, z, size: R(0.6, 2.4), sink: 0.5 });
   }
   // 小さな岩の群れ（水際）
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 22; i++) {
     const a = R(0, Math.PI * 2), r = R(2.6, 6.5);
     setList.push({ x: 1.2 + Math.cos(a) * r, z: 2.0 + Math.sin(a) * r * 0.9, size: R(0.5, 1.1), sink: 0.5 });
   }
@@ -248,7 +259,7 @@ export async function buildProps({ scene, onProgress = () => {} }) {
     if (mats.length) root.add(instanced(parts, mats));
   }
 
-  // ---------- 天窓の縁の植物 ----------
+  // ---------- 天窓の縁の植物（縁の地面に根付かせる） ----------
   const ferns = new THREE.Group();
   {
     const partsF = extractParts(fern);
@@ -257,19 +268,58 @@ export async function buildProps({ scene, onProgress = () => {} }) {
     partsF.forEach((p) => patchProp(p.material, { kind: 'fern', sway: true, leaf: true }));
     partsA.forEach((p) => patchProp(p.material, { kind: 'anth', sway: true, leaf: true }));
     partsC.forEach((p) => patchProp(p.material, { kind: 'cal', sway: true, leaf: true }));
-    const yTop = WORLD.bounds.max[1] - 0.3;
+    const yG = WORLD.bounds.max[1]; // 竪穴の上端＝地表
     const mf = [], ma = [], mc = [];
     const rings = [
-      { cx: WORLD.shaft1.x + 0.5, cz: WORLD.shaft1.z, n: 90, r0: 4.4, r1: 9.0, near: 6.0 },
-      { cx: WORLD.shaft2.x + 0.3, cz: WORLD.shaft2.z, n: 46, r0: 2.9, r1: 6.5, near: 4.2 },
+      { s: WORLD.shaft1, n: 84, span: 5.5, near: 1.6 },
+      { s: WORLD.shaft2, n: 44, span: 4.0, near: 1.2 },
     ];
+    // 地表の土（下からは見えないが、植物の足場になり、影も落とす）
+    const soilMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(0.07, 0.055, 0.04), roughness: 1, metalness: 0, side: THREE.DoubleSide });
+    patchProp(soilMat, { kind: 'soil' });
+    const groundFns = [];
     for (const rg of rings) {
+      const NA = 72, NR = 6;
+      const rin = [];
+      for (let i = 0; i < NA; i++) rin.push(wallRadius(rg.s, (i / NA) * Math.PI * 2, yG - 0.4));
+      const rInAt = (a) => {
+        const f = ((a % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 2) * NA;
+        const i0 = Math.floor(f) % NA, i1 = (i0 + 1) % NA, t = f - Math.floor(f);
+        return rin[i0] * (1 - t) + rin[i1] * t;
+      };
+      const groundY = (a, r) => yG + 0.12 * noise3(Math.cos(a) * r * 0.5, 1.3, Math.sin(a) * r * 0.5) - 0.02;
+      const pos = [], idx = [];
+      for (let j = 0; j <= NR; j++) {
+        const u = j / NR;
+        for (let i = 0; i <= NA; i++) {
+          const a = (i / NA) * Math.PI * 2;
+          const r = rInAt(a) - 0.25 + u * u * (rg.span + 6) + (j === 0 ? 0 : 0);
+          pos.push(rg.s.x + Math.cos(a) * r, groundY(a, r), rg.s.z + Math.sin(a) * r);
+        }
+      }
+      for (let j = 0; j < NR; j++) for (let i = 0; i < NA; i++) {
+        const q = j * (NA + 1) + i;
+        idx.push(q, q + 1, q + NA + 1, q + 1, q + NA + 2, q + NA + 1);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setIndex(idx);
+      g.computeVertexNormals();
+      const soil = new THREE.Mesh(g, soilMat);
+      soil.receiveShadow = true;
+      soil.layers.enable(1);
+      ferns.add(soil);
+      groundFns.push({ rg, rInAt, groundY });
+    }
+
+    for (const { rg, rInAt, groundY } of groundFns) {
       for (let i = 0; i < rg.n; i++) {
         const a = (i / rg.n) * Math.PI * 2 + R(-0.06, 0.06);
-        const r = R(rg.r0, rg.r1);
-        const pos = new THREE.Vector3(rg.cx + Math.cos(a) * r, yTop + R(-0.2, 0.5), rg.cz + Math.sin(a) * r);
+        const r = rInAt(a) + R(0.15, rg.span);
+        const pos = new THREE.Vector3(rg.s.x + Math.cos(a) * r, groundY(a, r) - 0.03, rg.s.z + Math.sin(a) * r);
         const inward = new THREE.Vector3(-Math.cos(a), 0.1, -Math.sin(a)).normalize();
-        const lean = r < rg.near ? R(0.7, 1.1) : R(0.15, 0.55);
+        // 縁に近い株ほど穴の方へ大きく傾く（葉が穴へ垂れ込む）。ただし根元は必ず地面の上
+        const lean = r - rInAt(a) < rg.near ? R(0.6, 0.95) : R(0.1, 0.5);
         const m = compose(pos, R(0, 6.28), R(1.5, 3.0), inward, lean);
         const t = rand();
         (t < 0.4 ? mf : t < 0.75 ? ma : mc).push(m);
@@ -285,12 +335,12 @@ export async function buildProps({ scene, onProgress = () => {} }) {
       const partsP = extractParts(pach);
       partsP.forEach((p) => patchProp(p.material, { kind: 'pach', sway: true, leaf: true }));
       const mp = [];
-      for (const rg of rings) {
+      for (const { rg, rInAt, groundY } of groundFns) {
         const cnt = rg.n > 60 ? 9 : 5;
         for (let i = 0; i < cnt; i++) {
           const a = (i / cnt) * Math.PI * 2 + R(-0.3, 0.3);
-          const r = R(rg.r1 * 0.9, rg.r1 * 1.5);
-          const pos = new THREE.Vector3(rg.cx + Math.cos(a) * r, yTop - 0.6, rg.cz + Math.sin(a) * r);
+          const r = rInAt(a) + R(rg.span * 0.9, rg.span * 1.8);
+          const pos = new THREE.Vector3(rg.s.x + Math.cos(a) * r, groundY(a, r) - 0.08, rg.s.z + Math.sin(a) * r);
           mp.push(compose(pos, R(0, 6.28), R(3.2, 5.2)));
         }
       }
@@ -372,37 +422,52 @@ async function buildRoots() {
   };
 
   const shaftList = [
-    { s: WORLD.shaft1, n: 16, fine: 130, rim: [2.2, 3.0], y: [13.5, 17.5], reach: [0.45, 1.0] },
-    { s: WORLD.shaft2, n: 9, fine: 60, rim: [1.5, 2.1], y: [10.5, 14.5], reach: [0.5, 1.0] },
+    { s: WORLD.shaft1, n: 16, fine: 130, yCeil: 10.5, y: [13.5, 17.8], reach: [0.45, 1.0] },
+    { s: WORLD.shaft2, n: 9, fine: 60, yCeil: 7.6, y: [10.5, 15.0], reach: [0.5, 1.0] },
   ];
   const fineGeos = [];
+  const tmp = new THREE.Vector3();
   for (const sh of shaftList) {
     const s1 = sh.s;
     for (let i = 0; i < sh.n + sh.fine; i++) {
       const isFine = i >= sh.n;
       const a = R(0, Math.PI * 2);
-      const rimR = R(sh.rim[0], sh.rim[1]) + (isFine ? R(-0.3, 0.5) : 0);
+      const ca = Math.cos(a), sa = Math.sin(a);
       const yStart = R(sh.y[0], sh.y[1] + (isFine ? 1.5 : 0));
-      const start = new THREE.Vector3(s1.x + 0.35 + Math.cos(a) * rimR, yStart, s1.z + Math.sin(a) * rimR);
       const reach = isFine ? R(0.2, 1.0) : R(sh.reach[0], sh.reach[1]); // どこまで垂れるか（1 で水面付近）
       const yEnd = 1.5 + (yStart - 1.5) * (1 - reach);
+      const segs = isFine ? 10 : 16;
+      const rw0 = Math.min(wallRadius(s1, a, yStart), 5.2);
+      const rFree = Math.max(0.6, rw0 * R(0.35, 0.6)); // 壁を離れたあとに垂れ下がる半径
+      const drift = new THREE.Vector3(R(-1, 1), 0, R(-1, 1)).multiplyScalar(isFine ? 0.5 : 0.8);
       const pts = [];
-      const segs = isFine ? 8 : 14;
-      const drift = new THREE.Vector3(R(-2.5, 2.5), 0, R(-2.5, 2.5)).multiplyScalar(isFine ? 0.8 : 1);
       for (let k = 0; k <= segs; k++) {
         const t = k / segs;
-        const p = start.clone();
-        p.y = yStart + (yEnd - yStart) * t;
-        p.x -= (Math.cos(a) * rimR * 0.5) * Math.min(1, t * 2.5);
-        p.z -= (Math.sin(a) * rimR * 0.5) * Math.min(1, t * 2.5);
-        p.addScaledVector(drift, t * t);
-        p.x += (isFine ? 0.22 : 0.35) * noise3(t * 3 + i, 0.5, 1.7 * i);
-        p.z += (isFine ? 0.22 : 0.35) * noise3(t * 3 + 9, 0.5 + i, 3.1);
-        pts.push(p);
+        const y = yStart + (yEnd - yStart) * t;
+        // 最初は壁に沿って（根元は壁の中に少し埋める）、しだいに壁を離れて垂れ下がる
+        const yShaft = Math.max(y, sh.yCeil + 1.2);           // 竪穴の内側の壁の半径だけを参照（広間に出てからは参照しない）
+        const rw = Math.min(wallRadius(s1, a, yShaft), 5.2);
+        const b = Math.min(1, Math.max(0, (t - 0.12) / 0.4));
+        const bb = b * b * (3 - 2 * b);
+        let r = (rw + (k === 0 ? 0.08 : -0.03)) * (1 - bb) + rFree * bb;
+        const freeW = 1 - THREE.MathUtils.smoothstep(y, sh.yCeil - 0.4, sh.yCeil + 1.4);
+        r = r * (1 - freeW) + rFree * freeW;
+        tmp.set(s1.x + ca * r + drift.x * t * t, y, s1.z + sa * r + drift.z * t * t);
+        // 蛇行（太い根ほどゆったり、まっすぐな棒に見えないように壁沿いでもゆらす）
+        const wob = (isFine ? 0.14 : 0.34) * (0.35 + bb);
+        tmp.x += wob * noise3(t * 3.2 + i, 0.5, 1.7 * i);
+        tmp.z += wob * noise3(t * 3.2 + 9, 0.5 + i, 3.1);
+        // 岩にめり込んだら軸のほうへ戻す（根元 k=0 は壁に接していてよい）
+        if (k > 0) {
+          for (let it = 0; it < 12 && caveF(tmp.x, tmp.y, tmp.z) > -0.12; it++) {
+            tmp.x += (s1.x - tmp.x) * 0.08; tmp.z += (s1.z - tmp.z) * 0.08;
+          }
+        }
+        pts.push(tmp.clone());
       }
       if (isFine) fineGeos.push(makeTube(pts, R(0.012, 0.03), 28, 4, i, 0.25));
       else {
-        const r0 = R(0.05, 0.13);
+        const r0 = R(0.04, 0.095);
         geos.push(makeTube(pts, r0, 90, 7, i, r0 * 6.0));
       }
     }

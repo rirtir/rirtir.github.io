@@ -27,6 +27,7 @@ export class Pipeline {
       dof: false,
       exposureBias: 1,
       key: 0.16,
+      sky: null,
     }, cfg);
 
     this.time = 0;
@@ -242,9 +243,13 @@ export class Pipeline {
     this.reflViewProj.multiplyMatrices(rc.projectionMatrix, rc.matrixWorldInverse);
     r.clippingPlanes = [above ? this.clipUp : this.clipDown];
     r.setRenderTarget(this.reflRT);
-    r.setClearColor(0x000000, 1);
+    // 水中側の反射（全反射）では空を出さず、水中の暗い青で埋める
+    r.setClearColor(above ? 0x000000 : 0x020c10, 1);
     r.clear(true, true, true);
+    const sky = this.cfg.sky;
+    if (sky) sky.visible = above;
     r.render(this.scene, rc);
+    if (sky) sky.visible = true;
     r.clippingPlanes = [];
   }
 

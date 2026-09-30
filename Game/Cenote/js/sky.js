@@ -41,6 +41,8 @@ export function makeSky(toSun) {
         // 太陽円盤
         float disc = smoothstep(cos(0.016), cos(0.0105), mu);
         sky += vec3(1.0, 0.96, 0.88) * disc * 260.0 * (1.0 - cm * 0.8);
+        // 地平線より下は「空」ではない（水面反射の描画で、水面下の領域が空色で埋まるのを防ぐ）
+        sky *= smoothstep(-0.03, 0.06, d.y);
         gl_FragColor = vec4(sky, 1.0);
       }`,
   });

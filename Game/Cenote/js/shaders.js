@@ -201,7 +201,7 @@ vec3 applyMedium(vec3 col, vec3 C, vec3 P) {
 vec3 reflSample(vec3 W, vec3 N) {
   vec4 rp = reflViewProj * vec4(W, 1.0);
   vec2 uv = rp.xy / rp.w * 0.5 + 0.5;
-  uv += N.xz * 0.06;
+  uv += N.xz * 0.028;
   uv = clamp(uv, 0.002, 0.998);
   return texture2D(tRefl, uv).rgb;
 }
@@ -501,7 +501,7 @@ void main() {
   col *= ex;
   // グレーディング：影に青緑、ハイライトに暖色
   float l = luma(col);
-  col = mix(col, col * vec3(0.90, 1.02, 1.08), smoothstep(0.35, 0.0, l) * 0.6);
+  col = mix(col, col * vec3(0.94, 1.01, 1.05), smoothstep(0.35, 0.0, l) * 0.45);
   col = mix(col, col * vec3(1.06, 1.0, 0.9), smoothstep(0.4, 1.6, l) * 0.5);
 #ifdef TONE_AGX
   vec3 tm = clamp(AgXToneMapping(col * 0.8), 0.0, 1.0);

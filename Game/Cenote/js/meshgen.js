@@ -79,18 +79,14 @@ export function generateCave(opts = {}, onProgress = () => {}) {
   ];
   const v = new Float32Array(8);
 
+  // 向きは位相だけで決める（辺を挟む2点のどちらが空洞側か）。射影後の座標には依存しない。
   const pushQuad = (a, b, c, d, flip) => {
     if (flip) { idx.push(a, d, c, a, c, b); } else { idx.push(a, b, c, a, c, d); }
   };
-  // 4頂点から法線の向きを見て巻き方向を決める
-  const quad = (a, b, c, d, axis, sgn) => {
-    // 幾何法線
-    const ax = pos[a * 3], ay = pos[a * 3 + 1], az = pos[a * 3 + 2];
-    const e1x = pos[b * 3] - ax, e1y = pos[b * 3 + 1] - ay, e1z = pos[b * 3 + 2] - az;
-    const e2x = pos[c * 3] - ax, e2y = pos[c * 3 + 1] - ay, e2z = pos[c * 3 + 2] - az;
-    const nxg = e1y * e2z - e1z * e2y, nyg = e1z * e2x - e1x * e2z, nzg = e1x * e2y - e1y * e2x;
-    const dot = axis === 0 ? nxg * sgn : axis === 1 ? nyg * sgn : nzg * sgn;
-    pushQuad(a, b, c, d, dot < 0);
+  const quad = (a, b, c, d, axis, startAir) => {
+    // 既定の巻き方向: x辺=+x, y辺=-y, z辺=+z の法線。空洞(負)側を向けたい。
+    const flip = axis === 1 ? !startAir : startAir;
+    pushQuad(a, b, c, d, flip);
   };
 
   fillSlab(s0, 0);
@@ -130,19 +126,19 @@ export function generateCave(opts = {}, onProgress = () => {}) {
         if (j > 0 && k > 0 && (v[0] < 0) !== (v[1] < 0)) {
           const a = curLayer[j * nx + i], b = curLayer[(j - 1) * nx + i];
           const c = prevLayer[(j - 1) * nx + i], d = prevLayer[j * nx + i];
-          if (b >= 0 && c >= 0 && d >= 0) quad(a, b, c, d, 0, v[0] < 0 ? -1 : 1);
+          if (b >= 0 && c >= 0 && d >= 0) quad(a, b, c, d, 0, v[0] < 0);
         }
         // y辺
         if (i > 0 && k > 0 && (v[0] < 0) !== (v[2] < 0)) {
           const a = curLayer[j * nx + i], b = curLayer[j * nx + i - 1];
           const c = prevLayer[j * nx + i - 1], d = prevLayer[j * nx + i];
-          if (b >= 0 && c >= 0 && d >= 0) quad(a, b, c, d, 1, v[0] < 0 ? -1 : 1);
+          if (b >= 0 && c >= 0 && d >= 0) quad(a, b, c, d, 1, v[0] < 0);
         }
         // z辺
         if (i > 0 && j > 0 && (v[0] < 0) !== (v[4] < 0)) {
           const a = curLayer[j * nx + i], b = curLayer[j * nx + i - 1];
           const c = curLayer[(j - 1) * nx + i - 1], d = curLayer[(j - 1) * nx + i];
-          if (b >= 0 && c >= 0 && d >= 0) quad(a, b, c, d, 2, v[0] < 0 ? -1 : 1);
+          if (b >= 0 && c >= 0 && d >= 0) quad(a, b, c, d, 2, v[0] < 0);
         }
       }
     }
@@ -156,26 +152,38 @@ export function generateCave(opts = {}, onProgress = () => {}) {
   const P = new Float32Array(pos);
   const N = new Float32Array(nv * 3);
   const AO = new Uint8Array(nv);
+  const GM = new Float32Array(nv);
   const g = [0, 0, 0];
+  let _gm = 1;
   const grad = (x, y, z, e, out) => {
     const gx = caveF(x + e, y, z) - caveF(x - e, y, z);
     const gy = caveF(x, y + e, z) - caveF(x, y - e, z);
     const gz = caveF(x, y, z + e) - caveF(x, y, z - e);
     const l = Math.hypot(gx, gy, gz) || 1;
+    _gm = l / (2 * e);
     out[0] = gx / l; out[1] = gy / l; out[2] = gz / l;
   };
   const aoD = [0.14, 0.35, 0.8, 1.6, 3.2];
   const aoW = [0.32, 0.26, 0.2, 0.13, 0.09];
   for (let n = 0; n < nv; n++) {
     let x = P[n * 3], y = P[n * 3 + 1], z = P[n * 3 + 2];
-    // 2回のニュートン射影
-    for (let it = 0; it < 2; it++) {
+    // ニュートン射影（勾配の大きさで割って、実際の距離に換算して動かす）
+    for (let it = 0; it < 4; it++) {
       const f = caveF(x, y, z);
-      grad(x, y, z, 0.12, g);
-      const s = Math.max(-h * 0.7, Math.min(h * 0.7, f));
-      x -= g[0] * s; y -= g[1] * s; z -= g[2] * s;
+      if (Math.abs(f) < 0.004) break;
+      const e = 0.1;
+      const gx = caveF(x + e, y, z) - caveF(x - e, y, z);
+      const gy = caveF(x, y + e, z) - caveF(x, y - e, z);
+      const gz = caveF(x, y, z + e) - caveF(x, y, z - e);
+      const gl = Math.hypot(gx, gy, gz) / (2 * e) || 1;
+      let st = f / Math.max(gl, 0.25);
+      const lim = h * 0.55;
+      st = st > lim ? lim : st < -lim ? -lim : st;
+      const inv = 1 / (gl * 2 * e);
+      x -= gx * inv * st; y -= gy * inv * st; z -= gz * inv * st;
     }
     grad(x, y, z, 0.1, g);
+    GM[n] = _gm;
     P[n * 3] = x; P[n * 3 + 1] = y; P[n * 3 + 2] = z;
     // 法線：空洞側を向く（勾配の逆）
     N[n * 3] = -g[0]; N[n * 3 + 1] = -g[1]; N[n * 3 + 2] = -g[2];
@@ -192,15 +200,25 @@ export function generateCave(opts = {}, onProgress = () => {}) {
     if ((n & 4095) === 0) onProgress(0.55 + 0.45 * (n / nv));
   }
 
-  // 三角形の向きを SDF 由来の頂点法線に合わせて揃える（ねじれた四角形での裏返り対策）
-  let flipped = 0;
+  // メッシュ自身の面法線（面積加重）から頂点法線を作る。SDFの勾配が小さくて信頼できない場所ではこちらを使う。
+  const NM = new Float32Array(nv * 3);
   for (let t = 0; t < idx.length; t += 3) {
     const a = idx[t], b = idx[t + 1], c = idx[t + 2];
     const e1x = P[b * 3] - P[a * 3], e1y = P[b * 3 + 1] - P[a * 3 + 1], e1z = P[b * 3 + 2] - P[a * 3 + 2];
     const e2x = P[c * 3] - P[a * 3], e2y = P[c * 3 + 1] - P[a * 3 + 1], e2z = P[c * 3 + 2] - P[a * 3 + 2];
     const fx = e1y * e2z - e1z * e2y, fy = e1z * e2x - e1x * e2z, fz = e1x * e2y - e1y * e2x;
-    const vx = N[a * 3] + N[b * 3] + N[c * 3], vy = N[a * 3 + 1] + N[b * 3 + 1] + N[c * 3 + 1], vz = N[a * 3 + 2] + N[b * 3 + 2] + N[c * 3 + 2];
-    if (fx * vx + fy * vy + fz * vz < 0) { idx[t + 1] = c; idx[t + 2] = b; flipped++; }
+    for (const v of [a, b, c]) { NM[v * 3] += fx; NM[v * 3 + 1] += fy; NM[v * 3 + 2] += fz; }
+  }
+  let fixedN = 0;
+  for (let n = 0; n < nv; n++) {
+    const l = Math.hypot(NM[n * 3], NM[n * 3 + 1], NM[n * 3 + 2]);
+    if (l < 1e-12) continue;
+    const mx = NM[n * 3] / l, my = NM[n * 3 + 1] / l, mz = NM[n * 3 + 2] / l;
+    // SDF 由来の法線と、メッシュ法線が大きく食い違う（勾配が不安定な）場所はメッシュ法線を採用
+    const dot = N[n * 3] * mx + N[n * 3 + 1] * my + N[n * 3 + 2] * mz;
+    if (GM[n] < 0.55 || dot < 0.2) {
+      N[n * 3] = mx; N[n * 3 + 1] = my; N[n * 3 + 2] = mz; fixedN++;
+    }
   }
   return {
     position: P,
@@ -208,6 +226,6 @@ export function generateCave(opts = {}, onProgress = () => {}) {
     ao: AO,
     index: nv > 65535 ? new Uint32Array(idx) : new Uint16Array(idx),
     vertexCount: nv,
-    flipped,
+    fixedN,
   };
 }
