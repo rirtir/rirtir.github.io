@@ -17,8 +17,8 @@ function birdGeometry() {
   tri([0.02, 0.035, -0.03], [-0.13, 0, 0.012], [-0.13, 0, -0.012]);
   // 翼（後退角のついた三角形×左右）
   for (const s of [1, -1]) {
-    tri([0.06, 0.0, 0.02 * s], [-0.06, 0.0, 0.02 * s], [-0.09, 0.0, 0.34 * s]);
-    tri([0.06, 0.0, 0.02 * s], [-0.09, 0.0, 0.34 * s], [0.02, 0.0, 0.3 * s]);
+    tri([0.11, 0.0, 0.02 * s], [-0.11, 0.0, 0.02 * s], [-0.13, 0.0, 0.36 * s]);
+    tri([0.11, 0.0, 0.02 * s], [-0.13, 0.0, 0.36 * s], [0.03, 0.0, 0.33 * s]);
   }
   // 燕尾
   tri([-0.11, 0, 0.0], [-0.27, 0, 0.055], [-0.19, 0, 0.0]);
@@ -33,7 +33,7 @@ export class Swallows {
   constructor(count = 9) {
     this.count = count;
     const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(0.035, 0.04, 0.05), roughness: 0.55, metalness: 0.0, side: THREE.DoubleSide,
+      color: new THREE.Color(0.02, 0.022, 0.028), roughness: 0.55, metalness: 0.0, side: THREE.DoubleSide,
     });
     mat.customProgramCacheKey = () => 'swallow';
     mat.onBeforeCompile = (shader) => {
@@ -58,7 +58,7 @@ export class Swallows {
       this.birds.push({
         a: Math.random() * 6.28,
         r: 2.0 + Math.random() * 1.8,
-        y: 9 + Math.random() * 8,
+        y: 14 + Math.random() * 9,
         sp: (4.2 + Math.random() * 2.0) * (Math.random() < 0.5 ? 1 : -1),
         ph: Math.random() * 20,
         wide: Math.random() < 0.35,
@@ -67,6 +67,7 @@ export class Swallows {
     this.m = new THREE.Matrix4();
     this.fwd = new THREE.Vector3(); this.up = new THREE.Vector3(); this.rt = new THREE.Vector3(); this.p = new THREE.Vector3();
     this.t = 0;
+    this.sc = new THREE.Vector3(2.3, 2.3, 2.3);
   }
   update(dt) {
     this.t += dt;
@@ -87,6 +88,7 @@ export class Swallows {
       this.rt.crossVectors(this.fwd, this.up).normalize();
       this.up.crossVectors(this.rt, this.fwd).normalize();
       this.m.makeBasis(this.fwd, this.up, this.rt);
+      this.m.scale(this.sc);
       this.m.setPosition(this.p);
       this.mesh.setMatrixAt(i, this.m);
     }
