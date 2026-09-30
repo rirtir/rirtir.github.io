@@ -1,6 +1,7 @@
 // 岩・倒木・植物・根 など、洞窟を「生きた場所」にする小物の配置
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { WORLD, caveF, caveGrad, noise3 } from './sdf.js';
 import { shared, injectSun, WATER_FILL_GLSL } from './caveMaterial.js';
 
@@ -345,66 +346,78 @@ async function buildRoots() {
 
   const group = new THREE.Group();
   const geos = [];
-  const shaftList = [
-    { s: WORLD.shaft1, n: 16, rim: [2.2, 3.0], y: [13.5, 17.5], reach: [0.45, 1.0] },
-    { s: WORLD.shaft2, n: 9, rim: [1.5, 2.1], y: [10.5, 14.5], reach: [0.5, 1.0] },
-  ];
-  for (const sh of shaftList) for (let i = 0; i < sh.n; i++) {
-    const s1 = sh.s;
-    const a = R(0, Math.PI * 2);
-    const rimR = R(sh.rim[0], sh.rim[1]);
-    const yStart = R(sh.y[0], sh.y[1]);
-    const start = new THREE.Vector3(s1.x + 0.35 + Math.cos(a) * rimR, yStart, s1.z + Math.sin(a) * rimR);
-    const reach = R(sh.reach[0], sh.reach[1]); // どこまで垂れるか（1 で水面付近）
-    const yEnd = 1.5 + (yStart - 1.5) * (1 - reach);
-    const pts = [];
-    const segs = 14;
-    // 洞窟内に出るあたりから斜めに広がる
-    const drift = new THREE.Vector3(R(-2.5, 2.5), 0, R(-2.5, 2.5));
-    for (let k = 0; k <= segs; k++) {
-      const t = k / segs;
-      const y = yStart + (yEnd - yStart) * t;
-      const p = start.clone();
-      p.y = y;
-      // 縁の壁に沿ったあと、内側へ寄る
-      p.x -= (Math.cos(a) * rimR * 0.5) * Math.min(1, t * 2.5);
-      p.z -= (Math.sin(a) * rimR * 0.5) * Math.min(1, t * 2.5);
-      p.addScaledVector(drift, t * t);
-      p.x += 0.35 * noise3(t * 3 + i, 0.5, 1.7 * i);
-      p.z += 0.35 * noise3(t * 3 + 9, 0.5 + i, 3.1);
-      pts.push(p);
-    }
+
+  // 中心線 → 半径が先細りになるチューブ
+  const makeTube = (pts, r0, tubeSeg, radial, salt, uvDiv) => {
     const curve = new THREE.CatmullRomCurve3(pts);
-    const tubeSeg = 90, radial = 7;
-    const r0 = R(0.05, 0.13);
     const geo = new THREE.TubeGeometry(curve, tubeSeg, 1, radial, false);
     const pos = geo.attributes.position, uv = geo.attributes.uv;
     const len = curve.getLength();
     const sway = new Float32Array(pos.count);
-    // TubeGeometry は半径1で作られる → 中心線を復元して半径を与える
     for (let v = 0; v <= tubeSeg; v++) {
       const t = v / tubeSeg;
       const c = curve.getPointAt(t);
-      const rad = r0 * (1.0 - 0.82 * t) * (1 + 0.18 * Math.sin(t * 40 + i));
+      const rad = r0 * (1.0 - 0.82 * t) * (1 + 0.18 * Math.sin(t * 40 + salt));
       for (let j = 0; j <= radial; j++) {
         const idx = v * (radial + 1) + j;
         const px = pos.getX(idx) - c.x, py = pos.getY(idx) - c.y, pz = pos.getZ(idx) - c.z;
         pos.setXYZ(idx, c.x + px * rad, c.y + py * rad, c.z + pz * rad);
-        uv.setXY(idx, j / radial * 1.0, t * len / (r0 * 6.0));
+        uv.setXY(idx, (j / radial) * 1.0, (t * len) / uvDiv);
         sway[idx] = t * t;
       }
     }
     geo.setAttribute('aSway', new THREE.BufferAttribute(sway, 1));
     geo.computeVertexNormals();
-    geos.push(geo);
+    return geo;
+  };
+
+  const shaftList = [
+    { s: WORLD.shaft1, n: 16, fine: 130, rim: [2.2, 3.0], y: [13.5, 17.5], reach: [0.45, 1.0] },
+    { s: WORLD.shaft2, n: 9, fine: 60, rim: [1.5, 2.1], y: [10.5, 14.5], reach: [0.5, 1.0] },
+  ];
+  const fineGeos = [];
+  for (const sh of shaftList) {
+    const s1 = sh.s;
+    for (let i = 0; i < sh.n + sh.fine; i++) {
+      const isFine = i >= sh.n;
+      const a = R(0, Math.PI * 2);
+      const rimR = R(sh.rim[0], sh.rim[1]) + (isFine ? R(-0.3, 0.5) : 0);
+      const yStart = R(sh.y[0], sh.y[1] + (isFine ? 1.5 : 0));
+      const start = new THREE.Vector3(s1.x + 0.35 + Math.cos(a) * rimR, yStart, s1.z + Math.sin(a) * rimR);
+      const reach = isFine ? R(0.2, 1.0) : R(sh.reach[0], sh.reach[1]); // どこまで垂れるか（1 で水面付近）
+      const yEnd = 1.5 + (yStart - 1.5) * (1 - reach);
+      const pts = [];
+      const segs = isFine ? 8 : 14;
+      const drift = new THREE.Vector3(R(-2.5, 2.5), 0, R(-2.5, 2.5)).multiplyScalar(isFine ? 0.8 : 1);
+      for (let k = 0; k <= segs; k++) {
+        const t = k / segs;
+        const p = start.clone();
+        p.y = yStart + (yEnd - yStart) * t;
+        p.x -= (Math.cos(a) * rimR * 0.5) * Math.min(1, t * 2.5);
+        p.z -= (Math.sin(a) * rimR * 0.5) * Math.min(1, t * 2.5);
+        p.addScaledVector(drift, t * t);
+        p.x += (isFine ? 0.22 : 0.35) * noise3(t * 3 + i, 0.5, 1.7 * i);
+        p.z += (isFine ? 0.22 : 0.35) * noise3(t * 3 + 9, 0.5 + i, 3.1);
+        pts.push(p);
+      }
+      if (isFine) fineGeos.push(makeTube(pts, R(0.012, 0.03), 28, 4, i, 0.25));
+      else {
+        const r0 = R(0.05, 0.13);
+        geos.push(makeTube(pts, r0, 90, 7, i, r0 * 6.0));
+      }
+    }
   }
-  for (const g of geos) {
+  const add = (list) => {
+    if (!list.length) return;
+    const g = list.length === 1 ? list[0] : mergeGeometries(list);
     const m = new THREE.Mesh(g, mat);
     m.castShadow = true;
     m.receiveShadow = true;
     m.frustumCulled = false;
     m.layers.enable(1);
     group.add(m);
-  }
+  };
+  add(geos);
+  add(fineGeos);
   return group;
 }
