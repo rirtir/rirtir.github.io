@@ -249,7 +249,7 @@ export class Game {
     const step = (ev.shiftKey ? 2.5 : ev.ctrlKey ? 15 : 5) * D2R * (ev.deltaY > 0 ? 1 : -1);
     this.rotateBy(el, step);
   }
-  rotateBy(el, da) {
+  rotateBy(el, da, win = 450) {
     const b = this._pose(el);
     const old = el.a;
     el.a = (((el.a + da) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
@@ -259,7 +259,7 @@ export class Game {
     // 連続回転はまとめて1手に
     const last = this.hist[this.hist.length - 1];
     const now = performance.now();
-    if (last && last.id === el.id && now - (last.t || 0) < 450 && this._wheelMerge) { last.a = this._pose(el); last.t = now; }
+    if (last && last.id === el.id && now - (last.t || 0) < win && this._wheelMerge) { last.a = this._pose(el); last.t = now; }
     else { this._commit(el, b); this.hist[this.hist.length - 1].t = now; }
     this._wheelMerge = true;
   }
@@ -289,7 +289,13 @@ export class Game {
     const ox = el.x, oy = el.y;
     el.x += dx; el.y += dy;
     if (!O.placementOk(el, this.els)) { el.x = ox; el.y = oy; this.audio.deny(); return; }
-    this.dirty = true; this._commit(el, b); this.audio.rotate(el.x);
+    this.dirty = true; this.audio.rotate(el.x);
+    // 連続した微調整は1手にまとめる
+    const last = this.hist[this.hist.length - 1];
+    const now = performance.now();
+    if (last && last.id === el.id && now - (last.t || 0) < 1500 && this._wheelMerge) { last.a = this._pose(el); last.t = now; }
+    else { this._commit(el, b); this.hist[this.hist.length - 1].t = now; }
+    this._wheelMerge = true;
   }
   cycle(dir) {
     const list = this.els.filter(e => this.canMove(e) || this.canRot(e));

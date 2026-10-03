@@ -159,6 +159,7 @@ out vec2 vP; flat out vec4 fA; flat out vec4 fP; flat out vec4 fC; flat out vec4
 void main(){
   float t=aA.w; float R;
   if(t==9.) R=aP.x*3.2+0.6;
+  else if(t==8.) R=aP.x*3.8+0.6;
   else if(t<2.5) R=aP.x*0.5+0.36;
   else if(t<3.5) R=aP.x+0.4;
   else if(t==4. || t==6.) R=length(aP.xy)*0.5+0.4;

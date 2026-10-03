@@ -157,7 +157,7 @@ export class Renderer {
     let sc;
     if (this.rotated) {
       sc = Math.max(8, Math.min(aw / H, ah / W));
-      this.cssOrg = [m.l + (aw - sc * H) / 2 + sc * H, m.t + (ah - sc * W) / 2];
+      this.cssOrg = [m.l + (aw - sc * H) / 2, m.t + (ah - sc * W) / 2 + sc * W];
     } else {
       sc = Math.max(8, Math.min(aw / W, ah / H));
       this.cssOrg = [m.l + (aw - sc * W) / 2, m.t + (ah - sc * H) / 2];
@@ -169,12 +169,12 @@ export class Renderer {
   // CSSピクセル <-> ワールド
   toWorld(cx, cy) {
     const s = this.cssScale;
-    if (this.rotated) return [(cy - this.cssOrg[1]) / s, (this.cssOrg[0] - cx) / s];
+    if (this.rotated) return [(this.cssOrg[1] - cy) / s, (cx - this.cssOrg[0]) / s];
     return [(cx - this.cssOrg[0]) / s, (cy - this.cssOrg[1]) / s];
   }
   toCss(x, y) {
     const s = this.cssScale;
-    if (this.rotated) return [this.cssOrg[0] - y * s, this.cssOrg[1] + x * s];
+    if (this.rotated) return [this.cssOrg[0] + y * s, this.cssOrg[1] - x * s];
     return [this.cssOrg[0] + x * s, this.cssOrg[1] + y * s];
   }
   worldToUv(x, y) {
@@ -225,7 +225,7 @@ export class Renderer {
     if (u.uOrg) gl.uniform2f(u.uOrg, this.org[0], this.org[1]);
     if (u.uScale) gl.uniform1f(u.uScale, this.scale);
     if (u.uTime) gl.uniform1f(u.uTime, this.time);
-    if (u.uRot) gl.uniformMatrix2fv(u.uRot, false, this.rotated ? [0, 1, -1, 0] : [1, 0, 0, 1]);
+    if (u.uRot) gl.uniformMatrix2fv(u.uRot, false, this.rotated ? [0, -1, 1, 0] : [1, 0, 0, 1]);
   }
   _bindTex(unit, tex) { const gl = this.gl; gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex); }
   _fs() { this.gl.bindVertexArray(this.vaoEmpty); this.gl.drawArrays(this.gl.TRIANGLES, 0, 3); }

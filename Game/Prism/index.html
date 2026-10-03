@@ -30,6 +30,7 @@
     <div class="lvl"><span id="lvNo" class="no">1-1</span><span id="lvName" class="nm"></span></div>
     <div id="chips" class="chips"></div>
     <div class="spacer"></div>
+    <button id="bNudge" class="ibtn hidden" title="微調整パッド" aria-label="微調整パッド"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg></button>
     <button id="bHelp" class="ibtn" title="ヒントの文章をもう一度" aria-label="説明"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.1 1-1.1 1.8M12 17h.01"/></svg></button>
     <div class="stat"><span id="stMoves">0</span><small>手</small></div>
     <button id="bUndo" class="ibtn" title="元に戻す (Ctrl+Z)" aria-label="元に戻す"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
@@ -41,7 +42,7 @@
   <button id="zenExit" class="ibtn hidden" aria-label="もどる" title="もどる (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   <div id="nudge" class="nudge hidden">
     <button data-k="l" aria-label="左">◀</button><button data-k="u" aria-label="上">▲</button><button data-k="d" aria-label="下">▼</button><button data-k="r" aria-label="右">▶</button>
-    <button data-k="ccw" aria-label="左回転">↺</button><button data-k="cw" aria-label="右回転">↻</button>
+    <button data-k="ccw" aria-label="左回転">↺</button><button data-k="cw" aria-label="右回転">↻</button><button data-k="pos" aria-label="パッドの位置">⇅</button>
   </div>
 
   <!-- タイトル -->

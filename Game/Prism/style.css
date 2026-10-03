@@ -208,3 +208,17 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 .pal span{white-space:nowrap;font-size:11px}
 .ed-actions{position:sticky;bottom:-14px;padding:8px 0 4px;background:linear-gradient(180deg,transparent,rgba(12,18,38,.92) 24%)}
 @media (max-height:520px){ .keys{display:none} .pause-btns{gap:7px} .pause-btns .btn{padding:8px 16px} }
+
+/* 微調整パッド: 横一列・下中央（⇅で上へ）。ボタンで表示/非表示 */
+.nudge{left:50%;right:auto;transform:translateX(-50%);bottom:calc(12px + var(--safe-b));grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:40px;gap:5px;padding:6px;opacity:.94}
+.nudge.top{bottom:auto;top:calc(64px + var(--safe-t))}
+.nudge button{height:38px}
+
+@media (max-width:430px){
+  .hud{gap:4px;padding-left:6px;padding-right:6px}
+  .ibtn{width:36px;height:36px;border-radius:10px}
+  .ibtn svg{width:20px;height:20px}
+  .stat{display:none}
+  .lvl{padding:0 2px}.lvl .no{font-size:17px}
+  .chips{gap:5px;margin-left:2px}.chip{width:13px;height:13px}
+}

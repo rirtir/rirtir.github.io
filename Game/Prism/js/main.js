@@ -71,7 +71,7 @@ function resize() {
   renderer.rotated = h > w * 1.1;
   const capB = app.capH ? app.capH + 24 : 0;
   renderer.art = playing && !!app.meta && app.meta.kind === 'zen';
-  renderer.setMargins(renderer.art ? { l: 10, r: 10, t: 10, b: 10 } : playing && app.editor && !small ? { l: 262, r: 14, t: 14, b: 14 } : playing ? { l: small ? 6 : 14, r: small ? 6 : 14, t: small ? 52 : 66, b: Math.max(small ? 54 : 58, capB) } : { l: 0, r: 0, t: 0, b: 0 });
+  renderer.setMargins(renderer.art ? { l: 10, r: 10, t: 10, b: 10 } : playing && app.editor && !small ? { l: 262, r: 14, t: 14, b: 14 } : playing ? { l: small ? 14 : 14, r: small ? 8 : 14, t: small ? 52 : 66, b: Math.max(small ? 54 : 58, capB) } : { l: 0, r: 0, t: 0, b: 0 });
   renderer.resize(w, h, dpr, app.quality);
   game.resizeOverlay(w, h, Math.min(dpr, 2));
 }
@@ -189,14 +189,14 @@ function showCaption(text) {
   if (text) {
     cap.textContent = text; cap.classList.remove('hidden', 'fade');
     app.capH = cap.offsetHeight;
-    startLevel._t = setTimeout(() => { cap.classList.add('fade'); app.capH = 0; resize(); }, window.innerHeight < 520 ? 7000 : 14000);
+    startLevel._t = setTimeout(() => { cap.classList.add('fade'); }, window.innerHeight < 520 ? 7000 : 14000);
   } else { cap.classList.add('hidden'); app.capH = 0; }
   resize();
 }
 // タッチ端末向けの微調整パッド
 const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 function updateNudge(el) {
-  const show = coarse && el && app.screen === 'play' && !app.editor && (el.mv || el.rt);
+  const show = coarse && app.nudgeOn && el && app.screen === 'play' && !app.editor && (el.mv || el.rt);
   $('nudge').classList.toggle('hidden', !show);
   if (show) { const btns = $('nudge').children; for (const b of btns) b.style.visibility = ((b.dataset.k === 'ccw' || b.dataset.k === 'cw') ? el.rt : el.mv) ? '' : 'hidden'; }
 }
@@ -314,13 +314,16 @@ function bindUi() {
   click('mEditor', () => import('./editor.js').then(m => m.openEditor({ game, audio, toast, show, app, $, resize, startCustom, exit: showTitle })));
 
   click('bMenu', openPause);
+  if (coarse) $('bNudge').classList.remove('hidden');
+  click('bNudge', () => { app.nudgeOn = !app.nudgeOn; if (app.nudgeOn) $('caption').classList.add('fade'); $('bNudge').classList.toggle('on', app.nudgeOn); updateNudge(game.byId(game.sel)); });
   click('bHelp', () => showCaption((game.def && game.def.text) || ''));
   click('zenExit', () => { if (app.zenMod) app.zenMod.stopZen(); showTitle(); });
   $('nudge').addEventListener('click', (e) => {
     const k = e.target.dataset && e.target.dataset.k; if (!k) return; audio.init();
     const el = game.byId(game.sel); if (!el) return;
     if (k === 'l') game.nudge(-0.25, 0); else if (k === 'r') game.nudge(0.25, 0); else if (k === 'u') game.nudge(0, -0.25); else if (k === 'd') game.nudge(0, 0.25);
-    else if (k === 'ccw') game.rotateBy(el, -2.5 * Math.PI / 180); else if (k === 'cw') game.rotateBy(el, 2.5 * Math.PI / 180);
+    else if (k === 'ccw') game.rotateBy(el, -2.5 * Math.PI / 180, 1500); else if (k === 'cw') game.rotateBy(el, 2.5 * Math.PI / 180, 1500);
+    else if (k === 'pos') $('nudge').classList.toggle('top');
   });
   click('bUndo', () => game.undo());
   click('bRedo', () => game.redo());
