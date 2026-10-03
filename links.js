@@ -3,6 +3,13 @@ const data = [
         category: "ゲーム",
         links: [
             {
+                title: "SYNESTHESIA — 音が光になるリズムゲーム",
+                url: "https://rirtir.com/Game/Synesthesia/",
+                desc: "手持ちの曲をドロップすると、音を解析して譜面を自動生成。音のスペクトルが光の街になるHDR描画のリズムゲーム。オリジナル5曲・4難易度・「音の肖像」画像つき。",
+                tags: ["ソロ", "リズム", "音楽", "やり込み", "ゲーム"],
+                main: true,
+            },
+            {
                 title: "PRISM — 光を導くパズル",
                 url: "https://rirtir.com/Game/Prism/",
                 desc: "鏡・ハーフミラー・フィルタ・プリズム・ガラス玉で光を操り、虹のスペクトルを受光器へ届ける光学パズル。波長ごとの光線追跡とHDR描画。全43ステージ＋無限生成・デイリー・エディタ（共有リンク）・ライトアート。",

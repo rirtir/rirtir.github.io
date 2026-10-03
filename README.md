@@ -84,3 +84,9 @@ https://icooon-mono.com/
 ### Game/Prism（PRISM）のクレジット
 - 描画・光学計算・効果音・BGM はすべてコードによる自作（画像・音源ファイルなし）
 - フォント: [Josefin Sans](https://fonts.google.com/specimen/Josefin+Sans) / [Zen Kaku Gothic New](https://fonts.google.com/specimen/Zen+Kaku+Gothic+New)（SIL Open Font License、Google Fonts から読み込み）
+
+---
+
+### Game/Synesthesia（SYNESTHESIA）のクレジット
+- 描画・音声解析・譜面生成・効果音・収録5曲の演奏はすべてコードによる自作（画像・音源ファイルなし）
+- フォント: [Unbounded](https://fonts.google.com/specimen/Unbounded) / [Zen Kaku Gothic New](https://fonts.google.com/specimen/Zen+Kaku+Gothic+New)（SIL Open Font License、Google Fonts から読み込み）

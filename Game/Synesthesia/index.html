@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="どんな曲も、光の回廊になる。手持ちの音楽ファイルを解析して譜面を自動生成するリズムゲーム「SYNESTHESIA」。HDR描画のネオンハイウェイを、音と一緒に駆け抜けよう。">
+<meta name="theme-color" content="#05060f">
+<meta property="og:title" content="SYNESTHESIA — 音が光になるリズムゲーム">
+<meta property="og:description" content="手持ちの曲から譜面を自動生成。音の波が光の街になる、HDR描画のリズムゲーム。オリジナル5曲入り。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://rirtir.com/Game/Synesthesia/preview.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<title>SYNESTHESIA — 音が光になるリズムゲーム</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='1' y2='0'%3E%3Cstop offset='0' stop-color='%2346e6ff'/%3E%3Cstop offset='.5' stop-color='%23c97bff'/%3E%3Cstop offset='1' stop-color='%23ff5fa2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='7' fill='%2305060f'/%3E%3Cpath d='M6 22 10 10l4 12 4-16 4 16 4-8' fill='none' stroke='url(%23g)' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="app">
+
+  <!-- ===== プレイ中 HUD ===== -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <button id="bPause" class="ibtn" aria-label="一時停止 (Esc)"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+      <div class="songinfo"><b id="hTitle"></b><span id="hDiff"></span></div>
+      <div class="spacer"></div>
+      <div class="scorebox"><span id="hScore">0000000</span><small id="hAcc">100.00%</small></div>
+    </div>
+    <div id="prog"><i></i></div>
+    <div id="gauge" title="共鳴ゲージ"><i></i></div>
+    <div id="combo"><span id="comboN">0</span><small>COMBO</small></div>
+    <div id="judge"><b id="jTxt"></b><small id="jSub"></small></div>
+    <div id="keys"><span></span><span></span><span></span><span></span></div>
+    <div id="count" class="hidden"></div>
+    <div id="autoTag" class="hidden">AUTO PLAY</div>
+  </div>
+
+  <!-- ===== タイトル ===== -->
+  <section id="title" class="screen">
+    <div class="title-wrap">
+      <div class="eyebrow">SOUND → LIGHT RHYTHM</div>
+      <h1 class="wordmark" aria-label="SYNESTHESIA"><span>S</span><span>Y</span><span>N</span><span>E</span><span>S</span><span>T</span><span>H</span><span>E</span><span>S</span><span>I</span><span>A</span></h1>
+      <p class="tagline">どんな曲も、光の回廊になる。</p>
+      <nav class="menu">
+        <button id="mPlay" class="btn primary"><span>PLAY</span><i></i></button>
+        <div class="row">
+          <button id="mFile" class="btn"><span>♪ 自分の曲で遊ぶ</span></button>
+        </div>
+        <div class="row">
+          <button id="mSettings" class="btn sm"><span>設定</span></button>
+          <button id="mHelp" class="btn sm"><span>あそびかた</span></button>
+          <button id="mFull" class="btn sm"><span>⛶ 全画面</span></button>
+        </div>
+      </nav>
+    </div>
+    <div class="credit">手持ちの音楽ファイルをここへドラッグ＆ドロップしても遊べます（外部送信なし・完全ローカル処理）</div>
+  </section>
+
+  <!-- ===== 曲選択 ===== -->
+  <section id="select" class="screen hidden">
+    <div class="sel-head">
+      <button id="selBack" class="ibtn" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+      <h2>SELECT</h2>
+      <div class="spacer"></div>
+      <button id="selSettings" class="ibtn" aria-label="設定"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+    <div class="sel-body">
+      <div id="songList" class="song-list"></div>
+      <div id="detail" class="detail">
+        <div class="d-genre" id="dGenre"></div>
+        <h3 id="dTitle">—</h3>
+        <div class="d-sub" id="dSub"></div>
+        <div class="d-meta"><span id="dBpm"></span><span id="dLen"></span><span id="dNotes"></span></div>
+        <canvas id="dWave" width="640" height="120"></canvas>
+        <div class="diffs" id="diffs"></div>
+        <div class="d-best" id="dBest"></div>
+        <div class="d-actions">
+          <button id="bStart" class="btn primary"><span>START</span><i></i></button>
+          <label class="chk"><input type="checkbox" id="oAuto"><span>オートプレイ</span></label>
+          <label class="chk"><input type="checkbox" id="oSurv"><span>サバイバル</span></label>
+        </div>
+        <div class="d-status" id="dStatus"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== リザルト ===== -->
+  <section id="result" class="screen hidden">
+    <div class="res-wrap">
+      <div class="res-left">
+        <div class="res-song"><b id="rTitle"></b><span id="rDiff"></span></div>
+        <div class="rank" id="rRank">S</div>
+        <div class="badge" id="rBadge"></div>
+        <div class="res-score"><span id="rScore">0</span><small id="rNew"></small></div>
+        <div class="res-grid">
+          <div><small>PERFECT</small><b id="rP" class="c-p">0</b></div>
+          <div><small>GREAT</small><b id="rG" class="c-g">0</b></div>
+          <div><small>GOOD</small><b id="rGd" class="c-gd">0</b></div>
+          <div><small>MISS</small><b id="rM" class="c-m">0</b></div>
+          <div><small>MAX COMBO</small><b id="rC">0</b></div>
+          <div><small>ACCURACY</small><b id="rA">0%</b></div>
+          <div><small>FAST / SLOW</small><b id="rFS">0 / 0</b></div>
+          <div><small>BREAK</small><b id="rB">0</b></div>
+        </div>
+        <div class="res-actions">
+          <button id="rRetry" class="btn primary"><span>RETRY</span><i></i></button>
+          <button id="rBack" class="btn"><span>曲選択へ</span></button>
+          <button id="rSave" class="btn"><span>画像を保存</span></button>
+        </div>
+      </div>
+      <div class="res-right">
+        <canvas id="portrait" width="720" height="720"></canvas>
+        <div class="cap">この曲の「音の肖像」— 外周が時間、半径が音の強さ。点はあなたの打鍵。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== モーダル ===== -->
+  <div id="pause" class="modal hidden">
+    <div class="card">
+      <h3>PAUSE</h3>
+      <button id="pResume" class="btn primary"><span>つづける</span><i></i></button>
+      <button id="pRetry" class="btn"><span>最初から</span></button>
+      <button id="pSettings" class="btn"><span>設定</span></button>
+      <button id="pQuit" class="btn"><span>曲選択へ戻る</span></button>
+    </div>
+  </div>
+
+  <div id="settings" class="modal hidden">
+    <div class="card wide">
+      <div class="card-head"><h3>設定</h3><button id="sClose" class="ibtn" aria-label="閉じる"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <div class="set-grid">
+        <label>ノーツ速度 <b id="vSpeed"></b><input type="range" id="sSpeed" min="1" max="12" step="1"></label>
+        <label>判定タイミング補正 <b id="vOffset"></b><input type="range" id="sOffset" min="-200" max="200" step="1"></label>
+        <button id="sCalib" class="btn sm"><span>タップで自動調整…</span></button>
+        <label>音楽の音量 <b id="vMusic"></b><input type="range" id="sMusic" min="0" max="100" step="1"></label>
+        <label>打鍵音の音量 <b id="vSfx"></b><input type="range" id="sSfx" min="0" max="100" step="1"></label>
+        <label>ブルーム（発光） <b id="vBloom"></b><input type="range" id="sBloom" min="0" max="150" step="5"></label>
+        <label>カメラの動き <b id="vCam"></b><input type="range" id="sCam" min="0" max="100" step="5"></label>
+        <label>画質
+          <select id="sQual"><option value="auto">自動</option><option value="1">高</option><option value="0.75">中</option><option value="0.55">低</option></select>
+        </label>
+        <label class="chk"><input type="checkbox" id="sHitSnd"><span>打鍵音を鳴らす</span></label>
+        <label class="chk"><input type="checkbox" id="sFast"><span>FAST / SLOW を表示</span></label>
+      </div>
+      <div class="keys-set">
+        <div class="ks-title">キー配置（クリックして押したいキーを入力）</div>
+        <div class="ks-row" id="keyRow"></div>
+        <div class="ks-note">スマホ・タブレットは画面下部のレーンを直接タップ。</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="calib" class="modal hidden">
+    <div class="card">
+      <h3>タイミング調整</h3>
+      <p class="muted">メトロノームの音に合わせて、スペースキーか画面をタップしてください（12回）。</p>
+      <div class="calib-dots" id="calibDots"></div>
+      <div class="calib-val" id="calibVal">—</div>
+      <button id="calibClose" class="btn"><span>キャンセル</span></button>
+    </div>
+  </div>
+
+  <div id="help" class="modal hidden">
+    <div class="card wide help">
+      <div class="card-head"><h3>あそびかた</h3><button id="hClose" class="ibtn" aria-label="閉じる"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <ul>
+        <li><b>光のノーツが判定線に重なる瞬間</b>に、そのレーンのキーを押します。<br><span class="keycap">D</span><span class="keycap">F</span><span class="keycap">J</span><span class="keycap">K</span>（設定で変更可）／ スマホは画面下をタップ。</li>
+        <li><b>長いノーツ</b>は押したまま。終端まで離さないと満点。</li>
+        <li><b>自分の曲</b>で遊べます。mp3 / wav / m4a / ogg をドラッグ＆ドロップ。音を解析してテンポ・ドラム・メロディの位置から譜面を自動生成します。ファイルは端末の外へ送られません。</li>
+        <li>難易度は EASY〜EXPERT の4段階。どの曲でも選べます。</li>
+        <li>ハイウェイの両脇の街は、<b>これから鳴る音のスペクトル</b>です。街が立ち上がる方向を見れば、盛り上がりが先読みできます。</li>
+        <li><b>サバイバル</b>は共鳴ゲージが0になると終了。<b>オート</b>は演奏を見るモード。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="loading" class="modal hidden">
+    <div class="card load">
+      <div class="spinner"></div>
+      <h3 id="loadTitle">音を解析しています…</h3>
+      <div class="bar"><i id="loadBar"></i></div>
+      <p class="muted" id="loadSub"></p>
+    </div>
+  </div>
+
+  <div id="drop" class="hidden"><div>♪ ここに曲をドロップ</div></div>
+  <div id="toast" class="hidden"></div>
+  <div id="fatal" class="hidden"></div>
+</div>
+
+<input type="file" id="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.oga,.flac,.opus,.webm" class="hidden">
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
