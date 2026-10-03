@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>メディア変換ツール</title>
+
+<link rel="stylesheet" href="./../../css/common-style.css">
+<link rel="stylesheet" href="./../../css/common-style2.css">
+<style>
+[hidden]{display:none !important}
+
+.wrap{width:100%;max-width:720px}
+#dropArea{max-width:none}
+
+.card{
+background:white;
+border:1px solid #ccc;
+border-radius:8px;
+padding:12px 14px;
+margin-bottom:12px;
+font-size:14px;
+}
+.card h2{font-size:15px;margin:0 0 8px 0}
+
+.row{
+display:flex;
+align-items:center;
+gap:10px;
+margin:8px 0;
+}
+.row > span.lbl{width:9.5em;flex:none}
+.row select,.row input[type=text],.row input[type=number]{
+flex:1;
+min-width:0;
+padding:6px;
+font-size:14px;
+box-sizing:border-box;
+}
+.row input[type=range]{flex:1;min-width:0}
+.row output{width:3.2em;text-align:right;flex:none}
+.pair{display:flex;gap:10px;flex:1;min-width:0}
+.pair input{flex:1;min-width:0;padding:6px;font-size:14px;box-sizing:border-box}
+
+.hint{color:#666;font-size:12px;margin:-2px 0 6px 0;line-height:1.5}
+.btnRow{display:flex;gap:10px;margin-bottom:12px}
+button.sub{background:#6c757d}
+button.small{flex:none;padding:6px 12px;font-size:13px}
+button:disabled{opacity:.5;cursor:default}
+
+#fileList,#resultList{list-style:none;margin:0;padding:0}
+#fileList li,#resultList li{
+display:flex;
+align-items:center;
+gap:8px;
+padding:6px 0;
+border-top:1px solid #eee;
+}
+#fileList li:first-child,#resultList li:first-child{border-top:none}
+.fname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fsize{color:#666;font-size:12px;flex:none}
+.xbtn{flex:none;padding:2px 9px;background:#c0392b;font-size:13px}
+
+#resultList li{flex-wrap:wrap}
+#resultList .preview{flex-basis:100%}
+#resultList video,#resultList audio,#resultList img{
+display:block;
+max-width:100%;
+max-height:220px;
+background:#000;
+}
+#resultList audio{background:none;width:100%}
+.err{color:#c0392b}
+
+progress{width:100%;height:16px}
+#cmd{
+font-family:monospace;
+font-size:12px;
+background:#f0f0f0;
+padding:6px 8px;
+border-radius:6px;
+word-break:break-all;
+margin:0;
+}
+#log{
+max-height:240px;
+overflow:auto;
+font-size:11px;
+background:#111;
+color:#ddd;
+padding:8px;
+border-radius:6px;
+white-space:pre-wrap;
+}
+.note{font-size:12px;color:#555;line-height:1.7}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<h1>メディア変換ツール</h1>
+
+<div class="card note" style="margin-top:0">
+動画・音声・画像を、ブラウザの中だけで別の形式に変換します（ffmpeg.wasm・ファイルは外部に送信されません）。<br>
+例：<b>WebM を AviUtl で読める形式にする</b> → 出力形式で「AVI（UtVideo ロスレス）」または「MP4（H.264 高画質・fps固定）」を選んで変換。
+</div>
+
+<div id="dropArea">
+ファイルをドラッグ&ドロップ<br>
+またはクリックして選択（複数可）
+</div>
+<input type="file" id="fileInput" multiple hidden>
+
+<div class="card" id="fileCard" hidden>
+<h2>変換するファイル</h2>
+<ul id="fileList"></ul>
+</div>
+
+<div class="card" id="settingCard">
+<h2>出力設定</h2>
+
+<div class="row">
+<span class="lbl">出力形式</span>
+<select id="format"></select>
+</div>
+<div class="hint" id="formatHint"></div>
+
+<label class="row" id="rowCopy" hidden>
+<span class="lbl">再エンコードしない</span>
+<input type="checkbox" id="copy">
+<span class="hint" style="margin:0">映像・音声をそのまま入れ替え（劣化なし・高速。中身の形式が入れ物に合わないと失敗）</span>
+</label>
+
+<div id="encOpts">
+
+<div class="row" id="rowQ">
+<span class="lbl" id="qLabel">画質</span>
+<input type="range" id="q">
+<output id="qOut"></output>
+</div>
+<div class="hint" id="qHint"></div>
+
+<div class="row" id="rowPreset">
+<span class="lbl">エンコード速度</span>
+<select id="preset">
+<option>ultrafast</option>
+<option>superfast</option>
+<option>veryfast</option>
+<option>faster</option>
+<option>fast</option>
+<option>medium</option>
+<option>slow</option>
+</select>
+</div>
+<div class="hint" id="rowPresetHint">左ほど速いがファイルが大きくなる（画質は画質設定で決まる）。</div>
+
+<div class="row" id="rowFps">
+<span class="lbl">フレームレート</span>
+<select id="fps">
+<option value="keep">変更しない</option>
+<option value="auto">一定にそろえる（元のfpsで固定）</option>
+<option value="10">10</option>
+<option value="15">15</option>
+<option value="24">24</option>
+<option value="30">30</option>
+<option value="50">50</option>
+<option value="60">60</option>
+</select>
+</div>
+<div class="hint" id="rowFpsHint">WebM は可変フレームレート（VFR）のことが多く、AviUtl などでは音ズレの原因になる。編集ソフト向けは「一定にそろえる」推奨。</div>
+
+<div class="row" id="rowRes">
+<span class="lbl">解像度（高さ上限）</span>
+<select id="res">
+<option value="keep">変更しない</option>
+<option value="2160">2160</option>
+<option value="1440">1440</option>
+<option value="1080">1080</option>
+<option value="720">720</option>
+<option value="480">480</option>
+<option value="360">360</option>
+</select>
+</div>
+
+<div class="row" id="rowAbr">
+<span class="lbl">音声ビットレート</span>
+<select id="abr">
+<option value="96">96 kbps</option>
+<option value="128">128 kbps</option>
+<option value="160">160 kbps</option>
+<option value="192">192 kbps</option>
+<option value="256">256 kbps</option>
+<option value="320">320 kbps</option>
+</select>
+</div>
+
+</div>
+
+<label class="row" id="rowNoAudio" hidden>
+<span class="lbl">音声を除く</span>
+<input type="checkbox" id="noAudio">
+</label>
+
+<div class="row" id="rowTrim">
+<span class="lbl" id="trimLabel">範囲（秒）</span>
+<div class="pair">
+<input type="number" id="start" min="0" step="0.1" placeholder="開始（空=最初）">
+<input type="number" id="end" min="0" step="0.1" placeholder="終了（空=最後）">
+</div>
+</div>
+
+<details>
+<summary style="cursor:pointer;font-size:13px">詳細（ffmpeg の追加引数）</summary>
+<div class="row">
+<input type="text" id="extra" placeholder="例: -vf hue=s=0 -af volume=1.5">
+</div>
+<div class="hint">出力ファイルの直前に追加されます。上の設定と競合する場合は追加引数が優先されます。</div>
+</details>
+
+<div class="hint" style="margin-top:10px">実行されるコマンド（イメージ）</div>
+<pre id="cmd"></pre>
+</div>
+
+<div class="btnRow">
+<button id="startBtn" disabled>変換開始</button>
+<button id="cancelBtn" class="sub" hidden>中止</button>
+</div>
+
+<div class="card" id="progressCard" hidden>
+<div id="status" style="margin-bottom:6px"></div>
+<progress id="bar" max="1" value="0"></progress>
+<div id="timeInfo" class="hint" style="margin:4px 0 0 0"></div>
+</div>
+
+<div class="card" id="resultCard" hidden>
+<h2>変換結果</h2>
+<ul id="resultList"></ul>
+<div class="btnRow" id="allRow" hidden style="margin:8px 0 0 0">
+<button class="small" id="allBtn">すべてダウンロード</button>
+</div>
+</div>
+
+<details class="card" id="logCard">
+<summary style="cursor:pointer">ffmpeg ログ</summary>
+<pre id="log"></pre>
+</details>
+
+<div class="note">
+・ブラウザ上（シングルスレッド）で動くため、PC版 ffmpeg よりかなり遅く、特に GIF は時間がかかります（H.265 / VP9 への変換は ffmpeg.wasm では動かないため非対応。VP9 の読み込みは可能）。<br>
+・ファイルはメモリ上に読み込まれるので、1GB を超えるような動画は失敗することがあります。<br>
+・画像への変換は、動画の場合「開始（秒）」の位置の1フレームを書き出します。<br>
+・AV1 など同梱の ffmpeg が対応していない形式は読み込めません。
+</div>
+
+</div>
+
+<script type="module">
+import { FFmpeg } from "./../../ffmpeg/index.js";
+
+const $ = id => document.getElementById(id)
+
+// ---------- 出力形式の定義 ----------
+
+const AAC  = o => ["-c:a","aac","-b:a",o.abr+"k"]
+const OPUS = o => ["-c:a","libopus","-b:a",o.abr+"k"]
+const PCM  = () => ["-c:a","pcm_s16le"]
+
+const CRF = (def,hint)=>({label:"画質（CRF）",min:0,max:51,def,hint})
+
+const FORMATS = [
+// ----- AviUtl・編集向け -----
+{
+  id:"avi-utvideo", group:"AviUtl・編集向け", label:"AVI（UtVideo ロスレス＋PCM）", ext:"avi", kind:"video",
+  def:{fps:"auto"}, even:true,
+  hint:"映像は完全に無劣化（ファイルはかなり大きい）。AviUtl 側に UtVideo コーデックの導入が必要。",
+  v:()=>["-c:v","utvideo","-pix_fmt","yuv422p"], a:PCM
+},
+{
+  id:"mp4-aviutl", group:"AviUtl・編集向け", label:"MP4（H.264 高画質・fps固定）", ext:"mp4", kind:"video",
+  def:{fps:"auto",q:14,abr:"256"}, even:true, preset:true,
+  q:CRF(14,"小さいほど高画質。12〜16 でほぼ無劣化。キーフレームを短くしてシークを軽くしている。"),
+  hint:"L-SMASH Works などの入力プラグインで読める。ほぼ無劣化で軽い。",
+  v:o=>["-c:v","libx264","-crf",o.q,"-preset",o.preset,"-pix_fmt","yuv420p","-g","30"], a:AAC,
+  extra:["-movflags","+faststart"]
+},
+{
+  id:"mkv-ffv1", group:"AviUtl・編集向け", label:"MKV（FFV1 ロスレス＋FLAC）", ext:"mkv", kind:"video",
+  def:{fps:"auto"},
+  hint:"映像・音声とも無劣化。読み込みには L-SMASH Works などが必要。",
+  v:()=>["-c:v","ffv1","-level","3"], a:()=>["-c:a","flac"]
+},
+{
+  id:"mov-prores", group:"AviUtl・編集向け", label:"MOV（ProRes 422 HQ＋PCM）", ext:"mov", kind:"video",
+  def:{fps:"auto"},
+  hint:"編集用の高画質コーデック（ほぼ無劣化）。ファイルは大きい。",
+  v:()=>["-c:v","prores_ks","-profile:v","3","-pix_fmt","yuv422p10le"], a:PCM
+},
+
+// ----- 動画 -----
+{
+  id:"mp4-h264", group:"動画", label:"MP4（H.264＋AAC）", ext:"mp4", kind:"video",
+  def:{q:23}, even:true, preset:true,
+  q:CRF(23,"小さいほど高画質・大容量。0=ロスレス、14〜18=ほぼ無劣化、23=標準、28=小さめ。"),
+  hint:"もっとも互換性が高い。",
+  v:o=>["-c:v","libx264","-crf",o.q,"-preset",o.preset,"-pix_fmt","yuv420p"], a:AAC,
+  extra:["-movflags","+faststart"]
+},
+{
+  id:"webm-vp8", group:"動画", label:"WebM（VP8＋Opus）", ext:"webm", kind:"video",
+  def:{q:10}, even:false,
+  q:{label:"画質（CRF）",min:4,max:63,def:10,hint:"小さいほど高画質。"},
+  hint:"古い Web 向け形式。",
+  v:o=>["-c:v","libvpx","-crf",o.q,"-b:v","20M","-pix_fmt","yuv420p"], a:OPUS
+},
+{
+  id:"mkv-h264", group:"動画", label:"MKV（H.264＋AAC）", ext:"mkv", kind:"video",
+  def:{q:18}, even:true, preset:true,
+  q:CRF(18,"小さいほど高画質・大容量。"),
+  hint:"「再エンコードしない」と組み合わせると、MKV への入れ替えだけができる。",
+  v:o=>["-c:v","libx264","-crf",o.q,"-preset",o.preset,"-pix_fmt","yuv420p"], a:AAC
+},
+{
+  id:"avi-mpeg4", group:"動画", label:"AVI（MPEG-4＋MP3）", ext:"avi", kind:"video",
+  def:{q:3}, even:true,
+  q:{label:"画質（qscale）",min:1,max:31,def:3,hint:"小さいほど高画質。2〜3 で高画質。"},
+  hint:"古いソフト向け。",
+  v:o=>["-c:v","mpeg4","-q:v",o.q,"-pix_fmt","yuv420p","-vtag","XVID"], a:o=>["-c:a","libmp3lame","-b:a",o.abr+"k"]
+},
+{
+  id:"gif", group:"動画", label:"GIF（アニメーション）", ext:"gif", kind:"video", gif:true, noCopy:true,
+  def:{fps:"15",res:"480"},
+  hint:"音声なし。色は256色に減色される。",
+  v:()=>["-loop","0"]
+},
+
+// ----- 音声 -----
+{
+  id:"mp3", group:"音声", label:"MP3", ext:"mp3", kind:"audio", def:{abr:"192"},
+  a:o=>["-c:a","libmp3lame","-b:a",o.abr+"k"]
+},
+{
+  id:"m4a", group:"音声", label:"M4A（AAC）", ext:"m4a", kind:"audio", def:{abr:"192"},
+  a:AAC
+},
+{
+  id:"opus", group:"音声", label:"Opus", ext:"opus", kind:"audio", def:{abr:"128"},
+  a:OPUS
+},
+{
+  id:"ogg", group:"音声", label:"OGG（Vorbis）", ext:"ogg", kind:"audio", def:{abr:"192"},
+  a:o=>["-c:a","libvorbis","-b:a",o.abr+"k"]
+},
+{
+  id:"flac", group:"音声", label:"FLAC（ロスレス）", ext:"flac", kind:"audio",
+  a:()=>["-c:a","flac"]
+},
+{
+  id:"wav", group:"音声", label:"WAV（16bit PCM）", ext:"wav", kind:"audio",
+  a:PCM
+},
+
+// ----- 画像 -----
+{
+  id:"png", group:"画像", label:"PNG", ext:"png", kind:"image", v:()=>["-c:v","png"]
+},
+{
+  id:"jpg", group:"画像", label:"JPEG", ext:"jpg", kind:"image", def:{q:2},
+  q:{label:"画質（qscale）",min:1,max:31,def:2,hint:"小さいほど高画質。"},
+  v:o=>["-c:v","mjpeg","-q:v",o.q,"-pix_fmt","yuvj420p"]
+},
+{
+  id:"webp", group:"画像", label:"WebP", ext:"webp", kind:"image", def:{q:90},
+  q:{label:"画質",min:1,max:100,def:90,hint:"大きいほど高画質。"},
+  v:o=>["-c:v","libwebp","-quality",o.q]
+},
+{
+  id:"bmp", group:"画像", label:"BMP", ext:"bmp", kind:"image", v:()=>["-c:v","bmp"]
+},
+]
+
+const MIME = {
+  mp4:"video/mp4", webm:"video/webm", mkv:"video/x-matroska", avi:"video/x-msvideo", mov:"video/quicktime", gif:"image/gif",
+  mp3:"audio/mpeg", m4a:"audio/mp4", opus:"audio/ogg", ogg:"audio/ogg", flac:"audio/flac", wav:"audio/wav",
+  png:"image/png", jpg:"image/jpeg", webp:"image/webp", bmp:"image/bmp"
+}
+
+const DEFAULTS = {q:null,preset:"veryfast",fps:"keep",res:"keep",abr:"192"}
+
+// ---------- 状態 ----------
+
+let files = []
+let running = false
+let cancelled = false
+let ffmpeg = null
+let results = []
+let logLines = []
+let logTimer = null
+let currentDuration = 0
+
+const fmtOf = () => FORMATS.find(f=>f.id===$("format").value)
+
+// ---------- UI 構築 ----------
+
+for(const g of [...new Set(FORMATS.map(f=>f.group))]){
+  const og = document.createElement("optgroup")
+  og.label = g
+  for(const f of FORMATS.filter(f=>f.group===g)){
+    const o = document.createElement("option")
+    o.value = f.id
+    o.textContent = f.label
+    og.appendChild(o)
+  }
+  $("format").appendChild(og)
+}
+
+function applyFormat(reset){
+  const f = fmtOf()
+  const d = {...DEFAULTS, ...(f.def||{})}
+
+  $("formatHint").textContent = f.hint || ""
+
+  const copyable = !f.noCopy && f.kind!=="image"
+  $("rowCopy").hidden = !copyable
+  if(!copyable) $("copy").checked = false
+
+  const hasAbr = !!f.a && f.a.length>0   // PCM / FLAC はビットレート指定なし
+  $("encOpts").hidden = $("copy").checked
+  $("rowQ").hidden = $("qHint").hidden = !f.q
+  $("rowPreset").hidden = $("rowPresetHint").hidden = !f.preset
+  $("rowFps").hidden = $("rowFpsHint").hidden = f.kind!=="video"
+  $("rowRes").hidden = f.kind==="audio"
+  $("rowAbr").hidden = !hasAbr
+  $("rowNoAudio").hidden = !(f.kind==="video" && f.a)
+  if($("rowNoAudio").hidden) $("noAudio").checked = false
+  $("trimLabel").textContent = f.kind==="image" ? "切り出し位置（秒）" : "範囲（秒）"
+  $("end").hidden = f.kind==="image"
+
+  if(reset){
+    if(f.q){
+      $("qLabel").textContent = f.q.label
+      $("q").min = f.q.min
+      $("q").max = f.q.max
+      $("q").value = d.q ?? f.q.def
+      $("qOut").textContent = $("q").value
+      $("qHint").textContent = f.q.hint
+    }
+    $("fps").value = d.fps
+    $("res").value = d.res
+    $("abr").value = d.abr
+    $("preset").value = d.preset
+  }
+  updateCmd()
+}
+
+function readOptions(){
+  return {
+    q: $("q").value,
+    preset: $("preset").value,
+    fps: $("fps").value,
+    res: $("res").value,
+    abr: $("abr").value,
+    copy: $("copy").checked,
+    noAudio: $("noAudio").checked,
+    start: parseFloat($("start").value) || 0,
+    end: parseFloat($("end").value) || 0,
+    extra: $("extra").value
+  }
+}
+
+function updateCmd(){
+  const f = fmtOf()
+  const args = buildArgs(f, readOptions(), null, "input", "output."+f.ext)
+  $("cmd").textContent = "ffmpeg " + args.filter(a=>a!=="-hide_banner"&&a!=="-y").map(a=>/[\s;\[\]()']/.test(a)?`"${a}"`:a).join(" ")
+}
+
+for(const id of ["format","copy","q","preset","fps","res","abr","noAudio","start","end","extra"]){
+  $(id).addEventListener(id==="extra"||id==="start"||id==="end"?"input":"change", ()=>{
+    if(id==="format"||id==="copy") applyFormat(id==="format")
+    else {
+      $("qOut").textContent = $("q").value
+      updateCmd()
+    }
+  })
+}
+$("q").addEventListener("input", ()=>{ $("qOut").textContent = $("q").value; updateCmd() })
+
+// ---------- コマンド生成 ----------
+
+function parseArgs(s){
+  const out = []
+  const re = /"([^"]*)"|'([^']*)'|(\S+)/g
+  let m
+  while((m = re.exec(s||""))) out.push(m[1] ?? m[2] ?? m[3])
+  return out
+}
+
+function normFps(x){
+  const cands = [[23.976,"24000/1001"],[24,"24"],[25,"25"],[29.97,"30000/1001"],[30,"30"],[48,"48"],[50,"50"],[59.94,"60000/1001"],[60,"60"],[120,"120"]]
+  for(const [v,s] of cands) if(Math.abs(x-v)/v < 0.01) return s
+  return String(Math.round(x*1000)/1000)
+}
+
+function buildArgs(f, o, probe, inName, outName){
+  const a = ["-hide_banner","-y"]
+  if(o.start>0) a.push("-ss",String(o.start))
+  a.push("-i",inName)
+  if(f.kind!=="image" && o.end>0){
+    const d = o.end - o.start
+    if(d>0) a.push("-t",String(+d.toFixed(3)))
+  }
+
+  const vf = []
+  if(f.kind==="video" && !o.copy){
+    if(o.fps==="auto") vf.push("fps="+(probe && probe.fps ? normFps(probe.fps) : "<元のfps>"))
+    else if(o.fps!=="keep") vf.push("fps="+o.fps)
+  }
+  if(f.kind!=="audio" && !o.copy){
+    if(o.res!=="keep") vf.push(`scale=-2:'min(${o.res},ih)'` + (f.gif?":flags=lanczos":""))
+    if(f.even) vf.push("scale=trunc(iw/2)*2:trunc(ih/2)*2")
+  }
+
+  if(f.kind==="audio"){
+    a.push("-vn","-map","0:a:0")
+    a.push(...(o.copy ? ["-c:a","copy"] : f.a(o)))
+  }else if(f.kind==="image"){
+    a.push("-map","0:v:0","-frames:v","1")
+    if(vf.length) a.push("-vf",vf.join(","))
+    a.push(...f.v(o))
+  }else{
+    a.push("-map","0:v:0")
+    if(f.a && !o.noAudio) a.push("-map","0:a:0?"); else a.push("-an")
+    if(o.copy){
+      a.push("-c","copy")
+    }else{
+      if(f.gif) vf.push("split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse")
+      if(vf.length) a.push("-vf",vf.join(","))
+      a.push(...f.v(o))
+      if(f.a && !o.noAudio) a.push(...f.a(o))
+    }
+  }
+
+  a.push(...(f.extra||[]), ...parseArgs(o.extra), outName)
+  return a
+}
+
+// ---------- ファイル入力 ----------
+
+const fmtSize = n => n>=1048576 ? (n/1048576).toFixed(1)+" MB" : Math.max(1,Math.round(n/1024))+" KB"
+
+function renderFiles(){
+  const ul = $("fileList")
+  ul.textContent = ""
+  files.forEach((f,i)=>{
+    const li = document.createElement("li")
+    const name = document.createElement("span")
+    name.className = "fname"
+    name.textContent = f.name
+    const size = document.createElement("span")
+    size.className = "fsize"
+    size.textContent = fmtSize(f.size)
+    const x = document.createElement("button")
+    x.className = "xbtn"
+    x.textContent = "×"
+    x.disabled = running
+    x.onclick = ()=>{ files.splice(i,1); renderFiles() }
+    li.append(name,size,x)
+    ul.appendChild(li)
+  })
+  $("fileCard").hidden = !files.length
+  $("startBtn").disabled = running || !files.length
+}
+
+function addFiles(list){
+  for(const f of list) files.push(f)
+  renderFiles()
+}
+
+$("dropArea").onclick = ()=>$("fileInput").click()
+$("fileInput").onchange = e=>{ addFiles(e.target.files); e.target.value = "" }
+$("dropArea").ondragover = e=>{ e.preventDefault(); $("dropArea").classList.add("dragover") }
+$("dropArea").ondragleave = ()=>$("dropArea").classList.remove("dragover")
+$("dropArea").ondrop = e=>{
+  e.preventDefault()
+  $("dropArea").classList.remove("dragover")
+  addFiles(e.dataTransfer.files)
+}
+
+// ---------- ffmpeg ----------
+
+function pushLog(msg){
+  logLines.push(msg)
+  if(logLines.length>3000) logLines.splice(0,1000)
+  const m = /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(msg)
+  if(m && !currentDuration) currentDuration = +m[1]*3600 + +m[2]*60 + +m[3]
+  if(!logTimer) logTimer = setTimeout(()=>{
+    logTimer = null
+    const el = $("log")
+    el.textContent = logLines.slice(-400).join("\n")
+    el.scrollTop = el.scrollHeight
+  },300)
+}
+
+async function loadFFmpeg(){
+  if(ffmpeg) return
+  const ff = new FFmpeg()
+  ff.on("log", ({message})=>pushLog(message))
+  ff.on("progress", ({progress})=>{
+    if(progress>=0 && progress<=1) setProgress(progress)
+  })
+  setStatus("FFmpeg 読み込み中（初回のみ・約30MB）...")
+  await ff.load({
+    coreURL: new URL("./../../ffmpeg/ffmpeg-core.js", import.meta.url).toString(),
+    wasmURL: new URL("./../../ffmpeg/ffmpeg-core.wasm", import.meta.url).toString(),
+    classWorkerURL: new URL("./../../ffmpeg/worker.js", import.meta.url).toString()
+  })
+  ffmpeg = ff
+}
+
+async function probe(inName){
+  const start = logLines.length
+  currentDuration = 0
+  await ffmpeg.exec(["-hide_banner","-i",inName])
+  const text = logLines.slice(start).join("\n")
+  const info = {duration:currentDuration, hasVideo:false, hasAudio:false, fps:0}
+  const v = /Stream #\d+:\d+[^\n]*?: Video: ([^\n]*)/.exec(text)
+  if(v && !/attached pic/.test(v[0])){
+    info.hasVideo = true
+    const fps = /(\d+(?:\.\d+)?) fps/.exec(v[1])
+    if(fps) info.fps = +fps[1]
+  }
+  info.hasAudio = /Stream #\d+:\d+[^\n]*?: Audio:/.test(text)
+  return info
+}
+
+const extOf = name => ((/\.([A-Za-z0-9]{1,5})$/.exec(name)||[])[1]||"bin").toLowerCase()
+
+// ---------- 進捗表示 ----------
+
+let t0 = 0
+let timer = null
+let curProgress = 0
+let fileIndex = 0
+
+const mmss = s => {
+  s = Math.max(0,Math.round(s))
+  return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")
+}
+
+function setStatus(t){ $("status").textContent = t }
+
+function setProgress(p){
+  curProgress = p
+  $("bar").value = (fileIndex + p) / files.length
+  tick()
+}
+
+function tick(){
+  if(!running) return
+  const el = (Date.now()-t0)/1000
+  let s = "経過 " + mmss(el)
+  if(curProgress>0.03){
+    const rem = el*(1-curProgress)/curProgress
+    s += " ／ このファイルの残り目安 " + mmss(rem) + "（終了予定 " + new Date(Date.now()+rem*1000).toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}) + "頃）"
+  }
+  $("timeInfo").textContent = s
+}
+
+function setRunning(v){
+  running = v
+  $("startBtn").hidden = v
+  $("cancelBtn").hidden = !v
+  $("progressCard").hidden = false
+  for(const id of ["format","copy","q","preset","fps","res","abr","noAudio","start","end","extra"]) $(id).disabled = v
+  renderFiles()
+}
+
+// ---------- 変換 ----------
+
+function baseName(n){ return n.replace(/\.[^.]*$/,"") }
+
+async function convertOne(file, f, o){
+  const inName = "input." + extOf(file.name)
+  const outName = "output." + f.ext
+  curProgress = 0
+  try{
+    await ffmpeg.writeFile(inName, new Uint8Array(await file.arrayBuffer()))
+    const info = await probe(inName)
+
+    if(f.kind==="audio" && !info.hasAudio) throw new Error("音声が見つかりません")
+    if(f.kind!=="audio" && !info.hasVideo) throw new Error("映像（画像）が見つかりません")
+
+    currentDuration = info.duration
+    const args = buildArgs(f, o, info, inName, outName)
+    pushLog("$ ffmpeg " + args.join(" "))
+    const ret = await ffmpeg.exec(args)
+    if(cancelled) throw new Error("中止しました")
+    if(ret!==0) throw new Error("ffmpeg がエラー終了しました（コード "+ret+"）。ログを確認してください")
+
+    const data = await ffmpeg.readFile(outName)
+    const blob = new Blob([data], {type:MIME[f.ext]||"application/octet-stream"})
+    let name = baseName(file.name) + "." + f.ext
+    if(name===file.name) name = baseName(file.name) + "_converted." + f.ext
+    return {name, blob, url:URL.createObjectURL(blob), kind:f.kind, ext:f.ext, inSize:file.size}
+  }finally{
+    if(ffmpeg){
+      for(const n of [inName,outName]) try{ await ffmpeg.deleteFile(n) }catch(e){}
+    }
+  }
+}
+
+function clearResults(){
+  for(const r of results) if(r.url) URL.revokeObjectURL(r.url)
+  results = []
+}
+
+function renderResults(){
+  const ul = $("resultList")
+  ul.textContent = ""
+  for(const r of results){
+    const li = document.createElement("li")
+    const name = document.createElement("span")
+    name.className = "fname"
+    name.textContent = r.name
+    li.appendChild(name)
+    if(r.error){
+      name.textContent = r.name + "：" + r.error
+      name.classList.add("err")
+      name.style.whiteSpace = "normal"
+    }else{
+      const size = document.createElement("span")
+      size.className = "fsize"
+      size.textContent = fmtSize(r.blob.size) + "（元 " + fmtSize(r.inSize) + "）"
+      const dl = document.createElement("button")
+      dl.className = "small"
+      dl.textContent = "ダウンロード"
+      dl.onclick = ()=>download(r)
+      li.append(size,dl)
+
+      const isImg = r.kind==="image" || r.ext==="gif"
+      const el = document.createElement(isImg ? "img" : r.kind==="audio" ? "audio" : "video")
+      el.src = r.url
+      if(!isImg){ el.controls = true; el.preload = "metadata" }
+      const box = document.createElement("div")
+      box.className = "preview"
+      box.appendChild(el)
+      el.onerror = ()=>box.remove()
+      li.appendChild(box)
+    }
+    ul.appendChild(li)
+  }
+  $("resultCard").hidden = !results.length
+  $("allRow").hidden = results.filter(r=>!r.error).length < 2
+}
+
+function download(r){
+  const a = document.createElement("a")
+  a.href = r.url
+  a.download = r.name
+  a.click()
+}
+
+$("allBtn").onclick = async ()=>{
+  for(const r of results.filter(r=>!r.error)){
+    download(r)
+    await new Promise(res=>setTimeout(res,400))
+  }
+}
+
+$("startBtn").onclick = async ()=>{
+  if(running || !files.length) return
+  const f = fmtOf()
+  const o = readOptions()
+  const queue = files.slice()
+
+  clearResults()
+  renderResults()
+  logLines = []
+  cancelled = false
+  setRunning(true)
+  $("bar").value = 0
+  t0 = Date.now()
+  timer = setInterval(tick,500)
+
+  try{
+    await loadFFmpeg()
+    t0 = Date.now()
+    for(fileIndex=0; fileIndex<queue.length; fileIndex++){
+      const file = queue[fileIndex]
+      setStatus(`変換中 (${fileIndex+1}/${queue.length})：${file.name}`)
+      t0 = Date.now()
+      try{
+        results.push(await convertOne(file, f, o))
+      }catch(e){
+        if(cancelled) break
+        // wasm が異常終了すると以後の変換も壊れるので、次のファイルのために作り直す
+        if(e instanceof WebAssembly.RuntimeError || /RuntimeError/.test(String(e))){
+          try{ ffmpeg.terminate() }catch(_){}
+          ffmpeg = null
+          await loadFFmpeg()
+        }
+        results.push({name:file.name, error:e.message||String(e)})
+      }
+      renderResults()
+    }
+    if(!cancelled){
+      $("bar").value = 1
+      setStatus("完了しました")
+    }
+  }catch(e){
+    if(!cancelled) setStatus("エラー：" + (e.message||e))
+  }finally{
+    if(cancelled) setStatus("中止しました")
+    clearInterval(timer)
+    $("timeInfo").textContent = ""
+    setRunning(false)
+  }
+}
+
+$("cancelBtn").onclick = ()=>{
+  cancelled = true
+  if(ffmpeg){
+    ffmpeg.terminate()
+    ffmpeg = null
+  }
+}
+
+applyFormat(true)
+</script>
+
+</body>
+</html>

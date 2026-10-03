@@ -38,7 +38,8 @@
   Audio/                音声処理ツール（Video2Audio, AudioInfo,
                         RealTimeAudioAnalyzer, RealTimeWhisper）
   Utility/              その他ツール（PDFJoiner, GohanRoulette,
-                        RoundRobinString, jsonl2graph, DepthPreview など）
+                        RoundRobinString, jsonl2graph, DepthPreview,
+                        MediaConverter（ffmpeg.wasm で動画/音声/画像を相互変換）など）
 ```
 
 各ツールは「ジャンルフォルダ / ツール名フォルダ / `index.html`」という構造。1ツール = 1フォルダが原則です。
