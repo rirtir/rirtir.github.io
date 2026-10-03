@@ -4,29 +4,64 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Audio Analyzer</title>
+<title>音声・動画解析ツール</title>
 
 <link rel="stylesheet" href="./../../css/common-style.css">
 <link rel="stylesheet" href="./../../css/common-style2.css">
 <style>
-
+#media{
+width:100%;
+max-height:320px;
+background:#000;
+}
+#info{
+color:#222;
+}
+#info table{
+width:100%;
+border-collapse:collapse;
+}
+#info th.sec{
+text-align:left;
+padding:8px 4px 4px;
+border-bottom:2px solid #007bff;
+color:#007bff;
+font-size:13px;
+}
+#info td{
+padding:3px 4px;
+border-bottom:1px solid #eee;
+vertical-align:top;
+word-break:break-all;
+}
+#info td:first-child{
+white-space:nowrap;
+color:#666;
+width:1%;
+padding-right:12px;
+}
+#info .note{
+font-size:12px;
+color:#888;
+margin-top:6px;
+}
 </style>
 </head>
 
 <body>
 
-<h1>音声解析ツール</h1>
+<h1>音声・動画解析ツール</h1>
 
 <div id="dropArea">
-音声をドラッグ&ドロップ<br>
+音声・動画をドラッグ&ドロップ<br>
 またはクリックして選択
 </div>
 
-<input type="file" id="fileInput" accept="audio/*" hidden>
+<input type="file" id="fileInput" accept="audio/*,video/*,.mkv,.avi,.ts,.m2ts,.mts,.flv,.wmv,.asf,.mov,.mpg,.mpeg,.ogv,.3gp,.flac,.opus" hidden>
 
 <div id="controls">
 
-<audio id="audio" controls></audio>
+<video id="media" controls playsinline></video>
 
 <div id="info"></div>
 
@@ -39,7 +74,7 @@
 
 const dropArea=document.getElementById("dropArea")
 const fileInput=document.getElementById("fileInput")
-const audio=document.getElementById("audio")
+const media=document.getElementById("media")
 const info=document.getElementById("info")
 const controls=document.getElementById("controls")
 
@@ -49,205 +84,946 @@ const waveCtx=waveCanvas.getContext("2d")
 const fftCanvas=document.getElementById("fftCanvas")
 const fftCtx=fftCanvas.getContext("2d")
 
-let audioURL=null
+let mediaURL=null
+let analyser=null
+let loadId=0
 
 const audioCtx=new AudioContext()
 
-let analyser
-let source
-
-audio.addEventListener("play",()=>{
-if(audioCtx.state==="suspended"){
-audioCtx.resume()
-}
+media.addEventListener("play",()=>{
+	if(audioCtx.state==="suspended"){
+		audioCtx.resume()
+	}
 })
 
-function findFmtChunk(view){
+/* ---------- バイナリ読み取り補助 ---------- */
 
-let pos=12
-
-while(pos<view.byteLength){
-
-const id=String.fromCharCode(
-view.getUint8(pos),
-view.getUint8(pos+1),
-view.getUint8(pos+2),
-view.getUint8(pos+3)
-)
-
-const size=view.getUint32(pos+4,true)
-
-if(id==="fmt ") return pos+8
-
-pos+=8+size
-
+async function readDV(file,start,len){
+	const buf=await file.slice(start,Math.min(file.size,start+len)).arrayBuffer()
+	return new DataView(buf)
 }
 
-return null
-
+function fourcc(dv,p){
+	return String.fromCharCode(dv.getUint8(p),dv.getUint8(p+1),dv.getUint8(p+2),dv.getUint8(p+3))
 }
 
-function parseWavBits(buffer){
-
-const view=new DataView(buffer)
-
-if(
-view.getUint32(0,false)!==0x52494646 ||
-view.getUint32(8,false)!==0x57415645
-){
-return null
+function ascii(dv,p,n){
+	let s=""
+	for(let i=0;i<n;i++) s+=String.fromCharCode(dv.getUint8(p+i))
+	return s
 }
 
-const fmt=findFmtChunk(view)
-
-if(!fmt) return null
-
-return view.getUint16(fmt+14,true)
-
+function esc(s){
+	return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))
 }
 
-async function loadAudio(file){
+/* ---------- MP4 / MOV / M4A / 3GP ---------- */
 
-if(audioURL) URL.revokeObjectURL(audioURL)
+function mp4Kids(dv,s,e){
+	const out=[]
+	let p=s
+	while(p+8<=e){
+		let sz=dv.getUint32(p)
+		const t=fourcc(dv,p+4)
+		let h=8
+		if(sz===1){
+			sz=Number(dv.getBigUint64(p+8))
+			h=16
+		}else if(sz===0){
+			sz=e-p
+		}
+		if(sz<h||p+sz>e) break
+		out.push({t,s:p+h,e:p+sz})
+		p+=sz
+	}
+	return out
+}
 
-audioURL=URL.createObjectURL(file)
-audio.src=audioURL
+function mp4Find(dv,box,path){
+	let cur=box
+	for(const t of path){
+		cur=mp4Kids(dv,cur.s,cur.e).find(k=>k.t===t)
+		if(!cur) return null
+	}
+	return cur
+}
 
-const buffer=await file.arrayBuffer()
+const AVC_PROFILE={66:"Baseline",77:"Main",88:"Extended",100:"High",110:"High 10",122:"High 4:2:2",244:"High 4:4:4"}
+const HEVC_PROFILE={1:"Main",2:"Main 10",3:"Main Still Picture",4:"Range Extensions"}
+const AV1_PROFILE=["Main","High","Professional"]
 
-const decoded=await audioCtx.decodeAudioData(buffer.slice(0))
+function parseEsds(dv,s,e){
+	let p=s+4
+	const out={}
+	const readLen=()=>{
+		let l=0
+		for(let i=0;i<4;i++){
+			const b=dv.getUint8(p++)
+			l=(l<<7)|(b&127)
+			if(!(b&128)) break
+		}
+		return l
+	}
+	while(p<e){
+		const tag=dv.getUint8(p++)
+		const len=readLen()
+		if(tag===3){
+			p+=2
+			const fl=dv.getUint8(p++)
+			if(fl&0x80) p+=2
+			if(fl&0x40) p+=dv.getUint8(p)+1
+			if(fl&0x20) p+=2
+			continue
+		}
+		if(tag===4){
+			out.oti=dv.getUint8(p)
+			out.max=dv.getUint32(p+5)
+			out.avg=dv.getUint32(p+9)
+			p+=13
+			continue
+		}
+		if(tag===5){
+			out.aot=dv.getUint8(p)>>3
+			break
+		}
+		p+=len
+	}
+	return out
+}
 
-const duration=decoded.duration
-const sampleRate=decoded.sampleRate
-const channels=decoded.numberOfChannels
+const MP4_VIDEO_NAMES={
+	"vp09":"VP9","vp08":"VP8","mp4v":"MPEG-4 Visual","s263":"H.263",
+	"apch":"Apple ProRes 422 HQ","apcn":"Apple ProRes 422","apcs":"Apple ProRes 422 LT","apco":"Apple ProRes 422 Proxy","ap4h":"Apple ProRes 4444",
+	"jpeg":"Motion JPEG","mjpa":"Motion JPEG","avc3":"H.264 / AVC","dvhe":"Dolby Vision (HEVC)","dvh1":"Dolby Vision (HEVC)"
+}
+const MP4_AUDIO_NAMES={
+	"ac-3":"AC-3 (Dolby Digital)","ec-3":"E-AC-3 (Dolby Digital Plus)","Opus":"Opus","fLaC":"FLAC","alac":"ALAC",
+	"sowt":"PCM","twos":"PCM","lpcm":"PCM","in24":"PCM 24bit","fl32":"PCM float32","raw ":"PCM","samr":"AMR-NB","sawb":"AMR-WB",".mp3":"MP3"
+}
 
-let bitDepth=parseWavBits(buffer)
-bitDepth=bitDepth?bitDepth+" bit":"不明"
+function parseMp4Video(dv,etype,c,e,t){
+	t.width=dv.getUint16(c+24)
+	t.height=dv.getUint16(c+26)
+	t.codec=MP4_VIDEO_NAMES[etype]||etype
+	const kids=mp4Kids(dv,c+78,e)
+	const avcC=kids.find(k=>k.t==="avcC")
+	const hvcC=kids.find(k=>k.t==="hvcC")
+	const av1C=kids.find(k=>k.t==="av1C")
+	if(avcC){
+		t.codec="H.264 / AVC"
+		const prof=dv.getUint8(avcC.s+1)
+		const lv=dv.getUint8(avcC.s+3)
+		t.detail=`${AVC_PROFILE[prof]||"profile "+prof} @ L${(lv/10).toFixed(1).replace(".0","")}`
+	}else if(hvcC){
+		t.codec="H.265 / HEVC"
+		const prof=dv.getUint8(hvcC.s+1)&0x1f
+		const lv=dv.getUint8(hvcC.s+12)
+		t.detail=`${HEVC_PROFILE[prof]||"profile "+prof} @ L${(lv/30).toFixed(1).replace(".0","")}`
+	}else if(av1C){
+		t.codec="AV1"
+		const b=dv.getUint8(av1C.s+1)
+		const idx=b&0x1f
+		t.detail=`${AV1_PROFILE[b>>5]||"?"} @ L${2+(idx>>2)}.${idx&3}`
+	}else if(etype==="hvc1"||etype==="hev1"){
+		t.codec="H.265 / HEVC"
+	}else if(etype==="av01"){
+		t.codec="AV1"
+	}
+}
 
-info.innerHTML=`
-長さ: ${duration.toFixed(2)} 秒<br>
-サンプリング周波数: ${sampleRate} Hz<br>
-ビット深度: ${bitDepth}<br>
-チャンネル: ${channels===1?"モノラル":"ステレオ"}<br>
-ファイルサイズ: ${(file.size/1024/1024).toFixed(2)} MB
-`
+function parseMp4Audio(dv,etype,c,e,t){
+	t.channels=dv.getUint16(c+16)
+	t.bits=dv.getUint16(c+18)
+	t.sampleRate=dv.getUint16(c+24)
+	t.codec=MP4_AUDIO_NAMES[etype]||etype
+	if(etype==="mp4a"){
+		const esds=mp4Kids(dv,c+28,e).find(k=>k.t==="esds")
+		t.codec="AAC"
+		if(esds){
+			const d=parseEsds(dv,esds.s,esds.e)
+			if(d.oti===0x40){
+				const aot={2:"AAC-LC",5:"HE-AAC",29:"HE-AAC v2",1:"AAC Main",3:"AAC SSR",4:"AAC LTP"}[d.aot]
+				t.codec=aot||"AAC"
+			}else if(d.oti===0x6B||d.oti===0x69){
+				t.codec="MP3"
+			}
+			if(d.avg) t.bitrate=d.avg
+		}
+	}
+	if(etype==="Opus") t.sampleRate=48000
+	if(t.bits&&!/PCM/.test(t.codec)) t.bits=0
+}
 
-drawWaveform(decoded)
+function parseMp4Trak(dv,trak,res){
+	const hdlr=mp4Find(dv,trak,["mdia","hdlr"])
+	const mdhd=mp4Find(dv,trak,["mdia","mdhd"])
+	const tkhd=mp4Find(dv,trak,["tkhd"])
+	const stbl=mp4Find(dv,trak,["mdia","minf","stbl"])
+	if(!hdlr||!mdhd||!stbl) return
+	const kind=fourcc(dv,hdlr.s+8)
+	const ver=dv.getUint8(mdhd.s)
+	const ts=dv.getUint32(mdhd.s+(ver?20:12))
+	const mdurRaw=ver?Number(dv.getBigUint64(mdhd.s+24)):dv.getUint32(mdhd.s+16)
 
-setupFFT()
+	const t={}
+	const kids=mp4Kids(dv,stbl.s,stbl.e)
+	const stts=kids.find(k=>k.t==="stts")
+	const stsz=kids.find(k=>k.t==="stsz")
+	const stsd=kids.find(k=>k.t==="stsd")
 
-controls.style.display="flex"
+	let samples=0,mdur=0,dominant=0,entries=0
+	if(stts){
+		entries=dv.getUint32(stts.s+4)
+		for(let i=0;i<entries;i++){
+			const cnt=dv.getUint32(stts.s+8+i*8)
+			const d=dv.getUint32(stts.s+12+i*8)
+			samples+=cnt
+			mdur+=cnt*d
+			if(cnt>dominant) dominant=cnt
+		}
+	}
+	const dur=(mdur?mdur:mdurRaw)/ts
+	t.duration=dur
+	t.samples=samples
+
+	if(stsz){
+		const size=dv.getUint32(stsz.s+4)
+		const cnt=dv.getUint32(stsz.s+8)
+		let bytes=0
+		if(size) bytes=size*cnt
+		else for(let i=0;i<cnt;i++) bytes+=dv.getUint32(stsz.s+12+i*4)
+		if(dur>0&&bytes>0) t.streamBitrate=bytes*8/dur
+	}
+
+	if(kind==="vide"||kind==="soun"){
+		if(stsd){
+			const ep=stsd.s+8
+			const esz=dv.getUint32(ep)
+			const etype=fourcc(dv,ep+4)
+			if(kind==="vide") parseMp4Video(dv,etype,ep+8,ep+esz,t)
+			else parseMp4Audio(dv,etype,ep+8,ep+esz,t)
+		}
+	}
+
+	if(kind==="vide"){
+		if(samples>0&&dur>0){
+			t.fps=samples/dur
+			if(entries>1&&dominant/samples<0.97) t.vfr=true
+		}
+		if(tkhd){
+			const v=dv.getUint8(tkhd.s)
+			const m=tkhd.s+(v?36:24)+16
+			const a=dv.getInt32(m)/65536
+			const b=dv.getInt32(m+4)/65536
+			const rot=Math.round(Math.atan2(b,a)*180/Math.PI)
+			t.rotation=(rot+360)%360
+			// 表示サイズ（tkhd 末尾の 16.16 固定小数）が取れれば優先
+			const w=dv.getUint32(m+36)/65536
+			const h=dv.getUint32(m+40)/65536
+			if(w>0&&h>0){
+				t.displayWidth=Math.round(w)
+				t.displayHeight=Math.round(h)
+			}
+		}
+		res.video.push(t)
+	}else if(kind==="soun"){
+		res.audio.push(t)
+	}else if(kind==="sbtl"||kind==="subt"||kind==="text"||kind==="clcp"){
+		res.subs++
+	}
+}
+
+async function parseMP4(file,headBrand){
+	const res={container:"MP4",video:[],audio:[],subs:0}
+	const total=file.size
+	let pos=0,guard=0,brand=headBrand||""
+	while(pos+8<=total&&guard++<10000){
+		const h=await readDV(file,pos,16)
+		let size=h.getUint32(0)
+		const type=fourcc(h,4)
+		let hl=8
+		if(size===1){
+			size=Number(h.getBigUint64(8))
+			hl=16
+		}else if(size===0){
+			size=total-pos
+		}
+		if(size<hl) break
+		if(type==="ftyp"){
+			const f=await readDV(file,pos+hl,Math.min(size-hl,64))
+			brand=fourcc(f,0)
+		}
+		if(type==="moov"){
+			if(size>400e6) break
+			const m=await readDV(file,pos+hl,size-hl)
+			const dv=m
+			for(const b of mp4Kids(dv,0,dv.byteLength)){
+				if(b.t==="mvhd"){
+					const ver=dv.getUint8(b.s)
+					const ts=dv.getUint32(b.s+(ver?20:12))
+					const d=ver?Number(dv.getBigUint64(b.s+24)):dv.getUint32(b.s+16)
+					res.duration=d/ts
+				}else if(b.t==="trak"){
+					parseMp4Trak(dv,b,res)
+				}else if(b.t==="mvex"){
+					res.fragmented=true
+				}
+			}
+			break
+		}
+		pos+=size
+	}
+	const b=brand.trim()
+	let name="MP4"
+	if(brand==="qt  ") name="MOV (QuickTime)"
+	else if(/^M4A/i.test(brand)) name="M4A"
+	else if(/^M4V/i.test(brand)) name="M4V (MP4)"
+	else if(/^3g2/i.test(brand)) name="3G2"
+	else if(/^3gp/i.test(brand)) name="3GP"
+	else if(/^(isom|iso\d|mp4\d|avc1|dash|mmp4)/i.test(brand)) name="MP4"
+	else if(!brand) name="MOV / MP4"
+	res.container=name+(b&&brand!=="qt  "?` (${b})`:"")
+	return res
+}
+
+/* ---------- Matroska / WebM ---------- */
+
+const MKV_CODECS={
+	"V_MPEG4/ISO/AVC":"H.264 / AVC","V_MPEGH/ISO/HEVC":"H.265 / HEVC","V_VP8":"VP8","V_VP9":"VP9","V_AV1":"AV1",
+	"V_MPEG4/ISO/ASP":"MPEG-4 ASP","V_MPEG2":"MPEG-2","V_MPEG1":"MPEG-1","V_THEORA":"Theora","V_MS/VFW/FOURCC":"VfW (AVI互換)","V_PRORES":"Apple ProRes",
+	"A_AAC":"AAC","A_AAC/MPEG4/LC":"AAC-LC","A_OPUS":"Opus","A_VORBIS":"Vorbis","A_FLAC":"FLAC","A_AC3":"AC-3 (Dolby Digital)",
+	"A_EAC3":"E-AC-3 (Dolby Digital Plus)","A_DTS":"DTS","A_MPEG/L3":"MP3","A_MPEG/L2":"MP2","A_TRUEHD":"TrueHD",
+	"A_PCM/INT/LIT":"PCM","A_PCM/INT/BIG":"PCM","A_PCM/FLOAT/IEEE":"PCM float"
+}
+
+async function parseMKV(file){
+	const dv=await readDV(file,0,4*1024*1024)
+	const res={container:"Matroska (MKV)",video:[],audio:[],subs:0}
+	const CONT=new Set([0x1A45DFA3,0x18538067,0x1549A966,0x1654AE6B,0xAE,0xE0,0xE1])
+	let scale=1000000
+	let cur=null
+
+	const readId=p=>{
+		const b=dv.getUint8(p)
+		let len=1,m=0x80
+		while(len<4&&!(b&m)){len++;m>>=1}
+		let id=0
+		for(let i=0;i<len;i++) id=id*256+dv.getUint8(p+i)
+		return [id,len]
+	}
+	const readSize=p=>{
+		const b=dv.getUint8(p)
+		let len=1,m=0x80
+		while(len<8&&!(b&m)){len++;m>>=1}
+		let v=b&(m-1)
+		let ones=v===m-1
+		for(let i=1;i<len;i++){
+			const x=dv.getUint8(p+i)
+			v=v*256+x
+			if(x!==255) ones=false
+		}
+		return [ones?-1:v,len]
+	}
+	const uint=(p,n)=>{
+		let v=0
+		for(let i=0;i<n;i++) v=v*256+dv.getUint8(p+i)
+		return v
+	}
+	const flt=(p,n)=>n===4?dv.getFloat32(p):dv.getFloat64(p)
+
+	function walk(s,e){
+		let p=s
+		while(p+2<=e){
+			const [id,il]=readId(p)
+			const [sz,sl]=readSize(p+il)
+			const ds=p+il+sl
+			const de=sz<0?e:Math.min(ds+sz,e)
+			if(id===0x1F43B675) return true
+			if(CONT.has(id)){
+				if(id===0xAE) cur={}
+				const stop=walk(ds,de)
+				if(id===0xAE&&cur){
+					if(cur.type===1) res.video.push(cur)
+					else if(cur.type===2) res.audio.push(cur)
+					else if(cur.type===17) res.subs++
+					cur=null
+				}
+				if(stop) return true
+			}else{
+				const n=de-ds
+				switch(id){
+					case 0x4282: {
+						const doc=ascii(dv,ds,n)
+						res.container=doc==="webm"?"WebM":"Matroska (MKV)"
+						break
+					}
+					case 0x2AD7B1: scale=uint(ds,n);break
+					case 0x4489: res.duration=flt(ds,n)*scale/1e9;break
+					case 0x83: if(cur) cur.type=uint(ds,n);break
+					case 0x86: if(cur) cur.codecId=ascii(dv,ds,n);break
+					case 0x23E383: if(cur){const d=uint(ds,n);if(d>0) cur.fps=1e9/d};break
+					case 0xB0: if(cur) cur.width=uint(ds,n);break
+					case 0xBA: if(cur) cur.height=uint(ds,n);break
+					case 0x54B0: if(cur) cur.displayWidth=uint(ds,n);break
+					case 0x54BA: if(cur) cur.displayHeight=uint(ds,n);break
+					case 0xB5: if(cur) cur.sampleRate=Math.round(flt(ds,n));break
+					case 0x9F: if(cur) cur.channels=uint(ds,n);break
+					case 0x6264: if(cur) cur.bits=uint(ds,n);break
+				}
+			}
+			p=de
+		}
+		return false
+	}
+	walk(0,dv.byteLength)
+	for(const t of [...res.video,...res.audio]){
+		t.codec=MKV_CODECS[t.codecId]||t.codecId||"不明"
+		if(t.bits&&!/PCM/.test(t.codec)) t.bits=0
+	}
+	return res
+}
+
+/* ---------- AVI / WAV (RIFF) ---------- */
+
+const AVI_VIDEO={
+	"H264":"H.264 / AVC","h264":"H.264 / AVC","X264":"H.264 / AVC","x264":"H.264 / AVC","avc1":"H.264 / AVC","AVC1":"H.264 / AVC",
+	"HEVC":"H.265 / HEVC","hvc1":"H.265 / HEVC","XVID":"MPEG-4 ASP (Xvid)","xvid":"MPEG-4 ASP (Xvid)","DIVX":"MPEG-4 ASP (DivX)","DX50":"MPEG-4 ASP (DivX)",
+	"FMP4":"MPEG-4 ASP","MP4V":"MPEG-4 ASP","MJPG":"Motion JPEG","mjpg":"Motion JPEG","WMV1":"WMV7","WMV2":"WMV8","WMV3":"WMV9","VP80":"VP8","VP90":"VP9","av01":"AV1"
+}
+const WAVE_TAGS={1:"PCM",3:"PCM float",6:"A-law",7:"μ-law",0x11:"IMA ADPCM",0x55:"MP3",0x161:"WMA",0x162:"WMA Pro",0xFF:"AAC",0x1610:"AAC",0x2000:"AC-3",0x2001:"DTS",0xFFFE:"PCM(拡張)",0x674F:"Vorbis",0x706D:"AAC"}
+
+async function parseAVI(file){
+	const dv=await readDV(file,0,512*1024)
+	const res={container:"AVI",video:[],audio:[],subs:0}
+	let cur=null
+	let avih=null
+
+	function walk(s,e){
+		let p=s
+		while(p+8<=e){
+			const id=fourcc(dv,p)
+			const sz=dv.getUint32(p+4,true)
+			const ds=p+8
+			const de=Math.min(ds+sz,e)
+			if(id==="LIST"){
+				const lt=fourcc(dv,ds)
+				if(lt==="movi") return
+				if(lt==="strl") cur={}
+				walk(ds+4,de)
+				if(lt==="strl"&&cur){
+					if(cur.kind==="vids") res.video.push(cur)
+					else if(cur.kind==="auds") res.audio.push(cur)
+					cur=null
+				}
+			}else if(id==="avih"){
+				avih={
+					usPerFrame:dv.getUint32(ds,true),
+					frames:dv.getUint32(ds+16,true),
+					width:dv.getUint32(ds+32,true),
+					height:dv.getUint32(ds+36,true)
+				}
+			}else if(id==="strh"&&cur){
+				cur.kind=fourcc(dv,ds)
+				cur.handler=fourcc(dv,ds+4)
+				const scale=dv.getUint32(ds+20,true)
+				const rate=dv.getUint32(ds+24,true)
+				if(cur.kind==="vids"&&scale>0&&rate>0) cur.fps=rate/scale
+				cur.length=dv.getUint32(ds+32,true)
+			}else if(id==="strf"&&cur){
+				if(cur.kind==="vids"){
+					cur.width=dv.getUint32(ds+4,true)
+					cur.height=Math.abs(dv.getInt32(ds+8,true))
+					const comp=fourcc(dv,ds+16)
+					const key=comp.replace(/\0/g,"")
+					cur.codec=AVI_VIDEO[key]||AVI_VIDEO[cur.handler]||key||cur.handler||"非圧縮"
+				}else if(cur.kind==="auds"){
+					const tag=dv.getUint16(ds,true)
+					cur.codec=WAVE_TAGS[tag]||("0x"+tag.toString(16))
+					cur.channels=dv.getUint16(ds+2,true)
+					cur.sampleRate=dv.getUint32(ds+4,true)
+					cur.bitrate=dv.getUint32(ds+8,true)*8
+					const bits=dv.getUint16(ds+14,true)
+					if(bits&&(tag===1||tag===3||tag===0xFFFE)) cur.bits=bits
+				}
+			}
+			p=ds+sz+(sz&1)
+		}
+	}
+	walk(12,dv.byteLength)
+	if(avih&&avih.usPerFrame>0&&avih.frames>0) res.duration=avih.frames*avih.usPerFrame/1e6
+	for(const v of res.video){
+		if(!v.fps&&avih&&avih.usPerFrame>0) v.fps=1e6/avih.usPerFrame
+		if(!v.width&&avih){v.width=avih.width;v.height=avih.height}
+	}
+	return res
+}
+
+async function parseWAV(file){
+	const dv=await readDV(file,0,64*1024)
+	const res={container:"WAV",video:[],audio:[],subs:0}
+	let p=12
+	while(p+8<=dv.byteLength){
+		const id=fourcc(dv,p)
+		const sz=dv.getUint32(p+4,true)
+		if(id==="fmt "){
+			const tag=dv.getUint16(p+8,true)
+			const t={
+				codec:WAVE_TAGS[tag]||("0x"+tag.toString(16)),
+				channels:dv.getUint16(p+10,true),
+				sampleRate:dv.getUint32(p+12,true),
+				bitrate:dv.getUint32(p+16,true)*8,
+				bits:dv.getUint16(p+22,true)
+			}
+			res.audio.push(t)
+			break
+		}
+		p+=8+sz+(sz&1)
+	}
+	return res
+}
+
+/* ---------- 音声のみのコンテナ（MP3 / FLAC / Ogg など） ---------- */
+
+const MP3_BR={
+	"1-1":[0,32,64,96,128,160,192,224,256,288,320,352,384,416,448],
+	"1-2":[0,32,48,56,64,80,96,112,128,160,192,224,256,320,384],
+	"1-3":[0,32,40,48,56,64,80,96,112,128,160,192,224,256,320],
+	"2-1":[0,32,48,56,64,80,96,112,128,144,160,176,192,224,256],
+	"2-2":[0,8,16,24,32,40,48,56,64,80,96,112,128,144,160],
+	"2-3":[0,8,16,24,32,40,48,56,64,80,96,112,128,144,160]
+}
+const MP3_SR=[44100,48000,32000]
+
+async function parseMP3(file){
+	const dv=await readDV(file,0,256*1024)
+	const res={container:"MP3",video:[],audio:[],subs:0}
+	let p=0
+	if(ascii(dv,0,3)==="ID3"){
+		p=10+((dv.getUint8(6)&127)<<21|(dv.getUint8(7)&127)<<14|(dv.getUint8(8)&127)<<7|(dv.getUint8(9)&127))
+	}
+	for(let i=p;i+4<dv.byteLength&&i<p+8192;i++){
+		if(dv.getUint8(i)!==0xFF||(dv.getUint8(i+1)&0xE0)!==0xE0) continue
+		const b1=dv.getUint8(i+1),b2=dv.getUint8(i+2),b3=dv.getUint8(i+3)
+		const verBits=(b1>>3)&3
+		const layerBits=(b1>>1)&3
+		if(verBits===1||layerBits===0) {
+			if(layerBits===0&&verBits!==1){
+				res.container="AAC (ADTS)"
+				const srs=[96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000]
+				res.audio.push({codec:"AAC",sampleRate:srs[(b2>>2)&15],channels:((b2&1)<<2)|(b3>>6)})
+				return res
+			}
+			continue
+		}
+		const ver=verBits===3?1:2
+		const layer=4-layerBits
+		const br=MP3_BR[ver+"-"+layer]?.[b2>>4]
+		let sr=MP3_SR[(b2>>2)&3]
+		if(!br||!sr) continue
+		if(verBits===2) sr/=2
+		if(verBits===0) sr/=4
+		res.audio.push({
+			codec:layer===3?"MP3":`MPEG Audio Layer ${layer}`,
+			sampleRate:sr,
+			channels:((b3>>6)&3)===3?1:2,
+			bitrate:br*1000
+		})
+		res.container="MP3"
+		return res
+	}
+	return res
+}
+
+async function parseFLAC(file){
+	const dv=await readDV(file,0,64)
+	const res={container:"FLAC",video:[],audio:[],subs:0}
+	if(dv.byteLength>=42){
+		const sr=(dv.getUint8(18)<<12)|(dv.getUint8(19)<<4)|(dv.getUint8(20)>>4)
+		const ch=((dv.getUint8(20)>>1)&7)+1
+		const bits=(((dv.getUint8(20)&1)<<4)|(dv.getUint8(21)>>4))+1
+		const total=((dv.getUint8(21)&15)*4294967296)+dv.getUint32(22)
+		res.audio.push({codec:"FLAC",sampleRate:sr,channels:ch,bits})
+		if(sr>0&&total>0) res.duration=total/sr
+	}
+	return res
+}
+
+async function parseOgg(file){
+	const dv=await readDV(file,0,4096)
+	const res={container:"Ogg",video:[],audio:[],subs:0}
+	const s=ascii(dv,0,Math.min(dv.byteLength,512))
+	if(s.includes("OpusHead")){
+		const i=s.indexOf("OpusHead")
+		res.container="Ogg (Opus)"
+		res.audio.push({codec:"Opus",channels:dv.getUint8(i+9),sampleRate:48000})
+	}else if(s.includes("\x01vorbis")){
+		const i=s.indexOf("\x01vorbis")
+		res.container="Ogg (Vorbis)"
+		res.audio.push({codec:"Vorbis",channels:dv.getUint8(i+11),sampleRate:dv.getUint32(i+12,true)})
+	}else if(s.includes("\x7fFLAC")){
+		res.container="Ogg (FLAC)"
+		res.audio.push({codec:"FLAC"})
+	}else if(s.includes("\x80theora")){
+		res.container="Ogg (Theora) / OGV"
+		res.video.push({codec:"Theora"})
+		res.audio.push({codec:"Vorbis等"})
+	}
+	return res
+}
+
+/* ---------- 形式判定 ---------- */
+
+async function analyzeContainer(file){
+	const head=await readDV(file,0,1024)
+	if(head.byteLength<12) return null
+	const b=i=>head.getUint8(i)
+	const tag4=fourcc(head,4)
+	try{
+		if(tag4==="ftyp") return await parseMP4(file,fourcc(head,8))
+		if(["moov","mdat","wide","free","skip","pnot"].includes(tag4)) return await parseMP4(file,"qt  ")
+		if(b(0)===0x1A&&b(1)===0x45&&b(2)===0xDF&&b(3)===0xA3) return await parseMKV(file)
+		if(ascii(head,0,4)==="RIFF"){
+			const t=ascii(head,8,4)
+			if(t==="AVI ") return await parseAVI(file)
+			if(t==="WAVE") return await parseWAV(file)
+		}
+		if(ascii(head,0,4)==="OggS") return await parseOgg(file)
+		if(ascii(head,0,4)==="fLaC") return await parseFLAC(file)
+		if(ascii(head,0,3)==="FLV") return {container:"FLV",video:[],audio:[],subs:0,limited:true}
+		if(b(0)===0x30&&b(1)===0x26&&b(2)===0xB2&&b(3)===0x75) return {container:"ASF (WMV / WMA)",video:[],audio:[],subs:0,limited:true}
+		if(b(0)===0&&b(1)===0&&b(2)===1&&b(3)===0xBA) return {container:"MPEG-PS (MPG / VOB)",video:[],audio:[],subs:0,limited:true}
+		if(head.byteLength>=389&&b(0)===0x47&&b(188)===0x47&&b(376)===0x47) return {container:"MPEG-TS",video:[],audio:[],subs:0,limited:true}
+		if(head.byteLength>=393&&b(4)===0x47&&b(196)===0x47&&b(388)===0x47) return {container:"MPEG-TS (M2TS / BDAV)",video:[],audio:[],subs:0,limited:true}
+		if(ascii(head,0,3)==="ID3"||(b(0)===0xFF&&(b(1)&0xE0)===0xE0)) return await parseMP3(file)
+	}catch(err){
+		console.warn("コンテナ解析失敗",err)
+		return {container:"解析失敗（壊れている可能性）",video:[],audio:[],subs:0,limited:true}
+	}
+	return null
+}
+
+/* ---------- 表示 ---------- */
+
+function fmtDuration(sec){
+	const h=Math.floor(sec/3600)
+	const m=Math.floor(sec%3600/60)
+	const s=(sec%60).toFixed(2).padStart(5,"0")
+	const hms=h>0?`${h}:${String(m).padStart(2,"0")}:${s}`:`${m}:${s}`
+	return `${sec.toFixed(2)} 秒（${hms}）`
+}
+
+function fmtBitrate(bps){
+	return bps>=1e6?(bps/1e6).toFixed(2)+" Mbps":Math.round(bps/1000)+" kbps"
+}
+
+function fmtSize(bytes){
+	if(bytes>=1024**3) return (bytes/1024**3).toFixed(2)+" GB"
+	return (bytes/1024/1024).toFixed(2)+" MB"
+}
+
+function fmtChannels(n){
+	if(n===1) return "モノラル"
+	if(n===2) return "ステレオ"
+	if(n===6) return "5.1ch"
+	if(n===8) return "7.1ch"
+	return n+"ch"
+}
+
+function fmtFps(fps){
+	return parseFloat(fps.toFixed(3))
+}
+
+function aspect(w,h){
+	const g=(a,b)=>b?g(b,a%b):a
+	const d=g(w,h)
+	const a=w/d,b=h/d
+	if(a<=32&&b<=32) return `${a}:${b}`
+	return (w/h).toFixed(2)+":1"
+}
+
+function row(k,v){
+	return `<tr><td>${k}</td><td>${v}</td></tr>`
+}
+
+function section(title){
+	return `<tr><th class="sec" colspan="2">${title}</th></tr>`
+}
+
+function videoRows(v,i,multi,mediaW,mediaH){
+	let w=v.width||mediaW||0
+	let h=v.height||mediaH||0
+	let rows=section("映像"+(multi?` #${i+1}`:""))
+	rows+=row("コーデック",esc(v.codec||"不明")+(v.detail?`（${esc(v.detail)}）`:""))
+	if(w&&h){
+		let s=`${w} × ${h}`
+		if(v.rotation) s+=`（${v.rotation}° 回転メタデータあり）`
+		rows+=row("解像度",s)
+		const dw=(v.rotation===90||v.rotation===270)?h:w
+		const dh=(v.rotation===90||v.rotation===270)?w:h
+		rows+=row("アスペクト比",aspect(dw,dh))
+	}
+	if(v.displayWidth&&v.displayHeight&&(v.displayWidth!==w||v.displayHeight!==h)){
+		rows+=row("表示サイズ",`${v.displayWidth} × ${v.displayHeight}`)
+	}
+	if(v.fps){
+		rows+=row("フレームレート",v.vfr?`平均 ${fmtFps(v.fps)} fps（可変フレームレート）`:`${fmtFps(v.fps)} fps`)
+	}else{
+		rows+=row("フレームレート",`<span id="fpsCell">${media.requestVideoFrameCallback?"動画を再生すると実測します":"不明"}</span>`)
+	}
+	if(v.samples) rows+=row("総フレーム数",v.samples.toLocaleString())
+	if(v.streamBitrate) rows+=row("映像ビットレート",fmtBitrate(v.streamBitrate))
+	return rows
+}
+
+function audioRows(a,i,multi,decoded){
+	let rows=section("音声"+(multi?` #${i+1}`:""))
+	rows+=row("コーデック",esc(a.codec||"不明"))
+	const sr=a.sampleRate||(decoded?decoded.sampleRate:0)
+	if(sr) rows+=row("サンプリング周波数",sr+" Hz"+(a.sampleRate?"":"（デコード時の値）"))
+	if(a.bits) rows+=row("ビット深度",a.bits+" bit")
+	else if(/PCM|FLAC|ALAC/.test(a.codec||"")) rows+=row("ビット深度","不明")
+	const ch=a.channels||(decoded?decoded.numberOfChannels:0)
+	if(ch) rows+=row("チャンネル",fmtChannels(ch))
+	const br=a.streamBitrate||a.bitrate
+	if(br) rows+=row("音声ビットレート",fmtBitrate(br))
+	return rows
+}
+
+function render(file,p,decoded,mediaOK){
+	const dur=isFinite(media.duration)&&media.duration>0?media.duration:(p&&p.duration)||(decoded?decoded.duration:0)
+	let html="<table>"
+	html+=section("ファイル")
+	html+=row("名前",esc(file.name))
+	html+=row("コンテナ",esc(p?p.container:(file.name.split(".").pop()||"不明").toUpperCase()+"（判定不可）"))
+	if(dur) html+=row("長さ",fmtDuration(dur))
+	html+=row("ファイルサイズ",fmtSize(file.size))
+	if(dur) html+=row("総ビットレート",fmtBitrate(file.size*8/dur))
+
+	const vids=p?p.video:[]
+	const auds=p?p.audio:[]
+	const hasVideoByBrowser=mediaOK&&media.videoWidth>0
+	if(vids.length){
+		vids.forEach((v,i)=>html+=videoRows(v,i,vids.length>1,media.videoWidth,media.videoHeight))
+	}else if(hasVideoByBrowser){
+		html+=videoRows({},0,false,media.videoWidth,media.videoHeight)
+	}
+	if(auds.length){
+		auds.forEach((a,i)=>html+=audioRows(a,i,auds.length>1,decoded))
+	}else if(decoded){
+		html+=audioRows({},0,false,decoded)
+	}
+	if(p&&p.subs) html+=row("字幕トラック",p.subs+" 本")
+	html+="</table>"
+
+	const notes=[]
+	if(!mediaOK) notes.push("このブラウザでは再生できない形式のため、ファイル内のメタデータのみ表示しています。")
+	if(p&&p.limited&&!vids.length&&!auds.length) notes.push("この形式は詳細なコーデック情報の解析に未対応です（コンテナ名とブラウザから取得できる情報のみ）。")
+	if(p&&p.fragmented) notes.push("フラグメント化MP4のため、フレーム数やビットレートは取得できません。")
+	if(notes.length) html+=`<div class="note">${notes.map(esc).join("<br>")}</div>`
+	info.innerHTML=html
+
+	const needProbe=document.getElementById("fpsCell")
+	if(needProbe) startFpsProbe(needProbe)
+}
+
+/* ---------- FPS 実測（メタデータから取れない場合の保険） ---------- */
+
+let probeId=0
+
+function startFpsProbe(cell){
+	if(!media.requestVideoFrameCallback) return
+	const my=++probeId
+	const deltas=[]
+	let lastPF=-1,lastMT=-1
+	const cb=(now,m)=>{
+		if(my!==probeId) return
+		if(lastPF>=0&&m.presentedFrames-lastPF===1&&m.mediaTime>lastMT){
+			deltas.push(m.mediaTime-lastMT)
+			if(deltas.length>60) deltas.shift()
+		}
+		lastPF=m.presentedFrames
+		lastMT=m.mediaTime
+		if(deltas.length>=8){
+			const s=[...deltas].sort((a,b)=>a-b)
+			const med=s[s.length>>1]
+			cell.textContent=`約 ${parseFloat((1/med).toFixed(2))} fps（再生からの実測）`
+		}
+		media.requestVideoFrameCallback(cb)
+	}
+	media.requestVideoFrameCallback(cb)
+}
+
+/* ---------- 読み込み ---------- */
+
+function waitMeta(){
+	return new Promise(resolve=>{
+		const done=ok=>{
+			media.removeEventListener("loadedmetadata",onOk)
+			media.removeEventListener("error",onNg)
+			clearTimeout(timer)
+			resolve(ok)
+		}
+		const onOk=()=>done(true)
+		const onNg=()=>done(false)
+		const timer=setTimeout(()=>done(false),8000)
+		media.addEventListener("loadedmetadata",onOk)
+		media.addEventListener("error",onNg)
+	})
+}
+
+function clearCanvases(){
+	waveCtx.clearRect(0,0,waveCanvas.width,waveCanvas.height)
+}
+
+async function loadMedia(file){
+
+	const my=++loadId
+	probeId++
+
+	if(mediaURL) URL.revokeObjectURL(mediaURL)
+
+	info.innerHTML="解析中..."
+	controls.style.display="flex"
+	clearCanvases()
+
+	mediaURL=URL.createObjectURL(file)
+	media.src=mediaURL
+
+	const [p,mediaOK]=await Promise.all([analyzeContainer(file),waitMeta()])
+	if(my!==loadId) return
+
+	// 映像なし・音声ありの場合は小さなプレイヤーにする
+	const hasVideo=(p&&p.video.length>0)||(mediaOK&&media.videoWidth>0)
+	media.style.height=hasVideo?"":"54px"
+
+	// 波形用デコード（巨大ファイルや音声なしはスキップ）
+	let decoded=null
+	const noAudio=p&&!p.limited&&p.audio.length===0
+	if(mediaOK&&!noAudio&&file.size<=300*1024*1024){
+		try{
+			const buffer=await file.arrayBuffer()
+			decoded=await audioCtx.decodeAudioData(buffer)
+		}catch(err){
+			console.warn("音声デコード失敗",err)
+		}
+	}
+	if(my!==loadId) return
+
+	render(file,p,decoded,mediaOK)
+
+	if(decoded) drawWaveform(decoded)
+	if(mediaOK) setupFFT()
 
 }
 
 function drawWaveform(audioBuffer){
 
-waveCanvas.width=waveCanvas.clientWidth
+	waveCanvas.width=waveCanvas.clientWidth
 
-const data=audioBuffer.getChannelData(0)
+	const data=audioBuffer.getChannelData(0)
 
-const step=Math.ceil(data.length/waveCanvas.width)
+	const step=Math.ceil(data.length/waveCanvas.width)
 
-const amp=waveCanvas.height/2
+	const amp=waveCanvas.height/2
 
-waveCtx.clearRect(0,0,waveCanvas.width,waveCanvas.height)
+	waveCtx.clearRect(0,0,waveCanvas.width,waveCanvas.height)
 
-waveCtx.beginPath()
+	waveCtx.beginPath()
 
-for(let i=0;i<waveCanvas.width;i++){
+	for(let i=0;i<waveCanvas.width;i++){
 
-let min=1
-let max=-1
+		let min=1
+		let max=-1
 
-for(let j=0;j<step;j++){
+		for(let j=0;j<step;j++){
 
-const d=data[(i*step)+j]
+			const d=data[(i*step)+j]
 
-if(d<min) min=d
-if(d>max) max=d
+			if(d<min) min=d
+			if(d>max) max=d
 
-}
+		}
 
-waveCtx.moveTo(i,(1+min)*amp)
-waveCtx.lineTo(i,(1+max)*amp)
+		waveCtx.moveTo(i,(1+min)*amp)
+		waveCtx.lineTo(i,(1+max)*amp)
 
-}
+	}
 
-waveCtx.stroke()
+	waveCtx.stroke()
 
 }
 
 function setupFFT(){
 
-if(source) source.disconnect()
+	// MediaElementSource は要素ごとに1回しか作れないので初回のみ構築する
+	if(analyser) return
 
-analyser=audioCtx.createAnalyser()
-analyser.fftSize=2048
+	analyser=audioCtx.createAnalyser()
+	analyser.fftSize=2048
 
-source=audioCtx.createMediaElementSource(audio)
+	const source=audioCtx.createMediaElementSource(media)
 
-source.connect(analyser)
-analyser.connect(audioCtx.destination)
+	source.connect(analyser)
+	analyser.connect(audioCtx.destination)
 
-const data=new Uint8Array(analyser.frequencyBinCount)
+	const data=new Uint8Array(analyser.frequencyBinCount)
 
-function draw(){
+	function draw(){
 
-fftCanvas.width=fftCanvas.clientWidth
+		fftCanvas.width=fftCanvas.clientWidth
 
-analyser.getByteFrequencyData(data)
+		analyser.getByteFrequencyData(data)
 
-fftCtx.clearRect(0,0,fftCanvas.width,fftCanvas.height)
+		fftCtx.clearRect(0,0,fftCanvas.width,fftCanvas.height)
 
-const barWidth=fftCanvas.width/data.length
+		const barWidth=fftCanvas.width/data.length
 
-let x=0
+		let x=0
 
-for(let i=0;i<data.length;i++){
+		for(let i=0;i<data.length;i++){
 
-const v=data[i]/255
-const y=v*fftCanvas.height
+			const v=data[i]/255
+			const y=v*fftCanvas.height
 
-fftCtx.fillStyle="#007bff"
-fftCtx.fillRect(x,fftCanvas.height-y,barWidth,y)
+			fftCtx.fillStyle="#007bff"
+			fftCtx.fillRect(x,fftCanvas.height-y,barWidth,y)
 
-x+=barWidth
+			x+=barWidth
 
-}
+		}
 
-requestAnimationFrame(draw)
+		requestAnimationFrame(draw)
 
-}
+	}
 
-draw()
+	draw()
 
 }
 
 dropArea.onclick=()=>fileInput.click()
 
 fileInput.onchange=e=>{
-const file=e.target.files[0]
-if(file) loadAudio(file)
+	const file=e.target.files[0]
+	if(file) loadMedia(file)
+	fileInput.value=""
 }
 
 dropArea.ondragover=e=>{
-e.preventDefault()
-dropArea.style.background="#eef"
+	e.preventDefault()
+	dropArea.style.background="#eef"
 }
 
 dropArea.ondragleave=e=>{
-dropArea.style.background="white"
+	dropArea.style.background="white"
 }
 
 dropArea.ondrop=e=>{
-e.preventDefault()
-dropArea.style.background="white"
+	e.preventDefault()
+	dropArea.style.background="white"
 
-const file=e.dataTransfer.files[0]
+	const file=e.dataTransfer.files[0]
 
-if(file && file.type.startsWith("audio")){
-loadAudio(file)
-}
+	if(file) loadMedia(file)
 
 }
 

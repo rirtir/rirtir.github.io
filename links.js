@@ -223,10 +223,10 @@ const data = [
                 main: true,
             },
             {
-                title: "音声解析ツール",
+                title: "音声・動画解析ツール",
                 url: "https://rirtir.com/Audio/AudioInfo/",
-                desc: "音声のサンプリング周波数やビット深度などを表示する。またFFTも表示。",
-                tags: ["音声", "音声処理", "オフライン"],
+                desc: "音声・動画のコーデック、解像度、FPS、ビットレート、コンテナ形式などを表示する。波形とFFTも表示。",
+                tags: ["音声", "動画", "音声処理", "オフライン"],
                 main: false,
             },
             {
