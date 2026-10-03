@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="光を導くパズル「PRISM」。鏡・ハーフミラー・フィルタ・プリズムで光を操り、虹のスペクトルを受光器へ届けよう。HDRブルームと波長ごとの光線追跡で描く、光のパズルゲーム。">
+<meta name="theme-color" content="#04060d">
+<meta property="og:title" content="PRISM — 光を導くパズル">
+<meta property="og:description" content="鏡・プリズム・フィルタ・ブラックホールで光を操り、虹を受光器へ届けよう。HDR描画の光学パズル。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://rirtir.com/Game/Prism/preview.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<title>PRISM — 光を導くパズル</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%23ff4d6d'/%3E%3Cstop offset='.5' stop-color='%2352e0a3'/%3E%3Cstop offset='1' stop-color='%23649bff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='7' fill='%2306091a'/%3E%3Cpath d='M16 6 27 25H5z' fill='none' stroke='url(%23g)' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;200;300&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<canvas id="gl"></canvas>
+<canvas id="ov"></canvas>
+
+<div id="app">
+  <!-- プレイ中 HUD -->
+  <header id="hud" class="hud hidden">
+    <button id="bMenu" class="ibtn" title="メニュー (Esc)" aria-label="メニュー">
+      <svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>
+    </button>
+    <div class="lvl"><span id="lvNo" class="no">1-1</span><span id="lvName" class="nm"></span></div>
+    <div id="chips" class="chips"></div>
+    <div class="spacer"></div>
+    <button id="bHelp" class="ibtn" title="ヒントの文章をもう一度" aria-label="説明"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.1 1-1.1 1.8M12 17h.01"/></svg></button>
+    <div class="stat"><span id="stMoves">0</span><small>手</small></div>
+    <button id="bUndo" class="ibtn" title="元に戻す (Ctrl+Z)" aria-label="元に戻す"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+    <button id="bRedo" class="ibtn" title="やり直す (Ctrl+Y)" aria-label="やり直す"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+    <button id="bHint" class="ibtn" title="ヒント (H)" aria-label="ヒント"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg></button>
+    <button id="bReset" class="ibtn" title="最初から" aria-label="最初から"><svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.8-6.3"/><path d="M3.5 4v5h5"/></svg></button>
+  </header>
+  <div id="caption" class="caption hidden"></div>
+  <button id="zenExit" class="ibtn hidden" aria-label="もどる" title="もどる (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <div id="nudge" class="nudge hidden">
+    <button data-k="l" aria-label="左">◀</button><button data-k="u" aria-label="上">▲</button><button data-k="d" aria-label="下">▼</button><button data-k="r" aria-label="右">▶</button>
+    <button data-k="ccw" aria-label="左回転">↺</button><button data-k="cw" aria-label="右回転">↻</button>
+  </div>
+
+  <!-- タイトル -->
+  <section id="title" class="screen">
+    <div class="title-wrap">
+      <div class="eyebrow">LIGHT PUZZLE</div>
+      <h1 class="wordmark" aria-label="PRISM"><span>P</span><span>R</span><span>I</span><span>S</span><span>M</span></h1>
+      <p class="tagline">光を導いて、虹を解く。</p>
+      <nav class="menu">
+        <button id="mPlay" class="btn primary"><span>はじめる</span><i></i></button>
+        <button id="mSelect" class="btn"><span>ステージ選択</span></button>
+        <div class="row">
+          <button id="mEndless" class="btn sm"><span>エンドレス</span></button>
+          <button id="mDaily" class="btn sm"><span>デイリー</span></button>
+          <button id="mEditor" class="btn sm"><span>エディタ</span></button>
+          <button id="mZen" class="btn sm"><span>ライトアート</span></button>
+        </div>
+      </nav>
+      <div class="foot">
+        <button id="mSound" class="link">♪ 音あり</button>
+        <button id="mFull" class="link">⛶ 全画面</button>
+      </div>
+    </div>
+    <div class="credit">ドラッグで移動 ・ 回転ハンドルかホイールで回転 ・ H でヒント</div>
+  </section>
+
+  <!-- ステージ選択 -->
+  <section id="select" class="screen hidden">
+    <div class="sel-head">
+      <button id="selBack" class="ibtn" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+      <h2>ステージ選択</h2>
+      <div id="selProg" class="prog"></div>
+    </div>
+    <div class="legend"><span><i class="lg done"></i>クリア済み</span><span><i class="lg star">★</i>ノーヒント</span><span><i class="lg cur"></i>つぎのステージ</span></div>
+    <div id="chapters" class="chapters"></div>
+  </section>
+
+  <!-- クリア -->
+  <section id="clear" class="modal hidden">
+    <div class="card">
+      <div class="clear-title">CLEAR</div>
+      <div id="clearName" class="clear-name"></div>
+      <div class="clear-stats">
+        <div><b id="clMoves">0</b><small>手数</small></div>
+        <div><b id="clTime">0:00</b><small>タイム</small></div>
+        <div><b id="clHints">0</b><small>ヒント</small></div>
+      </div>
+      <div id="clearNote" class="clear-note"></div>
+      <div class="clear-btns">
+        <button id="clRetry" class="btn sm"><span>もう一度</span></button>
+        <button id="clMenu" class="btn sm"><span>ステージ選択</span></button>
+        <button id="clNext" class="btn primary sm"><span>次のステージ</span><i></i></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ポーズ -->
+  <section id="pause" class="modal hidden">
+    <div class="card small">
+      <h3>ポーズ</h3>
+      <div class="pause-btns">
+        <button id="pResume" class="btn primary"><span>つづける</span></button>
+        <button id="pReset" class="btn"><span>最初からやり直す</span></button>
+        <button id="pBack" class="btn hidden"><span>エディタに戻る</span></button>
+        <button id="pSelect" class="btn"><span>ステージ選択</span></button>
+        <button id="pTitle" class="btn"><span>タイトルへ</span></button>
+        <div class="row">
+          <button id="pSound" class="btn sm"><span>効果音</span></button>
+          <button id="pMusic" class="btn sm"><span>環境音</span></button>
+          <button id="pFull" class="btn sm"><span>全画面</span></button>
+        </div>
+        <div class="row">
+          <button id="pQual" class="btn sm"><span>画質: 自動</span></button>
+          <button id="pShot" class="btn sm"><span>画像を保存</span></button>
+        </div>
+        <div class="keys">ドラッグ=移動 ／ ハンドル・ホイール=回転 ／ Q・E=微回転 ／ 矢印=微移動<br>Tab=次のパーツ ／ H=ヒント ／ Ctrl+Z / Y=やり直し ／ Esc=メニュー</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- エディタ -->
+  <aside id="editor" class="editor hidden">
+    <div class="ed-title">パーツを追加</div>
+    <div id="palette" class="palette"></div>
+    <div id="props" class="props"></div>
+    <div class="ed-actions">
+      <button id="edTest" class="btn sm"><span>固定して遊ぶ</span></button>
+      <button id="edShare" class="btn primary sm"><span>共有リンクをコピー</span></button>
+      <button id="edShot" class="btn sm"><span>画像を保存</span></button>
+      <button id="edClear" class="btn sm"><span>全消去</span></button>
+      <button id="edExit" class="btn sm"><span>終了</span></button>
+    </div>
+    <div id="edStatus" class="ed-status"></div>
+  </aside>
+
+  <div id="chapterCard" class="chcard hidden"><div class="no" id="chNo">CHAPTER 1</div><div class="nm" id="chNm">反射</div><div class="bar"></div><div class="en" id="chEn">REFLECT</div></div>
+  <div id="toast" class="toast"></div>
+  <div id="boot" class="boot"><div class="boot-in"><div class="boot-prism"></div><div id="bootMsg">光を準備中…</div></div></div>
+</div>
+<noscript>PRISM は JavaScript と WebGL2 が必要です。</noscript>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

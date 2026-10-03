@@ -78,3 +78,9 @@ https://icooon-mono.com/
 - 3Dエンジン: [three.js](https://threejs.org/) r186（MIT License）
 - テクスチャ・3Dモデル（岩・砂・樹皮・シダ・倒木など）: [Poly Haven](https://polyhaven.com/)（CC0 / パブリックドメイン）
 - 洞窟の形状・水・光の描画・環境音はすべてコードによる自作（音源ファイルなし）
+
+---
+
+### Game/Prism（PRISM）のクレジット
+- 描画・光学計算・効果音・BGM はすべてコードによる自作（画像・音源ファイルなし）
+- フォント: [Josefin Sans](https://fonts.google.com/specimen/Josefin+Sans) / [Zen Kaku Gothic New](https://fonts.google.com/specimen/Zen+Kaku+Gothic+New)（SIL Open Font License、Google Fonts から読み込み）
