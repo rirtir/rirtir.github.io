@@ -250,7 +250,7 @@ white-space:pre-wrap;
 ・ブラウザ上（シングルスレッド）で動くため、PC版 ffmpeg よりかなり遅く、特に GIF は時間がかかります（H.265 / VP9 への変換は ffmpeg.wasm では動かないため非対応。VP9 の読み込みは可能）。<br>
 ・ファイルはメモリ上に読み込まれるので、1GB を超えるような動画は失敗することがあります。<br>
 ・画像への変換は、動画の場合「開始（秒）」の位置の1フレームを書き出します。<br>
-・AV1 など同梱の ffmpeg が対応していない形式は読み込めません。
+・AV1 形式の動画（YouTube の WebM に多い）は、同梱の ffmpeg に AV1 デコーダが無いため映像を読み込めません（音声の取り出しは可能）。
 </div>
 
 </div>
@@ -622,10 +622,11 @@ async function probe(inName){
   currentDuration = 0
   await ffmpeg.exec(["-hide_banner","-i",inName])
   const text = logLines.slice(start).join("\n")
-  const info = {duration:currentDuration, hasVideo:false, hasAudio:false, fps:0}
+  const info = {duration:currentDuration, hasVideo:false, hasAudio:false, fps:0, vcodec:""}
   const v = /Stream #\d+:\d+[^\n]*?: Video: ([^\n]*)/.exec(text)
   if(v && !/attached pic/.test(v[0])){
     info.hasVideo = true
+    info.vcodec = /^\w+/.exec(v[1])[0]
     const fps = /(\d+(?:\.\d+)?) fps/.exec(v[1])
     if(fps) info.fps = +fps[1]
   }
@@ -689,6 +690,12 @@ async function convertOne(file, f, o){
 
     if(f.kind==="audio" && !info.hasAudio) throw new Error("音声が見つかりません")
     if(f.kind!=="audio" && !info.hasVideo) throw new Error("映像（画像）が見つかりません")
+
+    // 同梱の ffmpeg.wasm には AV1 デコーダが無い（映像を読まない音声出力・コピーは可）
+    if(info.vcodec==="av1" && f.kind!=="audio" && !o.copy){
+      throw new Error("映像が AV1 形式のため読み込めません（ffmpeg.wasm に AV1 デコーダがありません）。"
+        + "YouTube などの動画なら H.264（avc1）版を取得するか、PC の ffmpeg で変換してください。")
+    }
 
     currentDuration = info.duration
     const args = buildArgs(f, o, info, inName, outName)
