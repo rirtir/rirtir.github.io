@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja" data-motion="reduce">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>星の芽の庭 | STARSPROUT GARDEN</title>
+<meta name="description" content="夜の温室で星の植物を育てる放置ゲーム。しずくを集めて設備を育て、星の花を咲かせよう。">
+<meta name="theme-color" content="#0d1530">
+<link rel="stylesheet" href="../../css/common-style.css">
+<link rel="stylesheet" href="style.css">
+<script src="game.js" defer></script>
+</head>
+<body class="ssg">
+
+<svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-can" viewBox="0 0 24 24"><rect x="4" y="9" width="10" height="10" rx="2"/><path d="M14 12.5 20 8.5"/><path d="M4 12.5H2.8a1.8 1.8 0 0 0 0 3.6H4"/><path d="M7 9V7.8a3 3 0 0 1 3-3h1"/><path d="M20.6 12.8v.01M18.6 15.4v.01M21.2 16.4v.01" stroke-width="2.4"/></symbol>
+    <symbol id="i-lamp" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/><path d="M9.5 18h5M10.5 20.5h3"/></symbol>
+    <symbol id="i-pot" viewBox="0 0 24 24"><path d="M5 12h14l-1.6 7.2a1.5 1.5 0 0 1-1.5 1.3H8.1a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M12 12V7"/><path d="M12 9c-2.6 0-4-1.5-4-3.5 2.6 0 4 1.3 4 3.5zM12 8c0-2 1.5-3.5 4-3.5 0 2-1.5 3.5-4 3.5z"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="m16 9.5 4.5 5M20.5 9.5l-4.5 5"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4"/><path d="M8 20v-6h8v6"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3.5s6 6.2 6 10.3a6 6 0 0 1-12 0c0-4.100 6-10.300 6-10.300z"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.8 20h18.4z"/><path d="M12 10v4.5M12 17.4v.01" stroke-width="2"/></symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="top-title">
+      <p class="eyebrow">STARSPROUT GARDEN</p>
+      <h1>星の芽の庭</h1>
+      <p class="lead">夜の温室で、星の植物をそだてる放置ゲーム。しずくを集めて、星の花をゆっくり咲かせましょう。</p>
+    </div>
+    <ul class="badges" aria-label="状態">
+      <li class="badge"><svg class="ico" aria-hidden="true"><use href="#i-mute"/></svg><span>音なし</span></li>
+      <li class="badge" id="badge-save" data-state="ok"><svg class="ico" aria-hidden="true"><use href="#i-save"/></svg><span id="badge-save-text">自動保存</span></li>
+    </ul>
+  </header>
+
+  <div id="notices" class="notices" role="status" aria-live="polite"></div>
+
+  <div id="tab-banner" class="tab-banner" hidden>
+    <svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg>
+    <p class="tab-banner-text"><strong>他のタブで開かれています。</strong>このタブは一時停止中で、進行も保存もしません。<span class="tab-banner-sub">別のタブを閉じてから再読み込みしても続行できます。</span></p>
+    <button type="button" id="btn-takeover" class="btn btn-primary">このタブで続ける</button>
+  </div>
+
+  <div id="app">
+
+    <main class="layout">
+
+      <div class="col col-left">
+        <section class="card card-stats" aria-labelledby="h-stats">
+          <h2 class="card-title" id="h-stats"><span class="card-eyebrow">GROWTH</span>育成</h2>
+
+          <div class="drops">
+            <span class="drops-label"><svg class="ico" aria-hidden="true"><use href="#i-drop"/></svg>しずく</span>
+            <span class="drops-num" id="drops">0</span>
+          </div>
+
+          <dl class="stats">
+            <div class="stat"><dt>毎秒</dt><dd id="rate">0.5</dd></div>
+            <div class="stat"><dt>全体倍率</dt><dd id="mult">×1.00</dd></div>
+            <div class="stat"><dt>星</dt><dd id="stars">0</dd></div>
+          </dl>
+
+          <div class="growth">
+            <h3 class="growth-title" id="h-growth">成長の進み</h3>
+            <ol class="track" id="track" aria-hidden="true">
+              <li class="track-node"><span class="track-dot"></span><span class="track-name">種</span></li>
+              <li class="track-node"><span class="track-dot"></span><span class="track-name">芽</span></li>
+              <li class="track-node"><span class="track-dot"></span><span class="track-name">若葉</span></li>
+              <li class="track-node"><span class="track-dot"></span><span class="track-name">つぼみ</span></li>
+              <li class="track-node"><span class="track-dot"></span><span class="track-name">星の花</span></li>
+            </ol>
+            <div class="bar" id="bar" role="progressbar" aria-labelledby="h-growth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="種から芽へ 0%">
+              <span class="bar-fill" id="bar-fill"></span>
+            </div>
+            <p class="bar-note" id="grow-note">次の「芽」まで あと 30</p>
+          </div>
+        </section>
+
+        <section class="card card-collect" aria-labelledby="h-collect">
+          <h2 class="sr-only" id="h-collect">しずくを集める</h2>
+          <button type="button" class="btn-collect" id="btn-collect">
+            <span class="bc-main">しずくを集める</span>
+            <span class="bc-sub" id="tap-gain">+1 / タップ</span>
+          </button>
+        </section>
+      </div>
+
+      <section class="stage" id="stage" aria-label="温室">
+        <div class="stage-top">
+          <div class="hud" aria-hidden="true">
+            <span class="hud-item"><svg class="ico"><use href="#i-drop"/></svg><b id="hud-drops">0</b></span>
+            <span class="hud-item">毎秒 <b id="hud-rate">0.5</b></span>
+          </div>
+          <p class="stage-chip" id="stage-chip">STAGE 1 / 5</p>
+        </div>
+
+        <div class="fx" id="fx" aria-hidden="true">
+          <i class="fly f1"></i><i class="fly f2"></i><i class="fly f3"></i><i class="fly f4"></i><i class="fly f5"></i><i class="fly f6"></i>
+        </div>
+
+        <div class="plant-wrap" id="plant-wrap">
+          <div class="aura" aria-hidden="true"></div>
+          <img id="plant" class="plant" src="assets/stage-0.svg" alt="第1段階「種」の星の植物" width="320" height="360" decoding="async">
+        </div>
+
+        <div class="stage-caption">
+          <p class="stage-ready" id="stage-ready" hidden><svg class="ico" aria-hidden="true"><use href="#i-star"/></svg>星を収穫できます</p>
+          <p class="stage-name" id="stage-name">種</p>
+          <p class="stage-poem" id="stage-poem"></p>
+        </div>
+      </section>
+
+      <div class="col col-right">
+        <section class="card card-shop" aria-labelledby="h-shop">
+          <h2 class="card-title" id="h-shop"><span class="card-eyebrow">TOOLS</span>設備</h2>
+          <ul class="shop" id="shop"></ul>
+        </section>
+
+        <section class="card card-harvest" id="harvest" data-ready="false" aria-labelledby="h-harvest">
+          <h2 class="card-title" id="h-harvest"><span class="card-eyebrow">HARVEST</span>星の収穫</h2>
+          <p class="harvest-text" id="harvest-text"></p>
+          <button type="button" class="btn-harvest" id="btn-harvest" aria-disabled="true">
+            <svg class="ico" aria-hidden="true"><use href="#i-star"/></svg><span id="harvest-label">星を収穫する</span>
+          </button>
+          <p class="harvest-note">しずく・設備・累積はリセットされ、星と実績は残ります。</p>
+        </section>
+      </div>
+
+    </main>
+
+    <section class="info" aria-label="実績・遊び方・設定">
+      <div class="tabbar" id="tabbar" role="tablist" aria-label="実績・遊び方・設定">
+        <button type="button" role="tab" id="tab-ach" data-tab="ach" aria-controls="panel-ach" aria-selected="false" tabindex="0">実績<span class="tab-count" id="ach-count">0/8</span></button>
+        <button type="button" role="tab" id="tab-how" data-tab="how" aria-controls="panel-how" aria-selected="false" tabindex="-1">遊び方</button>
+        <button type="button" role="tab" id="tab-set" data-tab="set" aria-controls="panel-set" aria-selected="false" tabindex="-1">設定</button>
+      </div>
+
+      <div class="panels" id="panels" hidden>
+        <button type="button" class="panels-close" id="panels-close">閉じる</button>
+
+        <div role="tabpanel" id="panel-ach" data-panel="ach" aria-labelledby="tab-ach" tabindex="0" hidden>
+          <h2 class="panel-title">実績</h2>
+          <ul class="ach-list" id="ach-list"></ul>
+        </div>
+
+        <div role="tabpanel" id="panel-how" data-panel="how" aria-labelledby="tab-how" tabindex="0" hidden>
+          <h2 class="panel-title">遊び方</h2>
+          <p class="how-lead">しずくを集めて設備を育て、星の花を咲かせよう。収穫した星は次の庭を永く照らします。</p>
+          <ul class="how-list">
+            <li>「しずくを集める」を押すと、しずくが増えます。何もしなくても、毎秒少しずつ集まります。</li>
+            <li>設備を買うと強くなります。じょうろはタップ、ランプは毎秒、鉢は全体の量を伸ばします。</li>
+            <li>集めた量に応じて、種から星の花まで5段階に育ちます。</li>
+            <li>星の花が咲いたら「星を収穫」。星1つにつき全体が10%増え、次の庭が育てやすくなります。</li>
+            <li>閉じている間もしずくは貯まります（最大8時間、効率は50%）。進み具合は自動で保存されます。</li>
+          </ul>
+        </div>
+
+        <div role="tabpanel" id="panel-set" data-panel="set" aria-labelledby="tab-set" tabindex="0" hidden>
+          <h2 class="panel-title">設定</h2>
+          <div class="set-row">
+            <button type="button" class="switch" id="motion-sw" role="switch" aria-checked="false" aria-describedby="motion-desc">
+              <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+              <span class="switch-label">動きを控えめにする</span>
+            </button>
+            <p class="set-desc" id="motion-desc">植物の揺れ、光の粒、発光の明滅を止めます。端末の「視差効果を減らす」設定にも従います。</p>
+          </div>
+          <div class="set-row">
+            <p class="set-label">保存</p>
+            <p class="set-desc" id="save-status-text">自動保存が有効です。</p>
+          </div>
+          <div class="set-row">
+            <p class="set-label">データの初期化</p>
+            <p class="set-desc">星・実績を含むすべての進み具合を消して、最初からやり直します。</p>
+            <button type="button" class="btn btn-danger" id="btn-reset">初期化する</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer class="credits">
+    <p>Opus · 設計 / Sonnet · 実装 / Codex · アート</p>
+  </footer>
+
+</div>
+
+<div id="toasts" class="toasts" aria-hidden="true"></div>
+<p id="live-main" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+<p id="live-drops" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+
+<dialog id="dlg-confirm" aria-labelledby="dc-title" aria-describedby="dc-body">
+  <div class="dlg-inner">
+    <h2 id="dc-title" class="dlg-title"></h2>
+    <p id="dc-body" class="dlg-body"></p>
+    <div class="dlg-actions">
+      <button type="button" class="btn" id="dc-cancel">キャンセル</button>
+      <button type="button" class="btn btn-primary" id="dc-ok">OK</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlg-offline" aria-labelledby="do-title" aria-describedby="do-body">
+  <div class="dlg-inner">
+    <h2 id="do-title" class="dlg-title">おかえりなさい</h2>
+    <p id="do-body" class="dlg-body"></p>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-primary" id="do-ok">庭に戻る</button>
+    </div>
+  </div>
+</dialog>
+
+<noscript><p class="noscript">このゲームにはJavaScriptが必要です。</p></noscript>
+
+</body>
+</html>

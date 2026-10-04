@@ -3,6 +3,13 @@ const data = [
         category: "ゲーム",
         links: [
             {
+                title: "星の芽の庭 — 放置・育成ゲーム",
+                url: "https://rirtir.com/Game/StarSproutGarden/",
+                desc: "夜の温室で星の植物を育てる放置ゲーム。しずくで設備を強化し、星を収穫して次の庭へ。自動保存・最大8時間のオフライン育成に対応。",
+                tags: ["ソロ", "放置", "育成", "ゲーム"],
+                main: true,
+            },
+            {
                 title: "SYNESTHESIA — 音が光になるリズムゲーム",
                 url: "https://rirtir.com/Game/Synesthesia/",
                 desc: "手持ちの曲をドロップすると、音を解析して譜面を自動生成。音のスペクトルが光の街になるHDR描画のリズムゲーム。オリジナル5曲・4難易度・「音の肖像」画像つき。",
