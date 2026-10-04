@@ -1,0 +1,33 @@
+{
+  "codex": {
+    "assets": {
+      "duration_seconds": null,
+      "measurement": "未取得（アセット・描画とClaude設計を並行して実施）"
+    },
+    "integration_and_validation": {
+      "started_at": "2026-10-04T19:04:21.391680+00:00",
+      "completed_at": "2026-10-04T19:49:09.348806+00:00",
+      "duration_seconds": 2687.96
+    },
+    "token_usage": null,
+    "token_usage_note": "実行環境から実測値を取得できないため未取得"
+  },
+  "comparison": "単独開発との比較測定はしていない",
+  "independent_reviews": {
+    "engine": {
+      "checks": 41,
+      "unresolved": 0
+    },
+    "ui": {
+      "checks": 40,
+      "unresolved": 0
+    },
+    "visual": {
+      "checks": 118,
+      "unresolved": 0
+    },
+    "review_wall_time": null,
+    "token_usage": null,
+    "note": "レビュー全体の所要時間と実測トークンは未取得。検証スクリプトの実行時間はvalidation.json。"
+  }
+}

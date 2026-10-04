@@ -1,0 +1,9 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EMBERVEIL 原画検証</title>
+<style>html,body{margin:0;overflow:hidden;background:#141c2c}canvas{image-rendering:pixelated}</style><canvas id="canvas"></canvas>
+<script type="module">
+import {Renderer} from '../render.js';
+const renderer=new Renderer(document.querySelector('canvas'),null);window.renderer=renderer;
+await renderer.load();renderer.resize();let last=performance.now();
+function frame(t){renderer.render((t-last)/1000);last=t;requestAnimationFrame(frame)}requestAnimationFrame(frame);
+addEventListener('resize',()=>renderer.resize());window.ready=true;
+</script></html>

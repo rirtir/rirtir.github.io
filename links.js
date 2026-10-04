@@ -3,6 +3,13 @@ const data = [
         category: "ゲーム",
         links: [
             {
+                title: "残り火の深庭 — EMBERVEIL",
+                url: "https://rirtir.com/Game/Emberveil/",
+                desc: "厳密なドット絵の地下庭園で採掘・建築・農業・釣り・料理を楽しむサバイバルクラフト。三つのバイオームと守護者を攻略し、炉心を再生する。シード付き世界・3セーブスロット・PCとタッチ操作に対応。",
+                tags: ["ソロ", "サバイバルクラフト", "ドット絵", "やり込み", "ゲーム"],
+                main: true,
+            },
+            {
                 title: "星の芽の庭 — 放置・育成ゲーム",
                 url: "https://rirtir.com/Game/StarSproutGarden/",
                 desc: "夜の温室で星の植物を育てる放置ゲーム。しずくで設備を強化し、星を収穫して次の庭へ。自動保存・最大8時間のオフライン育成に対応。",

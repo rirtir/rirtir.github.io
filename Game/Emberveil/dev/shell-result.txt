@@ -1,0 +1,124 @@
+`index.html` と `style.css` を作成しました。実機・ブラウザでの表示確認はしていません（コマンド実行なし）。以下は設計と手計算で、1366×768、390×844、844×390 で重ならないよう寸法を決めました。
+
+## 先に伝えておくこと
+- **`common-style.css` を読めませんでした。** ファイルツールが作業ディレクトリ外を拒否するためです。CONTEXT.md の記述だけを頼りに、`body.emberveil` と `.game-app` 配下で防御的に上書きしています。共通CSSの hover 等が詳細度の高い指定でボタンに効いている場合は、見た目が崩れる可能性があります。
+- **ヘルプ画面のキー割り当ては暫定です。** WASD、Space、E、Shift、1〜8、I、C、M、J、Esc を仮置きしています。main.js のキー割り当てが決まったら合わせてください。
+- **`:has()` に依存する部分があります。** 通知バーが出たときにHUDとタイトルを下げる処理です。非対応ブラウザでは重なるだけで、動作は壊れません。
+
+## DOM契約
+
+**表示の基本ルール**
+- 表示/非表示は `hidden` 属性だけで切り替えます。CSSに `[hidden]{display:none!important}` を入れてあり、`dialog` は `[open]` 時のみ表示します。
+- 初期状態は `#loading-screen` だけが表示で、それ以外のオーバーレイは `hidden` です。
+- `#game-app` の補助属性は次のとおりです。見た目に効くため、ui.js が設定してください。
+  - `data-touch="on|off"`
+  - `data-hand="right|left"`
+  - `data-reduced-motion="on|off"`（実効値）
+  - `data-modal="open|none"`
+  - `data-dialogue="open|closed"`（`open` でタッチUIを隠します）
+
+**ゲーム画面・通知**
+- `#world-canvas`: 全画面canvas。`tabindex=-1` で、Esc後のフォーカス復帰に使えます。
+- `#sr-live`: スクリーンリーダー向けの読み上げ領域。
+- `#system-notices`: 通知の置き場。
+  - `#storage-warning` と `#btn-storage-warning-dismiss`
+  - `#session-banner` と `#btn-take-control`
+  - 本文は各 `.notice-text`
+
+**読み込み・エラー**
+- `#loading-screen`、`#loading-progress`（`<progress>`。value 未設定なら不定表示）、`#loading-text`
+- `#error-screen`、`#error-message`、`#error-detail`、`#btn-error-retry`、`#btn-error-reload`
+
+**タイトル**
+- `#title-screen`、`#title-menu`
+- ボタン: `#btn-new-game`、`#btn-continue`（初期 `disabled`）、`#btn-settings`、`#btn-help`、`#btn-credits`
+- `#continue-summary`
+
+**HUD**
+- `#hud`
+- 上部は `#hud-top`。
+  - 状態パネル `#hud-vitals`。`#hud-day`、`#hud-biome`、`#hud-effects`（空の `ul`）を含みます。
+  - メーターは `#stat-health`、`#stat-hunger`、`#stat-stamina`。
+    - 各メーターに `.hud-stat-fill` と `.hud-stat-value` があります。
+    - 比率は `style.setProperty('--fill', 0〜1)` で指定します。
+    - 警告色は `data-state="low|critical"` です。
+    - `aria-valuenow` も更新してください。
+  - 目標は `#hud-objective`、`#objective-title`、`#objective-text`、`#objective-progress`（`--fill`）。
+  - `#boss-bar`、`#boss-name`、`#boss-meter`（`--fill`）。
+  - `#toast-region` に `.toast` を追加します。
+    - `data-tone="info|good|warn|danger"`。
+    - 消えるときは `.is-leaving`。
+    - `.toast-title` は任意です。
+  - `#btn-map`（ミニマップのボタン）の中に `#minimap-canvas`（96×96）。
+  - `#save-indicator`
+  - ツールボタン: `#btn-inventory`、`#btn-craft`、`#btn-codex`、`#btn-pause`
+- `#interact-prompt`、`#interact-key`、`#interact-text`、`#interact-progress`（`--fill`）
+- ホットバーは `#hotbar`、`#hotbar-label`、`#hotbar-slots` の中に `button.hotbar-slot[data-slot=0..7]` が 8個。
+  - 選択は `aria-pressed`。
+  - 各スロットに `.slot-icon`（img）、`.slot-count`、`.slot-durability > i`（`--fill`）があります。いずれも初期 `hidden` です。
+  - `.slot-key` は数字キーの表示です。
+- 会話パネル（モーダルではありません）: `#dialogue`、`#dialogue-portrait`、`#dialogue-speaker`、`#dialogue-text`、`#dialogue-choices`（`button` を追加）、`#btn-dialogue-next`、`#btn-dialogue-close`
+- タッチ操作: `#touch-controls`（`hidden` 切り替えは ui.js）
+  - `#touch-stick`（pointer を受ける要素）と `#touch-stick-knob`（`--dx`/`--dy` を px で指定）
+  - `#touch-interact`、`#touch-dodge`、`#touch-act`。押下中は `data-pressed="true"` を付けられます。
+
+**モーダル `<dialog id="modal">`**
+- `showModal()` と `close()` は ui.js が呼びます。
+- `data-size="sm|md|lg"` でサイズを切り替えます。
+- 部品は `#modal-eyebrow`、`#modal-title`、`#modal-close`、`#modal-body`。
+- タブ帯 `#modal-tabs` は初期 `hidden` です。
+  - ボタンは `#tab-inventory`、`#tab-craft`、`#tab-map`、`#tab-codex`。いずれも `data-panel`、`role=tab`、`aria-selected` を持ちます。
+  - 使うのは持ち物・作る・地図・記録の4パネルだけです。
+- パネルは `section#panel-<名>.modal-panel[data-panel]` で、すべて初期 `hidden` です。
+- `pause`
+  - `#btn-resume`、`#btn-pause-save`、`#btn-pause-saves`、`#btn-pause-settings`、`#btn-pause-help`、`#btn-pause-title`
+  - `#pause-status`
+- `newgame`
+  - フォーム `#newgame-form`（submit）
+  - 旅人: `name=character` のラジオ（`knight_m`、`elf_f`、`elf_m`、`lizard_m`）
+  - `#newgame-seed`、`#btn-seed-random`、`#newgame-slot`（select）、`#newgame-overwrite-warning`
+  - `#btn-newgame-start`、`#btn-newgame-cancel`
+- `saves`
+  - `#save-slots`（`ol`。`#tpl-save-slot` を複製。ボタンは `data-action="load|delete"`、現在のスロットは `data-current`）
+  - `#btn-export-json`、`#btn-import-json`、`#import-file`、`#save-message`
+- `settings`
+  - `#setting-sound`、`#setting-volume`（0〜100）と `#setting-volume-value`
+  - `#setting-zoom`（1〜3）と `#setting-zoom-value`
+  - `#setting-reduced-motion`（`auto|on|off`）、`#setting-touch`（`auto|on|off`）
+  - `#setting-left-hand`、`#btn-settings-reset`
+- `help`、`credits`（`#credits-version` に版を入れられます。「0x72 CC0 / Codex pixel art and synthesized audio」は記載済み）
+- `inventory`
+  - `#inventory-grid`、`#inventory-capacity`、`#equipment-slots`
+  - `#inventory-detail-name`、`#inventory-detail-text`、`#inventory-detail-stats`（`dl` に `<div><dt/><dd/></div>` を追加）
+  - `#btn-item-use`、`#btn-item-equip`、`#btn-item-assign`、`#btn-item-drop`（初期 `disabled`）
+- `craft`
+  - `#craft-station`、`#craft-categories`（`.chip` を追加）、`#craft-list`
+  - `#craft-detail-name`、`#craft-detail-text`、`#craft-ingredients`
+  - `#btn-craft-make`、`#craft-message`
+- `map`: `#map-canvas`（`renderer.drawMinimap(canvas, true)`）、`#map-viewport`、`#map-position`、`#map-legend`
+- `codex`
+  - `#codex-filter` の中に `.chip[data-filter=goals|codex|achievements]`（`aria-pressed`）
+  - `#goal-list`、`#codex-entries`、`#achievement-list`（`li` を追加。状態は `data-done`/`data-locked`）
+- `chest`: `#chest-grid`、`#chest-capacity`、`#chest-player-grid`、`#btn-chest-take-all`、`#btn-chest-stash-all`
+- `end`: `#end-text`、`#end-stats`、`#end-recovery`、`#btn-end-primary`、`#btn-end-secondary`
+
+**テンプレート（`cloneNode` 用）**
+- `#tpl-save-slot`
+- `#tpl-item-cell`（`.item-cell`、選択は `aria-selected`）
+- `#tpl-recipe`（`button.recipe`、`data-craftable="false"` で薄く表示）
+- `#tpl-ingredient`（`data-short="true"` で数が赤）
+
+**ドット絵アイコン**
+- `img.px-icon` は `zoom: var(--s, 2)` で整数倍に拡大します。
+- 横画面の小型時は既定が1倍です。スロットに収まる整数倍を、ui.js が `style.setProperty('--s', n)` で渡してください。
+
+## レイアウトの要点
+- 余白はすべて `env(safe-area-inset-*)` と `--pad` の大きい方です。
+- 縦向きでタッチ操作中は、ホットバーが最下段で、その上にスティックとボタンが載ります。通知とボス体力は、状態・目標とミニマップの行の下に出ます。
+- 横向きでは、スティックが左、ボタンが右、ホットバーが中央下です。
+- 高さ520px以下（スマホ横）ではツール4個がミニマップの左に縦並びになり、タイトルは左右2カラムになります。
+- スクロールするのは `#modal-body` とタイトルの縦あふれ時だけで、body は固定です。
+- 動きの抑制は OS 設定と `data-reduced-motion="on"` の両方に対応しています。`off` を明示すれば OS 設定を上書きできます。
+- 外部フォント・CDN・絵文字・静的な背景画像は使っていません。
+
+他のファイルは変更していません。

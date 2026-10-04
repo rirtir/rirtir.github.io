@@ -1,0 +1,66 @@
+{
+  "completed_at": "2026-10-04T19:48:23.014797+00:00",
+  "platform": "Windows / Google Chrome / Python Playwright",
+  "results": [
+    {
+      "script": "art_check.py",
+      "passed": true,
+      "seconds": 0.438,
+      "output": "PASS: original native pixel atlas / fixed palette / binary alpha / 33 sprites / CC0 source pixels"
+    },
+    {
+      "script": "render_probe.py",
+      "passed": true,
+      "seconds": 3.0,
+      "output": "render-desktop {\"native\": [720, 450], \"display\": [1440, 900], \"smooth\": false, \"center\": {\"x\": 65.75, \"y\": 63.666666666666664}, \"camera\": {\"x\": 1578, \"y\": 1528, \"initialized\": true}} 60 native frames: 0.14s\nrender-mobile {\"native\": [390, 844], \"display\": [390, 844], \"smooth\": false, \"center\": {\"x\": 65.75, \"y\": 63.666666666666664}, \"camera\": {\"x\": 1578, \"y\": 1528, \"initialized\": true}} 60 native frames: 0.14s\nPASS: browser renderer, assets, coordinate conversion, exact integer scaling, no JS errors"
+    },
+    {
+      "script": "generation_probe.py",
+      "passed": true,
+      "seconds": 2.156,
+      "output": "Definitions: {\"errors\": [], \"recipes\": 59, \"items\": 84, \"achievements\": 20, \"frozen\": true}\nPASS seed emberveil routes {\"moss\": 0, \"crystalGate\": 0, \"crystal\": 0, \"emberGate\": 0, \"ember\": 0}\nPASS seed 深庭 routes {\"moss\": 0, \"crystalGate\": 0, \"crystal\": 0, \"emberGate\": 0, \"ember\": 0}\nPASS seed 0 routes {\"moss\": 0, \"crystalGate\": 0, \"crystal\": 0, \"emberGate\": 0, \"ember\": 0}\nPASS seed a routes {\"moss\": 0, \"crystalGate\": 0, \"crystal\": 0, \"emberGate\": 0, \"ember\": 0}\nPASS seed moss routes {\"moss\": 0, \"crystalGate\": 0, \"crystal\": 0, \"emberGate\": 0, \"ember\": 0}\nPASS seed seed-1 routes {\"moss\": 0, \"crystalGate\": 0, \"crystal\": 0, \"emberGate\": 0, \"ember\": 0}\nPASS seed seed-2 routes {\"moss\": 0, \"crystalGate\": 0, \"crystal\": 0, \"emberGate\": 0, \"ember\": 0}\nPASS seed seed-3 routes {\"moss\": 0, \"crystalGate\": 0, \"crystal\": 0, \"emberGate\": 0, \"ember\": 0}\nPASS seed seed-4 routes {\"moss\": 0, \"crystalGate\": 0, \"crystal\": 0, \"emberGate\": 0, \"ember\": 0}\nPASS seed seed-5 routes {\"moss\": 0, \"crystalGate\": 0, \"crystal\": 0, \"emberGate\": 0, \"ember\": 0}\nPASS seed seed-6 routes {\"moss\": 0, \"crystalGate\": 0, \"crystal\": 0, \"emberGate\": 0, \"ember\": 0}\nPASS seed seed-7 routes {\"moss\": 0, \"crystalGate\": 0, \"crystal\": 0, \"emberGate\": 0, \"ember\": 0}\nPASS: recipes, keys, 20 achievements, 12 seeds, repeatable geometry, guaranteed resources and routes"
+    },
+    {
+      "script": "game_probe.py",
+      "passed": true,
+      "seconds": 1.594,
+      "output": "{\n  \"checks\": [\n    \"new game and initial save\",\n    \"movement and collision\",\n    \"pause\",\n    \"craft result\",\n    \"craft consumes exact materials\",\n    \"locked craft rejected\",\n    \"played save validates\",\n    \"restore\",\n    \"nonfinite save rejected\",\n    \"truncated world rejected\",\n    \"failed restore keeps world\",\n    \"store write\",\n    \"store read\",\n    \"bad write rejected\",\n    \"query getHUD\",\n    \"query getObjective\",\n    \"query getMapData\",\n    \"query getCodex\",\n    \"query getAchievements\",\n    \"query getEndingStats\",\n    \"query getRecipeView\",\n    \"query getRenderState\",\n    \"render contract\",\n    \"continued simulation save\"\n  ],\n  \"count\": 24,\n  \"items\": 3\n}\nPASS: game simulation and save integration"
+    },
+    {
+      "script": "storage_probe.py",
+      "passed": true,
+      "seconds": 1.531,
+      "output": "{\n  \"first\": {\n    \"ok\": true,\n    \"heldByOther\": false,\n    \"tookOver\": false\n  },\n  \"denied\": {\n    \"ok\": false,\n    \"heldByOther\": true\n  },\n  \"take\": {\n    \"ok\": true,\n    \"heldByOther\": false,\n    \"tookOver\": true\n  },\n  \"old\": {\n    \"ok\": false,\n    \"reason\": \"taken\"\n  },\n  \"owner\": true,\n  \"resurrect\": {\n    \"ok\": false,\n    \"reason\": \"taken\"\n  },\n  \"blocked\": true,\n  \"fallback\": {\n    \"ok\": true\n  },\n  \"memory\": \"retained\",\n  \"reject\": true\n}\nPASS: blocked storage fallback / malformed save rejected / takeover / stale session prevented"
+    },
+    {
+      "script": "progression_probe.py",
+      "passed": true,
+      "seconds": 1.563,
+      "output": "{\n  \"checks\": [\n    \"buildable clearing exists\",\n    \"place consumes and creates\",\n    \"plant consumes seed\",\n    \"double planting rejected\",\n    \"crops wait for light\",\n    \"lit crop matures\",\n    \"harvest and seed returned\",\n    \"remove refunds\",\n    \"deposit bag only\",\n    \"nonempty chest protected\",\n    \"take chest contents\",\n    \"empty chest removable\",\n    \"fishable shore exists\",\n    \"cast from real shore\",\n    \"fish bite window reached\",\n    \"caught fish and recorded\",\n    \"death keeps hotbar\",\n    \"bag becomes recoverable satchel\",\n    \"respawn restores control\",\n    \"recover lost items\",\n    \"early core offering rejected\",\n    \"moss warning before attack\",\n    \"moss phase two\",\n    \"moss defeat reward and heart\",\n    \"moss next gate open\",\n    \"moss save after boss\",\n    \"crystal warning before attack\",\n    \"crystal phase two\",\n    \"crystal defeat reward and heart\",\n    \"crystal next gate open\",\n    \"crystal save after boss\",\n    \"ember warning before attack\",\n    \"ember phase two\",\n    \"ember defeat reward and heart\",\n    \"ember save after boss\",\n    \"offer three hearts\",\n    \"ending text reached\",\n    \"postgame continues\",\n    \"finished save valid\",\n    \"finished save restores\"\n  ],\n  \"count\": 40\n}\nPASS: progression systems"
+    },
+    {
+      "script": "smoke.py",
+      "passed": true,
+      "seconds": 23.89,
+      "output": "desktop {\"mode\": \"playing\", \"paused\": false, \"seed\": \"smoke-desktop\", \"time\": 0.35, \"canvas\": [720, 450], \"touch\": false, \"overflow\": false}\nmobile {\"mode\": \"playing\", \"paused\": false, \"seed\": \"smoke-mobile\", \"time\": 0.35, \"canvas\": [390, 844], \"touch\": true, \"overflow\": false}\nlandscape {\"mode\": \"playing\", \"paused\": false, \"seed\": \"smoke-landscape\", \"time\": 0.35, \"canvas\": [422, 195], \"touch\": true, \"overflow\": false}\nPASS: ['desktop start and 4 modal transitions', 'mobile start and 4 modal transitions', 'landscape start and 4 modal transitions']"
+    },
+    {
+      "script": "review_engine_probe.py",
+      "passed": true,
+      "seconds": 3.125,
+      "output": "{\n  \"checks\": [\n    \"bulk craft creates 100 torches\",\n    \"overflow preserves all output in valid stacks\",\n    \"bulk craft save validates\",\n    \"fresh lease acquired\",\n    \"live other lease is denied\",\n    \"bulk craft writes persistently\",\n    \"persisted bulk output restores\",\n    \"future lease cannot block acquisition\",\n    \"nonfinite lease cannot block acquisition\",\n    \"explicit takeover succeeds\",\n    \"previous owner cannot save after takeover\",\n    \"jelly applies buff at full vitals\",\n    \"jelly consumes exactly one serving\",\n    \"jelly redundant serving rejected\",\n    \"jelly shortened buff refreshes\",\n    \"stew applies buff at full vitals\",\n    \"stew consumes exactly one serving\",\n    \"stew redundant serving rejected\",\n    \"stew shortened buff refreshes\",\n    \"pepper_fish applies buff at full vitals\",\n    \"pepper_fish consumes exactly one serving\",\n    \"pepper_fish redundant serving rejected\",\n    \"pepper_fish shortened buff refreshes\",\n    \"golden_feast applies buff at full vitals\",\n    \"golden_feast consumes exactly one serving\",\n    \"golden_feast redundant serving rejected\",\n    \"golden_feast shortened buff refreshes\",\n    \"roast_tuber is not wasted at full vitals\",\n    \"salve is not wasted at full vitals\",\n    \"misplaced altar save rejected\",\n    \"misplaced altar load rejected\",\n    \"failed load preserves current game\",\n    \"unmatched altar interaction is guarded\",\n    \"large world fixture reaches reservation threshold\",\n    \"large world before construction saves\",\n    \"last construction slot remains usable\",\n    \"construction preserves death-bag reservation\",\n    \"tree planting preserves reservation and item\",\n    \"death bag fits reserved slot\",\n    \"large world after death remains savable\",\n    \"large world recovery writes to storage\"\n  ],\n  \"count\": 41\n}\nPASS: engine review regressions (2.87s)"
+    },
+    {
+      "script": "review_ui_probe.py",
+      "passed": true,
+      "seconds": 6.125,
+      "output": "{\n  \"checks\": [\n    \"new game resumes after intro\",\n    \"Tab opens inventory\",\n    \"Tab navigates within modal\",\n    \"menu E cycles crafting tab\",\n    \"Escape resumes simulation\",\n    \"G opens codex\",\n    \"G closes codex\",\n    \"KeyK holds interact\",\n    \"KeyK releases interact\",\n    \"KeyL holds dodge\",\n    \"KeyL releases dodge\",\n    \"save failure preserves current run\",\n    \"save failure offers JSON export\",\n    \"nonpersistent save requires explicit departure\",\n    \"backup fixture exists\",\n    \"current slot restores selected backup\",\n    \"failed deletion reports failure\",\n    \"import obtains and releases temporary target ownership\",\n    \"import rechecks ownership at write\",\n    \"future target lease does not block deletion\",\n    \"automatic pick attack displays true tool damage\",\n    \"manual empty hand does not display bag weapon damage\",\n    \"manual equipment uses selected pick and sword\",\n    \"heat stat excludes expired buff\",\n    \"range native End sets integer zoom\",\n    \"volume range affects audio\",\n    \"reduced motion reaches scene and UI\",\n    \"forced touch controls shown\",\n    \"left hand reverses controls\",\n    \"UI scale reaches controls\",\n    \"BFCache entry retains existing ownership\",\n    \"BFCache return resumes original owner\",\n    \"BFCache return after takeover remains read only\",\n    \"touch joystick produces movement\",\n    \"two fingers can move and dodge\",\n    \"touch release clears actions\",\n    \"large mobile UI has no horizontal overflow\",\n    \"mobile recipe list leaves detail accessible\",\n    \"craft action can be reached on mobile\",\n    \"no browser script or console errors\"\n  ],\n  \"count\": 40,\n  \"elapsed_seconds\": 5.83\n}\nPASS: independently reviewed UI regression scenarios"
+    },
+    {
+      "script": "review_visual_probe.py",
+      "passed": true,
+      "seconds": 7.625,
+      "output": "{\n  \"count\": 118,\n  \"ringMasks\": 384,\n  \"pixels\": 13091656,\n  \"coneMasks\": 384,\n  \"conePixels\": 12813501,\n  \"ring60FramesMs\": 234.60000002384186,\n  \"hazard60FramesMs\": {\n    \"crystalCone\": 300.39999997615814,\n    \"emberCone\": 256.69999998807907,\n    \"crystalBeam\": 428\n  },\n  \"integerRectangles\": 788,\n  \"itemPixels\": 6011\n}\nPASS: independent visual regressions; 370 source-identical native frames"
+    }
+  ]
+}

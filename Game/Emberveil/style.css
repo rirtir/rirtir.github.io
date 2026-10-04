@@ -1,0 +1,2405 @@
+/* 残り火の深庭 — EMBERVEIL / UI外枠
+   共通CSS(body・button・h1など)を上書きするため、すべて body.emberveil / .game-app 配下に限定する。 */
+
+/* ---------- ページ土台（スクロールなし） ---------- */
+html:has(> body.emberveil) {
+  height: 100%;
+  overflow: hidden;
+  background: #030909;
+}
+
+body.emberveil {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #030909;
+  color: #efe4c8;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ---------- デザイントークン ---------- */
+.game-app {
+  --font-serif: Georgia, "Times New Roman", "Iowan Old Style", serif;
+  --font-sans: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", "Meiryo", "Noto Sans CJK JP", "Noto Sans JP", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --bg-0: #030909;
+  --bg-1: #061110;
+  --bg-2: #0b1b19;
+  --ink: #efe4c8;
+  --ink-dim: #b8ad92;
+  --ink-faint: #8a8874;
+  --amber: #d9a45a;
+  --amber-hi: #f2c982;
+  --amber-lo: #8c6a38;
+  --line: rgba(217, 164, 90, 0.62);
+  --line-soft: rgba(217, 164, 90, 0.32);
+  --line-faint: rgba(217, 164, 90, 0.16);
+  --teal: #46c2ad;
+  --violet: #9a86e0;
+  --danger: #e0735c;
+  --good: #7ccaa2;
+  --warn: #e6c15a;
+  --panel: rgba(3, 10, 10, 0.68);
+  --panel-solid: #061110;
+  --focus: #ffe2a3;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* 安全領域つきの余白 */
+  --pad: clamp(8px, calc(1.2vmin + 5px), 18px);
+  --in-t: max(var(--pad), env(safe-area-inset-top, 0px));
+  --in-r: max(var(--pad), env(safe-area-inset-right, 0px));
+  --in-b: max(var(--pad), env(safe-area-inset-bottom, 0px));
+  --in-l: max(var(--pad), env(safe-area-inset-left, 0px));
+
+  /* HUDの寸法（メディアクエリで上書き） */
+  --slot: 48px;
+  --slot-gap: 4px;
+  --hotbar-pad: 5px;
+  --hotbar-h: calc(var(--slot) + 2 * var(--hotbar-pad) + 2px);
+  --label-h: 22px;
+  --minimap: 128px;
+  --stick: 132px;
+  --act-main: 72px;
+  --act-sub: 52px;
+  --act-gap: 10px;
+  --controls-h: max(var(--stick), calc(var(--act-main) + var(--act-sub) + var(--act-gap)));
+  --notice-h: 48px;
+  --notice-offset: 0px;
+  --center-col: 420px;
+  --icon-scale: 2;
+
+  /* 下端から積む位置：ホットバー > 中央の案内 / タッチ操作 */
+  --stack-bottom: calc(var(--in-b) + var(--hotbar-h) + var(--label-h) + 4px);
+  --controls-bottom: var(--in-b);
+  --center-bottom: var(--stack-bottom);
+
+  position: fixed;
+  inset: 0;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--bg-0);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+.game-app *,
+.game-app *::before,
+.game-app *::after {
+  box-sizing: border-box;
+}
+
+/* hidden属性を display 指定で壊さない */
+body.emberveil [hidden],
+.game-app [hidden] {
+  display: none !important;
+}
+
+.game-app dialog:not([open]) {
+  display: none;
+}
+
+/* ---------- リセット（共通CSSの上書き） ---------- */
+.game-app :is(h1, h2, h3, h4, p, ul, ol, dl, dd, figure, pre) {
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.game-app :is(ul, ol) {
+  list-style: none;
+}
+
+.game-app button {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.game-app button:disabled {
+  cursor: not-allowed;
+}
+
+.game-app :is(input, select, textarea) {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+.game-app :focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.game-app .world-canvas:focus-visible {
+  outline: none;
+}
+
+.game-app kbd {
+  display: inline-block;
+  min-width: 1.7em;
+  margin: 0 0.15em;
+  padding: 0 0.4em;
+  border: 1px solid var(--line-soft);
+  border-bottom-width: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  font: 0.86em/1.6 var(--font-serif);
+  text-align: center;
+}
+
+.game-app a {
+  color: var(--amber-hi);
+  text-underline-offset: 3px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- ゲームcanvas ---------- */
+.game-app .world-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  touch-action: none;
+  outline: none;
+}
+
+/* 周辺減光はrendererのピクセル格子内で描く。画面拡大後の平滑な重ね描きはしない。 */
+.game-app::after {
+  content: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(3, 9, 9, 0.34), transparent 18%, transparent 78%, rgba(3, 9, 9, 0.4)),
+    radial-gradient(ellipse at center, transparent 62%, rgba(2, 6, 6, 0.38) 100%);
+}
+
+/* 0x72 PNG などのドット絵アイコン：整数倍で拡大（--s はui.jsが指定、未指定は2倍） */
+.game-app .px-icon {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  zoom: var(--s, var(--icon-scale));
+}
+
+/* ---------- 共通部品 ---------- */
+.game-app .eyebrow {
+  color: var(--amber);
+  font-family: var(--font-serif);
+  font-size: 0.78em;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.game-app .panel {
+  padding: 8px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5), 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+.game-app .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  min-height: 40px;
+  padding: 0 1.2em;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-align: center;
+  white-space: nowrap;
+  transition: background-color 0.16s var(--ease), border-color 0.16s var(--ease), color 0.16s var(--ease);
+}
+
+.game-app .btn:hover {
+  border-color: var(--amber);
+  background: rgba(217, 164, 90, 0.12);
+}
+
+.game-app .btn:active {
+  background: rgba(217, 164, 90, 0.22);
+}
+
+.game-app .btn:disabled {
+  border-color: var(--line-faint);
+  color: var(--ink-faint);
+  background: transparent;
+}
+
+.game-app .btn--primary {
+  border-color: var(--line);
+  background: rgba(217, 164, 90, 0.16);
+  color: #fff3d6;
+}
+
+.game-app .btn--danger:hover {
+  border-color: var(--danger);
+  background: rgba(224, 115, 92, 0.14);
+}
+
+.game-app .btn--small {
+  min-height: 32px;
+  padding: 0 0.9em;
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- システム通知 ---------- */
+.game-app .system-notices {
+  position: absolute;
+  top: var(--in-t);
+  left: var(--in-l);
+  right: var(--in-r);
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.game-app .notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(640px, 100%);
+  height: var(--notice-h);
+  padding: 0 10px 0 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--warn);
+  border-radius: 2px;
+  background: rgba(6, 17, 16, 0.96);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+
+.game-app .notice[data-tone="info"] {
+  border-left-color: var(--teal);
+}
+
+.game-app .notice-text {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.game-app .notice .btn {
+  flex: none;
+}
+
+/* 通知の分だけHUD/タイトルを下げる（:has非対応なら重なるだけで動作は壊れない） */
+.game-app:has(#storage-warning:not([hidden])),
+.game-app:has(#session-banner:not([hidden])) {
+  --notice-offset: calc(var(--notice-h) + 8px);
+}
+
+.game-app:has(#storage-warning:not([hidden])):has(#session-banner:not([hidden])) {
+  --notice-offset: calc(2 * var(--notice-h) + 12px);
+}
+
+/* ---------- HUD ---------- */
+.game-app .hud {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.game-app .hud-top {
+  position: absolute;
+  top: calc(var(--in-t) + var(--notice-offset));
+  left: var(--in-l);
+  right: var(--in-r);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--center-col)) minmax(0, 1fr);
+  grid-template-areas: "left center right";
+  gap: 8px;
+  align-items: start;
+}
+
+.game-app .hud-left {
+  grid-area: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.game-app .hud-center {
+  grid-area: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.game-app .hud-right {
+  grid-area: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.game-app .hud-vitals {
+  width: 212px;
+  max-width: 100%;
+  display: grid;
+  gap: 5px;
+  pointer-events: none;
+}
+
+.game-app .hud-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+}
+
+.game-app .hud-day {
+  font-family: var(--font-serif);
+  color: var(--amber-hi);
+}
+
+.game-app .hud-stat {
+  --stat-color: var(--teal);
+  display: grid;
+  grid-template-columns: 2.9em minmax(36px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+
+.game-app .hud-stat[data-stat="health"] { --stat-color: #cf5b4a; }
+.game-app .hud-stat[data-stat="hunger"] { --stat-color: #d89a4a; }
+.game-app .hud-stat[data-stat="stamina"] { --stat-color: #5fb8a6; }
+.game-app .hud-stat[data-state="low"] { --stat-color: var(--warn); }
+.game-app .hud-stat[data-state="critical"] { --stat-color: var(--danger); }
+
+.game-app .hud-stat-label {
+  color: var(--ink-dim);
+}
+
+.game-app .hud-stat-value {
+  min-width: 5.4ch;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.game-app .hud-stat-bar {
+  position: relative;
+  display: block;
+  height: 7px;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.game-app .hud-stat-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--stat-color);
+  transform-origin: 0 50%;
+  transform: scaleX(var(--fill, 1));
+  transition: transform 0.25s var(--ease);
+}
+
+/* 目盛り */
+.game-app .hud-stat-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 9px, rgba(0, 0, 0, 0.5) 9px 10px);
+}
+
+.game-app .hud-stat[data-state="critical"] .hud-stat-fill {
+  animation: ev-pulse 1s steps(2, jump-none) infinite;
+}
+
+.game-app .hud-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.game-app .hud-effects:empty {
+  display: none;
+}
+
+.game-app .hud-effects > li {
+  padding: 0 6px;
+  border: 1px solid var(--line-faint);
+  border-radius: 2px;
+  color: var(--ink-dim);
+}
+
+.game-app .hud-objective {
+  width: 236px;
+  max-width: 100%;
+  display: grid;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.game-app .hud-objective .eyebrow {
+  font-size: 10.5px;
+}
+
+.game-app .objective-title {
+  font-family: var(--font-serif);
+  font-size: 13.5px;
+  color: var(--amber-hi);
+  letter-spacing: 0.06em;
+}
+
+.game-app .objective-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  color: var(--ink-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.game-app .objective-text:empty {
+  display: none;
+}
+
+.game-app .hud-progress {
+  position: relative;
+  display: block;
+  height: 4px;
+  margin-top: 4px;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.game-app .hud-progress-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--amber);
+  transform-origin: 0 50%;
+  transform: scaleX(var(--fill, 0));
+}
+
+/* ミニマップ */
+.game-app .minimap {
+  display: block;
+  width: var(--minimap);
+  height: var(--minimap);
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 4px 18px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  transition: border-color 0.16s var(--ease);
+}
+
+.game-app .minimap:hover {
+  border-color: var(--amber-hi);
+}
+
+.game-app .minimap-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  background: #020606;
+}
+
+.game-app .save-indicator {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--ink-dim);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
+}
+
+.game-app .hud-tools {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  width: var(--minimap);
+  pointer-events: auto;
+}
+
+.game-app .tool-btn {
+  display: grid;
+  place-items: center;
+  min-height: 28px;
+  padding: 0 4px;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  transition: border-color 0.16s var(--ease), background-color 0.16s var(--ease);
+}
+
+.game-app .tool-btn:hover {
+  border-color: var(--amber-hi);
+  background: rgba(40, 28, 10, 0.78);
+}
+
+.game-app .tool-btn:active {
+  background: rgba(217, 164, 90, 0.24);
+}
+
+/* ボスの体力 */
+.game-app .boss-bar {
+  width: min(100%, 520px);
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+.game-app .boss-name {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  letter-spacing: 0.24em;
+  color: var(--amber-hi);
+  text-shadow: 0 1px 0 #000, 0 0 12px rgba(0, 0, 0, 0.8);
+}
+
+.game-app .boss-meter {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: rgba(3, 10, 10, 0.8);
+}
+
+.game-app .boss-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #8f3a2d, #d9674f);
+  transform-origin: 0 50%;
+  transform: scaleX(var(--fill, 1));
+  transition: transform 0.3s var(--ease);
+}
+
+/* 通知 */
+.game-app .toast-region {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.game-app .toast {
+  --tone: var(--amber);
+  max-width: 100%;
+  padding: 6px 14px;
+  border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--tone);
+  border-radius: 2px;
+  background: rgba(3, 10, 10, 0.84);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  font-size: 13px;
+  line-height: 1.5;
+  animation: ev-toast-in 0.2s var(--ease);
+  transition: opacity 0.3s var(--ease);
+}
+
+.game-app .toast[data-tone="good"] { --tone: var(--teal); }
+.game-app .toast[data-tone="warn"] { --tone: var(--warn); }
+.game-app .toast[data-tone="danger"] { --tone: var(--danger); }
+
+.game-app .toast.is-leaving {
+  opacity: 0;
+}
+
+.game-app .toast-title {
+  font-family: var(--font-serif);
+  color: var(--amber-hi);
+  letter-spacing: 0.08em;
+}
+
+/* 調べる・話す案内 */
+.game-app .interact-prompt {
+  position: absolute;
+  left: var(--in-l);
+  right: var(--in-r);
+  bottom: var(--center-bottom);
+  width: fit-content;
+  max-width: calc(100% - var(--in-l) - var(--in-r));
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  background: var(--panel);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.game-app .interact-key {
+  margin: 0;
+  color: var(--amber-hi);
+}
+
+.game-app .interact-prompt .hud-progress {
+  width: 64px;
+  margin: 0;
+}
+
+/* ホットバー */
+.game-app .hotbar {
+  position: absolute;
+  left: var(--in-l);
+  right: var(--in-r);
+  bottom: var(--in-b);
+  width: fit-content;
+  margin-inline: auto;
+  padding: var(--hotbar-pad);
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5), 0 4px 18px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+}
+
+.game-app .hotbar-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 4px);
+  min-height: var(--label-h);
+  text-align: center;
+  font-size: 12.5px;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+  text-shadow: 0 1px 0 #000, 0 0 10px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+.game-app .hotbar-slots {
+  display: grid;
+  grid-template-columns: repeat(8, var(--slot));
+  gap: var(--slot-gap);
+}
+
+.game-app .hotbar-slot,
+.game-app .item-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--slot);
+  height: var(--slot);
+  border: 1px solid var(--line-faint);
+  border-radius: 2px;
+  background: rgba(8, 20, 18, 0.82);
+  transition: border-color 0.14s var(--ease), background-color 0.14s var(--ease);
+}
+
+.game-app .item-cell {
+  width: auto;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.game-app .hotbar-slot:hover,
+.game-app .item-cell:hover {
+  border-color: var(--line);
+}
+
+.game-app .hotbar-slot[aria-pressed="true"],
+.game-app .item-cell[aria-selected="true"] {
+  border-color: var(--amber-hi);
+  background: rgba(60, 42, 14, 0.7);
+  box-shadow: inset 0 0 0 1px var(--amber-hi), 0 0 14px rgba(242, 201, 130, 0.22);
+}
+
+.game-app .slot-key {
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  font-family: var(--font-serif);
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--ink-faint);
+}
+
+.game-app .slot-count {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  font-family: var(--font-serif);
+  font-size: 11px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-shadow: 0 1px 0 #000, 1px 0 0 #000;
+}
+
+.game-app .slot-durability {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: 2px;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.game-app .slot-durability > i {
+  display: block;
+  height: 100%;
+  background: var(--good);
+  transform-origin: 0 50%;
+  transform: scaleX(var(--fill, 1));
+}
+
+/* 会話パネル */
+.game-app .dialogue {
+  position: absolute;
+  left: var(--in-l);
+  right: var(--in-r);
+  bottom: var(--stack-bottom);
+  width: min(720px, calc(100% - var(--in-l) - var(--in-r)));
+  margin-inline: auto;
+  display: flex;
+  gap: 14px;
+  padding: 12px 16px;
+  background: rgba(3, 10, 10, 0.88);
+  border-color: var(--line);
+  pointer-events: auto;
+}
+
+.game-app .dialogue-portrait {
+  flex: none;
+  align-self: flex-start;
+}
+
+.game-app .dialogue-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.game-app .dialogue-speaker {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  color: var(--amber-hi);
+}
+
+.game-app .dialogue-text {
+  max-height: 7.5em;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.75;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.game-app .dialogue-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.game-app .dialogue-choices:empty {
+  display: none;
+}
+
+.game-app .dialogue-choices > button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+.game-app .dialogue-choices > button:hover {
+  border-color: var(--amber-hi);
+  background: rgba(217, 164, 90, 0.12);
+}
+
+.game-app .dialogue-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* ---------- タッチ操作 ---------- */
+.game-app .touch-controls {
+  position: absolute;
+  left: var(--in-l);
+  right: var(--in-r);
+  bottom: var(--controls-bottom);
+  z-index: 15;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.game-app[data-hand="left"] .touch-controls {
+  flex-direction: row-reverse;
+}
+
+.game-app[data-dialogue="open"] .touch-controls {
+  visibility: hidden;
+}
+
+.game-app .touch-stick {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--stick);
+  height: var(--stick);
+  border: 1px solid var(--line-soft);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(217, 164, 90, 0.1), rgba(3, 10, 10, 0.5) 70%);
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+
+.game-app .touch-stick-knob {
+  display: block;
+  width: 42%;
+  height: 42%;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(217, 164, 90, 0.26);
+  box-shadow: 0 0 14px rgba(217, 164, 90, 0.2);
+  transform: translate(var(--dx, 0px), var(--dy, 0px));
+  pointer-events: none;
+}
+
+.game-app .touch-actions {
+  display: grid;
+  grid-template-columns: var(--act-sub) var(--act-main);
+  grid-template-rows: var(--act-sub) var(--act-main);
+  grid-template-areas: ". interact" "dodge act";
+  gap: var(--act-gap);
+  align-items: center;
+  justify-items: center;
+  pointer-events: none;
+}
+
+.game-app .touch-btn {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(3, 10, 10, 0.6);
+  color: var(--ink);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  transition: background-color 0.1s linear, border-color 0.1s linear;
+}
+
+.game-app .touch-btn--main {
+  grid-area: act;
+  width: var(--act-main);
+  height: var(--act-main);
+  font-size: 14px;
+  border-color: var(--amber);
+  background: rgba(60, 42, 14, 0.62);
+}
+
+.game-app .touch-btn--sub {
+  width: var(--act-sub);
+  height: var(--act-sub);
+}
+
+.game-app #touch-interact { grid-area: interact; }
+.game-app #touch-dodge { grid-area: dodge; }
+
+.game-app .touch-btn:active,
+.game-app .touch-btn[data-pressed="true"] {
+  border-color: var(--amber-hi);
+  background: rgba(217, 164, 90, 0.4);
+}
+
+/* ---------- タイトル ---------- */
+.game-app .title-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  align-items: start;
+  padding: calc(var(--in-t) + var(--notice-offset) + 4px) var(--in-r) var(--in-b) var(--in-l);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background:
+    linear-gradient(90deg, rgba(3, 9, 9, 0.93) 0%, rgba(3, 9, 9, 0.74) 34%, rgba(3, 9, 9, 0.18) 72%, transparent 100%),
+    linear-gradient(to top, rgba(3, 9, 9, 0.6), transparent 34%);
+}
+
+.game-app .title-inner {
+  width: min(100%, 560px);
+  margin-left: clamp(0px, 5vw, 96px);
+  margin-block: auto; /* 縦中央。はみ出したときは上端から内部スクロールできる */
+  display: grid;
+  gap: clamp(18px, 3.6vh, 36px);
+  padding-block: 12px;
+}
+
+.game-app .title-brand {
+  display: grid;
+  gap: 8px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7), 0 0 28px rgba(0, 0, 0, 0.6);
+}
+
+.game-app .title-eyebrow {
+  color: var(--amber);
+  font-family: var(--font-serif);
+  font-size: 12px;
+  letter-spacing: 0.34em;
+}
+
+.game-app .title-logo {
+  font-family: var(--font-serif);
+  font-size: clamp(36px, 11vw, 100px);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: 0.12em;
+  color: #fff3d6;
+  text-shadow: 0 0 34px rgba(217, 164, 90, 0.32), 0 2px 0 rgba(0, 0, 0, 0.6);
+  margin-left: -0.04em;
+}
+
+.game-app .title-ja {
+  font-size: clamp(16px, 2.4vw, 24px);
+  font-weight: 300;
+  letter-spacing: 0.6em;
+  color: var(--ink);
+}
+
+.game-app .title-rule {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: 1px;
+  margin-block: 6px;
+  background: linear-gradient(90deg, var(--amber), transparent);
+}
+
+.game-app .title-intro {
+  max-width: 34em;
+  color: var(--ink-dim);
+  font-size: 14px;
+  line-height: 1.95;
+  letter-spacing: 0.06em;
+}
+
+.game-app .title-menu,
+.game-app .menu-list {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 320px);
+}
+
+.game-app .menu-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid var(--line-faint);
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(3, 10, 10, 0.55), rgba(3, 10, 10, 0.25));
+  color: var(--ink);
+  transition: border-color 0.18s var(--ease), background-color 0.18s var(--ease), padding 0.18s var(--ease);
+}
+
+.game-app .menu-btn::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 0;
+  background: var(--amber-hi);
+  transform: translateY(-50%);
+  transition: height 0.18s var(--ease);
+}
+
+.game-app .menu-btn:hover:not(:disabled),
+.game-app .menu-btn:focus-visible {
+  border-color: var(--line);
+  background: linear-gradient(90deg, rgba(217, 164, 90, 0.18), rgba(3, 10, 10, 0.35));
+  padding-left: 22px;
+}
+
+.game-app .menu-btn:hover:not(:disabled)::before,
+.game-app .menu-btn:focus-visible::before {
+  height: 60%;
+}
+
+.game-app .menu-btn:active:not(:disabled) {
+  background: rgba(217, 164, 90, 0.26);
+}
+
+.game-app .menu-btn--primary {
+  border-color: var(--line);
+  background: linear-gradient(90deg, rgba(217, 164, 90, 0.2), rgba(3, 10, 10, 0.4));
+}
+
+.game-app .menu-btn:disabled {
+  border-color: rgba(217, 164, 90, 0.08);
+  color: var(--ink-faint);
+  opacity: 0.7;
+}
+
+.game-app .menu-btn-ja {
+  font-size: 15px;
+  letter-spacing: 0.22em;
+}
+
+.game-app .menu-btn-en {
+  font-family: var(--font-serif);
+  font-size: 10.5px;
+  letter-spacing: 0.26em;
+  color: var(--ink-faint);
+}
+
+.game-app .continue-summary {
+  padding-left: 2px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+}
+
+.game-app .title-foot {
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+}
+
+/* ---------- 読み込み / エラー ---------- */
+.game-app .loading-screen,
+.game-app .error-screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--in-t) var(--in-r) var(--in-b) var(--in-l);
+  background:
+    radial-gradient(ellipse at 50% 55%, rgba(18, 52, 46, 0.5), transparent 62%),
+    var(--bg-0);
+}
+
+.game-app .loading-screen { z-index: 60; }
+.game-app .error-screen { z-index: 70; overflow-y: auto; }
+
+.game-app .loading-inner {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  width: min(100%, 320px);
+  text-align: center;
+}
+
+.game-app .loading-mark {
+  font-family: var(--font-serif);
+  font-size: clamp(22px, 5vw, 32px);
+  letter-spacing: 0.4em;
+  margin-right: -0.4em;
+  color: var(--ink);
+}
+
+.game-app .loading-progress {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  height: 3px;
+  border: 0;
+  border-radius: 0;
+  background: rgba(217, 164, 90, 0.16);
+  color: var(--amber);
+  overflow: hidden;
+}
+
+.game-app .loading-progress::-webkit-progress-bar {
+  background: rgba(217, 164, 90, 0.16);
+}
+
+.game-app .loading-progress::-webkit-progress-value {
+  background: var(--amber);
+  transition: width 0.2s linear;
+}
+
+.game-app .loading-progress::-moz-progress-bar {
+  background: var(--amber);
+}
+
+/* 値が未指定（不定）のあいだは琥珀の光が往復する */
+.game-app .loading-progress:indeterminate {
+  background: linear-gradient(90deg, rgba(217, 164, 90, 0.16) 0%, var(--amber) 50%, rgba(217, 164, 90, 0.16) 100%) 0 0 / 40% 100% no-repeat, rgba(217, 164, 90, 0.16);
+  animation: ev-sweep 1.6s ease-in-out infinite;
+}
+
+.game-app .loading-text {
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+}
+
+.game-app .error-card {
+  display: grid;
+  gap: 14px;
+  width: min(100%, 520px);
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--panel-solid);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+.game-app .error-title {
+  font-size: 22px;
+  letter-spacing: 0.14em;
+  color: #fff3d6;
+}
+
+.game-app .error-message {
+  color: var(--ink-dim);
+  line-height: 1.8;
+}
+
+.game-app .error-details summary {
+  cursor: pointer;
+  color: var(--ink-dim);
+  font-size: 12.5px;
+}
+
+.game-app .error-detail {
+  max-height: 160px;
+  margin-top: 8px;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid var(--line-faint);
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--ink-dim);
+  font: 12px/1.6 ui-monospace, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.game-app .error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---------- モーダル ---------- */
+.game-app dialog.modal {
+  --modal-w: 720px;
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(var(--modal-w), calc(100vw - var(--in-l) - var(--in-r)));
+  max-width: none;
+  height: fit-content;
+  max-height: calc(100vh - var(--in-t) - var(--in-b));
+  max-height: calc(100dvh - var(--in-t) - var(--in-b));
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+}
+
+.game-app dialog.modal[open] {
+  display: flex;
+  animation: ev-modal-in 0.18s var(--ease);
+}
+
+.game-app dialog.modal[data-size="sm"] { --modal-w: 460px; }
+.game-app dialog.modal[data-size="lg"] { --modal-w: 980px; }
+
+.game-app dialog.modal::backdrop {
+  background: rgba(2, 6, 6, 0.72);
+}
+
+.game-app .modal-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  max-height: calc(100vh - var(--in-t) - var(--in-b));
+  max-height: calc(100dvh - var(--in-t) - var(--in-b));
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: linear-gradient(180deg, #08171a, var(--panel-solid) 40%, #040c0c);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 18px 64px rgba(0, 0, 0, 0.7);
+}
+
+.game-app dialog.modal[data-size="lg"] .modal-frame {
+  height: min(640px, calc(100vh - var(--in-t) - var(--in-b)));
+  height: min(640px, calc(100dvh - var(--in-t) - var(--in-b)));
+}
+
+/* 角の飾り（細い琥珀の折れ線。CSSのみ） */
+.game-app .modal-frame::before,
+.game-app .modal-frame::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  border: 0 solid var(--amber-hi);
+}
+
+.game-app .modal-frame::before {
+  top: -1px;
+  left: -1px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+.game-app .modal-frame::after {
+  right: -1px;
+  bottom: -1px;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+}
+
+.game-app .modal-head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--line-faint);
+}
+
+.game-app .modal-heading {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.game-app .modal-title {
+  font-size: 22px;
+  letter-spacing: 0.2em;
+  color: #fff3d6;
+}
+
+.game-app .modal-close {
+  flex: none;
+  gap: 0.8em;
+}
+
+.game-app .modal-close-key {
+  padding: 0 5px;
+  border: 1px solid var(--line-faint);
+  color: var(--ink-faint);
+  font: 10.5px/1.5 var(--font-serif);
+  letter-spacing: 0.08em;
+}
+
+.game-app .modal-tabs {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  padding: 0 22px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line-faint);
+  scrollbar-width: none;
+}
+
+.game-app .modal-tabs::-webkit-scrollbar { display: none; }
+
+.game-app .modal-tab {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-dim);
+  letter-spacing: 0.18em;
+  transition: color 0.16s var(--ease), border-color 0.16s var(--ease);
+}
+
+.game-app .modal-tab:hover {
+  color: var(--ink);
+}
+
+.game-app .modal-tab[aria-selected="true"] {
+  border-bottom-color: var(--amber-hi);
+  color: #fff3d6;
+}
+
+.game-app .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 18px 22px 22px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--amber-lo) transparent;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.game-app .modal-panel {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.game-app .panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.game-app .panel-actions--start {
+  justify-content: flex-start;
+}
+
+.game-app .panel-note {
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+.game-app .panel-note:empty {
+  display: none;
+}
+
+.game-app .group-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line-faint);
+  font-family: var(--font-serif);
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  color: var(--amber);
+}
+
+.game-app .group-meta {
+  margin-left: auto;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
+/* フォーム部品 */
+.game-app .form-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.game-app .field,
+.game-app .field-group {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.game-app .field-group {
+  gap: 12px;
+}
+
+.game-app .field-label {
+  padding: 0;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--ink-dim);
+}
+
+.game-app .field-help {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.game-app .field-help--warn {
+  color: var(--warn);
+}
+
+.game-app .field-inline {
+  display: flex;
+  gap: 8px;
+}
+
+.game-app .field-inline .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.game-app .input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  color-scheme: dark;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.game-app .input::placeholder {
+  color: var(--ink-faint);
+}
+
+.game-app .input:hover {
+  border-color: var(--line);
+}
+
+.game-app .range-row {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr) 3.2em;
+  gap: 12px;
+  align-items: center;
+}
+
+.game-app .range {
+  width: 100%;
+  min-height: 32px;
+  accent-color: var(--amber);
+  touch-action: pan-y;
+}
+
+.game-app .range-value {
+  font-family: var(--font-serif);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--amber-hi);
+}
+
+.game-app .switch-row {
+  display: block;
+}
+
+.game-app .switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.game-app .switch-text {
+  font-size: 14px;
+  letter-spacing: 0.1em;
+}
+
+.game-app .switch-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.game-app .switch-track {
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 22px;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.4);
+  transition: background-color 0.16s var(--ease), border-color 0.16s var(--ease);
+}
+
+.game-app .switch-track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--ink-dim);
+  transition: transform 0.16s var(--ease), background-color 0.16s var(--ease);
+}
+
+.game-app .switch-input:checked + .switch-track {
+  border-color: var(--amber);
+  background: rgba(217, 164, 90, 0.24);
+}
+
+.game-app .switch-input:checked + .switch-track::after {
+  background: var(--amber-hi);
+  transform: translateX(20px);
+}
+
+.game-app .switch-input:focus-visible + .switch-track {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* 旅人の選択 */
+.game-app .choice-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.game-app .choice {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+
+.game-app .choice input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.game-app .choice-card {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 6px;
+  min-height: 100px;
+  padding: 10px 6px;
+  border: 1px solid var(--line-faint);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.3);
+  transition: border-color 0.16s var(--ease), background-color 0.16s var(--ease);
+}
+
+.game-app .choice:hover .choice-card {
+  border-color: var(--line);
+}
+
+.game-app .choice input:checked + .choice-card {
+  border-color: var(--amber-hi);
+  background: rgba(60, 42, 14, 0.5);
+  box-shadow: inset 0 0 0 1px var(--amber-hi);
+}
+
+.game-app .choice input:focus-visible + .choice-card {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.game-app .choice-icon {
+  --s: 2;
+}
+
+.game-app .choice-name {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+/* 2カラム（広い画面）/ 1カラム（狭い画面） */
+.game-app .split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(220px, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.game-app .split--even {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.game-app .split-main {
+  min-width: 0;
+}
+
+.game-app .split-side {
+  position: sticky;
+  top: 0;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.game-app .item-grid {
+  --slot: 52px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--slot), 1fr));
+  gap: 4px;
+}
+
+.game-app .equipment-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.game-app .equipment-slots:empty {
+  display: none;
+}
+
+.game-app .detail {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-faint);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.game-app .detail-name {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  color: #fff3d6;
+}
+
+.game-app .detail-text {
+  color: var(--ink-dim);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.game-app .detail-text:empty {
+  display: none;
+}
+
+.game-app .detail-stats {
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.game-app .detail-stats:empty {
+  display: none;
+}
+
+.game-app .detail-stats > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+  border-bottom: 1px dotted var(--line-faint);
+}
+
+.game-app .detail-stats dt {
+  color: var(--ink-dim);
+}
+
+.game-app .detail-stats dd {
+  font-family: var(--font-serif);
+  font-variant-numeric: tabular-nums;
+}
+
+/* クラフト */
+.game-app .station-line {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+}
+
+.game-app .station-line:empty {
+  display: none;
+}
+
+.game-app .chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.game-app .chip-row:empty {
+  display: none;
+}
+
+.game-app .chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--line-faint);
+  border-radius: 2px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  transition: border-color 0.16s var(--ease), color 0.16s var(--ease), background-color 0.16s var(--ease);
+}
+
+.game-app .chip:hover {
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.game-app .chip[aria-pressed="true"] {
+  border-color: var(--amber);
+  background: rgba(217, 164, 90, 0.16);
+  color: #fff3d6;
+}
+
+.game-app .recipe-list {
+  display: grid;
+  gap: 4px;
+  max-height: 52dvh;
+  overflow-y: auto;
+}
+
+@media (max-width: 720px) {
+  .game-app .recipe-list { max-height: clamp(160px, 35dvh, 320px); }
+}
+
+.game-app .recipe {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 4px 12px;
+  border: 1px solid var(--line-faint);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.22);
+  transition: border-color 0.16s var(--ease), background-color 0.16s var(--ease);
+}
+
+.game-app .recipe:hover {
+  border-color: var(--line);
+}
+
+.game-app .recipe[aria-pressed="true"] {
+  border-color: var(--amber-hi);
+  background: rgba(60, 42, 14, 0.5);
+}
+
+.game-app .recipe-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-app .recipe-meta {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.game-app .recipe-row[data-craftable="false"] .recipe,
+.game-app .recipe[data-craftable="false"] {
+  color: var(--ink-faint);
+}
+
+.game-app .ingredient-list {
+  display: grid;
+  gap: 4px;
+}
+
+.game-app .ingredient {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.game-app .ingredient-count {
+  font-family: var(--font-serif);
+  font-variant-numeric: tabular-nums;
+}
+
+.game-app .ingredient[data-short="true"] .ingredient-count {
+  color: var(--danger);
+}
+
+/* 地図 */
+.game-app .map-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  gap: 18px;
+  align-items: start;
+}
+
+.game-app .map-viewport {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--line-soft);
+  background: #020606;
+}
+
+.game-app .map-canvas {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 460px;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+.game-app .map-side {
+  display: grid;
+  gap: 10px;
+}
+
+.game-app .map-legend {
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--ink-dim);
+}
+
+/* 記録 */
+.game-app .entry-list {
+  display: grid;
+  gap: 6px;
+}
+
+.game-app .entry-list > li {
+  padding: 10px 14px;
+  border: 1px solid var(--line-faint);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.game-app .entry-list > li[data-done="true"] {
+  border-color: var(--line-soft);
+}
+
+.game-app .entry-list > li[data-locked="true"] {
+  color: var(--ink-faint);
+}
+
+/* セーブスロット */
+.game-app .save-slots {
+  display: grid;
+  gap: 8px;
+}
+
+.game-app .save-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-faint);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.game-app .save-slot[data-current="true"] {
+  border-color: var(--line);
+}
+
+.game-app .save-slot-name {
+  font-family: var(--font-serif);
+  letter-spacing: 0.12em;
+  color: #fff3d6;
+}
+
+.game-app .save-slot-meta {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.game-app .save-slot-info {
+  min-width: 0;
+}
+
+.game-app .save-slot-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+/* 文章 */
+.game-app .prose {
+  display: grid;
+  gap: 12px;
+  line-height: 1.85;
+}
+
+.game-app .prose .group-title {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.game-app .keylist {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 24px;
+}
+
+.game-app .keylist > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 3px 0;
+  border-bottom: 1px dotted var(--line-faint);
+}
+
+.game-app .keylist dd {
+  color: var(--ink-dim);
+  text-align: right;
+}
+
+.game-app .steps {
+  display: grid;
+  gap: 6px;
+  counter-reset: step;
+}
+
+.game-app .steps > li {
+  position: relative;
+  padding-left: 2.2em;
+  counter-increment: step;
+}
+
+.game-app .steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0.35em;
+  display: grid;
+  place-items: center;
+  width: 1.5em;
+  height: 1.5em;
+  border: 1px solid var(--line);
+  color: var(--amber-hi);
+  font: 12px/1 var(--font-serif);
+}
+
+.game-app .bullets {
+  display: grid;
+  gap: 4px;
+}
+
+.game-app .bullets > li {
+  position: relative;
+  padding-left: 1.3em;
+}
+
+.game-app .bullets > li::before {
+  content: "";
+  position: absolute;
+  left: 0.2em;
+  top: 0.85em;
+  width: 5px;
+  height: 5px;
+  background: var(--amber);
+}
+
+.game-app .credit-main {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: rgba(217, 164, 90, 0.08);
+  font-family: var(--font-serif);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+  color: #fff3d6;
+}
+
+.game-app .credit-list {
+  display: grid;
+  gap: 12px;
+}
+
+.game-app .credit-list dt {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.game-app .credit-list dd {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.game-app .end-text {
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--ink);
+}
+
+.game-app .end-text:empty {
+  display: none;
+}
+
+/* ---------- アニメーション ---------- */
+@keyframes ev-pulse {
+  50% { opacity: 0.45; }
+}
+
+@keyframes ev-toast-in {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+
+@keyframes ev-modal-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes ev-sweep {
+  0% { background-position: -40% 0, 0 0; }
+  100% { background-position: 140% 0, 0 0; }
+}
+
+/* ---------- レスポンシブ ---------- */
+
+/* 狭い幅（スマホ縦など）：HUDを2列にし、通知・ボス体力は下の行へ */
+@media (max-width: 720px) {
+  .game-app {
+    --slot-gap: 3px;
+    --slot: min(44px, calc((100vw - var(--in-l) - var(--in-r) - 2 * var(--hotbar-pad) - 2px - 7 * var(--slot-gap)) / 8));
+    --minimap: 92px;
+    --stick: 116px;
+    --act-main: 68px;
+    --act-sub: 48px;
+    --notice-h: 58px;
+    font-size: 13px;
+  }
+
+  .game-app .hud-top {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "left right" "center center";
+  }
+
+  .game-app .hud-vitals {
+    width: min(100%, 176px);
+  }
+
+  .game-app .hud-objective {
+    width: min(100%, 176px);
+  }
+
+  .game-app .hud-stat-value {
+    min-width: 5ch;
+  }
+
+  .game-app .hud-stat {
+    gap: 6px;
+  }
+
+  .game-app .hud-tools {
+    width: 120px;
+  }
+
+  .game-app .modal-head {
+    padding: 14px 16px 12px;
+  }
+
+  .game-app .modal-title {
+    font-size: 19px;
+  }
+
+  .game-app .modal-tabs {
+    padding: 0 12px;
+  }
+
+  .game-app .modal-body {
+    padding: 14px 16px 18px;
+  }
+
+  .game-app .split,
+  .game-app .map-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .game-app .split--even {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .game-app .split-side {
+    position: static;
+  }
+
+  .game-app .keylist {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .game-app .item-grid {
+    --slot: 46px;
+  }
+
+  .game-app .title-inner {
+    margin-left: 0;
+  }
+
+  .game-app .title-ja {
+    letter-spacing: 0.4em;
+  }
+}
+
+/* 縦向きでタッチ操作中：操作UIをホットバーの上に積む（重ならない） */
+@media (orientation: portrait) {
+  .game-app[data-touch="on"] {
+    --controls-bottom: var(--stack-bottom);
+    --center-bottom: calc(var(--controls-bottom) + var(--controls-h) + 8px);
+  }
+}
+
+/* 高さが低い横画面（スマホ横など）：すべて小型化し、横方向に並べる */
+@media (max-height: 520px) {
+  .game-app {
+    --slot-gap: 3px;
+    --slot: clamp(30px, 4.4vw, 38px);
+    --hotbar-pad: 3px;
+    --label-h: 18px;
+    --minimap: 76px;
+    --stick: 104px;
+    --act-main: 60px;
+    --act-sub: 44px;
+    --act-gap: 8px;
+    --notice-h: 44px;
+    --center-col: 300px;
+    --icon-scale: 1;
+    font-size: 12.5px;
+  }
+
+  /* 横幅が足りるかぎり3カラムのまま（上のmax-widthで2列化されたものを戻す） */
+  .game-app .hud-top {
+    grid-template-columns: minmax(0, 1fr) minmax(0, var(--center-col)) minmax(0, 1fr);
+    grid-template-areas: "left center right";
+  }
+
+  .game-app .hud-vitals,
+  .game-app .hud-objective {
+    width: min(100%, 196px);
+    padding: 6px 8px;
+  }
+
+  .game-app .hud-vitals {
+    gap: 3px;
+  }
+
+  .game-app .objective-text {
+    -webkit-line-clamp: 2;
+  }
+
+  /* 右カラム：ツールを縦に並べてミニマップの左に置く */
+  .game-app .hud-right {
+    flex-direction: row-reverse;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .game-app .hud-tools {
+    grid-template-columns: 1fr;
+    width: 64px;
+    gap: 3px;
+  }
+
+  .game-app .tool-btn {
+    min-height: 24px;
+    font-size: 11px;
+  }
+
+  .game-app .save-indicator {
+    position: absolute;
+    right: 0;
+    top: calc(var(--minimap) + 4px);
+  }
+
+  .game-app .modal-head {
+    padding: 10px 16px 8px;
+  }
+
+  .game-app .modal-title {
+    font-size: 18px;
+  }
+
+  .game-app .modal-tab {
+    min-height: 36px;
+  }
+
+  .game-app .modal-body {
+    padding: 12px 16px 14px;
+  }
+
+  .game-app .item-grid {
+    --slot: 44px;
+  }
+
+  /* タイトル：左に見出し、右にメニューの2カラム */
+  .game-app .title-inner {
+    width: min(100%, 860px);
+    margin-left: clamp(0px, 4vw, 48px);
+    grid-template-columns: minmax(0, 1.2fr) minmax(220px, 300px);
+    grid-template-areas: "brand menu" "foot menu";
+    align-items: center;
+    gap: 8px 32px;
+  }
+
+  .game-app .title-brand { grid-area: brand; gap: 4px; }
+  .game-app .title-menu { grid-area: menu; gap: 6px; }
+  .game-app .title-foot { grid-area: foot; }
+
+  .game-app .title-logo {
+    font-size: clamp(34px, 7vw, 56px);
+  }
+
+  .game-app .title-ja {
+    font-size: 15px;
+  }
+
+  .game-app .title-rule {
+    margin-block: 2px;
+  }
+
+  .game-app .title-intro {
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+
+  .game-app .menu-btn {
+    min-height: 38px;
+  }
+}
+
+/* 横幅が特に狭い横画面（~600px）：ホットバーと操作UIの衝突を避けるためアイコンも縮める */
+@media (max-height: 520px) and (max-width: 640px) {
+  .game-app {
+    --slot: 28px;
+    --stick: 92px;
+    --act-main: 52px;
+    --act-sub: 40px;
+    --center-col: 180px;
+  }
+
+  .game-app .slot-key {
+    display: none;
+  }
+}
+
+/* 横画面でタッチ操作中：HUD本体と干渉しないよう、案内は中央のまま */
+@media (max-height: 520px) and (orientation: landscape) {
+  .game-app[data-touch="on"] {
+    --controls-bottom: var(--in-b);
+    --center-bottom: var(--stack-bottom);
+  }
+}
+
+/* 大きな画面 */
+@media (min-width: 1500px) and (min-height: 860px) {
+  .game-app {
+    --slot: 52px;
+    --minimap: 152px;
+    font-size: 15px;
+  }
+
+  .game-app .hud-vitals { width: 240px; }
+  .game-app .hud-objective { width: 268px; }
+}
+
+/* ---------- 動きの抑制（OS設定 / ゲーム内設定） ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .game-app:not([data-reduced-motion="off"]) *,
+  .game-app:not([data-reduced-motion="off"]) *::before,
+  .game-app:not([data-reduced-motion="off"]) *::after,
+  .game-app:not([data-reduced-motion="off"]) dialog.modal[open] {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.game-app[data-reduced-motion="on"] *,
+.game-app[data-reduced-motion="on"] *::before,
+.game-app[data-reduced-motion="on"] *::after,
+.game-app[data-reduced-motion="on"] dialog.modal[open] {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}

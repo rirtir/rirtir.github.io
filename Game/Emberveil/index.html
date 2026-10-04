@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#030909">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="残り火の深庭 — EMBERVEIL。地底の苔庭で炉心を呼び覚ます、2Dドット絵のサバイバルクラフト。">
+  <title>残り火の深庭 — EMBERVEIL</title>
+  <link rel="stylesheet" href="../../css/common-style.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="emberveil">
+
+<!--
+  UI外枠。見た目の表示/非表示は hidden 属性が唯一の正。
+  状態の補助属性（#game-app）:
+    data-touch="on|off"            タッチ操作UIを出すか
+    data-hand="right|left"         タッチ操作の左右反転
+    data-reduced-motion="on|off"   動きを減らす（実効値。OS設定はCSS側でも尊重）
+    data-modal="open|none"         モーダル表示中か
+    data-dialogue="open|closed"    会話パネル表示中か
+-->
+<div id="game-app" class="game-app" data-touch="off" data-hand="right" data-reduced-motion="off" data-modal="none" data-dialogue="closed">
+
+  <!-- ゲーム画面：rendererが描画する全画面canvas。タイトル背景も同じcanvas -->
+  <canvas id="world-canvas" class="world-canvas" tabindex="-1" role="img" aria-label="ゲーム画面：地底の苔庭"></canvas>
+
+  <!-- スクリーンリーダー向けの読み上げ領域 -->
+  <p id="sr-live" class="visually-hidden" role="status" aria-live="polite"></p>
+
+  <!-- ===== システム通知（保存不可・別タブ） ===== -->
+  <div id="system-notices" class="system-notices">
+    <div id="storage-warning" class="notice" data-tone="warn" role="alert" hidden>
+      <p class="notice-text">ブラウザが保存を許可していません。このまま遊べますが、タブを閉じると進行は失われます。</p>
+      <button id="btn-storage-warning-dismiss" type="button" class="btn btn--small">閉じる</button>
+    </div>
+    <div id="session-banner" class="notice" data-tone="info" role="alert" hidden>
+      <p class="notice-text">別のタブでゲームが開かれています。このタブは閲覧のみです。</p>
+      <button id="btn-take-control" type="button" class="btn btn--small btn--primary">このタブで操作する</button>
+    </div>
+  </div>
+
+  <!-- ===== HUD（プレイ中のみ表示） ===== -->
+  <div id="hud" class="hud" hidden>
+
+    <div id="hud-top" class="hud-top">
+      <div class="hud-left">
+        <section id="hud-vitals" class="panel hud-vitals" aria-label="状態">
+          <p class="hud-line">
+            <span id="hud-day" class="hud-day">1日目</span>
+            <span id="hud-biome" class="hud-biome">苔の庭</span>
+          </p>
+          <!-- 各メーターは --fill (0〜1) をstyleで指定。data-state="low|critical" で警告色 -->
+          <div id="stat-health" class="hud-stat" data-stat="health" role="meter" aria-label="体力" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+            <span class="hud-stat-label">体力</span>
+            <span class="hud-stat-bar"><span class="hud-stat-fill"></span></span>
+            <span class="hud-stat-value">100/100</span>
+          </div>
+          <div id="stat-hunger" class="hud-stat" data-stat="hunger" role="meter" aria-label="空腹" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+            <span class="hud-stat-label">空腹</span>
+            <span class="hud-stat-bar"><span class="hud-stat-fill"></span></span>
+            <span class="hud-stat-value">100/100</span>
+          </div>
+          <div id="stat-stamina" class="hud-stat" data-stat="stamina" role="meter" aria-label="スタミナ" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+            <span class="hud-stat-label">活力</span>
+            <span class="hud-stat-bar"><span class="hud-stat-fill"></span></span>
+            <span class="hud-stat-value">100/100</span>
+          </div>
+          <ul id="hud-effects" class="hud-effects" aria-label="状態効果"></ul>
+        </section>
+
+        <section id="hud-objective" class="panel hud-objective" aria-label="目標">
+          <p class="eyebrow">目標</p>
+          <p id="objective-title" class="objective-title">—</p>
+          <p id="objective-text" class="objective-text"></p>
+          <span id="objective-progress" class="hud-progress" role="progressbar" aria-label="目標の進行" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><span class="hud-progress-fill"></span></span>
+        </section>
+      </div>
+
+      <div class="hud-center">
+        <section id="boss-bar" class="boss-bar" aria-label="守護者" hidden>
+          <p id="boss-name" class="boss-name"></p>
+          <span id="boss-meter" class="boss-meter" role="meter" aria-label="守護者の体力" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span class="boss-fill"></span></span>
+        </section>
+        <!-- 通知：.toast を追加（data-tone="info|good|warn|danger"、消えるとき .is-leaving） -->
+        <div id="toast-region" class="toast-region" role="status" aria-live="polite" aria-relevant="additions"></div>
+      </div>
+
+      <div class="hud-right">
+        <button id="btn-map" type="button" class="minimap" aria-label="地図を開く">
+          <canvas id="minimap-canvas" class="minimap-canvas" width="96" height="96" aria-hidden="true"></canvas>
+        </button>
+        <p id="save-indicator" class="save-indicator" role="status" hidden>保存中…</p>
+        <div id="hud-tools" class="hud-tools" role="group" aria-label="メニュー">
+          <button id="btn-inventory" type="button" class="tool-btn">持ち物</button>
+          <button id="btn-craft" type="button" class="tool-btn">作る</button>
+          <button id="btn-codex" type="button" class="tool-btn">記録</button>
+          <button id="btn-pause" type="button" class="tool-btn">メニュー</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 調べる・話すの案内（対象が近くにあるときだけ表示） -->
+    <div id="interact-prompt" class="interact-prompt" hidden>
+      <kbd id="interact-key" class="interact-key">E</kbd>
+      <span id="interact-text" class="interact-text"></span>
+      <span id="interact-progress" class="hud-progress" role="progressbar" aria-label="作業の進行" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><span class="hud-progress-fill"></span></span>
+    </div>
+
+    <!-- ホットバー（8スロット）。選択中は aria-pressed="true" -->
+    <div id="hotbar" class="hotbar" role="toolbar" aria-label="ホットバー">
+      <p id="hotbar-label" class="hotbar-label" aria-live="polite"></p>
+      <div id="hotbar-slots" class="hotbar-slots">
+        <button type="button" class="hotbar-slot" data-slot="0" aria-label="スロット1：空" aria-pressed="false"><span class="slot-key" aria-hidden="true">1</span><img class="px-icon slot-icon" alt="" hidden><span class="slot-count" hidden></span><span class="slot-durability" hidden><i></i></span></button>
+        <button type="button" class="hotbar-slot" data-slot="1" aria-label="スロット2：空" aria-pressed="false"><span class="slot-key" aria-hidden="true">2</span><img class="px-icon slot-icon" alt="" hidden><span class="slot-count" hidden></span><span class="slot-durability" hidden><i></i></span></button>
+        <button type="button" class="hotbar-slot" data-slot="2" aria-label="スロット3：空" aria-pressed="false"><span class="slot-key" aria-hidden="true">3</span><img class="px-icon slot-icon" alt="" hidden><span class="slot-count" hidden></span><span class="slot-durability" hidden><i></i></span></button>
+        <button type="button" class="hotbar-slot" data-slot="3" aria-label="スロット4：空" aria-pressed="false"><span class="slot-key" aria-hidden="true">4</span><img class="px-icon slot-icon" alt="" hidden><span class="slot-count" hidden></span><span class="slot-durability" hidden><i></i></span></button>
+        <button type="button" class="hotbar-slot" data-slot="4" aria-label="スロット5：空" aria-pressed="false"><span class="slot-key" aria-hidden="true">5</span><img class="px-icon slot-icon" alt="" hidden><span class="slot-count" hidden></span><span class="slot-durability" hidden><i></i></span></button>
+        <button type="button" class="hotbar-slot" data-slot="5" aria-label="スロット6：空" aria-pressed="false"><span class="slot-key" aria-hidden="true">6</span><img class="px-icon slot-icon" alt="" hidden><span class="slot-count" hidden></span><span class="slot-durability" hidden><i></i></span></button>
+        <button type="button" class="hotbar-slot" data-slot="6" aria-label="スロット7：空" aria-pressed="false"><span class="slot-key" aria-hidden="true">7</span><img class="px-icon slot-icon" alt="" hidden><span class="slot-count" hidden></span><span class="slot-durability" hidden><i></i></span></button>
+        <button type="button" class="hotbar-slot" data-slot="7" aria-label="スロット8：空" aria-pressed="false"><span class="slot-key" aria-hidden="true">8</span><img class="px-icon slot-icon" alt="" hidden><span class="slot-count" hidden></span><span class="slot-durability" hidden><i></i></span></button>
+      </div>
+    </div>
+
+    <!-- 会話パネル（モーダルではない。表示中はタッチ操作UIを隠す） -->
+    <section id="dialogue" class="panel dialogue" role="group" aria-labelledby="dialogue-speaker" hidden>
+      <img id="dialogue-portrait" class="px-icon dialogue-portrait" alt="" hidden>
+      <div class="dialogue-main">
+        <p id="dialogue-speaker" class="dialogue-speaker"></p>
+        <p id="dialogue-text" class="dialogue-text" aria-live="polite"></p>
+        <div id="dialogue-choices" class="dialogue-choices"></div>
+        <div class="dialogue-actions">
+          <button id="btn-dialogue-next" type="button" class="btn btn--small btn--primary">次へ</button>
+          <button id="btn-dialogue-close" type="button" class="btn btn--small">閉じる</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- タッチ操作（data-touch="on" のときだけ表示。hiddenはui.jsが切り替える） -->
+    <div id="touch-controls" class="touch-controls" hidden>
+      <div id="touch-stick" class="touch-stick" role="application" aria-label="移動スティック">
+        <span id="touch-stick-knob" class="touch-stick-knob"></span>
+      </div>
+      <div id="touch-actions" class="touch-actions">
+        <button id="touch-interact" type="button" class="touch-btn touch-btn--sub" aria-label="調べる">調べる</button>
+        <button id="touch-dodge" type="button" class="touch-btn touch-btn--sub" aria-label="回避">回避</button>
+        <button id="touch-act" type="button" class="touch-btn touch-btn--main" aria-label="使う・攻撃">使う</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== タイトル ===== -->
+  <main id="title-screen" class="title-screen" aria-labelledby="title-logo" hidden>
+    <div class="title-inner">
+      <header class="title-brand">
+        <p class="title-eyebrow" lang="en">A GARDEN BENEATH THE WORLD</p>
+        <h1 id="title-logo" class="title-logo" lang="en">EMBERVEIL</h1>
+        <p class="title-ja">残り火の深庭</p>
+        <span class="title-rule" aria-hidden="true"></span>
+        <p class="title-intro">苔むした地の底で、炉心の火はまだ消えていない。灯りをつなぎ、庭を育て、三体の守護者の封印を解いて、残り火をもう一度燃え上がらせよう。</p>
+      </header>
+
+      <nav id="title-menu" class="title-menu" aria-label="タイトルメニュー">
+        <button id="btn-new-game" type="button" class="menu-btn menu-btn--primary"><span class="menu-btn-ja">新しい旅</span><span class="menu-btn-en" lang="en" aria-hidden="true">NEW JOURNEY</span></button>
+        <button id="btn-continue" type="button" class="menu-btn" disabled><span class="menu-btn-ja">続きから</span><span class="menu-btn-en" lang="en" aria-hidden="true">CONTINUE</span></button>
+        <button id="btn-settings" type="button" class="menu-btn"><span class="menu-btn-ja">設定</span><span class="menu-btn-en" lang="en" aria-hidden="true">SETTINGS</span></button>
+        <button id="btn-help" type="button" class="menu-btn"><span class="menu-btn-ja">遊び方</span><span class="menu-btn-en" lang="en" aria-hidden="true">HOW TO PLAY</span></button>
+        <button id="btn-credits" type="button" class="menu-btn"><span class="menu-btn-ja">クレジット</span><span class="menu-btn-en" lang="en" aria-hidden="true">CREDITS</span></button>
+        <p id="continue-summary" class="continue-summary" hidden></p>
+      </nav>
+
+      <p class="title-foot">音を使います。最初の操作のあとに再生されます。</p>
+    </div>
+  </main>
+
+  <!-- ===== 読み込み ===== -->
+  <div id="loading-screen" class="loading-screen" role="status" aria-live="polite">
+    <div class="loading-inner">
+      <p class="loading-mark" lang="en">EMBERVEIL</p>
+      <progress id="loading-progress" class="loading-progress" max="100" aria-labelledby="loading-text"></progress>
+      <p id="loading-text" class="loading-text">庭を目覚めさせています…</p>
+      <noscript><p class="loading-text">このゲームの実行にはJavaScriptが必要です。</p></noscript>
+    </div>
+  </div>
+
+  <!-- ===== 起動エラー ===== -->
+  <section id="error-screen" class="error-screen" role="alert" aria-labelledby="error-title" hidden>
+    <div class="error-card">
+      <p class="eyebrow" lang="en">SOMETHING WENT WRONG</p>
+      <h2 id="error-title" class="error-title">起動できませんでした</h2>
+      <p id="error-message" class="error-message">読み込み中に問題が起きました。</p>
+      <details class="error-details">
+        <summary>技術的な詳細</summary>
+        <pre id="error-detail" class="error-detail"></pre>
+      </details>
+      <div class="error-actions">
+        <button id="btn-error-retry" type="button" class="btn btn--primary">再試行</button>
+        <button id="btn-error-reload" type="button" class="btn">ページを再読み込み</button>
+      </div>
+    </div>
+  </section>
+
+  <!--
+    ===== モーダル（複数パネル共用） =====
+    ui.js が showModal()/close() と、表示するパネルの hidden 切り替え、
+    #modal-title/#modal-eyebrow の書き換え、data-size="sm|md|lg" を担当。
+    各パネルは data-panel と id="panel-<名前>" を持つ。
+  -->
+  <dialog id="modal" class="modal" data-size="md" aria-labelledby="modal-title">
+    <div class="modal-frame">
+      <header class="modal-head">
+        <div class="modal-heading">
+          <p id="modal-eyebrow" class="eyebrow" lang="en"></p>
+          <h2 id="modal-title" class="modal-title"></h2>
+        </div>
+        <button id="modal-close" type="button" class="btn btn--small modal-close" aria-label="閉じる">閉じる<span class="modal-close-key" aria-hidden="true">Esc</span></button>
+      </header>
+
+      <!-- ゲーム内メニュー用タブ（inventory / craft / map / codex）。他パネルでは hidden -->
+      <div id="modal-tabs" class="modal-tabs" role="tablist" aria-label="ゲームメニュー" hidden>
+        <button id="tab-inventory" type="button" class="modal-tab" role="tab" data-panel="inventory" aria-controls="panel-inventory" aria-selected="false">持ち物</button>
+        <button id="tab-craft" type="button" class="modal-tab" role="tab" data-panel="craft" aria-controls="panel-craft" aria-selected="false">作る</button>
+        <button id="tab-map" type="button" class="modal-tab" role="tab" data-panel="map" aria-controls="panel-map" aria-selected="false">地図</button>
+        <button id="tab-codex" type="button" class="modal-tab" role="tab" data-panel="codex" aria-controls="panel-codex" aria-selected="false">記録</button>
+      </div>
+
+      <div id="modal-body" class="modal-body">
+
+        <!-- 一時停止 -->
+        <section id="panel-pause" class="modal-panel" data-panel="pause" hidden>
+          <div class="menu-list">
+            <button id="btn-resume" type="button" class="menu-btn menu-btn--primary"><span class="menu-btn-ja">再開</span><span class="menu-btn-en" lang="en" aria-hidden="true">RESUME</span></button>
+            <button id="btn-pause-save" type="button" class="menu-btn"><span class="menu-btn-ja">いま保存する</span><span class="menu-btn-en" lang="en" aria-hidden="true">SAVE</span></button>
+            <button id="btn-pause-saves" type="button" class="menu-btn"><span class="menu-btn-ja">記録の管理</span><span class="menu-btn-en" lang="en" aria-hidden="true">SLOTS</span></button>
+            <button id="btn-pause-settings" type="button" class="menu-btn"><span class="menu-btn-ja">設定</span><span class="menu-btn-en" lang="en" aria-hidden="true">SETTINGS</span></button>
+            <button id="btn-pause-help" type="button" class="menu-btn"><span class="menu-btn-ja">遊び方</span><span class="menu-btn-en" lang="en" aria-hidden="true">HOW TO PLAY</span></button>
+            <button id="btn-pause-title" type="button" class="menu-btn"><span class="menu-btn-ja">タイトルへ戻る</span><span class="menu-btn-en" lang="en" aria-hidden="true">TITLE</span></button>
+          </div>
+          <p id="pause-status" class="panel-note" role="status"></p>
+        </section>
+
+        <!-- 新しい旅 -->
+        <section id="panel-newgame" class="modal-panel" data-panel="newgame" hidden>
+          <form id="newgame-form" class="form-stack" novalidate>
+            <fieldset class="field">
+              <legend class="field-label">旅人</legend>
+              <div id="newgame-character" class="choice-row">
+                <label class="choice"><input type="radio" name="character" value="knight_m" checked><span class="choice-card"><img class="px-icon choice-icon" src="assets/dungeon/knight_m_idle_anim_f0.png" alt=""><span class="choice-name">騎士</span></span></label>
+                <label class="choice"><input type="radio" name="character" value="elf_f"><span class="choice-card"><img class="px-icon choice-icon" src="assets/dungeon/elf_f_idle_anim_f0.png" alt=""><span class="choice-name">森の民（女）</span></span></label>
+                <label class="choice"><input type="radio" name="character" value="elf_m"><span class="choice-card"><img class="px-icon choice-icon" src="assets/dungeon/elf_m_idle_anim_f0.png" alt=""><span class="choice-name">森の民（男）</span></span></label>
+                <label class="choice"><input type="radio" name="character" value="lizard_m"><span class="choice-card"><img class="px-icon choice-icon" src="assets/dungeon/lizard_m_idle_anim_f0.png" alt=""><span class="choice-name">トカゲの民</span></span></label>
+              </div>
+            </fieldset>
+            <div class="field">
+              <label class="field-label" for="newgame-seed">庭のシード</label>
+              <div class="field-inline">
+                <input id="newgame-seed" class="input" type="text" inputmode="text" autocomplete="off" spellcheck="false" maxlength="32" placeholder="空欄ならランダム">
+                <button id="btn-seed-random" type="button" class="btn">ランダム</button>
+              </div>
+              <p class="field-help">同じシードなら同じ庭が生まれます。</p>
+            </div>
+            <div class="field">
+              <label class="field-label" for="newgame-slot">保存先</label>
+              <select id="newgame-slot" class="input"></select>
+              <p id="newgame-overwrite-warning" class="field-help field-help--warn" role="status" hidden>選んだスロットの記録は上書きされます。</p>
+            </div>
+            <div class="panel-actions">
+              <button id="btn-newgame-start" type="submit" class="btn btn--primary">旅を始める</button>
+              <button id="btn-newgame-cancel" type="button" class="btn">戻る</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- 記録（セーブスロット） -->
+        <section id="panel-saves" class="modal-panel" data-panel="saves" hidden>
+          <ol id="save-slots" class="save-slots"></ol>
+          <div class="panel-actions panel-actions--start">
+            <button id="btn-export-json" type="button" class="btn">JSONで書き出す</button>
+            <button id="btn-import-json" type="button" class="btn">JSONを読み込む</button>
+            <input id="import-file" type="file" accept="application/json,.json" hidden>
+          </div>
+          <p id="save-message" class="panel-note" role="status"></p>
+        </section>
+
+        <!-- 設定（変更はすぐ反映） -->
+        <section id="panel-settings" class="modal-panel" data-panel="settings" hidden>
+          <div class="form-stack">
+            <fieldset class="field-group">
+              <legend class="group-title">音</legend>
+              <div class="switch-row">
+                <label class="switch" for="setting-sound">
+                  <span class="switch-text">効果音・環境音</span>
+                  <input id="setting-sound" class="switch-input" type="checkbox" checked>
+                  <span class="switch-track" aria-hidden="true"></span>
+                </label>
+              </div>
+              <div class="range-row">
+                <label class="field-label" for="setting-volume">音量</label>
+                <input id="setting-volume" class="range" type="range" min="0" max="100" step="5" value="70">
+                <output id="setting-volume-value" class="range-value" for="setting-volume">70</output>
+              </div>
+            </fieldset>
+
+            <fieldset class="field-group">
+              <legend class="group-title">表示</legend>
+              <div class="range-row">
+                <label class="field-label" for="setting-zoom">拡大</label>
+                <input id="setting-zoom" class="range" type="range" min="1" max="3" step="1" value="2">
+                <output id="setting-zoom-value" class="range-value" for="setting-zoom">×2</output>
+              </div>
+              <div class="field">
+                <label class="field-label" for="setting-reduced-motion">動きを減らす</label>
+                <select id="setting-reduced-motion" class="input">
+                  <option value="auto">端末の設定に合わせる</option>
+                  <option value="on">減らす</option>
+                  <option value="off">減らさない</option>
+                </select>
+              </div>
+            </fieldset>
+
+            <fieldset class="field-group">
+              <legend class="group-title">操作</legend>
+              <div class="field">
+                <label class="field-label" for="setting-touch">タッチ操作</label>
+                <select id="setting-touch" class="input">
+                  <option value="auto">自動</option>
+                  <option value="on">表示する</option>
+                  <option value="off">表示しない</option>
+                </select>
+              </div>
+              <div class="switch-row">
+                <label class="switch" for="setting-left-hand">
+                  <span class="switch-text">左利き配置（スティックを右に）</span>
+                  <input id="setting-left-hand" class="switch-input" type="checkbox">
+                  <span class="switch-track" aria-hidden="true"></span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="panel-actions panel-actions--start">
+              <button id="btn-settings-reset" type="button" class="btn">初期値に戻す</button>
+            </div>
+            <p class="panel-note">設定はこの端末のブラウザに保存されます。</p>
+          </div>
+        </section>
+
+        <!-- 遊び方（キー割り当ては暫定。main.jsの実装に合わせて更新すること） -->
+        <section id="panel-help" class="modal-panel" data-panel="help" hidden>
+          <div class="prose">
+            <h3 class="group-title">操作（キーボード・マウス）</h3>
+            <dl class="keylist">
+              <div><dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>矢印</kbd></dt><dd>移動</dd></div>
+              <div><dt><kbd>Space</kbd> / 左クリック</dt><dd>使う・攻撃・掘る</dd></div>
+              <div><dt><kbd>E</kbd></dt><dd>調べる・話す</dd></div>
+              <div><dt><kbd>Shift</kbd></dt><dd>回避</dd></div>
+              <div><dt><kbd>1</kbd>〜<kbd>8</kbd></dt><dd>ホットバーの選択</dd></div>
+              <div><dt><kbd>I</kbd></dt><dd>持ち物</dd></div>
+              <div><dt><kbd>C</kbd></dt><dd>作る</dd></div>
+              <div><dt><kbd>M</kbd></dt><dd>地図</dd></div>
+              <div><dt><kbd>J</kbd></dt><dd>記録（図鑑・実績）</dd></div>
+              <div><dt><kbd>Esc</kbd></dt><dd>メニュー・閉じる</dd></div>
+            </dl>
+            <h3 class="group-title">操作（タッチ）</h3>
+            <p>左のスティックで移動、右のボタンで「使う」「調べる」「回避」。下のホットバーをタップして持ち物を切り替えます。</p>
+            <h3 class="group-title">旅の流れ</h3>
+            <ol class="steps">
+              <li>壁を掘り、苔や木、石を集めて、最初の拠点に灯りを置く。</li>
+              <li>作業台や炉で道具・武器・防具を鍛え、畑や釣りで食べものを確保する。</li>
+              <li>苔庭、結晶洞、灼熱の遺跡を探検し、三体の守護者を倒して封印を解く。</li>
+              <li>炉心を再生すれば、旅は一つの区切りを迎える。そのあとは自由に庭を築ける。</li>
+            </ol>
+            <h3 class="group-title">ヒント</h3>
+            <ul class="bullets">
+              <li>倒れても、落とした荷物はその場所に残ります。</li>
+              <li>地図は霧が晴れた場所だけ描かれます。灯りを持って歩きましょう。</li>
+              <li>自動で保存されます。「メニュー」からいつでも手動保存もできます。</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- クレジット -->
+        <section id="panel-credits" class="modal-panel" data-panel="credits" hidden>
+          <div class="prose credits">
+            <p class="credit-main" lang="en">0x72 CC0 / Codex pixel art and synthesized audio</p>
+            <dl class="credit-list">
+              <div><dt>キャラクター・敵・アイテムのドット絵</dt><dd><span lang="en">DungeonTileset II</span> — 0x72（<span lang="en">CC0 1.0 Universal</span>）<br><a href="https://0x72.itch.io/dungeontileset-ii" target="_blank" rel="noopener noreferrer">0x72.itch.io/dungeontileset-ii</a></dd></div>
+              <div><dt>地形・環境のドット絵、描画、効果音・環境音（合成）</dt><dd><span lang="en">Codex</span></dd></div>
+              <div><dt>ゲームロジック・UI</dt><dd><span lang="en">Claude</span></dd></div>
+            </dl>
+            <p class="panel-note">CC0素材の提供者に感謝します。外部の音源や生成AIの画像は使っていません。</p>
+            <p id="credits-version" class="panel-note" lang="en"></p>
+          </div>
+        </section>
+
+        <!-- 持ち物 -->
+        <section id="panel-inventory" class="modal-panel" data-panel="inventory" role="tabpanel" aria-labelledby="tab-inventory" hidden>
+          <div class="split">
+            <div class="split-main">
+              <h3 class="group-title">バッグ <span id="inventory-capacity" class="group-meta"></span></h3>
+              <div id="inventory-grid" class="item-grid" role="listbox" aria-label="持ち物"></div>
+            </div>
+            <aside class="split-side" aria-label="選択中のアイテム">
+              <div id="equipment-slots" class="equipment-slots" aria-label="装備"></div>
+              <div class="detail">
+                <p id="inventory-detail-name" class="detail-name">アイテムを選んでください</p>
+                <p id="inventory-detail-text" class="detail-text"></p>
+                <dl id="inventory-detail-stats" class="detail-stats"></dl>
+                <div class="panel-actions panel-actions--start">
+                  <button id="btn-item-use" type="button" class="btn btn--primary" disabled>使う</button>
+                  <button id="btn-item-equip" type="button" class="btn" disabled>装備する</button>
+                  <button id="btn-item-assign" type="button" class="btn" disabled>ホットバーへ</button>
+                  <button id="btn-item-drop" type="button" class="btn btn--danger" disabled>捨てる</button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- 作る -->
+        <section id="panel-craft" class="modal-panel" data-panel="craft" role="tabpanel" aria-labelledby="tab-craft" hidden>
+          <p id="craft-station" class="station-line" role="status"></p>
+          <div id="craft-categories" class="chip-row" role="group" aria-label="分類"></div>
+          <div class="split">
+            <div class="split-main">
+              <ul id="craft-list" class="recipe-list" aria-label="レシピ"></ul>
+            </div>
+            <aside class="split-side" aria-label="選択中のレシピ">
+              <div class="detail">
+                <p id="craft-detail-name" class="detail-name">レシピを選んでください</p>
+                <p id="craft-detail-text" class="detail-text"></p>
+                <ul id="craft-ingredients" class="ingredient-list" aria-label="必要な素材"></ul>
+                <div class="panel-actions panel-actions--start">
+                  <button id="btn-craft-make" type="button" class="btn btn--primary" disabled>作る</button>
+                </div>
+                <p id="craft-message" class="panel-note" role="status"></p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- 地図 -->
+        <section id="panel-map" class="modal-panel" data-panel="map" role="tabpanel" aria-labelledby="tab-map" hidden>
+          <div class="map-layout">
+            <div id="map-viewport" class="map-viewport">
+              <canvas id="map-canvas" class="map-canvas" width="256" height="256" role="img" aria-label="探索済みの地図"></canvas>
+            </div>
+            <aside class="map-side">
+              <p id="map-position" class="detail-text" role="status"></p>
+              <ul id="map-legend" class="map-legend" aria-label="凡例"></ul>
+            </aside>
+          </div>
+        </section>
+
+        <!-- 記録（図鑑・目標・実績） -->
+        <section id="panel-codex" class="modal-panel" data-panel="codex" role="tabpanel" aria-labelledby="tab-codex" hidden>
+          <div id="codex-filter" class="chip-row" role="group" aria-label="表示する記録">
+            <button type="button" class="chip" data-filter="goals" aria-pressed="true">目標</button>
+            <button type="button" class="chip" data-filter="codex" aria-pressed="false">図鑑</button>
+            <button type="button" class="chip" data-filter="achievements" aria-pressed="false">実績</button>
+          </div>
+          <ul id="goal-list" class="entry-list" data-filter="goals" aria-label="目標"></ul>
+          <ul id="codex-entries" class="entry-list" data-filter="codex" aria-label="図鑑" hidden></ul>
+          <ul id="achievement-list" class="entry-list" data-filter="achievements" aria-label="実績" hidden></ul>
+        </section>
+
+        <!-- 収納（胸） -->
+        <section id="panel-chest" class="modal-panel" data-panel="chest" hidden>
+          <div class="split split--even">
+            <div class="split-main">
+              <h3 class="group-title">収納 <span id="chest-capacity" class="group-meta"></span></h3>
+              <div id="chest-grid" class="item-grid" role="listbox" aria-label="収納の中身"></div>
+            </div>
+            <div class="split-main">
+              <h3 class="group-title">バッグ</h3>
+              <div id="chest-player-grid" class="item-grid" role="listbox" aria-label="バッグの中身"></div>
+            </div>
+          </div>
+          <div class="panel-actions panel-actions--start">
+            <button id="btn-chest-take-all" type="button" class="btn">すべて取る</button>
+            <button id="btn-chest-stash-all" type="button" class="btn">すべて入れる</button>
+          </div>
+        </section>
+
+        <!-- 終了（倒れた／炉心再生） -->
+        <section id="panel-end" class="modal-panel" data-panel="end" hidden>
+          <p id="end-text" class="end-text"></p>
+          <dl id="end-stats" class="detail-stats"></dl>
+          <p id="end-recovery" class="panel-note" role="status"></p>
+          <div class="panel-actions">
+            <button id="btn-end-primary" type="button" class="btn btn--primary">再開する</button>
+            <button id="btn-end-secondary" type="button" class="btn">タイトルへ戻る</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===== ui.jsが複製するテンプレート ===== -->
+  <template id="tpl-save-slot">
+    <li class="save-slot">
+      <div class="save-slot-info">
+        <p class="save-slot-name"></p>
+        <p class="save-slot-meta"></p>
+      </div>
+      <div class="save-slot-actions">
+        <button type="button" class="btn btn--small btn--primary" data-action="load">読み込む</button>
+        <button type="button" class="btn btn--small btn--danger" data-action="delete">消す</button>
+      </div>
+    </li>
+  </template>
+
+  <template id="tpl-item-cell">
+    <button type="button" class="item-cell" role="option" aria-selected="false">
+      <img class="px-icon slot-icon" alt="" hidden>
+      <span class="slot-count" hidden></span>
+    </button>
+  </template>
+
+  <template id="tpl-recipe">
+    <li class="recipe-row">
+      <button type="button" class="recipe" aria-pressed="false">
+        <img class="px-icon recipe-icon" alt="" hidden>
+        <span class="recipe-name"></span>
+        <span class="recipe-meta"></span>
+      </button>
+    </li>
+  </template>
+
+  <template id="tpl-ingredient">
+    <li class="ingredient">
+      <img class="px-icon ingredient-icon" alt="" hidden>
+      <span class="ingredient-name"></span>
+      <span class="ingredient-count"></span>
+    </li>
+  </template>
+
+</div>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>

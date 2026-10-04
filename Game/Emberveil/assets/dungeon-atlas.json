@@ -1,0 +1,2224 @@
+{
+  "sprites": {
+    "angel_idle_anim_f0.png": [
+      0,
+      0,
+      16,
+      16
+    ],
+    "angel_idle_anim_f1.png": [
+      17,
+      0,
+      16,
+      16
+    ],
+    "angel_idle_anim_f2.png": [
+      34,
+      0,
+      16,
+      16
+    ],
+    "angel_idle_anim_f3.png": [
+      51,
+      0,
+      16,
+      16
+    ],
+    "angel_run_anim_f0.png": [
+      68,
+      0,
+      16,
+      16
+    ],
+    "angel_run_anim_f1.png": [
+      85,
+      0,
+      16,
+      16
+    ],
+    "angel_run_anim_f2.png": [
+      102,
+      0,
+      16,
+      16
+    ],
+    "angel_run_anim_f3.png": [
+      119,
+      0,
+      16,
+      16
+    ],
+    "big_demon_idle_anim_f0.png": [
+      136,
+      0,
+      32,
+      36
+    ],
+    "big_demon_idle_anim_f1.png": [
+      169,
+      0,
+      32,
+      36
+    ],
+    "big_demon_idle_anim_f2.png": [
+      202,
+      0,
+      32,
+      36
+    ],
+    "big_demon_idle_anim_f3.png": [
+      235,
+      0,
+      32,
+      36
+    ],
+    "big_demon_run_anim_f0.png": [
+      268,
+      0,
+      32,
+      36
+    ],
+    "big_demon_run_anim_f1.png": [
+      301,
+      0,
+      32,
+      36
+    ],
+    "big_demon_run_anim_f2.png": [
+      334,
+      0,
+      32,
+      36
+    ],
+    "big_demon_run_anim_f3.png": [
+      367,
+      0,
+      32,
+      36
+    ],
+    "big_zombie_idle_anim_f0.png": [
+      400,
+      0,
+      32,
+      36
+    ],
+    "big_zombie_idle_anim_f1.png": [
+      433,
+      0,
+      32,
+      36
+    ],
+    "big_zombie_idle_anim_f2.png": [
+      466,
+      0,
+      32,
+      36
+    ],
+    "big_zombie_idle_anim_f3.png": [
+      0,
+      37,
+      32,
+      36
+    ],
+    "big_zombie_run_anim_f0.png": [
+      33,
+      37,
+      32,
+      36
+    ],
+    "big_zombie_run_anim_f1.png": [
+      66,
+      37,
+      32,
+      36
+    ],
+    "big_zombie_run_anim_f2.png": [
+      99,
+      37,
+      32,
+      36
+    ],
+    "big_zombie_run_anim_f3.png": [
+      132,
+      37,
+      32,
+      36
+    ],
+    "bomb_f0.png": [
+      165,
+      37,
+      16,
+      16
+    ],
+    "bomb_f1.png": [
+      182,
+      37,
+      16,
+      16
+    ],
+    "bomb_f2.png": [
+      199,
+      37,
+      16,
+      16
+    ],
+    "button_blue_down.png": [
+      216,
+      37,
+      16,
+      16
+    ],
+    "button_blue_up.png": [
+      233,
+      37,
+      16,
+      16
+    ],
+    "button_red_down.png": [
+      250,
+      37,
+      16,
+      16
+    ],
+    "button_red_up.png": [
+      267,
+      37,
+      16,
+      16
+    ],
+    "chest_empty_open_anim_f0.png": [
+      284,
+      37,
+      16,
+      16
+    ],
+    "chest_empty_open_anim_f1.png": [
+      301,
+      37,
+      16,
+      16
+    ],
+    "chest_empty_open_anim_f2.png": [
+      318,
+      37,
+      16,
+      16
+    ],
+    "chest_full_open_anim_f0.png": [
+      335,
+      37,
+      16,
+      16
+    ],
+    "chest_full_open_anim_f1.png": [
+      352,
+      37,
+      16,
+      16
+    ],
+    "chest_full_open_anim_f2.png": [
+      369,
+      37,
+      16,
+      16
+    ],
+    "chest_mimic_open_anim_f0.png": [
+      386,
+      37,
+      16,
+      16
+    ],
+    "chest_mimic_open_anim_f1.png": [
+      403,
+      37,
+      16,
+      16
+    ],
+    "chest_mimic_open_anim_f2.png": [
+      420,
+      37,
+      16,
+      16
+    ],
+    "chort_idle_anim_f0.png": [
+      437,
+      37,
+      16,
+      23
+    ],
+    "chort_idle_anim_f1.png": [
+      454,
+      37,
+      16,
+      23
+    ],
+    "chort_idle_anim_f2.png": [
+      471,
+      37,
+      16,
+      23
+    ],
+    "chort_idle_anim_f3.png": [
+      488,
+      37,
+      16,
+      23
+    ],
+    "chort_run_anim_f0.png": [
+      0,
+      74,
+      16,
+      23
+    ],
+    "chort_run_anim_f1.png": [
+      17,
+      74,
+      16,
+      23
+    ],
+    "chort_run_anim_f2.png": [
+      34,
+      74,
+      16,
+      23
+    ],
+    "chort_run_anim_f3.png": [
+      51,
+      74,
+      16,
+      23
+    ],
+    "coin_anim_f0.png": [
+      68,
+      74,
+      6,
+      7
+    ],
+    "coin_anim_f1.png": [
+      75,
+      74,
+      6,
+      7
+    ],
+    "coin_anim_f2.png": [
+      82,
+      74,
+      6,
+      7
+    ],
+    "coin_anim_f3.png": [
+      89,
+      74,
+      6,
+      7
+    ],
+    "column.png": [
+      96,
+      74,
+      16,
+      48
+    ],
+    "column_wall.png": [
+      113,
+      74,
+      16,
+      48
+    ],
+    "crate.png": [
+      130,
+      74,
+      16,
+      24
+    ],
+    "doc_idle_anim_f0.png": [
+      147,
+      74,
+      16,
+      23
+    ],
+    "doc_idle_anim_f1.png": [
+      164,
+      74,
+      16,
+      23
+    ],
+    "doc_idle_anim_f2.png": [
+      181,
+      74,
+      16,
+      23
+    ],
+    "doc_idle_anim_f3.png": [
+      198,
+      74,
+      16,
+      23
+    ],
+    "doc_run_anim_f0.png": [
+      215,
+      74,
+      16,
+      23
+    ],
+    "doc_run_anim_f1.png": [
+      232,
+      74,
+      16,
+      23
+    ],
+    "doc_run_anim_f2.png": [
+      249,
+      74,
+      16,
+      23
+    ],
+    "doc_run_anim_f3.png": [
+      266,
+      74,
+      16,
+      23
+    ],
+    "doors_frame_left.png": [
+      283,
+      74,
+      16,
+      32
+    ],
+    "doors_frame_right.png": [
+      300,
+      74,
+      16,
+      32
+    ],
+    "doors_frame_top.png": [
+      317,
+      74,
+      32,
+      16
+    ],
+    "doors_leaf_closed.png": [
+      350,
+      74,
+      32,
+      32
+    ],
+    "doors_leaf_open.png": [
+      383,
+      74,
+      32,
+      32
+    ],
+    "dwarf_f_hit_anim_f0.png": [
+      416,
+      74,
+      16,
+      28
+    ],
+    "dwarf_f_idle_anim_f0.png": [
+      433,
+      74,
+      16,
+      28
+    ],
+    "dwarf_f_idle_anim_f1.png": [
+      450,
+      74,
+      16,
+      28
+    ],
+    "dwarf_f_idle_anim_f2.png": [
+      467,
+      74,
+      16,
+      28
+    ],
+    "dwarf_f_idle_anim_f3.png": [
+      484,
+      74,
+      16,
+      28
+    ],
+    "dwarf_f_run_anim_f0.png": [
+      0,
+      123,
+      16,
+      28
+    ],
+    "dwarf_f_run_anim_f1.png": [
+      17,
+      123,
+      16,
+      28
+    ],
+    "dwarf_f_run_anim_f2.png": [
+      34,
+      123,
+      16,
+      28
+    ],
+    "dwarf_f_run_anim_f3.png": [
+      51,
+      123,
+      16,
+      28
+    ],
+    "dwarf_m_hit_anim_f0.png": [
+      68,
+      123,
+      16,
+      28
+    ],
+    "dwarf_m_idle_anim_f0.png": [
+      85,
+      123,
+      16,
+      28
+    ],
+    "dwarf_m_idle_anim_f1.png": [
+      102,
+      123,
+      16,
+      28
+    ],
+    "dwarf_m_idle_anim_f2.png": [
+      119,
+      123,
+      16,
+      28
+    ],
+    "dwarf_m_idle_anim_f3.png": [
+      136,
+      123,
+      16,
+      28
+    ],
+    "dwarf_m_run_anim_f0.png": [
+      153,
+      123,
+      16,
+      28
+    ],
+    "dwarf_m_run_anim_f1.png": [
+      170,
+      123,
+      16,
+      28
+    ],
+    "dwarf_m_run_anim_f2.png": [
+      187,
+      123,
+      16,
+      28
+    ],
+    "dwarf_m_run_anim_f3.png": [
+      204,
+      123,
+      16,
+      28
+    ],
+    "edge_down.png": [
+      221,
+      123,
+      16,
+      16
+    ],
+    "elf_f_hit_anim_f0.png": [
+      238,
+      123,
+      16,
+      28
+    ],
+    "elf_f_idle_anim_f0.png": [
+      255,
+      123,
+      16,
+      28
+    ],
+    "elf_f_idle_anim_f1.png": [
+      272,
+      123,
+      16,
+      28
+    ],
+    "elf_f_idle_anim_f2.png": [
+      289,
+      123,
+      16,
+      28
+    ],
+    "elf_f_idle_anim_f3.png": [
+      306,
+      123,
+      16,
+      28
+    ],
+    "elf_f_run_anim_f0.png": [
+      323,
+      123,
+      16,
+      28
+    ],
+    "elf_f_run_anim_f1.png": [
+      340,
+      123,
+      16,
+      28
+    ],
+    "elf_f_run_anim_f2.png": [
+      357,
+      123,
+      16,
+      28
+    ],
+    "elf_f_run_anim_f3.png": [
+      374,
+      123,
+      16,
+      28
+    ],
+    "elf_m_hit_anim_f0.png": [
+      391,
+      123,
+      16,
+      28
+    ],
+    "elf_m_idle_anim_f0.png": [
+      408,
+      123,
+      16,
+      28
+    ],
+    "elf_m_idle_anim_f1.png": [
+      425,
+      123,
+      16,
+      28
+    ],
+    "elf_m_idle_anim_f2.png": [
+      442,
+      123,
+      16,
+      28
+    ],
+    "elf_m_idle_anim_f3.png": [
+      459,
+      123,
+      16,
+      28
+    ],
+    "elf_m_run_anim_f0.png": [
+      476,
+      123,
+      16,
+      28
+    ],
+    "elf_m_run_anim_f1.png": [
+      493,
+      123,
+      16,
+      28
+    ],
+    "elf_m_run_anim_f2.png": [
+      0,
+      152,
+      16,
+      28
+    ],
+    "elf_m_run_anim_f3.png": [
+      17,
+      152,
+      16,
+      28
+    ],
+    "flask_big_blue.png": [
+      34,
+      152,
+      16,
+      16
+    ],
+    "flask_big_green.png": [
+      51,
+      152,
+      16,
+      16
+    ],
+    "flask_big_red.png": [
+      68,
+      152,
+      16,
+      16
+    ],
+    "flask_big_yellow.png": [
+      85,
+      152,
+      16,
+      16
+    ],
+    "flask_blue.png": [
+      102,
+      152,
+      16,
+      16
+    ],
+    "flask_green.png": [
+      119,
+      152,
+      16,
+      16
+    ],
+    "flask_red.png": [
+      136,
+      152,
+      16,
+      16
+    ],
+    "flask_yellow.png": [
+      153,
+      152,
+      16,
+      16
+    ],
+    "floor_1.png": [
+      170,
+      152,
+      16,
+      16
+    ],
+    "floor_2.png": [
+      187,
+      152,
+      16,
+      16
+    ],
+    "floor_3.png": [
+      204,
+      152,
+      16,
+      16
+    ],
+    "floor_4.png": [
+      221,
+      152,
+      16,
+      16
+    ],
+    "floor_5.png": [
+      238,
+      152,
+      16,
+      16
+    ],
+    "floor_6.png": [
+      255,
+      152,
+      16,
+      16
+    ],
+    "floor_7.png": [
+      272,
+      152,
+      16,
+      16
+    ],
+    "floor_8.png": [
+      289,
+      152,
+      16,
+      16
+    ],
+    "floor_ladder.png": [
+      306,
+      152,
+      16,
+      16
+    ],
+    "floor_spikes_anim_f0.png": [
+      323,
+      152,
+      16,
+      16
+    ],
+    "floor_spikes_anim_f1.png": [
+      340,
+      152,
+      16,
+      16
+    ],
+    "floor_spikes_anim_f2.png": [
+      357,
+      152,
+      16,
+      16
+    ],
+    "floor_spikes_anim_f3.png": [
+      374,
+      152,
+      16,
+      16
+    ],
+    "floor_stairs.png": [
+      391,
+      152,
+      16,
+      16
+    ],
+    "goblin_idle_anim_f0.png": [
+      408,
+      152,
+      16,
+      16
+    ],
+    "goblin_idle_anim_f1.png": [
+      425,
+      152,
+      16,
+      16
+    ],
+    "goblin_idle_anim_f2.png": [
+      442,
+      152,
+      16,
+      16
+    ],
+    "goblin_idle_anim_f3.png": [
+      459,
+      152,
+      16,
+      16
+    ],
+    "goblin_run_anim_f0.png": [
+      476,
+      152,
+      16,
+      16
+    ],
+    "goblin_run_anim_f1.png": [
+      493,
+      152,
+      16,
+      16
+    ],
+    "goblin_run_anim_f2.png": [
+      0,
+      181,
+      16,
+      16
+    ],
+    "goblin_run_anim_f3.png": [
+      17,
+      181,
+      16,
+      16
+    ],
+    "hole.png": [
+      34,
+      181,
+      16,
+      16
+    ],
+    "ice_zombie_anim_f0.png": [
+      51,
+      181,
+      16,
+      16
+    ],
+    "ice_zombie_anim_f1.png": [
+      68,
+      181,
+      16,
+      16
+    ],
+    "ice_zombie_anim_f2.png": [
+      85,
+      181,
+      16,
+      16
+    ],
+    "ice_zombie_anim_f3.png": [
+      102,
+      181,
+      16,
+      16
+    ],
+    "imp_idle_anim_f0.png": [
+      119,
+      181,
+      16,
+      16
+    ],
+    "imp_idle_anim_f1.png": [
+      136,
+      181,
+      16,
+      16
+    ],
+    "imp_idle_anim_f2.png": [
+      153,
+      181,
+      16,
+      16
+    ],
+    "imp_idle_anim_f3.png": [
+      170,
+      181,
+      16,
+      16
+    ],
+    "imp_run_anim_f0.png": [
+      187,
+      181,
+      16,
+      16
+    ],
+    "imp_run_anim_f1.png": [
+      204,
+      181,
+      16,
+      16
+    ],
+    "imp_run_anim_f2.png": [
+      221,
+      181,
+      16,
+      16
+    ],
+    "imp_run_anim_f3.png": [
+      238,
+      181,
+      16,
+      16
+    ],
+    "knight_f_hit_anim_f0.png": [
+      255,
+      181,
+      16,
+      28
+    ],
+    "knight_f_idle_anim_f0.png": [
+      272,
+      181,
+      16,
+      28
+    ],
+    "knight_f_idle_anim_f1.png": [
+      289,
+      181,
+      16,
+      28
+    ],
+    "knight_f_idle_anim_f2.png": [
+      306,
+      181,
+      16,
+      28
+    ],
+    "knight_f_idle_anim_f3.png": [
+      323,
+      181,
+      16,
+      28
+    ],
+    "knight_f_run_anim_f0.png": [
+      340,
+      181,
+      16,
+      28
+    ],
+    "knight_f_run_anim_f1.png": [
+      357,
+      181,
+      16,
+      28
+    ],
+    "knight_f_run_anim_f2.png": [
+      374,
+      181,
+      16,
+      28
+    ],
+    "knight_f_run_anim_f3.png": [
+      391,
+      181,
+      16,
+      28
+    ],
+    "knight_m_hit_anim_f0.png": [
+      408,
+      181,
+      16,
+      28
+    ],
+    "knight_m_idle_anim_f0.png": [
+      425,
+      181,
+      16,
+      28
+    ],
+    "knight_m_idle_anim_f1.png": [
+      442,
+      181,
+      16,
+      28
+    ],
+    "knight_m_idle_anim_f2.png": [
+      459,
+      181,
+      16,
+      28
+    ],
+    "knight_m_idle_anim_f3.png": [
+      476,
+      181,
+      16,
+      28
+    ],
+    "knight_m_run_anim_f0.png": [
+      493,
+      181,
+      16,
+      28
+    ],
+    "knight_m_run_anim_f1.png": [
+      0,
+      210,
+      16,
+      28
+    ],
+    "knight_m_run_anim_f2.png": [
+      17,
+      210,
+      16,
+      28
+    ],
+    "knight_m_run_anim_f3.png": [
+      34,
+      210,
+      16,
+      28
+    ],
+    "lever_left.png": [
+      51,
+      210,
+      16,
+      16
+    ],
+    "lever_right.png": [
+      68,
+      210,
+      16,
+      16
+    ],
+    "lizard_f_hit_anim_f0.png": [
+      85,
+      210,
+      16,
+      28
+    ],
+    "lizard_f_idle_anim_f0.png": [
+      102,
+      210,
+      16,
+      28
+    ],
+    "lizard_f_idle_anim_f1.png": [
+      119,
+      210,
+      16,
+      28
+    ],
+    "lizard_f_idle_anim_f2.png": [
+      136,
+      210,
+      16,
+      28
+    ],
+    "lizard_f_idle_anim_f3.png": [
+      153,
+      210,
+      16,
+      28
+    ],
+    "lizard_f_run_anim_f0.png": [
+      170,
+      210,
+      16,
+      28
+    ],
+    "lizard_f_run_anim_f1.png": [
+      187,
+      210,
+      16,
+      28
+    ],
+    "lizard_f_run_anim_f2.png": [
+      204,
+      210,
+      16,
+      28
+    ],
+    "lizard_f_run_anim_f3.png": [
+      221,
+      210,
+      16,
+      28
+    ],
+    "lizard_m_hit_anim_f0.png": [
+      238,
+      210,
+      16,
+      28
+    ],
+    "lizard_m_idle_anim_f0.png": [
+      255,
+      210,
+      16,
+      28
+    ],
+    "lizard_m_idle_anim_f1.png": [
+      272,
+      210,
+      16,
+      28
+    ],
+    "lizard_m_idle_anim_f2.png": [
+      289,
+      210,
+      16,
+      28
+    ],
+    "lizard_m_idle_anim_f3.png": [
+      306,
+      210,
+      16,
+      28
+    ],
+    "lizard_m_run_anim_f0.png": [
+      323,
+      210,
+      16,
+      28
+    ],
+    "lizard_m_run_anim_f1.png": [
+      340,
+      210,
+      16,
+      28
+    ],
+    "lizard_m_run_anim_f2.png": [
+      357,
+      210,
+      16,
+      28
+    ],
+    "lizard_m_run_anim_f3.png": [
+      374,
+      210,
+      16,
+      28
+    ],
+    "masked_orc_idle_anim_f0.png": [
+      391,
+      210,
+      16,
+      23
+    ],
+    "masked_orc_idle_anim_f1.png": [
+      408,
+      210,
+      16,
+      23
+    ],
+    "masked_orc_idle_anim_f2.png": [
+      425,
+      210,
+      16,
+      23
+    ],
+    "masked_orc_idle_anim_f3.png": [
+      442,
+      210,
+      16,
+      23
+    ],
+    "masked_orc_run_anim_f0.png": [
+      459,
+      210,
+      16,
+      23
+    ],
+    "masked_orc_run_anim_f1.png": [
+      476,
+      210,
+      16,
+      23
+    ],
+    "masked_orc_run_anim_f2.png": [
+      493,
+      210,
+      16,
+      23
+    ],
+    "masked_orc_run_anim_f3.png": [
+      0,
+      239,
+      16,
+      23
+    ],
+    "muddy_anim_f0.png": [
+      17,
+      239,
+      16,
+      16
+    ],
+    "muddy_anim_f1.png": [
+      34,
+      239,
+      16,
+      16
+    ],
+    "muddy_anim_f2.png": [
+      51,
+      239,
+      16,
+      16
+    ],
+    "muddy_anim_f3.png": [
+      68,
+      239,
+      16,
+      16
+    ],
+    "necromancer_anim_f0.png": [
+      85,
+      239,
+      16,
+      23
+    ],
+    "necromancer_anim_f1.png": [
+      102,
+      239,
+      16,
+      23
+    ],
+    "necromancer_anim_f2.png": [
+      119,
+      239,
+      16,
+      23
+    ],
+    "necromancer_anim_f3.png": [
+      136,
+      239,
+      16,
+      23
+    ],
+    "ogre_idle_anim_f0.png": [
+      153,
+      239,
+      32,
+      36
+    ],
+    "ogre_idle_anim_f1.png": [
+      186,
+      239,
+      32,
+      36
+    ],
+    "ogre_idle_anim_f2.png": [
+      219,
+      239,
+      32,
+      36
+    ],
+    "ogre_idle_anim_f3.png": [
+      252,
+      239,
+      32,
+      36
+    ],
+    "ogre_run_anim_f0.png": [
+      285,
+      239,
+      32,
+      36
+    ],
+    "ogre_run_anim_f1.png": [
+      318,
+      239,
+      32,
+      36
+    ],
+    "ogre_run_anim_f2.png": [
+      351,
+      239,
+      32,
+      36
+    ],
+    "ogre_run_anim_f3.png": [
+      384,
+      239,
+      32,
+      36
+    ],
+    "orc_shaman_idle_anim_f0.png": [
+      417,
+      239,
+      16,
+      23
+    ],
+    "orc_shaman_idle_anim_f1.png": [
+      434,
+      239,
+      16,
+      23
+    ],
+    "orc_shaman_idle_anim_f2.png": [
+      451,
+      239,
+      16,
+      23
+    ],
+    "orc_shaman_idle_anim_f3.png": [
+      468,
+      239,
+      16,
+      23
+    ],
+    "orc_shaman_run_anim_f0.png": [
+      485,
+      239,
+      16,
+      23
+    ],
+    "orc_shaman_run_anim_f1.png": [
+      0,
+      276,
+      16,
+      23
+    ],
+    "orc_shaman_run_anim_f2.png": [
+      17,
+      276,
+      16,
+      23
+    ],
+    "orc_shaman_run_anim_f3.png": [
+      34,
+      276,
+      16,
+      23
+    ],
+    "orc_warrior_idle_anim_f0.png": [
+      51,
+      276,
+      16,
+      23
+    ],
+    "orc_warrior_idle_anim_f1.png": [
+      68,
+      276,
+      16,
+      23
+    ],
+    "orc_warrior_idle_anim_f2.png": [
+      85,
+      276,
+      16,
+      23
+    ],
+    "orc_warrior_idle_anim_f3.png": [
+      102,
+      276,
+      16,
+      23
+    ],
+    "orc_warrior_run_anim_f0.png": [
+      119,
+      276,
+      16,
+      23
+    ],
+    "orc_warrior_run_anim_f1.png": [
+      136,
+      276,
+      16,
+      23
+    ],
+    "orc_warrior_run_anim_f2.png": [
+      153,
+      276,
+      16,
+      23
+    ],
+    "orc_warrior_run_anim_f3.png": [
+      170,
+      276,
+      16,
+      23
+    ],
+    "pumpkin_dude_idle_anim_f0.png": [
+      187,
+      276,
+      16,
+      23
+    ],
+    "pumpkin_dude_idle_anim_f1.png": [
+      204,
+      276,
+      16,
+      23
+    ],
+    "pumpkin_dude_idle_anim_f2.png": [
+      221,
+      276,
+      16,
+      23
+    ],
+    "pumpkin_dude_idle_anim_f3.png": [
+      238,
+      276,
+      16,
+      23
+    ],
+    "pumpkin_dude_run_anim_f0.png": [
+      255,
+      276,
+      16,
+      23
+    ],
+    "pumpkin_dude_run_anim_f1.png": [
+      272,
+      276,
+      16,
+      23
+    ],
+    "pumpkin_dude_run_anim_f2.png": [
+      289,
+      276,
+      16,
+      23
+    ],
+    "pumpkin_dude_run_anim_f3.png": [
+      306,
+      276,
+      16,
+      23
+    ],
+    "skelet_idle_anim_f0.png": [
+      323,
+      276,
+      16,
+      16
+    ],
+    "skelet_idle_anim_f1.png": [
+      340,
+      276,
+      16,
+      16
+    ],
+    "skelet_idle_anim_f2.png": [
+      357,
+      276,
+      16,
+      16
+    ],
+    "skelet_idle_anim_f3.png": [
+      374,
+      276,
+      16,
+      16
+    ],
+    "skelet_run_anim_f0.png": [
+      391,
+      276,
+      16,
+      16
+    ],
+    "skelet_run_anim_f1.png": [
+      408,
+      276,
+      16,
+      16
+    ],
+    "skelet_run_anim_f2.png": [
+      425,
+      276,
+      16,
+      16
+    ],
+    "skelet_run_anim_f3.png": [
+      442,
+      276,
+      16,
+      16
+    ],
+    "skull.png": [
+      459,
+      276,
+      16,
+      16
+    ],
+    "slug_anim_f0.png": [
+      476,
+      276,
+      16,
+      23
+    ],
+    "slug_anim_f1.png": [
+      493,
+      276,
+      16,
+      23
+    ],
+    "slug_anim_f2.png": [
+      0,
+      300,
+      16,
+      23
+    ],
+    "slug_anim_f3.png": [
+      17,
+      300,
+      16,
+      23
+    ],
+    "swampy_anim_f0.png": [
+      34,
+      300,
+      16,
+      16
+    ],
+    "swampy_anim_f1.png": [
+      51,
+      300,
+      16,
+      16
+    ],
+    "swampy_anim_f2.png": [
+      68,
+      300,
+      16,
+      16
+    ],
+    "swampy_anim_f3.png": [
+      85,
+      300,
+      16,
+      16
+    ],
+    "tiny_slug_anim_f0.png": [
+      102,
+      300,
+      16,
+      16
+    ],
+    "tiny_slug_anim_f1.png": [
+      119,
+      300,
+      16,
+      16
+    ],
+    "tiny_slug_anim_f2.png": [
+      136,
+      300,
+      16,
+      16
+    ],
+    "tiny_slug_anim_f3.png": [
+      153,
+      300,
+      16,
+      16
+    ],
+    "tiny_zombie_idle_anim_f0.png": [
+      170,
+      300,
+      16,
+      16
+    ],
+    "tiny_zombie_idle_anim_f1.png": [
+      187,
+      300,
+      16,
+      16
+    ],
+    "tiny_zombie_idle_anim_f2.png": [
+      204,
+      300,
+      16,
+      16
+    ],
+    "tiny_zombie_idle_anim_f3.png": [
+      221,
+      300,
+      16,
+      16
+    ],
+    "tiny_zombie_run_anim_f0.png": [
+      238,
+      300,
+      16,
+      16
+    ],
+    "tiny_zombie_run_anim_f1.png": [
+      255,
+      300,
+      16,
+      16
+    ],
+    "tiny_zombie_run_anim_f2.png": [
+      272,
+      300,
+      16,
+      16
+    ],
+    "tiny_zombie_run_anim_f3.png": [
+      289,
+      300,
+      16,
+      16
+    ],
+    "ui_heart_empty.png": [
+      306,
+      300,
+      13,
+      12
+    ],
+    "ui_heart_full.png": [
+      320,
+      300,
+      13,
+      12
+    ],
+    "ui_heart_half.png": [
+      334,
+      300,
+      13,
+      12
+    ],
+    "wall_banner_blue.png": [
+      348,
+      300,
+      16,
+      16
+    ],
+    "wall_banner_green.png": [
+      365,
+      300,
+      16,
+      16
+    ],
+    "wall_banner_red.png": [
+      382,
+      300,
+      16,
+      16
+    ],
+    "wall_banner_yellow.png": [
+      399,
+      300,
+      16,
+      16
+    ],
+    "wall_edge_bottom_left.png": [
+      416,
+      300,
+      16,
+      16
+    ],
+    "wall_edge_bottom_right.png": [
+      433,
+      300,
+      16,
+      16
+    ],
+    "wall_edge_left.png": [
+      450,
+      300,
+      16,
+      16
+    ],
+    "wall_edge_mid_left.png": [
+      467,
+      300,
+      16,
+      16
+    ],
+    "wall_edge_mid_right.png": [
+      484,
+      300,
+      16,
+      16
+    ],
+    "wall_edge_right.png": [
+      0,
+      324,
+      16,
+      16
+    ],
+    "wall_edge_top_left.png": [
+      17,
+      324,
+      16,
+      16
+    ],
+    "wall_edge_top_right.png": [
+      34,
+      324,
+      16,
+      16
+    ],
+    "wall_edge_tshape_bottom_left.png": [
+      51,
+      324,
+      16,
+      16
+    ],
+    "wall_edge_tshape_bottom_right.png": [
+      68,
+      324,
+      16,
+      16
+    ],
+    "wall_edge_tshape_left.png": [
+      85,
+      324,
+      16,
+      16
+    ],
+    "wall_edge_tshape_right.png": [
+      102,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_basin_blue_anim_f0.png": [
+      119,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_basin_blue_anim_f1.png": [
+      136,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_basin_blue_anim_f2.png": [
+      153,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_basin_red_anim_f0.png": [
+      170,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_basin_red_anim_f1.png": [
+      187,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_basin_red_anim_f2.png": [
+      204,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_mid_blue_anim_f0.png": [
+      221,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_mid_blue_anim_f1.png": [
+      238,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_mid_blue_anim_f2.png": [
+      255,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_mid_red_anim_f0.png": [
+      272,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_mid_red_anim_f1.png": [
+      289,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_mid_red_anim_f2.png": [
+      306,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_top_1.png": [
+      323,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_top_2.png": [
+      340,
+      324,
+      16,
+      16
+    ],
+    "wall_fountain_top_3.png": [
+      357,
+      324,
+      16,
+      16
+    ],
+    "wall_goo.png": [
+      374,
+      324,
+      16,
+      16
+    ],
+    "wall_goo_base.png": [
+      391,
+      324,
+      16,
+      16
+    ],
+    "wall_hole_1.png": [
+      408,
+      324,
+      16,
+      16
+    ],
+    "wall_hole_2.png": [
+      425,
+      324,
+      16,
+      16
+    ],
+    "wall_left.png": [
+      442,
+      324,
+      16,
+      16
+    ],
+    "wall_mid.png": [
+      459,
+      324,
+      16,
+      16
+    ],
+    "wall_outer_front_left.png": [
+      476,
+      324,
+      16,
+      16
+    ],
+    "wall_outer_front_right.png": [
+      493,
+      324,
+      16,
+      16
+    ],
+    "wall_outer_mid_left.png": [
+      0,
+      341,
+      16,
+      16
+    ],
+    "wall_outer_mid_right.png": [
+      17,
+      341,
+      16,
+      16
+    ],
+    "wall_outer_top_left.png": [
+      34,
+      341,
+      16,
+      16
+    ],
+    "wall_outer_top_right.png": [
+      51,
+      341,
+      16,
+      16
+    ],
+    "wall_right.png": [
+      68,
+      341,
+      16,
+      16
+    ],
+    "wall_top_left.png": [
+      85,
+      341,
+      16,
+      16
+    ],
+    "wall_top_mid.png": [
+      102,
+      341,
+      16,
+      16
+    ],
+    "wall_top_right.png": [
+      119,
+      341,
+      16,
+      16
+    ],
+    "weapon_anime_sword.png": [
+      136,
+      341,
+      12,
+      30
+    ],
+    "weapon_arrow.png": [
+      149,
+      341,
+      7,
+      21
+    ],
+    "weapon_axe.png": [
+      157,
+      341,
+      9,
+      21
+    ],
+    "weapon_baton_with_spikes.png": [
+      167,
+      341,
+      10,
+      22
+    ],
+    "weapon_big_hammer.png": [
+      178,
+      341,
+      10,
+      37
+    ],
+    "weapon_bow.png": [
+      189,
+      341,
+      14,
+      26
+    ],
+    "weapon_bow_2.png": [
+      204,
+      341,
+      14,
+      26
+    ],
+    "weapon_cleaver.png": [
+      219,
+      341,
+      9,
+      19
+    ],
+    "weapon_double_axe.png": [
+      229,
+      341,
+      16,
+      24
+    ],
+    "weapon_duel_sword.png": [
+      246,
+      341,
+      9,
+      30
+    ],
+    "weapon_golden_sword.png": [
+      256,
+      341,
+      10,
+      22
+    ],
+    "weapon_green_magic_staff.png": [
+      267,
+      341,
+      8,
+      30
+    ],
+    "weapon_hammer.png": [
+      276,
+      341,
+      10,
+      24
+    ],
+    "weapon_katana.png": [
+      287,
+      341,
+      6,
+      29
+    ],
+    "weapon_knife.png": [
+      294,
+      341,
+      6,
+      13
+    ],
+    "weapon_knight_sword.png": [
+      301,
+      341,
+      10,
+      29
+    ],
+    "weapon_lavish_sword.png": [
+      312,
+      341,
+      10,
+      30
+    ],
+    "weapon_mace.png": [
+      323,
+      341,
+      10,
+      24
+    ],
+    "weapon_machete.png": [
+      334,
+      341,
+      5,
+      22
+    ],
+    "weapon_red_gem_sword.png": [
+      340,
+      341,
+      10,
+      21
+    ],
+    "weapon_red_magic_staff.png": [
+      351,
+      341,
+      8,
+      30
+    ],
+    "weapon_regular_sword.png": [
+      360,
+      341,
+      10,
+      21
+    ],
+    "weapon_rusty_sword.png": [
+      371,
+      341,
+      10,
+      21
+    ],
+    "weapon_saw_sword.png": [
+      382,
+      341,
+      10,
+      25
+    ],
+    "weapon_spear.png": [
+      393,
+      341,
+      6,
+      30
+    ],
+    "weapon_throwing_axe.png": [
+      400,
+      341,
+      10,
+      14
+    ],
+    "weapon_waraxe.png": [
+      411,
+      341,
+      12,
+      23
+    ],
+    "wizzard_f_hit_anim_f0.png": [
+      424,
+      341,
+      16,
+      28
+    ],
+    "wizzard_f_idle_anim_f0.png": [
+      441,
+      341,
+      16,
+      28
+    ],
+    "wizzard_f_idle_anim_f1.png": [
+      458,
+      341,
+      16,
+      28
+    ],
+    "wizzard_f_idle_anim_f2.png": [
+      475,
+      341,
+      16,
+      28
+    ],
+    "wizzard_f_idle_anim_f3.png": [
+      492,
+      341,
+      16,
+      28
+    ],
+    "wizzard_f_run_anim_f0.png": [
+      0,
+      379,
+      16,
+      28
+    ],
+    "wizzard_f_run_anim_f1.png": [
+      17,
+      379,
+      16,
+      28
+    ],
+    "wizzard_f_run_anim_f2.png": [
+      34,
+      379,
+      16,
+      28
+    ],
+    "wizzard_f_run_anim_f3.png": [
+      51,
+      379,
+      16,
+      28
+    ],
+    "wizzard_m_hit_anim_f0.png": [
+      68,
+      379,
+      16,
+      28
+    ],
+    "wizzard_m_idle_anim_f0.png": [
+      85,
+      379,
+      16,
+      28
+    ],
+    "wizzard_m_idle_anim_f1.png": [
+      102,
+      379,
+      16,
+      28
+    ],
+    "wizzard_m_idle_anim_f2.png": [
+      119,
+      379,
+      16,
+      28
+    ],
+    "wizzard_m_idle_anim_f3.png": [
+      136,
+      379,
+      16,
+      28
+    ],
+    "wizzard_m_run_anim_f0.png": [
+      153,
+      379,
+      16,
+      28
+    ],
+    "wizzard_m_run_anim_f1.png": [
+      170,
+      379,
+      16,
+      28
+    ],
+    "wizzard_m_run_anim_f2.png": [
+      187,
+      379,
+      16,
+      28
+    ],
+    "wizzard_m_run_anim_f3.png": [
+      204,
+      379,
+      16,
+      28
+    ],
+    "wogol_idle_anim_f0.png": [
+      221,
+      379,
+      16,
+      23
+    ],
+    "wogol_idle_anim_f1.png": [
+      238,
+      379,
+      16,
+      23
+    ],
+    "wogol_idle_anim_f2.png": [
+      255,
+      379,
+      16,
+      23
+    ],
+    "wogol_idle_anim_f3.png": [
+      272,
+      379,
+      16,
+      23
+    ],
+    "wogol_run_anim_f0.png": [
+      289,
+      379,
+      16,
+      23
+    ],
+    "wogol_run_anim_f1.png": [
+      306,
+      379,
+      16,
+      23
+    ],
+    "wogol_run_anim_f2.png": [
+      323,
+      379,
+      16,
+      23
+    ],
+    "wogol_run_anim_f3.png": [
+      340,
+      379,
+      16,
+      23
+    ],
+    "zombie_anim_f1.png": [
+      357,
+      379,
+      16,
+      16
+    ],
+    "zombie_anim_f10.png": [
+      374,
+      379,
+      16,
+      16
+    ],
+    "zombie_anim_f2.png": [
+      391,
+      379,
+      16,
+      16
+    ],
+    "zombie_anim_f3.png": [
+      408,
+      379,
+      16,
+      16
+    ]
+  }
+}
