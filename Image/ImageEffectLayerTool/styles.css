@@ -120,7 +120,6 @@
     background-position:0 0,0 10px,10px -10px,-10px 0;
     background-color:#131620;
     box-shadow:0 24px 70px -20px rgba(0,0,0,.7),0 0 0 1px var(--line);
-    will-change:transform;
     cursor:grab;
     touch-action:none;
   }
