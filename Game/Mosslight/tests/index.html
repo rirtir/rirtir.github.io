@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><title>MOSSLIGHT 検証</title>
+<style>body{font:16px monospace;color:#d1eed2;background:#111c24;padding:24px;white-space:pre-wrap}</style>
+<p id="result">ゲームルールを検証しています…</p>
+<script type="module">
+import {runGameTests} from './gameplay.js';
+import {runSustainabilityTests} from './sustainability.js';
+const started = performance.now();
+window.testResult = await runGameTests();
+const extra = runSustainabilityTests();
+window.testResult.passed += extra.passed;
+window.testResult.failed += extra.failed;
+window.testResult.checks.push(...extra.checks);
+const {passed, failed, checks} = window.testResult;
+document.querySelector('#result').textContent = `${passed} 成功 / ${failed} 失敗 / ${Math.round(performance.now()-started)}ms\n\n` + checks.filter(c=>!c.ok).map(c=>`${c.name}\n${c.detail}`).join('\n\n');
+document.title = failed ? 'MOSSLIGHT 検証失敗' : 'MOSSLIGHT 検証成功';
+</script></html>

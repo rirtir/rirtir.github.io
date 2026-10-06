@@ -1,0 +1,216 @@
+{
+  "frames": {
+    "facade_wall": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 64
+      },
+      "duration": 140
+    },
+    "facade_window": {
+      "frame": {
+        "x": 32,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 64
+      },
+      "duration": 140
+    },
+    "facade_door": {
+      "frame": {
+        "x": 64,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 64
+      },
+      "duration": 140
+    },
+    "facade_wall_v1": {
+      "frame": {
+        "x": 96,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 64
+      },
+      "duration": 140
+    },
+    "facade_window_v1": {
+      "frame": {
+        "x": 128,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 64
+      },
+      "duration": 140
+    },
+    "facade_door_v1": {
+      "frame": {
+        "x": 160,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 64
+      },
+      "duration": 140
+    },
+    "facade_wall_v2": {
+      "frame": {
+        "x": 192,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 64
+      },
+      "duration": 140
+    },
+    "facade_window_v2": {
+      "frame": {
+        "x": 224,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 64
+      },
+      "duration": 140
+    },
+    "facade_door_v2": {
+      "frame": {
+        "x": 0,
+        "y": 64,
+        "w": 32,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 64
+      },
+      "duration": 140
+    }
+  },
+  "meta": {
+    "app": "Pixel Workbench",
+    "version": "1",
+    "image": "atlas.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 256,
+      "h": 128
+    },
+    "scale": "1",
+    "frameTags": [
+      {
+        "name": "facade",
+        "from": 0,
+        "to": 8,
+        "direction": "forward"
+      }
+    ],
+    "pivot": [
+      16,
+      60
+    ]
+  }
+}

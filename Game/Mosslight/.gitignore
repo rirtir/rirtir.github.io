@@ -1,0 +1,9 @@
+__pycache__/
+.review/
+art/r2/
+assets/r2-preview/
+tests/output/
+assets/*/review.html
+assets/*/review.json
+assets/*/contact.png
+assets/*/*.gif
