@@ -1,11 +1,28 @@
 // 苔灯の境 / MOSSLIGHT — 描画
 // 依存: data.js, world.js。ピクセルを保つため、世界は整数倍率(デバイスピクセル単位)で描く。
 // 光: WebGL2が使えれば native解像度の color/normal/height を lighting.js で合成する。使えない時は1/4解像度のCanvasを平滑化して重ねる従来の光(lightPass)。
-import { BALANCE, TILE, TERRAIN as T, TERRAIN_INFO, NODES, STRUCTURES, ITEMS, CROPS, WALL_NODE } from './data.js';
-import { hash2, nodeAt, groundDetail, arenaScenery, shoreScenery } from './world.js';
-import { createLighting } from './lighting.js';
+import { BALANCE, TILE, TERRAIN as T, TERRAIN_INFO, NODES, STRUCTURES, ITEMS, CROPS, WALL_NODE, nodeMirrored, baseSprite } from './data.js';
+import { hash2, nodeAt, groundDetail, arenaScenery, shoreScenery, nodeFootprint } from './world.js';
+import { createLighting, MAX_PT, PT_HALF } from './lighting.js';
+import { hourOf, skyAt, curtain2D, plateDisplay } from './sky.js';
+import * as Ground from './ground.js';
 
 const P = BALANCE.player;
+
+/* ================================================================== 実行時の切替(VISUAL_REWORK3)。値は getVisualStats().toggles で読め、setVisualToggle で変えられる */
+// 旧資産への移行期間だけの切替を含む。「アルベドの焼き込み光を補正した」わけではない: legacyGain は旧資産の gain 値(焼き込み光を弱める)を使うか。
+const DEFAULT_TOGGLES = {
+  skyModel: true,          // sky.js の時刻モデル(false: 旧 ambientLight の明るさ。GL の sky/sun は旧式)
+  projectedShadows: true,  // 太陽・月・局所光(最大 MAX_PT 灯)の地面投影影(影バッファ)
+  pointShadows: true,      // projectedShadows のうち局所光(たいまつ・焚き火・腰の灯)の影だけを切る
+  groundChunks: true,      // ground.js の有機的マスクで地面を合成(false: 旧タイル+edge。旧 edge の白縁が戻る)
+  groundScatter: true,     // 地面の細かな散らし(拾えない)
+  mirrorNatural: true,     // 木・岩・茂みなどの決定的な左右反転(法線Nxも反転)
+  legacyGain: true,        // 旧資産の gain(B チャンネル)で焼き込み光を弱める。中立なアルベドの資産が入ったら false を試す
+  handLight: true,         // 暗い間の主人公の小さな手提げ灯(夜の free な大きな光の代わり)
+  footDebug: false,        // 足元の楕円とクリック範囲の重ね表示
+  legacyDetailDensity: 0.4, // 旧 details/deco 飾りを描く割合(0..1)。新しい散らしがあるので減らす
+};
 
 /* ================================================================== アセット */
 const DEFAULT_SHEETS = {
@@ -95,7 +112,7 @@ function placeholderFrame(sheet, name) {
 }
 
 function modKey(m) {
-  return `${m.half ? 'h' : ''}|${m.tint ? m.tint.join(',') : ''}|${m.flip ? 'f' : ''}|${m.rot || 0}|${m.outline || ''}|${m.clayDots ? 'c' : ''}`;
+  return `${m.half ? 'h' : ''}|${m.tint ? m.tint.join(',') : ''}|${m.flip ? 'f' : ''}|${m.rot || 0}|${m.outline || ''}|${m.clayDots ? 'c' : ''}|${m.normalFlipY ? 'ny' : ''}`;
 }
 
 // 法線の左右反転: R=255-R(2Dのpixel readが必要。variantごとに1回だけ)。読めなければnullで平坦へ戻す
@@ -134,6 +151,12 @@ function buildVariant(base, m) {
     return c;
   };
   let ncv = layer(base.nimg), hcv = layer(base.himg);
+  // 屋根の手前斜面は奥斜面と逆向き。色や位置を反転せず、面の向きだけを変える。
+  if (m.normalFlipY && ncv) {
+    const g = ncv.getContext('2d'), im = g.getImageData(0, 0, ncv.width, ncv.height);
+    for (let i = 0; i < im.data.length; i += 4) if (im.data[i + 3]) im.data[i + 1] = 255 - im.data[i + 1];
+    g.putImageData(im, 0, 0);
+  }
   if (m.half) {
     cv = halve(cv);
     w = cv.width; h = cv.height; px = Math.round(px / 2); py = Math.round(py / 2);
@@ -193,7 +216,44 @@ function buildVariant(base, m) {
     if (hcv) hcv = withRing(hcv, '#00c880');
     cv = withRing(cv, m.outline); w += 2; h += 2; px += 1; py += 1;
   }
-  return { img: cv, x: 0, y: 0, w, h, px, py, nimg: ncv || undefined, himg: hcv || undefined };
+  // メタデータの座標も同じ変形に追従させる(half は半分、flip は左右、outline は +1)
+  let meta = base.meta || null;
+  if (meta) {
+    const tf = ([x, y]) => {
+      if (m.half) { x = Math.round(x / 2); y = Math.round(y / 2); }
+      if (m.flip) x = (m.half ? Math.ceil(base.w / 2) : base.w) - x;
+      if (m.outline) { x += 1; y += 1; }
+      return [x, y];
+    };
+    const g = meta.grip && (Array.isArray(meta.grip[0]) ? meta.grip.map(tf) : tf(meta.grip));
+    // feet は旧形式(side→[x,y,marker])と現形式(object: sole/ground は座標、lift は高さ)の両方を扱う
+    const tfFoot = (pt) => {
+      if (Array.isArray(pt)) return [...tf(pt), ...pt.slice(2)];
+      if (!pt || typeof pt !== 'object') return pt;
+      const o = { ...pt };
+      for (const k of ['sole', 'ground']) if (Array.isArray(o[k])) o[k] = [...tf(o[k]), ...o[k].slice(2)];
+      for (const k of ['lift', 'height', 'height_level', 'forward_offset']) if (m.half && Number.isFinite(o[k])) o[k] /= 2;
+      if (Array.isArray(o.local)) {
+        o.local = o.local.map(v => m.half ? v / 2 : v);
+        if (m.flip) o.local[0] = -o.local[0];
+      }
+      return o;
+    };
+    const feet = meta.feet && (Array.isArray(meta.feet) || typeof meta.feet !== 'object' ? meta.feet
+      : ('sole' in meta.feet || 'ground' in meta.feet) ? tfFoot(meta.feet)
+        : Object.fromEntries(Object.entries(meta.feet).map(([side, pt]) => [side, tfFoot(pt)])));
+    const walk = m.half && Number.isFinite(meta.walk_distance_per_frame) ? meta.walk_distance_per_frame / 2 : meta.walk_distance_per_frame;
+    const lantern = meta.lantern && { ...meta.lantern };
+    if (lantern) {
+      for (const k of ['anchor', 'origin', 'planned_origin', 'glass_center']) if (lantern[k]) lantern[k] = tf(lantern[k]);
+      if (lantern.glass_px) lantern.glass_px = lantern.glass_px.map(tf);
+      if (m.half && Number.isFinite(lantern.glass_height)) lantern.glass_height /= 2;
+      if (lantern.light_anchor) lantern.light_anchor = [...tf(lantern.light_anchor), lantern.light_anchor[2] * (m.half ? 0.5 : 1)];
+    }
+    meta = { ...meta, foot: meta.foot && tf(meta.foot), grip: g || null, head: meta.head && tf(meta.head), feet, lantern: meta.lantern === false ? false : lantern };
+    if (walk !== undefined) meta.walk_distance_per_frame = walk;
+  }
+  return { img: cv, x: 0, y: 0, w, h, px, py, nimg: ncv || undefined, himg: hcv || undefined, meta };
 }
 
 function createAssets() {
@@ -252,10 +312,19 @@ async function loadSheet(assets, key, def, base) {
     for (const [name, f] of Object.entries(atlas.frames || {})) {
       const r = f.frame || f;
       const pv = f.pivot || pivot;
+      // 任意のメタデータ(フレーム → atlas.meta.frameMeta[name] → 無し)。座標はすべてフレーム内のpx(左上原点)。
+      //   foot: [x,y] 足元の接地点(既定は pivot)。grip: [x,y] または手の位置の配列(握り位置)。head: [x,y] 頭頂。
+      // 寸法・pivot・握り位置・歩幅は差し替えシート側が指定する。
+      const fm = (atlas.meta && atlas.meta.frameMeta && atlas.meta.frameMeta[name]) || {};
+      const meta = { foot: f.foot || fm.foot || null, grip: f.grip || fm.grip || null, head: f.head || fm.head || null,
+        feet: f.feet || fm.feet || null, lantern: f.lantern ?? fm.lantern ?? null,
+        walk_distance_per_frame: f.walk_distance_per_frame ?? fm.walk_distance_per_frame ?? null,
+        gait_phase: f.gait_phase ?? fm.gait_phase ?? null };
       // url/sheetW/sheetH: フレーム自身の画像情報。overrides で別シートへ接続されてもCSS側が正しい画像を指せる
       frames.set(name, {
         img, x: r.x, y: r.y, w: r.w, h: r.h, px: pv[0], py: pv[1], duration: f.duration || 140, sheet: key, name,
         url: imgUrl.href, sheetW: img.naturalWidth, sheetH: img.naturalHeight, nimg: layers.normal, himg: layers.height,
+        meta: Object.values(meta).some(v => v != null) ? meta : null,
       });
     }
     assets.sheets[key] = { key, img, w: img.naturalWidth, h: img.naturalHeight, frames, pivot, url: imgUrl.href };
@@ -293,15 +362,11 @@ export async function loadAssets(url = 'assets/manifest.json') {
 const lerp = (a, b, t) => a + (b - a) * t;
 const smooth = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
 
-// 環境光(0.35..1)と、夕暮れ・夜明けの暖色度
+// 旧互換: 環境光(0.35..1)と、夕暮れ・夜明けの暖色度。値は sky.js の時刻モデルから(昼 9〜15時=1、夜=nightLight、地下=caveLight)。
+// GL の明るさはこの値ではなく skyAt() の sky/sun/moon で決まる。flies などの演出量だけがこれを使う
 export function ambientLight(clock, mapId) {
-  const D = BALANCE.day;
-  if (mapId === 'underground') return { amb: D.caveLight, warm: 0 };
-  const t = ((clock % D.length) + D.length) % D.length;
-  if (t < D.dawn[1]) return { amb: lerp(D.nightLight, 1, smooth(t / D.dawn[1])), warm: Math.sin(Math.PI * smooth(t / D.dawn[1])) * 0.9 };
-  if (t < D.dusk[0]) return { amb: 1, warm: 0 };
-  if (t < D.dusk[1]) { const u = (t - D.dusk[0]) / (D.dusk[1] - D.dusk[0]); return { amb: lerp(1, D.nightLight, smooth(u)), warm: Math.sin(Math.PI * smooth(u)) }; }
-  return { amb: D.nightLight, warm: 0 };
+  const s = skyAt(hourOf(clock), mapId);
+  return { amb: s.amb, warm: s.warm };
 }
 
 /* ================================================================== レンダラー */
@@ -332,7 +397,8 @@ export function createRenderer(canvas, assets) {
   const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const LS = {
     mode: 'auto', active: '2d', debug: 'off', reason: 'init', lights: 0, culled: 0, steps: 0, w: 0, h: 0, device: { w: 0, h: 0 },
-    ms: { scene: 0, upload: 0, gl: 0, copy: 0 }, glErrors: 0, errorCount: 0, contextLost: false, sunStrength: 0,
+    ms: { scene: 0, upload: 0, gl: 0, copy: 0 }, glErrors: 0, errorCount: 0, contextLost: false, sunStrength: 0, moonStrength: 0,
+    hour: 0, sunDir: [0, 0, 0], sky: null, shadow: { kind: 'none', strength: 0, vec: [0, 0], casters: 0, drawn: 0, skipped: 0, w: 0, h: 0, ms: 0, scale: 1, uploadBytes: 0, projected: false },
     slow: false, slowRuns: 0, samples: [],
   };
   let lighting = null, lightingTried = false, occBuf = null;
@@ -347,6 +413,21 @@ export function createRenderer(canvas, assets) {
   };
   const lights = [];
   const sortList = [];
+
+  /* ---------- VISUAL_REWORK3 の状態 ---------- */
+  const TOG = { ...DEFAULT_TOGGLES };
+  // 影バッファ(太陽/月 と 局所光1灯)。desktop は native 解像度、coarse(タッチ)は半解像度。canvas は alpha なし(0=遮る物なし)
+  const SHADOW_SCALE = coarse ? 0.5 : 1;
+  const MAX_CASTERS = 192;
+  const shCv = newCanvas(8, 8), shCtx = shCv.getContext('2d', { alpha: false });
+  const shpCv = newCanvas(8, 8), shpCtx = shpCv.getContext('2d', { alpha: false });
+  // 遮る物の記録: sortList の描画中に drawFrame が height 画像の切り出しを積む。要素は使い回し(フレームごとに確保しない)
+  const casters = [];
+  let capOn = false, capFoot = 0, capN = 0;
+  const SH = { casters: 0, drawn: 0, skipped: 0, w: 0, h: 0, bytes: 0, ms: 0, kind: 'none', point: false, vec: [0, 0], strength: 0 };
+  const VS = { sky: null, hour: 0, clock: 0, mapId: 'surface', ground: { chunks: 0, baked: 0, bakeMs: 0, lastBakeMs: 0, pending: 0, fallback: 0, failed: false, scatter: 0, debug: 0 } };
+  const GR = { cache: null, tex: null, texKey: '', failed: false, debug: 0, sig: new Map(), provider: null, scatterProvider: null, bakedThisFrame: 0 };
+  const MATERIAL_OF_TERRAIN = TERRAIN_INFO.map((i) => Ground.materialIndex(i.tile));
 
   /* ---------- サイズ・倍率 ---------- */
   function computeScale() {
@@ -395,6 +476,7 @@ export function createRenderer(canvas, assets) {
   function drawFrame(fr, sx, sy, sw, sh, dx, dy) {
     ctx.drawImage(fr.img, fr.x + sx, fr.y + sy, sw, sh, dx, dy, sw, sh);
     if (!layered) return;
+    if (capOn && fr.himg) recordCaster(fr, sx, sy, sw, sh, dx, dy);
     const a = ctx.globalAlpha;
     nctx.globalAlpha = a; hctx.globalAlpha = a;
     if (fr.nimg) nctx.drawImage(fr.nimg, fr.x + sx, fr.y + sy, sw, sh, dx, dy, sw, sh);
@@ -403,6 +485,25 @@ export function createRenderer(canvas, assets) {
     else hctx.drawImage(flatLayer(fr, 'hflat', '#00c880'), sx, sy, sw, sh, dx, dy, sw, sh);
   }
   function blit(fr, x, y) { drawFrame(fr, 0, 0, fr.w, fr.h, x, y); }
+
+  function recordCaster(fr, sx, sy, sw, sh, dx, dy) {
+    if (capN >= MAX_CASTERS) { SH.skipped++; return; }
+    const c = casters[capN] || (casters[capN] = { fr: null, sx: 0, sy: 0, sw: 0, sh: 0, dx: 0, dy: 0, foot: 0 });
+    c.fr = fr; c.sx = sx; c.sy = sy; c.sw = sw; c.sh = sh; c.dx = dx; c.dy = dy; c.foot = capFoot;
+    capN++;
+  }
+
+  // 影を落とす物か。地面の小物・作物・落ちている物・屋根/床は落とさない(接地影の対象と同じ区分)。足元の y(影を傾ける軸)を返す。落とさないなら null
+  function casterFoot(it) {
+    if (it.kind === 3 || it.kind === 4 || it.kind === 5) return it.y;
+    if (it.kind === 1) return STRUCTURES[it.ref.type].layer === 'floor' ? null : it.ref.y * TILE + 28;
+    if (it.kind !== 0) return null;
+    const n = it.ref, def = NODES[n.type];
+    if (def.decor && !n.sprite) return null;
+    if (n.type === 'border_pine' || n.type === 'branch' || n.type === 'pebble' || n.type === 'grass') return null;
+    if (n.sprite === 'flowers' || n.sprite === 'blueflowers') return null;
+    return nodeFootprint(n).y;
+  }
   function prop(name, mods) { return assets.get('props', name, mods); }
 
   // 自然物の変種: `${name}_v1`,`_v2` が実在する時だけhashで選ぶ(左右反転は使わない)。無い名前は要求しない
@@ -431,7 +532,19 @@ export function createRenderer(canvas, assets) {
     R.shadows.set(k, c);
     return c;
   }
-  function drawShadow(x, y, rx, ry) { ctx.drawImage(shadowSprite(rx, ry), Math.round(x) - rx, Math.round(y) - ry); }
+  function drawShadow(x, y, rx, ry) {
+    // 方向のある影は影バッファ(GL)が作る。GL では楕円を接触の遮蔽へ小さくする(二重の影を避ける)
+    if (layered && TOG.projectedShadows && TOG.skyModel && !(VS.sky && VS.sky.underground)) { rx = Math.max(2, Math.round(rx * 0.45)); ry = Math.min(ry, 2); }
+    // 2D 照明(GL を使わない時): 楕円を太陽/月の影の向きへずらして伸ばす。向き・強さは skyAt の shadow(夜・地下は向きなし)
+    const sh = !layered && TOG.projectedShadows && TOG.skyModel && VS.sky && !VS.sky.underground ? VS.sky.shadow : null;
+    if (sh && sh.strength > 0.001) {
+      const len = Math.min(2.5, Math.hypot(sh.vec[0], sh.vec[1]));
+      const reach = Math.min(10, Math.round(ry * 2.4 * len)), k = len > 0 ? reach / len : 0;
+      x += sh.vec[0] * k; y += sh.vec[1] * k * 0.5;
+      rx += Math.round(reach * 0.5);
+    }
+    ctx.drawImage(shadowSprite(rx, ry), Math.round(x) - rx, Math.round(y) - ry);
+  }
 
   // 小物: 実行時の縮小(half)は使わず、`${name}_small` があればそれを原寸で描く。無い場合だけ従来の縮小へ戻す
   const SMALL_ALIAS = { log: ['branch_small'], rock: ['pebble_small'], fern: ['grass_small'] };
@@ -543,8 +656,152 @@ export function createRenderer(canvas, assets) {
     ctx.globalAlpha = 1;
   }
 
+  /* ---------- 地面: ground.js の有機的マスクでチャンクを焼いて描く ---------- */
+  const tileMatAt = (map, tx, ty) => MATERIAL_OF_TERRAIN[map.terrain[Math.max(0, Math.min(map.h - 1, ty)) * map.w + Math.max(0, Math.min(map.w - 1, tx))]];
+
+  // タイル1枚の color/normal/height を RGBA の配列で読む(normal/height が無ければ平坦値)。読めなければ例外(呼び出し側が旧描画へ戻す)
+  function readFrame(fr) {
+    const w = fr.w, h = fr.h;
+    const grab = (src, flat) => {
+      const cv = newCanvas(w, h), g = cv.getContext('2d', { willReadFrequently: true });
+      if (src) g.drawImage(src, fr.x, fr.y, w, h, 0, 0, w, h);
+      else { g.fillStyle = flat; g.fillRect(0, 0, w, h); }
+      return g.getImageData(0, 0, w, h).data;
+    };
+    return { c: grab(fr.img, '#000'), n: grab(fr.nimg, '#808000'), h: grab(fr.himg, '#00c880') };
+  }
+
+  // 材質ごとの素材。既定は tiles の `${材質}${変種}`(32×32)。GR.provider(材質名) が {w,h,variants:[{c,n,h}],variantAt} を返せば、そちらを使う
+  // (将来の 64×64 継ぎ目なしの mat_* 素材は、この関数を setGroundMaterialProvider で差し込む)。
+  function groundTextures() {
+    if (GR.tex) return GR.tex;
+    if (GR.failed) return null;
+    try {
+      const tex = [];
+      for (let m = 0; m < Ground.MATERIALS.length; m++) {
+        const name = Ground.MATERIALS[m];
+        if (Ground.isWaterMat(m)) { tex.push(null); continue; }
+        const prov = GR.provider ? GR.provider(name, assets) : null;
+        if (prov) { tex.push(prov); continue; }
+        const count = variantsOf(name), variants = [];
+        for (let v = 0; v < count; v++) variants.push(readFrame(assets.get('tiles', `${name}${v}`)));
+        const w0 = assets.get('tiles', `${name}0`);
+        tex.push({ w: w0.w, h: w0.h, variants, variantAt: (tx, ty) => terrainVariant(name, tx, ty) % variants.length });
+      }
+      GR.tex = tex;
+      return tex;
+    } catch (err) {
+      GR.failed = true; VS.ground.failed = true;
+      console.warn('[Mosslight] 地面の素材を読み出せません。旧タイル描画で続行します。', err && err.message);
+      return null;
+    }
+  }
+
+  function groundSpec(map) {
+    return {
+      matAt: (tx, ty) => tileMatAt(map, tx, ty), tex: groundTextures(), seed: (BALANCE.seed ^ (map.id === 'underground' ? 0x5555 : 0)) | 0,
+      scatter: TOG.groundScatter, debug: GR.debug,
+    };
+  }
+
+  // チャンク(8×8タイル + 2タイルの縁)の材質の署名。地形が変わった(採掘・リセット)チャンクだけ焼き直す
+  function chunkSig(map, cx, cy) {
+    let h = 17;
+    const x0 = cx * Ground.CHUNK_TILES - 2, y0 = cy * Ground.CHUNK_TILES - 2, n = Ground.CHUNK_TILES + 4;
+    for (let ty = y0; ty < y0 + n; ty++) for (let tx = x0; tx < x0 + n; tx++) h = (Math.imul(h, 31) + tileMatAt(map, tx, ty)) | 0;
+    return h;
+  }
+
+  function bakeGroundChunk(map, cx, cy, key, sig) {
+    try {
+      const t = performance.now();
+      const res = Ground.bakeChunk(groundSpec(map), cx, cy);
+      const canvases = Ground.toCanvases(res, newCanvas);
+      const ms = performance.now() - t;
+      VS.ground.lastBakeMs = ms; VS.ground.bakeMs += ms; VS.ground.baked++; VS.ground.scatter = res.stats.scatter;
+      return GR.cache.set(key, { canvases, sig, stats: res.stats });
+    } catch (err) {
+      GR.failed = true; VS.ground.failed = true;
+      console.warn('[Mosslight] 地面チャンクを焼けません。旧タイル描画で続行します。', err && err.message);
+      return null;
+    }
+  }
+
+  // 焼く予算が尽きたチャンクの暫定表示: 材質ごとの下地タイルだけ(縁・散らしなし)
+  function drawGroundFallback(map, cx, cy, tx0, ty0, tx1, ty1) {
+    const cs = Ground.CHUNK_TILES;
+    for (let ty = Math.max(ty0 - 1, cy * cs); ty <= Math.min(ty1 + 1, cy * cs + cs - 1); ty++) {
+      for (let tx = Math.max(tx0 - 1, cx * cs); tx <= Math.min(tx1 + 1, cx * cs + cs - 1); tx++) {
+        const name = Ground.MATERIALS[tileMatAt(map, tx, ty)];
+        if (isWaterTile(name)) continue;
+        blit(assets.get('tiles', name + terrainVariant(name, tx, ty)), tx * TILE, ty * TILE);
+      }
+    }
+  }
+
+  function drawGroundChunks(map, tx0, ty0, tx1, ty1) {
+    const tex = groundTextures();
+    if (!tex) return false;
+    const cache = GR.cache || (GR.cache = Ground.createChunkCache(24));
+    const G = VS.ground, t0 = performance.now(), cs = Ground.CHUNK_TILES;
+    G.fallback = 0;
+    // 1. 水の下地(アニメーション)。水そのもの、または8近傍に水のあるタイル。陸の材質はこの上に透明を残して重ねる
+    const waterFrame = Math.floor(R.t * 2.2) & 3;
+    const wAt = (x, y) => { const nm = Ground.MATERIALS[tileMatAt(map, x, y)]; return isWaterTile(nm) ? nm : null; };
+    let anyWater = false;
+    for (let ty = ty0 - 1; ty <= ty1 + 1; ty++) {
+      for (let tx = tx0 - 1; tx <= tx1 + 1; tx++) {
+        let nm = wAt(tx, ty);
+        if (!nm) {
+          for (let dy = -1; dy <= 1 && !nm; dy++) for (let dx = -1; dx <= 1 && !nm; dx++) if (dx || dy) nm = wAt(tx + dx, ty + dy) && 'water';
+        }
+        if (!nm) continue;
+        anyWater = true;
+        blit(assets.get('tiles', nm + waterFrame), tx * TILE, ty * TILE);
+      }
+    }
+    if (anyWater) drawWaterDepth(map, tx0, ty0, tx1, ty1);
+    // 2. 陸のチャンク
+    const cxa = Math.max(0, Math.floor((tx0 - 1) / cs)), cxb = Math.min(Math.ceil(map.w / cs) - 1, Math.floor((tx1 + 1) / cs));
+    const cya = Math.max(0, Math.floor((ty0 - 1) / cs)), cyb = Math.min(Math.ceil(map.h / cs) - 1, Math.floor((ty1 + 1) / cs));
+    let baked = 0;
+    const keyOf = (cx, cy) => `${map.id}:${cx},${cy}:${GR.debug}:${TOG.groundScatter ? 1 : 0}`;
+    for (let cy = cya; cy <= cyb; cy++) {
+      for (let cx = cxa; cx <= cxb; cx++) {
+        const key = keyOf(cx, cy), sig = chunkSig(map, cx, cy);
+        let e = cache.get(key);
+        if (e && e.sig !== sig) e = null;
+        if (!e) {
+          // 見えているのに未焼きのチャンクは、その場で焼く(材質が後から変わって見えないように)。通常は先読みが済んでいて 0〜2枚。
+          // 12枚を超える異常な時だけ、暫定の下地タイルで埋める
+          if (baked >= 12) { G.fallback++; drawGroundFallback(map, cx, cy, tx0, ty0, tx1, ty1); continue; }
+          e = bakeGroundChunk(map, cx, cy, key, sig);
+          if (!e) return false;
+          baked++;
+        }
+        const X = cx * Ground.CHUNK_PX, Y = cy * Ground.CHUNK_PX;
+        ctx.drawImage(e.canvases.color, X, Y);
+        if (layered) { nctx.drawImage(e.canvases.normal, X, Y); hctx.drawImage(e.canvases.height, X, Y); }
+      }
+    }
+    // 3. 先読み: 今のフレームで焼かなかった時だけ、見えている範囲の周りのチャンクを1つ
+    if (!baked && performance.now() - t0 < 4) {
+      outer: for (let cy = cya - 1; cy <= cyb + 1; cy++) for (let cx = cxa - 1; cx <= cxb + 1; cx++) {
+        if (cx < 0 || cy < 0 || cx >= Math.ceil(map.w / cs) || cy >= Math.ceil(map.h / cs)) continue;
+        const key = keyOf(cx, cy);
+        if (cache.get(key)) continue;
+        bakeGroundChunk(map, cx, cy, key, chunkSig(map, cx, cy));
+        break outer;
+      }
+    }
+    G.chunks = cache.size;
+    return true;
+  }
+
   function drawTerrain(map, tx0, ty0, tx1, ty1) {
-    // 論理地形を四隅として半マスずらして描く。境界の凸角・凹角も同じ規則で接続する。
+    if (TOG.groundChunks && !GR.failed && drawGroundChunks(map, tx0, ty0, tx1, ty1)) return;
+    // 旧描画(TOG.groundChunks=false か、素材を読めない時): 論理地形を四隅として半マスずらして描く。境界の凸角・凹角も同じ規則で接続する。
+    // 注意: この経路の edge_* には焼き込みの明るい縁線があり、白い格子に見える。出荷用ではない
     // 先に全マスの下地を敷き、水の深さを重ねてから縁を描く(砂・草の縁の張り出しが帯の上に載る)。
     const order = { deepwater: 0, water: 1, cave: 2, sand: 3, dirt: 4, path: 5, ruin: 6, grass: 7, darkgrass: 8, moss: 9, farmland: 10 };
     const waterFrame = Math.floor(R.t * 2.2) & 3;
@@ -739,10 +996,11 @@ export function createRenderer(canvas, assets) {
 
   function nodeSpriteMods(def, node) {
     const m = {};
+    if (TOG.mirrorNatural && nodeMirrored(node)) m.flip = true;
     if (isHalf(def, node)) m.half = true;
     if (def.tint) m.tint = def.tint;
     if (def.clayDots) m.clayDots = true;
-    return m; // 左右反転は使わない(変種は名前の _vN で選ぶ)
+    return m;
   }
 
   function fadeOf(obj, target, dt) {
@@ -773,11 +1031,11 @@ export function createRenderer(canvas, assets) {
       for (let tx = tx0 - 2; tx <= tx1 + 2; tx++) {
         if (tx < 0 || ty < 0 || tx >= map.w || ty >= map.h) continue;
         const ni = map.nodeAt[ty * map.w + tx];
-        if (ni >= 0) { const n = map.nodes[ni]; sortList.push({ y: n.py, kind: 0, ref: n }); }
+        if (ni >= 0) { const n = map.nodes[ni]; sortList.push({ y: nodeFootprint(n, !nodeAliveR(state, n)).y, kind: 0, ref: n }); }
         const s = sidx.get(ty * map.w + tx);
         if (s) {
           const def = STRUCTURES[s.type];
-          if (def.layer !== 'floor') sortList.push({ y: ty * TILE + 26, kind: 1, ref: s });
+          if (def.layer !== 'floor') sortList.push({ y: ty * TILE + 28, kind: 1, ref: s });
         }
       }
     }
@@ -814,7 +1072,7 @@ export function createRenderer(canvas, assets) {
         if (n.sprite === 'flowers' || n.sprite === 'blueflowers') { drawShadow(n.px, n.py, 3, 1); continue; }
         if (n.type === 'tree') { if (nodeAliveR(state, n)) drawShadow(n.px + 4, n.py + 1, 21, 7); else drawShadow(n.px, n.py - 1, 10, 4); }
         else if (def.landmark) drawShadow(n.px, n.py - 2, 22, 7);
-        else if (def.solid) drawShadow(n.px + 2, n.py - 1, 16, 5);
+        else if (def.solid) { const f = nodeFootprint(n); drawShadow(f.x, f.y, Math.max(8, f.rx), Math.max(3, f.ry)); }
         else if (n.sprite === 'flowers' || n.sprite === 'log') drawShadow(n.px, n.py - 1, n.sprite === 'log' ? 14 : 9, 3);
         else if (def.scale === 0.5) drawShadow(n.px, n.py - 1, 8, 3);
         else if (def.sprite) drawShadow(n.px, n.py - 1, 13, 4);
@@ -841,8 +1099,9 @@ export function createRenderer(canvas, assets) {
   }
 
   // noGlow: 暗幕を抜くだけで、加算の色光は足さない(闘技場の照明用。白飛びさせない)
-  function addLight(x, y, r, color, flicker, power, id, noGlow) {
-    lights.push({ x, y, r, color, flicker: flicker || 0, power: power == null ? 1 : power, id: id || 0, noGlow: !!noGlow });
+  // src: {x,y,h} 物理的な光源の足元(world px)と足元からの高さ(px)。あれば局所光の地面影を持てる灯になる(無い灯は height ray だけ)
+  function addLight(x, y, r, color, flicker, power, id, noGlow, src) {
+    lights.push({ x, y, r, color, flicker: flicker || 0, power: power == null ? 1 : power, id: id || 0, noGlow: !!noGlow, src: src || null });
   }
 
   // 地下のボス闘技場: プレイヤーが近い間、または交戦中に、暗幕を弱めて闘技場全体を照らす。洞窟のほかの場所は暗いまま
@@ -999,7 +1258,10 @@ export function createRenderer(canvas, assets) {
         emitEmbers(tipX + 1, tipY, s.id);
       }
       const L = def.light;
-      addLight(ax, ay - 16, L.r, L.color, L.flicker, 1, s.id);
+      // 光源の実高さ: たいまつは先端(ay-40)、焚き火・鍋は炎(ay-24)、灯籠など他は 20px
+      const lampH = s.type === 'torch' ? 40 : (s.type === 'campfire' || s.type === 'pot') ? 24 : 20;
+      // x,y は 2D fallback が光の中心に使う見える炎の位置。GL は src(足元+実高さ)で拡散・遮蔽・影を同じ光源から求める
+      addLight(ax, ay - lampH, L.r, L.color, L.flicker, 1, s.id, false, { x: ax, y: ay, h: lampH });
     }
   }
 
@@ -1016,7 +1278,11 @@ export function createRenderer(canvas, assets) {
     const a = p.action;
     if (p.roll) { mode = 'roll'; n = Math.min(2, Math.floor((p.roll.t / P.rollTime) * 3)); }
     else if (a && (a.type === 'gather' || a.type === 'swing')) { mode = 'attack'; n = Math.min(2, Math.floor((a.t / a.dur) * 3)); }
-    else if (p.moving) { mode = 'walk'; n = Math.floor(p.walkT / 15) % 4; }
+    else if (p.moving) {
+      mode = 'walk';
+      const step = assets.get('actors', `hero_${p.dir}_walk0`).meta?.walk_distance_per_frame;
+      n = Math.floor(p.walkT / (Number.isFinite(step) && step > 0 ? step : 15)) % 4;
+    }
     else n = Math.floor(R.t * 1.3) & 1;
     return `hero_${p.dir}_${mode}${n}`;
   }
@@ -1043,14 +1309,42 @@ export function createRenderer(canvas, assets) {
       // 未納品の名前は要求しない。道具が無い間は手の動きだけ見せる
       if (name && assets.has('props', name)) {
         tool = assets.get('props', name, p.dir === 'left' ? { flip: true } : undefined);
-        toolPos = GRIP_POS[p.dir][n];
+        const grip = fr.meta && fr.meta.grip;
+        const hand = grip && (Array.isArray(grip[0]) ? grip[n] : grip);
+        toolPos = hand ? [hand[0] - fr.px, hand[1] - fr.py] : GRIP_POS[p.dir][n];
       }
     }
-    const toolBehind = p.dir === 'up';
+    // 振りかぶった道具は頭の奥を通る。顔の前へ斧頭を貼り付けない。
+    const toolBehind = p.dir === 'up' || (a && Math.floor((a.t / a.dur) * 3) === 0);
     if (tool && toolBehind) blit(tool, hx + toolPos[0] - tool.px, hy + toolPos[1] - tool.py);
     blit(fr, hx - fr.px, hy - fr.py);
     if (tool && !toolBehind) blit(tool, hx + toolPos[0] - tool.px, hy + toolPos[1] - tool.py);
+    const lamp = hipPos(p);
+    if (R.hipOn && lamp.legacy) drawHipLantern(lamp);
     void focusRef;
+  }
+
+  // 腰の手提げ灯の位置(足元から12px上、体の横)。描画と光源が同じ点を使う
+  function hipPos(p) {
+    const fr = assets.get('actors', heroFrameName(p));
+    const lamp = fr.meta && fr.meta.lantern;
+    if (lamp) {
+      const c = lamp.glass_center;
+      if (!c || lamp.visible === false) return { visible: false, legacy: false };
+      const x = Math.round(p.x) - fr.px + c[0], y = Math.round(p.y) - fr.py + c[1];
+      const h = Number.isFinite(lamp.glass_height) ? lamp.glass_height : Math.round(p.y) - y;
+      return { x, y, h, visible: true, legacy: false };
+    }
+    return { x: Math.round(p.x) + (p.dir === 'left' ? 5 : -5), y: Math.round(p.y) - 12, h: 12, visible: true, legacy: true };
+  }
+  // 3×5px の小さな灯: 暗い枠と琥珀のガラス。ガラスだけ法線の B チャンネルで自発光にする(広い範囲は光らせない)
+  function drawHipLantern(h) {
+    ctx.fillStyle = '#2b2118'; ctx.fillRect(h.x - 1, h.y - 3, 3, 5);
+    ctx.fillStyle = '#ffd27a'; ctx.fillRect(h.x, h.y - 2, 1, 3);
+    if (!layered) return;
+    nctx.fillStyle = '#808000'; nctx.fillRect(h.x - 1, h.y - 3, 3, 5);
+    nctx.fillStyle = '#8080a0'; nctx.fillRect(h.x, h.y - 2, 1, 3);
+    hctx.fillStyle = '#38c880'; hctx.fillRect(h.x - 1, h.y - 3, 3, 5);
   }
 
   function drawGroundItem(state, g, focusRef) {
@@ -1128,10 +1422,31 @@ export function createRenderer(canvas, assets) {
     addLight(bag.x, bag.y - 6, 1.6, [255, 215, 126], 0, 0.4, 123);
   }
 
+  // 畑の4近傍マスク(N1/E2/S4/W8、1=隣も畑)。set は描画ごとに1回作った区画の集合(y*幅+x)。省略時はその場で作る
+  function farmlandSet(state, map) {
+    const set = new Set();
+    for (const f of state.farmland || []) if (f.map === map.id) set.add(f.y * map.w + f.x);
+    return set;
+  }
+  function farmlandMask(state, mapId, x, y, set) {
+    const map = state.world.maps[mapId];
+    const plots = set || farmlandSet(state, map);
+    const link = (tx, ty) => tx >= 0 && ty >= 0 && tx < map.w && ty < map.h && plots.has(ty * map.w + tx);
+    return (link(x, y - 1) ? 1 : 0) | (link(x + 1, y) ? 2 : 0) | (link(x, y + 1) ? 4 : 0) | (link(x - 1, y) ? 8 : 0);
+  }
+
+  // 新しい畑シート(farmland_join0..15、pivot=区画の左上からの縁の余白)で動的に重ねる。無いときは従来の farmland0..3
   function drawFarmland(state, map) {
+    const plots = farmlandSet(state, map);
     for (const plot of state.farmland || []) {
       if (plot.map !== map.id) continue;
-      blit(assets.get('tiles', `farmland${hash2(plot.x, plot.y, 7) * 4 | 0}`), plot.x * TILE, plot.y * TILE);
+      const join = `farmland_join${farmlandMask(state, map.id, plot.x, plot.y, plots)}`;
+      if (assets.has('tiles', join)) {
+        const fr = assets.get('tiles', join);
+        blit(fr, plot.x * TILE - fr.px, plot.y * TILE - fr.py);
+      } else {
+        blit(assets.get('tiles', `farmland${hash2(plot.x, plot.y, 7) * 4 | 0}`), plot.x * TILE, plot.y * TILE);
+      }
     }
   }
 
@@ -1196,8 +1511,9 @@ export function createRenderer(canvas, assets) {
         }
       }
       const inside = cover.has(key(Math.floor(p.x / TILE), Math.floor(p.y / TILE))) || cover.has(key(Math.floor(p.x / TILE), Math.floor((p.y - 10) / TILE)));
-      const alpha = fadeOf(`roof:${h.id}`, inside ? 0.18 : 1, dt);
-      // 画面外の家は描かない(室内フェードの状態だけ上で更新済み)
+      const alpha = fadeOf(`roof:${h.id}`, inside ? 0 : 1, dt);
+      // 完全に外れた屋根は描かない。画面外の家も描かない(フェードの状態だけ上で更新済み)
+      if (alpha <= 0.002) continue;
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       for (const k of cover) {
         const x = k % 4096, y = Math.floor(k / 4096);
@@ -1243,25 +1559,23 @@ export function createRenderer(canvas, assets) {
         for (const c of layers) { c.save(); c.clip(clipPath); }
         ctx.globalAlpha = alpha;
         const variation = Math.floor(hash2(x,y,326)*3);
-        const tile = assets.get('tiles', `${rh > 16 ? 'roof_full' : 'roof'}${row * 3 + column}${variation ? `_v${variation}` : ''}`);
+        const tileName = `${rh > 16 ? 'roof_full' : 'roof'}${row * 3 + column}${variation ? `_v${variation}` : ''}`;
+        const tile = assets.get('tiles', tileName), frontTile = assets.get('tiles', tileName, { normalFlipY: true });
+        const ridge = ridgeOf(x, y);
         for (let py = 0; py < rh;) {
           const chunk = Math.min(tile.h - 8, rh - py);
           const last = py + chunk === rh;
           const sy = !s && last ? tile.h - chunk : !n && py === 0 ? 0 : 8;
-          drawFrame(tile, 0, sy, tile.w, chunk, X, Y + py);
+          const back = Math.max(0, Math.min(chunk, ridge - (Y + py)));
+          if (back) drawFrame(tile, 0, sy, tile.w, back, X, Y + py);
+          if (chunk > back) drawFrame(frontTile, 0, sy + back, tile.w, chunk - back, X, Y + py + back);
           py += chunk;
         }
 
-        // 斜面の明暗: 棟より奥は影(暗)、手前は日向(明)。棟のピクセル線で区切る
-        const ridge = ridgeOf(x, y);
-        fill('#0a0f14', 0.36, X, Y, TILE, Math.min(YE, ridge) - Y);
-        fill('#ffe2a0', 0.07, X, Math.max(Y, ridge + 3), TILE, YE - Math.max(Y, ridge + 3));
+        // 棟は部材の固有色。斜面の明暗とハイライトは動的照明が決める。
         if (ridge >= Y && ridge < YE) {
-          // 棟: 明るい頂線・本体・下に落ちる影(各1px)
-          fill('#f1dca6', 1, X, ridge, TILE, 1);
-          fill('#c99d5e', 1, X, ridge + 1, TILE, 1);
-          fill('#3a2416', 0.8, X, ridge + 2, TILE, 1);
-          fill('#1a110a', 0.35, X, ridge - 1, TILE, 1);
+          fill('#8f5e3a', 1, X, ridge, TILE, 2);
+          fill('#4a2f24', 1, X, ridge + 2, TILE, 1);
         }
         // 隣の列と棟の高さが違う所は、段差の線で繋ぐ(L字などの不整形)
         if (e) {
@@ -1322,7 +1636,9 @@ export function createRenderer(canvas, assets) {
     const tint = [col, 0.5];
     if (!def || pv.type === 'farm' || pv.type.startsWith('plant_')) {
       ctx.globalAlpha = 0.5;
-      blit(assets.get('tiles', 'farmland0', { tint }), X, Y);
+      // 新しい畑は隣と繋げず孤立形(join0)でプレビューする。無いときは従来の farmland0。どちらも pivot 分だけ左上へずらす
+      const fr = assets.get('tiles', assets.has('tiles', 'farmland_join0') ? 'farmland_join0' : 'farmland0', { tint });
+      blit(fr, X - fr.px, Y - fr.py);
       ctx.globalAlpha = 1;
     } else if (def.tile) {
       ctx.globalAlpha = 0.7;
@@ -1433,14 +1749,16 @@ export function createRenderer(canvas, assets) {
   }
 
   /* ---------- 光 ---------- */
-  function lightPass(map, amb, warm) {
+  function lightPass(map, amb, warm, sky) {
     const S = R.scale, k = S / 4;
     const lw = lightCv.width, lh = lightCv.height;
-    if (amb < 0.995) {
+    // sky.js の板の表から暗幕の色と alpha(上限 0.97)。23時は昼の見た目に対してほぼ黒になる。skyModel=false の時だけ旧式(alpha 上限 0.86)
+    const cur = TOG.skyModel && sky ? curtain2D(sky) : null;
+    if (cur ? cur.alpha > 0.001 : amb < 0.995) {
       const night = [10, 18, 44], dusk = [255, 150, 82];
       const dark = map.id === 'underground' ? [5, 9, 20] : night;
-      const col = dark.map((c, i) => Math.round(lerp(c, dusk[i], warm * 0.85)));
-      const alpha = Math.min(0.86, (1 - amb) * (map.id === 'underground' ? 0.95 : 0.8)) * (1 - 0.6 * R.arenaLift);
+      const col = cur ? cur.color : dark.map((c, i) => Math.round(lerp(c, dusk[i], warm * 0.85)));
+      const alpha = (cur ? cur.alpha : Math.min(0.86, (1 - amb) * (map.id === 'underground' ? 0.95 : 0.8))) * (1 - 0.6 * R.arenaLift);
       lctx.globalCompositeOperation = 'source-over';
       lctx.clearRect(0, 0, lw, lh);
       lctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},${alpha})`;
@@ -1532,24 +1850,136 @@ export function createRenderer(canvas, assets) {
     return { x0, y0, w, h, data: occBuf };
   }
 
-  // 太陽: 昼の量(currentambientから)だけ正。夜・地下は0。skyは夜0.06・昼0.55(linear)、arenaLiftもskyへ入れて視認性を保つ
-  function lightParams(map, amb, warm, camX, camY) {
-    const D = BALANCE.day, under = map.id === 'underground';
-    const day = under ? 0 : smooth((amb - D.nightLight) / (1 - D.nightLight));
-    const level = (under ? 0.035 : lerp(0.06, 0.55, day)) + R.arenaLift * 0.2;
-    const tint = [lerp(0.62, 0.96, day), lerp(0.82, 1, day), lerp(1.25, 1.04, day)].map((c, i) => lerp(c, [1.15, 0.8, 0.6][i], warm * 0.5));
-    const sunColor = [1, 0.96, 0.86].map((c, i) => lerp(c, [1, 0.5, 0.22][i], warm));
-    return {
-      camX, camY, t: R.t, calm: R.calm, tile: TILE, lights, debug: LS.debug, steps: coarse ? 6 : 8,
-      sunStrength: 0.6 * day, sunColor, skyColor: tint.map((c) => c * level),
+  // 投影影バッファ: 記録した遮る物の height 画像を、足元の行を軸に影の向きへ傾けて 'lighten' で重ねる(R=遮る物の高さ/64、0=無し)。
+  // 画素 (u,v) の高さ h = 足元y − 画素y。影は (X + vx·h, 足元y + vy·h) に落ちる。vec は native px/高さ1px
+  function buildShadowBuffer(nw, nh, camX, camY, vec) {
+    const t0 = performance.now(), k = SHADOW_SCALE;
+    const w = Math.max(2, Math.ceil(nw * k)), h = Math.max(2, Math.ceil(nh * k));
+    if (shCv.width !== w || shCv.height !== h) { shCv.width = w; shCv.height = h; }
+    shCtx.setTransform(1, 0, 0, 1, 0, 0);
+    shCtx.globalCompositeOperation = 'source-over';
+    shCtx.fillStyle = '#000';
+    shCtx.fillRect(0, 0, w, h);
+    shCtx.globalCompositeOperation = 'lighten';
+    shCtx.imageSmoothingEnabled = false;
+    const vx = vec[0], vy = Math.abs(vec[1]) < 0.02 ? (vec[1] < 0 ? -0.02 : 0.02) : vec[1];
+    let drawn = 0;
+    for (let i = 0; i < capN; i++) {
+      const c = casters[i];
+      const sxs = c.dx - camX, fy = c.foot - camY, b = c.dy - c.foot;
+      // 影の長さは高さ64pxで最大 2.5×64=160px。それより外の物は影も画面に届かない
+      if (sxs > nw + 160 || sxs + c.sw < -160 || fy < -200 || fy > nh + 200) { SH.skipped++; continue; }
+      shCtx.setTransform(k, 0, -vx * k, -vy * k, k * (sxs - vx * b), k * (fy - vy * b));
+      shCtx.drawImage(c.fr.himg, c.fr.x + c.sx, c.fr.y + c.sy, c.sw, c.sh, 0, 0, c.sw, c.sh);
+      drawn++;
+    }
+    shCtx.setTransform(1, 0, 0, 1, 0, 0);
+    shCtx.globalCompositeOperation = 'source-over';
+    SH.casters = capN; SH.drawn = drawn; SH.w = w; SH.h = h; SH.ms = performance.now() - t0;
+    return shCv;
+  }
+
+  // 局所光(たいまつ・焚き火・腰の灯)の地面影アトラス。灯ごとに足元を中心とする 2·PT_HALF px 四方のセルを横に並べる(上限 MAX_PT 灯、coarse は2灯)。
+  // 遮る物の height 画像を、その物の足元が光源の足元から遠ざかる向きへ傾けて 'lighten' で描く(v = (足元−光源の足元)/光源の高さ、長さは1.6まで)。
+  // 灯自身の物(足元が10px以内)は落とさない。1灯あたりの描画は PT_MAX_DRAW 件まで、灯の半径+影の最大長の外の物は描かない。canvas は使い回し
+  const PT_MAX_DRAW = 64, PT_STRENGTH = 0.8;
+  const ptCand = [], ptEntries = [];
+  const PT = { lights: 0, drawn: 0, skipped: 0, w: 0, h: 0, ms: 0, bytes: 0 };
+  function buildPointShadows(nw, nh, camX, camY) {
+    const t0 = performance.now(), s = SHADOW_SCALE, cell = Math.ceil(2 * PT_HALF * s);
+    const px = R.camX + R.viewW / 2, py = R.camY + R.viewH / 2;
+    ptCand.length = 0; ptEntries.length = 0;
+    for (const L of lights) {
+      if (!L.src || !(L.power > 0.2)) continue;
+      const x = L.src.x - camX, y = L.src.y - camY;
+      if (x < -PT_HALF || y < -PT_HALF || x > nw + PT_HALF || y > nh + PT_HALF) continue;
+      L.ptKey = L.id === 99 ? -1 : Math.hypot(L.src.x - px, L.src.y - py);
+      ptCand.push(L);
+    }
+    ptCand.sort((a, b) => a.ptKey - b.ptKey);
+    const n = Math.min(ptCand.length, coarse ? 2 : MAX_PT);
+    PT.lights = n; PT.drawn = 0; PT.skipped = ptCand.length - n;
+    if (!n) { PT.w = 0; PT.h = 0; PT.ms = 0; PT.bytes = 0; return null; }
+    const w = cell * MAX_PT;
+    if (shpCv.width !== w || shpCv.height !== cell) { shpCv.width = w; shpCv.height = cell; }
+    shpCtx.setTransform(1, 0, 0, 1, 0, 0);
+    shpCtx.globalCompositeOperation = 'source-over';
+    shpCtx.fillStyle = '#000';
+    shpCtx.fillRect(0, 0, w, cell);
+    shpCtx.globalCompositeOperation = 'lighten';
+    shpCtx.imageSmoothingEnabled = false;
+    for (let j = 0; j < n; j++) {
+      const L = ptCand[j], lampH = Math.max(4, L.src.h);
+      const fxs = L.src.x - camX, fys = L.src.y - camY, ox = fxs - PT_HALF, oy = fys - PT_HALF, reach = L.r * TILE + 40;
+      shpCtx.save();
+      shpCtx.setTransform(1, 0, 0, 1, 0, 0);
+      shpCtx.beginPath(); shpCtx.rect(j * cell, 0, cell, cell); shpCtx.clip();
+      let drawn = 0;
+      for (let i = 0; i < capN && drawn < PT_MAX_DRAW; i++) {
+        const c = casters[i];
+        const sxs = c.dx - camX, fy = c.foot - camY, cxs = sxs + c.sw / 2;
+        const dx = cxs - fxs, dy = fy - fys;
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) continue;
+        if (dx * dx + dy * dy > reach * reach) continue;
+        let vx = dx / lampH, vy = dy / lampH;
+        const vl = Math.hypot(vx, vy);
+        if (vl > 1.6) { vx *= 1.6 / vl; vy *= 1.6 / vl; }
+        if (Math.abs(vy) < 0.05) vy = vy < 0 ? -0.05 : 0.05;
+        const b = c.dy - c.foot;
+        shpCtx.setTransform(s, 0, -vx * s, -vy * s, s * (sxs - ox - vx * b) + j * cell, s * (fy - oy - vy * b));
+        shpCtx.drawImage(c.fr.himg, c.fr.x + c.sx, c.fr.y + c.sy, c.sw, c.sh, 0, 0, c.sw, c.sh);
+        drawn++;
+      }
+      shpCtx.restore();
+      PT.drawn += drawn;
+      ptEntries.push({ light: L, x: fxs, y: fys, h: lampH, strength: PT_STRENGTH });
+    }
+    shpCtx.setTransform(1, 0, 0, 1, 0, 0);
+    shpCtx.globalCompositeOperation = 'source-over';
+    PT.w = w; PT.h = cell; PT.bytes = w * cell * 4; PT.ms = performance.now() - t0;
+    return { canvas: shpCv, cell, th: coarse ? 3 : 1.5, entries: ptEntries };
+  }
+
+  // 明るさ・太陽/月・空はすべて sky.js の skyAt() の値(linear)。GL へ毎フレーム渡す。skyModel=false の時だけ旧式(昼の量から)
+  function lightParams(map, amb, warm, camX, camY, sky) {
+    const base = { camX, camY, t: R.t, calm: R.calm, tile: TILE, lights, debug: LS.debug, steps: coarse ? 6 : 8, gain: TOG.legacyGain };
+    if (!TOG.skyModel) {
+      const D = BALANCE.day, under = map.id === 'underground';
+      const day = under ? 0 : smooth((amb - D.nightLight) / (1 - D.nightLight));
+      const level = (under ? 0.035 : lerp(0.06, 0.55, day)) + R.arenaLift * 0.2;
+      const tint = [lerp(0.62, 0.96, day), lerp(0.82, 1, day), lerp(1.25, 1.04, day)].map((c, i) => lerp(c, [1.15, 0.8, 0.6][i], warm * 0.5));
+      const sunColor = [1, 0.96, 0.86].map((c, i) => lerp(c, [1, 0.5, 0.22][i], warm));
+      return { ...base, sunStrength: 0.6 * day, sunColor, skyColor: tint.map((c) => c * level) };
+    }
+    const params = {
+      ...base,
+      sunDir: sky.sun.dir, sunColor: sky.sun.color, sunStrength: sky.sun.up ? sky.sun.vis : 0,
+      moonDir: sky.moon.dir, moonColor: sky.moon.up ? sky.moon.color : [0, 0, 0], moonStrength: sky.moon.up ? sky.moon.vis : 0,
+      skyColor: sky.sky,
+      // 局所光は昼に弱く、夜に1。lighting.js の LIGHT_GAIN は夜(板 ≈ 6)に合わせた値
+      lightScale: 1 - 0.8 * sky.dayness,
     };
+    const sh = sky.shadow;
+    if (TOG.projectedShadows && sh.caster !== 'none' && sh.strength > 0.001 && !sky.underground) {
+      params.shadow = {
+        canvas: buildShadowBuffer(colorCv.width, colorCv.height, camX, camY, sh.vec), vec: sh.vec, strength: sh.strength,
+        kind: sh.caster === 'moon' ? 'moon' : 'sun', th: coarse ? 3 : 1.5,
+      };
+      SH.kind = params.shadow.kind; SH.vec = sh.vec; SH.strength = sh.strength;
+    } else { SH.kind = 'none'; SH.strength = 0; SH.vec = [0, 0]; SH.casters = capN; SH.drawn = 0; SH.w = 0; SH.h = 0; }
+    if (TOG.projectedShadows && TOG.pointShadows) {
+      const pt = buildPointShadows(colorCv.width, colorCv.height, camX, camY);
+      if (pt) params.ptShadow = pt;
+    } else { PT.lights = 0; PT.drawn = 0; PT.w = 0; PT.h = 0; PT.ms = 0; PT.bytes = 0; }
+    return params;
   }
 
   // GLで合成して可視canvasへ整数倍のnearestで転写する。失敗時はcolorだけを転写し、呼び出し側が2D照明を重ねる
-  function presentGL(state, map, amb, warm, camX, camY, tiles) {
+  function presentGL(state, map, amb, warm, camX, camY, tiles, sky) {
     const nw = colorCv.width, nh = colorCv.height, S = R.scale;
     const t0 = performance.now();
-    const params = lightParams(map, amb, warm, camX, camY);
+    const params = lightParams(map, amb, warm, camX, camY, sky);
+    recordSkyStats(sky, params);
     let out = null;
     try { out = lighting.render(colorCv, normalCv, heightCv, buildOcc(state, map, ...tiles), params); } catch (err) {
       console.warn('[Mosslight] WebGL2照明の描画に失敗しました。2D照明へ戻します。', err);
@@ -1563,6 +1993,7 @@ export function createRenderer(canvas, assets) {
     if (!out) { LS.reason = 'gl-failed'; return false; }
     const st = lighting.stats;
     LS.lights = st.lights; LS.culled = st.culled; LS.steps = st.steps; LS.sunStrength = st.sunStrength;
+    LS.shadow.uploadBytes = st.shadowBytes; LS.shadow.projected = st.shadowKind !== 'none';
     LS.glErrors = LS.errorCount = st.errorCount;
     LS.ms.upload = st.ms.upload; LS.ms.gl = Math.max(0, t1 - t0 - st.ms.upload); LS.ms.copy = t2 - t1;
     // 性能: 60frameの中央値が6ms(upload+gl+copy)を超える窓が3回続いたら、autoでは2Dへ戻す
@@ -1576,19 +2007,43 @@ export function createRenderer(canvas, assets) {
     return true;
   }
 
+  // getLightingStats の空・時刻・太陽・影。GL でも 2D でも毎フレーム更新する。
+  // plateDisplay: 灰色128・水平な地面・影なし・局所光なしの板の sRGB 表示値(sky.js がシェーダと同じ式で再計算)。19時は sunStrength=0、23時は板が ≈ 5〜6
+  function recordSkyStats(sky, params) {
+    LS.hour = sky.hour;
+    LS.sunStrength = params.sunStrength || 0;
+    LS.moonStrength = params.moonStrength || 0;
+    LS.sunDir = params.sunDir ? [params.sunDir[0], params.sunDir[1], params.sunDir[2]] : [0, 0, 0];
+    LS.sky = {
+      model: TOG.skyModel, underground: !!sky.underground, phase: sky.mood.phase, dayness: sky.dayness, dark: sky.dark,
+      sunUp: sky.sun.up, sunElevDeg: sky.sun.elevDeg, sunVis: sky.sun.vis, moonUp: sky.moon.up, moonVis: sky.moon.vis,
+      skyColor: [sky.sky[0], sky.sky[1], sky.sky[2]], plateDisplay: plateDisplay(sky), lightScale: params.lightScale == null ? 1 : params.lightScale,
+    };
+    LS.shadow.kind = SH.kind; LS.shadow.strength = SH.strength; LS.shadow.vec = [SH.vec[0], SH.vec[1]];
+    LS.shadow.casters = SH.casters; LS.shadow.drawn = SH.drawn; LS.shadow.skipped = SH.skipped;
+    LS.shadow.w = SH.w; LS.shadow.h = SH.h; LS.shadow.ms = SH.ms; LS.shadow.scale = SHADOW_SCALE;
+    // 局所光の地面影の実測(CPU: アトラスを描く時間。GPU は lighting の ms.gl に含まれ、別には測れない)。数値は毎フレームの実測で、固定の目安ではない
+    LS.shadow.point = { lights: PT.lights, drawn: PT.drawn, skipped: PT.skipped, w: PT.w, h: PT.h, ms: PT.ms, bytes: PT.bytes, casterCap: MAX_CASTERS, drawCap: PT_MAX_DRAW };
+  }
+
   function setLightingMode(m) {
     if (m !== 'auto' && m !== 'gl' && m !== '2d') return LS.mode;
     LS.mode = m; LS.slow = false; LS.slowRuns = 0; LS.samples.length = 0;
     return m;
   }
   function setLightingDebug(d) {
-    LS.debug = ['off', 'normal', 'height', 'shadow', 'light'].includes(d) ? d : 'off';
+    LS.debug = ['off', 'normal', 'height', 'shadow', 'light', 'sun', 'sky', 'albedo', 'irradiance'].includes(d) ? d : 'off';
     return LS.debug;
   }
   function getLightingStats() {
     const { slow, slowRuns, samples, ...pub } = LS;
-    return { ...pub, ms: { ...LS.ms }, device: { ...LS.device }, native: { w: LS.w, h: LS.h } };
+    return {
+      ...pub, ms: { ...LS.ms }, device: { ...LS.device }, native: { w: LS.w, h: LS.h },
+      sky: LS.sky ? { ...LS.sky } : null, shadow: { ...LS.shadow }, sunDir: LS.sunDir.slice(),
+    };
   }
+  function getVisualStats() { return { toggles: { ...TOG }, lighting: getLightingStats(), ground: { ...VS.ground } }; }
+  function setVisualToggle(k, v) { if (k in TOG) TOG[k] = v; return TOG[k]; }
 
   /* ---------- カメラ ---------- */
   function updateCamera(state, map, dt, view) {
@@ -1626,6 +2081,13 @@ export function createRenderer(canvas, assets) {
     const map = state.world.maps[p.map];
     if (!R.devW || R.devW !== canvas.width) resize();
     updateCamera(state, map, dt, view);
+    // 空は1フレームに1回。影の向き(2D接地影)・腰の灯の要否・GL/2D の暗さが同じ値を使う(arenaLift は地下の下限だけ)
+    const sky = skyAt(hourOf(state.time.clock), map.id, { arenaLift: R.arenaLift });
+    // 地上の手提げ灯は、腰に見える灯を描く時だけ光る(見えない光源を作らない)。位置は描いた灯と同じ
+    VS.sky = sky;
+    const hip = hipPos(state.player);
+    const hipOn = map.id !== 'underground' && TOG.handLight && sky.dayness < 0.9 && hip.visible;
+    R.hipOn = hipOn;
 
     const S = R.scale;
     const camX = Math.round(R.camX), camY = Math.round(R.camY);
@@ -1673,7 +2135,13 @@ export function createRenderer(canvas, assets) {
     collectScene(state, map, tx0, ty0, tx1, ty1);
     drawShadows(state, map);
     const focusRef = state.focus ? state.focus.ref : null;
+    capN = 0; SH.skipped = 0;
+    const capture = useGL && TOG.projectedShadows && TOG.skyModel;
     for (const it of sortList) {
+      if (capture) {
+        const foot = casterFoot(it);
+        capOn = foot != null; capFoot = foot;
+      }
       if (it.kind === 0) drawNode(state, it.ref, dt, focusRef, 1);
       else if (it.kind === 1) drawStructure(state, it.ref, focusRef);
       else if (it.kind === 2) drawGroundItem(state, it.ref, focusRef);
@@ -1684,6 +2152,7 @@ export function createRenderer(canvas, assets) {
       else if (it.kind === 7) drawDeathBag(it.ref);
       else if (it.kind === 8) drawSceneryItem(it.ref);
     }
+    capOn = false;
     // 大きなボスに隠れた時だけ、半透明の輪郭でプレイヤーの位置を保つ。
     const occluded = (state.enemies || []).some(e => e.boss && e.map === p.map && e.hp > 0 &&
       p.y < e.y && p.y > e.y - 108 && Math.abs(p.x-e.x) < 48);
@@ -1702,13 +2171,20 @@ export function createRenderer(canvas, assets) {
     updateParticles(dt);
     if (!useGL) drawOverlays(state, view);
 
-    const { amb, warm } = ambientLight(state.time.clock, map.id);
-    // プレイヤー自身の光
+    // 空: GL の明るさ・太陽・月・影、2D の暗幕、プレイヤーの光の要否、すべてこの1回の skyAt から(arenaLift は地下の下限だけ上げる)
+    VS.sky = sky; VS.hour = sky.hour; VS.clock = state.time.clock; VS.mapId = map.id;
+    const { amb, warm } = sky;
+    // プレイヤー自身の光。地上の夜は半径1.6タイル・power 0.35 の手提げ灯だけ(旧 nightRadius 2 の大きな光は廃止)。地下は従来の caveRadius
     const D = BALANCE.day;
-    let pr = 0;
-    if (map.id === 'underground') pr = D.caveRadius; else if (amb < 0.9) pr = D.nightRadius;
+    let pr = 0, ppw = 0.8;
+    if (map.id === 'underground') pr = D.caveRadius;
+    else if (hipOn) { pr = 1.6; ppw = 0.35; }
     for (const b of p.buffs) if (b.id === 'light' && b.until > state.time.clock && map.id === 'underground') pr += b.v;
-    if (pr > 0) addLight(p.x, p.y - 14, pr, [255, 224, 170], 0, 0.8, 99);
+    if (pr > 0) {
+      // 手提げ灯は見える腰の灯と同じ位置から出す。それ以外(地下の常時光など)は主人公の中心
+      const lx = hipOn ? hip.x : p.x, ly = hipOn ? hip.y : p.y - 14;
+      addLight(lx, ly, pr, [255, 224, 170], 0, ppw, 99, false, hipOn ? { x: lx, y: ly + hip.h, h: hip.h } : null);
+    }
     // 闘技場の安定した照明: 近づくと滑らかに明るくなり、離れると洞窟の暗さへ戻る。ボスが生きている間は離れても保つ
     const arena = arenaState(state, map);
     const fighting = !!state.boss && map.id === 'underground';
@@ -1723,13 +2199,18 @@ export function createRenderer(canvas, assets) {
     let glDone = false;
     if (useGL) {
       ctx = visCtx;
-      glDone = presentGL(state, map, amb, warm, camX, camY, [tx0, ty0, tx1, ty1]);
+      glDone = presentGL(state, map, amb, warm, camX, camY, [tx0, ty0, tx1, ty1], sky);
       ctx.setTransform(S, 0, 0, S, -camX * S, -camY * S);
       drawOverlays(state, view);
     }
     LS.active = glDone ? 'gl' : '2d';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (glDone) drawVignette(); else lightPass(map, amb, warm);
+    if (glDone) drawVignette();
+    else {
+      // GL を使わなかった/失敗した時も同じ sky の値を統計に出す(2D でも 19時の sunStrength=0・23時の暗さを検証できる)
+      if (!useGL) { SH.kind = 'none'; SH.strength = 0; SH.casters = 0; SH.drawn = 0; recordSkyStats(sky, TOG.skyModel ? { sunStrength: sky.sun.up ? sky.sun.vis : 0, moonStrength: sky.moon.up ? sky.moon.vis : 0, sunDir: sky.sun.dir } : {}); }
+      lightPass(map, amb, warm, sky);
+    }
     ctx.setTransform(S, 0, 0, S, -camX * S, -camY * S);
     drawFlies(map);
     drawParticles(true);
@@ -1739,7 +2220,7 @@ export function createRenderer(canvas, assets) {
 
   return {
     assets, render, resize, setScale, screenToWorld, worldToScreen, handleEvents, snapCamera,
-    setLightingMode, setLightingDebug, getLightingStats,
+    setLightingMode, setLightingDebug, getLightingStats, getVisualStats, setVisualToggle,
     getScale: () => R.scale,
     getView: () => ({ x: R.drawCamX, y: R.drawCamY, w: R.viewW, h: R.viewH, scale: R.scale }),
     get frames() { return R.rendered; },

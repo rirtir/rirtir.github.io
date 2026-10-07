@@ -1,0 +1,211 @@
+{
+  "baseline_sha": "6001aa1a11a4e54105492b7e1a1b9d1e33bfc63fb834570d5234d84e0e8298bc",
+  "pivot": [
+    24,
+    58
+  ],
+  "order": [
+    "hair_back",
+    "hips",
+    "leg_L",
+    "leg_R",
+    "boot_L",
+    "boot_R",
+    "arm_L",
+    "arm_R",
+    "torso_mantle",
+    "scarf_tail",
+    "head_face",
+    "hair_front",
+    "scarf",
+    "pouch",
+    "hand_L",
+    "hand_R",
+    "lantern",
+    "outline"
+  ],
+  "parts": {
+    "hair_back": {
+      "at": [
+        13,
+        11
+      ],
+      "size": [
+        22,
+        18
+      ]
+    },
+    "head_face": {
+      "at": [
+        16,
+        19
+      ],
+      "size": [
+        16,
+        13
+      ]
+    },
+    "hair_front": {
+      "at": [
+        15,
+        16
+      ],
+      "size": [
+        18,
+        8
+      ]
+    },
+    "torso_mantle": {
+      "at": [
+        16,
+        32
+      ],
+      "size": [
+        16,
+        14
+      ]
+    },
+    "scarf": {
+      "at": [
+        17,
+        31
+      ],
+      "size": [
+        14,
+        5
+      ]
+    },
+    "scarf_tail": {
+      "at": [
+        25,
+        36
+      ],
+      "size": [
+        4,
+        5
+      ]
+    },
+    "arm_L": {
+      "at": [
+        13,
+        35
+      ],
+      "size": [
+        5,
+        9
+      ]
+    },
+    "arm_R": {
+      "at": [
+        30,
+        35
+      ],
+      "size": [
+        5,
+        9
+      ]
+    },
+    "hand_L": {
+      "at": [
+        14,
+        44
+      ],
+      "size": [
+        4,
+        4
+      ]
+    },
+    "hand_R": {
+      "at": [
+        30,
+        44
+      ],
+      "size": [
+        4,
+        4
+      ]
+    },
+    "hips": {
+      "at": [
+        18,
+        45
+      ],
+      "size": [
+        12,
+        2
+      ]
+    },
+    "leg_L": {
+      "at": [
+        19,
+        46
+      ],
+      "size": [
+        4,
+        6
+      ]
+    },
+    "leg_R": {
+      "at": [
+        25,
+        46
+      ],
+      "size": [
+        4,
+        6
+      ]
+    },
+    "boot_L": {
+      "at": [
+        16,
+        50
+      ],
+      "size": [
+        7,
+        8
+      ]
+    },
+    "boot_R": {
+      "at": [
+        25,
+        50
+      ],
+      "size": [
+        7,
+        8
+      ]
+    },
+    "pouch": {
+      "at": [
+        18,
+        43
+      ],
+      "size": [
+        4,
+        5
+      ]
+    },
+    "lantern": {
+      "at": [
+        31,
+        48
+      ],
+      "size": [
+        3,
+        6
+      ]
+    }
+  },
+  "outline": "generated 4-neighbour ring around the merged opaque mask of the 17 parts; geometry is taken from the adjacent front-most owning part",
+  "materials": {
+    "metal": [
+      "G",
+      "Q"
+    ],
+    "glass": [
+      "R"
+    ]
+  },
+  "albedo": "Intrinsic material colours, material-dark creases. No directional highlight.",
+  "geometry": "Author analytic ellipsoids/cylinders for each linked articulated part; never use pixel luminance."
+}

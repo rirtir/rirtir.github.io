@@ -37,6 +37,33 @@ with sync_playwright() as pw:
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
     start(page)
+    # 通常manifestの読み込み経路でも作画側の歩幅を保持する。候補の上書きは使わない。
+    gait = page.evaluate('''async () => {
+      const a = await fetch('assets/explorer/atlas.json').then(r=>r.json());
+      const names = ['down','up','left','right'].flatMap(d=>[0,1,2,3].map(n=>`hero_${d}_walk${n}`));
+      return names.every(name=>{
+        const loaded=__mosslight.assets.get('actors',name).meta;
+        const saved=a.meta.frameMeta[name];
+        return loaded?.walk_distance_per_frame > 0
+          && loaded.walk_distance_per_frame === saved.walk_distance_per_frame
+          && loaded.gait_phase === saved.gait_phase;
+      });
+    }''')
+    check('通常の読込で16歩行コマの歩幅・位相を保持する', gait)
+    variants = page.evaluate('''() => {
+      const a=__mosslight.assets, name='hero_down_walk1', base=a.get('actors',name);
+      for(const mods of [{outline:'#ffe9a8'},{flip:true},{half:true}]) {
+        const v=a.get('actors',name,mods);
+        for(const side of Object.keys(base.meta.feet)) {
+          const src=base.meta.feet[side], dst=v.meta.feet[side];
+          if(!Array.isArray(dst.sole)||!Array.isArray(dst.ground)||dst.planted!==src.planted)return false;
+          if(mods.half&&dst.height!==src.height/2)return false;
+        }
+        if(v.meta.lantern!==false&&v.meta.lantern?.visible!==false)return false;
+      }
+      return true;
+    }''')
+    check('人物の輪郭・反転・縮小で足の情報を保持して例外を出さない', variants)
     before = state(page, '__mosslight.state.player.x')
     page.keyboard.down('ArrowRight')
     page.wait_for_timeout(450)

@@ -23,7 +23,8 @@ export function bindCombat(services) { svc = services; }
 const rand = (state) => state.rng();
 const unit = (dx, dy) => { const d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; };
 function dirName(dx, dy) { return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); }
-const isNight = (state) => { const t = state.time.clock % DAY; return t >= BALANCE.day.night[0] || t < 20; };
+// 敵の出る夜の窓: BALANCE.day.night = 21:00〜04:00(tod 375〜550)。見た目の暗さ(sky.js)・睡眠・BGM と同じ表。長さ175tickで従来(170)とほぼ同じ
+const isNight = (state) => { const t = ((state.time.clock % DAY) + DAY) % DAY; return t >= BALANCE.day.night[0] && t < BALANCE.day.night[1]; };
 
 export function initCombat(state) {
   state.enemies ||= []; state.dormant ||= []; state.projectiles ||= []; state.telegraphs ||= [];
@@ -83,7 +84,7 @@ export function damagePlayer(state, dmg, sx, sy) {
   const [ux, uy] = unit(p.x - sx, p.y - sy);
   const map = state.world.maps[p.map];
   const n = 3;
-  for (let i = 0; i < n; i++) svc.moveEntity(state, map, p, ux * P.knock * TILE / n, uy * P.knock * TILE / n, P.radius);
+  for (let i = 0; i < n; i++) svc.moveEntity(state, map, p, ux * P.knock * TILE / n, uy * P.knock * TILE / n, P.footRadius);
   state.rev++;
   svc.emit(state, { type: 'hurt', x: p.x, y: p.y, dmg: real });
   if (p.hp <= 0) playerDeath(state);
@@ -120,7 +121,7 @@ export function playerDeath(state) {
   const m = state.world.maps[p.map];
   const spot = findWalkableNear(m, Math.floor(p.x / TILE), Math.floor(p.y / TILE), 10);
   if (spot) { p.x = spot.x * TILE + 16; p.y = spot.y * TILE + 16; }
-  svc.moveEntity(state, m, p, 0, 0, P.radius);
+  svc.moveEntity(state, m, p, 0, 0, P.footRadius);
   p.hp = BALANCE.death.hp;
   p.satiety = Math.max(p.satiety, BALANCE.death.minSatiety);
   p.invuln = BALANCE.death.invuln;

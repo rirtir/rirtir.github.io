@@ -1,0 +1,4093 @@
+{
+ "size": [
+  48,
+  72
+ ],
+ "pivot": [
+  24,
+  58
+ ],
+ "frame_count": 48,
+ "walk": {
+  "distance_per_frame": 6,
+  "cycle_px": 24,
+  "frames": 4,
+  "frame_index": "floor(walkT / distance_per_frame) % 4",
+  "planted_frames": 3,
+  "forward_offsets_planted": [
+   6,
+   0,
+   -6
+  ],
+  "lifted_height_px": 2,
+  "lifted_offset": 0,
+  "note": "接地足は連続3コマで o が -STEP ずつ動き、地面に対して静止する。持ち上げ足は o=0・高さ2"
+ },
+ "palette_colors": {
+  "albedo": 17,
+  "normal": 61,
+  "height": 42
+ },
+ "albedo_sha": "92976bb4c59a1428e8142b112572ab11df419699a28fd56ee8860d54d8abd724",
+ "idle0_matches_static_c": {
+  "albedo": true,
+  "normal": true,
+  "height": true
+ },
+ "left_mirror_bad_px": 0,
+ "check_failures": [],
+ "status": "コードで生成。実行結果と contact.png を Codex が確認するまで採用不可。靴の高さは全コマで靴底=0(静止案Cも HS.surface で靴底基準に修正済み)",
+ "canvas_extension": {
+  "old": [
+   48,
+   64
+  ],
+  "new": [
+   48,
+   72
+  ],
+  "note": "下に透明8行を追加。pivot・幅は不変。--resize 昇格が必要"
+ },
+ "frames": {
+  "hero_down_idle0": {
+   "name": "hero_down_idle0",
+   "duration": 600,
+   "tag": "idle",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    23
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      58
+     ],
+     "local": [
+      -4.0,
+      0
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.42,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      58
+     ],
+     "local": [
+      4.0,
+      0
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.42,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     9,
+     36,
+     57
+    ],
+    "opaque_px": 960,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    11,
+    9,
+    36,
+    57
+   ],
+   "opaque_px": 960,
+   "view": "down",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_down_idle1": {
+   "name": "hero_down_idle1",
+   "duration": 600,
+   "tag": "idle",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    24
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      58
+     ],
+     "local": [
+      -4.0,
+      0
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      58
+     ],
+     "local": [
+      4.0,
+      0
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     10,
+     36,
+     57
+    ],
+    "opaque_px": 948,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    11,
+    10,
+    36,
+    57
+   ],
+   "opaque_px": 948,
+   "view": "down",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_down_walk0": {
+   "name": "hero_down_walk0",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    23
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      64
+     ],
+     "local": [
+      -4.0,
+      6
+     ],
+     "ground": [
+      20.0,
+      64
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 6
+    },
+    "R": {
+     "sole": [
+      28.0,
+      52
+     ],
+     "local": [
+      4.0,
+      -6
+     ],
+     "ground": [
+      28.0,
+      52
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -6
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     9,
+     36,
+     63
+    ],
+    "opaque_px": 970,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 8
+   },
+   "bbox": [
+    11,
+    9,
+    36,
+    63
+   ],
+   "opaque_px": 970,
+   "view": "down",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 0
+  },
+  "hero_down_walk1": {
+   "name": "hero_down_walk1",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    22
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      58
+     ],
+     "local": [
+      -4.0,
+      0
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      56
+     ],
+     "local": [
+      4.0,
+      -2
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": false,
+     "height": 2.52,
+     "height_level": 2,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     8,
+     36,
+     57
+    ],
+    "opaque_px": 956,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 3
+   },
+   "bbox": [
+    11,
+    8,
+    36,
+    57
+   ],
+   "opaque_px": 956,
+   "view": "down",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 1
+  },
+  "hero_down_walk2": {
+   "name": "hero_down_walk2",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    23
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      52
+     ],
+     "local": [
+      -4.0,
+      -6
+     ],
+     "ground": [
+      20.0,
+      52
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -6
+    },
+    "R": {
+     "sole": [
+      28.0,
+      64
+     ],
+     "local": [
+      4.0,
+      6
+     ],
+     "ground": [
+      28.0,
+      64
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 6
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     9,
+     36,
+     63
+    ],
+    "opaque_px": 961,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 1
+   },
+   "bbox": [
+    11,
+    9,
+    36,
+    63
+   ],
+   "opaque_px": 961,
+   "view": "down",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 2
+  },
+  "hero_down_walk3": {
+   "name": "hero_down_walk3",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    22
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      56
+     ],
+     "local": [
+      -4.0,
+      -2
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": false,
+     "height": 2.52,
+     "height_level": 2,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      58
+     ],
+     "local": [
+      4.0,
+      0
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     8,
+     36,
+     57
+    ],
+    "opaque_px": 956,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    11,
+    8,
+    36,
+    57
+   ],
+   "opaque_px": 956,
+   "view": "down",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 3
+  },
+  "hero_down_attack0": {
+   "name": "hero_down_attack0",
+   "duration": 80,
+   "tag": "attack",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    25,
+    23
+   ],
+   "grip": [
+    36,
+    41
+   ],
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      58
+     ],
+     "local": [
+      -4.0,
+      0
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      58
+     ],
+     "local": [
+      4.0,
+      0
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     9,
+     37,
+     57
+    ],
+    "opaque_px": 964,
+    "components8": 1,
+    "grip_on_hand": true,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    12,
+    9,
+    37,
+    57
+   ],
+   "opaque_px": 964,
+   "view": "down",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_down_attack1": {
+   "name": "hero_down_attack1",
+   "duration": 80,
+   "tag": "attack",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    24
+   ],
+   "grip": [
+    35,
+    50
+   ],
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      57
+     ],
+     "local": [
+      -4.0,
+      -1
+     ],
+     "ground": [
+      20.0,
+      57
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -1
+    },
+    "R": {
+     "sole": [
+      28.0,
+      60
+     ],
+     "local": [
+      4.0,
+      2
+     ],
+     "ground": [
+      28.0,
+      60
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 2
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     10,
+     36,
+     59
+    ],
+    "opaque_px": 966,
+    "components8": 1,
+    "grip_on_hand": true,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 1
+   },
+   "bbox": [
+    11,
+    10,
+    36,
+    59
+   ],
+   "opaque_px": 966,
+   "view": "down",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_down_attack2": {
+   "name": "hero_down_attack2",
+   "duration": 120,
+   "tag": "attack",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    23,
+    24
+   ],
+   "grip": [
+    29,
+    50
+   ],
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      58
+     ],
+     "local": [
+      -4.0,
+      0
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      59
+     ],
+     "local": [
+      4.0,
+      1
+     ],
+     "ground": [
+      28.0,
+      59
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 1
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     10,
+     10,
+     36,
+     58
+    ],
+    "opaque_px": 949,
+    "components8": 1,
+    "grip_on_hand": true,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    10,
+    10,
+    36,
+    58
+   ],
+   "opaque_px": 949,
+   "view": "down",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_down_roll0": {
+   "name": "hero_down_roll0",
+   "duration": 100,
+   "tag": "roll",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    30
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      58
+     ],
+     "local": [
+      -4.0,
+      0
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      58
+     ],
+     "local": [
+      4.0,
+      0
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     10,
+     16,
+     36,
+     57
+    ],
+    "opaque_px": 877,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    10,
+    16,
+    36,
+    57
+   ],
+   "opaque_px": 877,
+   "view": "down",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_down_roll1": {
+   "name": "hero_down_roll1",
+   "duration": 100,
+   "tag": "roll",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    50
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      14.0,
+      53
+     ],
+     "local": [
+      -10.0,
+      -5
+     ],
+     "ground": [
+      14.0,
+      58
+     ],
+     "planted": false,
+     "height": 5.07,
+     "height_level": 6,
+     "forward_offset": null
+    },
+    "R": {
+     "sole": [
+      34.0,
+      53
+     ],
+     "local": [
+      10.0,
+      -5
+     ],
+     "ground": [
+      34.0,
+      58
+     ],
+     "planted": false,
+     "height": 5.07,
+     "height_level": 6,
+     "forward_offset": null
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     35,
+     37,
+     57
+    ],
+    "opaque_px": 458,
+    "components8": 1,
+    "hand_pouch_min_dist": null,
+    "boot_pouch_min_dist": null
+   },
+   "bbox": [
+    11,
+    35,
+    37,
+    57
+   ],
+   "opaque_px": 458,
+   "view": "down",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_down_roll2": {
+   "name": "hero_down_roll2",
+   "duration": 100,
+   "tag": "roll",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    27
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      60
+     ],
+     "local": [
+      -4.0,
+      2
+     ],
+     "ground": [
+      20.0,
+      60
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 2
+    },
+    "R": {
+     "sole": [
+      28.0,
+      56
+     ],
+     "local": [
+      4.0,
+      -2
+     ],
+     "ground": [
+      28.0,
+      56
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -2
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     10,
+     13,
+     36,
+     59
+    ],
+    "opaque_px": 925,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 4
+   },
+   "bbox": [
+    10,
+    13,
+    36,
+    59
+   ],
+   "opaque_px": 925,
+   "view": "down",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_up_idle0": {
+   "name": "hero_up_idle0",
+   "duration": 600,
+   "tag": "idle",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    23
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      58
+     ],
+     "local": [
+      -4.0,
+      0
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      58
+     ],
+     "local": [
+      4.0,
+      0
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     9,
+     36,
+     57
+    ],
+    "opaque_px": 956,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    11,
+    9,
+    36,
+    57
+   ],
+   "opaque_px": 956,
+   "view": "up",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_up_idle1": {
+   "name": "hero_up_idle1",
+   "duration": 600,
+   "tag": "idle",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    24
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      58
+     ],
+     "local": [
+      -4.0,
+      0
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      58
+     ],
+     "local": [
+      4.0,
+      0
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     10,
+     36,
+     57
+    ],
+    "opaque_px": 944,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    11,
+    10,
+    36,
+    57
+   ],
+   "opaque_px": 944,
+   "view": "up",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_up_walk0": {
+   "name": "hero_up_walk0",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    23
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      52
+     ],
+     "local": [
+      -4.0,
+      -6
+     ],
+     "ground": [
+      20.0,
+      52
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 6
+    },
+    "R": {
+     "sole": [
+      28.0,
+      64
+     ],
+     "local": [
+      4.0,
+      6
+     ],
+     "ground": [
+      28.0,
+      64
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -6
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     9,
+     36,
+     63
+    ],
+    "opaque_px": 966,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 8
+   },
+   "bbox": [
+    11,
+    9,
+    36,
+    63
+   ],
+   "opaque_px": 966,
+   "view": "up",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 0
+  },
+  "hero_up_walk1": {
+   "name": "hero_up_walk1",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    22
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      58
+     ],
+     "local": [
+      -4.0,
+      0
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      56
+     ],
+     "local": [
+      4.0,
+      -2
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": false,
+     "height": 2.52,
+     "height_level": 2,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     8,
+     36,
+     57
+    ],
+    "opaque_px": 952,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    11,
+    8,
+    36,
+    57
+   ],
+   "opaque_px": 952,
+   "view": "up",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 1
+  },
+  "hero_up_walk2": {
+   "name": "hero_up_walk2",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    23
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      64
+     ],
+     "local": [
+      -4.0,
+      6
+     ],
+     "ground": [
+      20.0,
+      64
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -6
+    },
+    "R": {
+     "sole": [
+      28.0,
+      52
+     ],
+     "local": [
+      4.0,
+      -6
+     ],
+     "ground": [
+      28.0,
+      52
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 6
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     9,
+     36,
+     63
+    ],
+    "opaque_px": 957,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 1
+   },
+   "bbox": [
+    11,
+    9,
+    36,
+    63
+   ],
+   "opaque_px": 957,
+   "view": "up",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 2
+  },
+  "hero_up_walk3": {
+   "name": "hero_up_walk3",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    22
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      56
+     ],
+     "local": [
+      -4.0,
+      -2
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": false,
+     "height": 2.52,
+     "height_level": 2,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      58
+     ],
+     "local": [
+      4.0,
+      0
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     8,
+     36,
+     57
+    ],
+    "opaque_px": 952,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 3
+   },
+   "bbox": [
+    11,
+    8,
+    36,
+    57
+   ],
+   "opaque_px": 952,
+   "view": "up",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 3
+  },
+  "hero_up_attack0": {
+   "name": "hero_up_attack0",
+   "duration": 80,
+   "tag": "attack",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    25,
+    23
+   ],
+   "grip": [
+    36,
+    41
+   ],
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      58
+     ],
+     "local": [
+      -4.0,
+      0
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      58
+     ],
+     "local": [
+      4.0,
+      0
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     9,
+     37,
+     57
+    ],
+    "opaque_px": 969,
+    "components8": 1,
+    "grip_on_hand": true,
+    "hand_pouch_min_dist": 4,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    12,
+    9,
+    37,
+    57
+   ],
+   "opaque_px": 969,
+   "view": "up",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_up_attack1": {
+   "name": "hero_up_attack1",
+   "duration": 80,
+   "tag": "attack",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    23
+   ],
+   "grip": [
+    34,
+    39
+   ],
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      59
+     ],
+     "local": [
+      -4.0,
+      1
+     ],
+     "ground": [
+      20.0,
+      59
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -1
+    },
+    "R": {
+     "sole": [
+      28.0,
+      56
+     ],
+     "local": [
+      4.0,
+      -2
+     ],
+     "ground": [
+      28.0,
+      56
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 2
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     9,
+     36,
+     58
+    ],
+    "opaque_px": 964,
+    "components8": 1,
+    "grip_on_hand": true,
+    "hand_pouch_min_dist": 6,
+    "boot_pouch_min_dist": 1
+   },
+   "bbox": [
+    11,
+    9,
+    36,
+    58
+   ],
+   "opaque_px": 964,
+   "view": "up",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_up_attack2": {
+   "name": "hero_up_attack2",
+   "duration": 120,
+   "tag": "attack",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    23,
+    23
+   ],
+   "grip": [
+    29,
+    48
+   ],
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      58
+     ],
+     "local": [
+      -4.0,
+      0
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      58
+     ],
+     "local": [
+      4.0,
+      0
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     10,
+     9,
+     35,
+     57
+    ],
+    "opaque_px": 956,
+    "components8": 1,
+    "grip_on_hand": true,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    10,
+    9,
+    35,
+    57
+   ],
+   "opaque_px": 956,
+   "view": "up",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_up_roll0": {
+   "name": "hero_up_roll0",
+   "duration": 100,
+   "tag": "roll",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    30
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      58
+     ],
+     "local": [
+      -4.0,
+      0
+     ],
+     "ground": [
+      20.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "R": {
+     "sole": [
+      28.0,
+      58
+     ],
+     "local": [
+      4.0,
+      0
+     ],
+     "ground": [
+      28.0,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     16,
+     37,
+     57
+    ],
+    "opaque_px": 877,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    11,
+    16,
+    37,
+    57
+   ],
+   "opaque_px": 877,
+   "view": "up",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_up_roll1": {
+   "name": "hero_up_roll1",
+   "duration": 100,
+   "tag": "roll",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    41
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      14.0,
+      53
+     ],
+     "local": [
+      -10.0,
+      -5
+     ],
+     "ground": [
+      14.0,
+      58
+     ],
+     "planted": false,
+     "height": 5.07,
+     "height_level": 6,
+     "forward_offset": null
+    },
+    "R": {
+     "sole": [
+      34.0,
+      53
+     ],
+     "local": [
+      10.0,
+      -5
+     ],
+     "ground": [
+      34.0,
+      58
+     ],
+     "planted": false,
+     "height": 5.07,
+     "height_level": 6,
+     "forward_offset": null
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     10,
+     35,
+     36,
+     57
+    ],
+    "opaque_px": 464,
+    "components8": 1,
+    "hand_pouch_min_dist": null,
+    "boot_pouch_min_dist": null
+   },
+   "bbox": [
+    10,
+    35,
+    36,
+    57
+   ],
+   "opaque_px": 464,
+   "view": "up",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_up_roll2": {
+   "name": "hero_up_roll2",
+   "duration": 100,
+   "tag": "roll",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    27
+   ],
+   "grip": null,
+   "feet": {
+    "L": {
+     "sole": [
+      20.0,
+      56
+     ],
+     "local": [
+      -4.0,
+      -2
+     ],
+     "ground": [
+      20.0,
+      56
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 2
+    },
+    "R": {
+     "sole": [
+      28.0,
+      60
+     ],
+     "local": [
+      4.0,
+      2
+     ],
+     "ground": [
+      28.0,
+      60
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -2
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     13,
+     37,
+     59
+    ],
+    "opaque_px": 925,
+    "components8": 1,
+    "hand_pouch_min_dist": 1,
+    "boot_pouch_min_dist": 4
+   },
+   "bbox": [
+    11,
+    13,
+    37,
+    59
+   ],
+   "opaque_px": 925,
+   "view": "up",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_right_idle0": {
+   "name": "hero_right_idle0",
+   "duration": 600,
+   "tag": "idle",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    24
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      26.5,
+      58
+     ],
+     "local": [
+      2.5,
+      0
+     ],
+     "ground": [
+      26.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 2
+    },
+    "F": {
+     "sole": [
+      24.5,
+      58
+     ],
+     "local": [
+      0.5,
+      0
+     ],
+     "ground": [
+      24.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     9,
+     37,
+     57
+    ],
+    "opaque_px": 808,
+    "components8": 1,
+    "hand_pouch_min_dist": 4,
+    "boot_pouch_min_dist": 3
+   },
+   "bbox": [
+    12,
+    9,
+    37,
+    57
+   ],
+   "opaque_px": 808,
+   "view": "right",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_right_idle1": {
+   "name": "hero_right_idle1",
+   "duration": 600,
+   "tag": "idle",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    25
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      26.5,
+      58
+     ],
+     "local": [
+      2.5,
+      0
+     ],
+     "ground": [
+      26.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 2
+    },
+    "F": {
+     "sole": [
+      24.5,
+      58
+     ],
+     "local": [
+      0.5,
+      0
+     ],
+     "ground": [
+      24.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     10,
+     37,
+     57
+    ],
+    "opaque_px": 800,
+    "components8": 1,
+    "hand_pouch_min_dist": 4,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    12,
+    10,
+    37,
+    57
+   ],
+   "opaque_px": 800,
+   "view": "right",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_right_walk0": {
+   "name": "hero_right_walk0",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    24
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      30.5,
+      58
+     ],
+     "local": [
+      6.5,
+      0
+     ],
+     "ground": [
+      30.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 6
+    },
+    "F": {
+     "sole": [
+      18.5,
+      58
+     ],
+     "local": [
+      -5.5,
+      0
+     ],
+     "ground": [
+      18.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -6
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     9,
+     37,
+     57
+    ],
+    "opaque_px": 843,
+    "components8": 1,
+    "hand_pouch_min_dist": 2,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    12,
+    9,
+    37,
+    57
+   ],
+   "opaque_px": 843,
+   "view": "right",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 0
+  },
+  "hero_right_walk1": {
+   "name": "hero_right_walk1",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    23
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      24.5,
+      58
+     ],
+     "local": [
+      0.5,
+      0
+     ],
+     "ground": [
+      24.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "F": {
+     "sole": [
+      24.5,
+      56
+     ],
+     "local": [
+      0.5,
+      -2
+     ],
+     "ground": [
+      24.5,
+      58
+     ],
+     "planted": false,
+     "height": 2.52,
+     "height_level": 2,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     8,
+     37,
+     57
+    ],
+    "opaque_px": 812,
+    "components8": 1,
+    "hand_pouch_min_dist": 4,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    12,
+    8,
+    37,
+    57
+   ],
+   "opaque_px": 812,
+   "view": "right",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 1
+  },
+  "hero_right_walk2": {
+   "name": "hero_right_walk2",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    24
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      18.5,
+      58
+     ],
+     "local": [
+      -5.5,
+      0
+     ],
+     "ground": [
+      18.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -6
+    },
+    "F": {
+     "sole": [
+      30.5,
+      58
+     ],
+     "local": [
+      6.5,
+      0
+     ],
+     "ground": [
+      30.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 6
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     9,
+     37,
+     57
+    ],
+    "opaque_px": 845,
+    "components8": 1,
+    "hand_pouch_min_dist": 6,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    12,
+    9,
+    37,
+    57
+   ],
+   "opaque_px": 845,
+   "view": "right",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 2
+  },
+  "hero_right_walk3": {
+   "name": "hero_right_walk3",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    23
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      24.5,
+      56
+     ],
+     "local": [
+      0.5,
+      -2
+     ],
+     "ground": [
+      24.5,
+      58
+     ],
+     "planted": false,
+     "height": 2.52,
+     "height_level": 2,
+     "forward_offset": 0
+    },
+    "F": {
+     "sole": [
+      24.5,
+      58
+     ],
+     "local": [
+      0.5,
+      0
+     ],
+     "ground": [
+      24.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     8,
+     37,
+     57
+    ],
+    "opaque_px": 812,
+    "components8": 1,
+    "hand_pouch_min_dist": 4,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    12,
+    8,
+    37,
+    57
+   ],
+   "opaque_px": 812,
+   "view": "right",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 3
+  },
+  "hero_right_attack0": {
+   "name": "hero_right_attack0",
+   "duration": 80,
+   "tag": "attack",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    23,
+    24
+   ],
+   "grip": [
+    19,
+    41
+   ],
+   "feet": {
+    "N": {
+     "sole": [
+      24.5,
+      58
+     ],
+     "local": [
+      0.5,
+      0
+     ],
+     "ground": [
+      24.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "F": {
+     "sole": [
+      21.5,
+      58
+     ],
+     "local": [
+      -2.5,
+      0
+     ],
+     "ground": [
+      21.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -3
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     9,
+     36,
+     57
+    ],
+    "opaque_px": 816,
+    "components8": 1,
+    "grip_on_hand": true,
+    "hand_pouch_min_dist": 4,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    11,
+    9,
+    36,
+    57
+   ],
+   "opaque_px": 816,
+   "view": "right",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_right_attack1": {
+   "name": "hero_right_attack1",
+   "duration": 80,
+   "tag": "attack",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    26,
+    25
+   ],
+   "grip": [
+    30,
+    46
+   ],
+   "feet": {
+    "N": {
+     "sole": [
+      27.5,
+      58
+     ],
+     "local": [
+      3.5,
+      0
+     ],
+     "ground": [
+      27.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 3
+    },
+    "F": {
+     "sole": [
+      21.5,
+      58
+     ],
+     "local": [
+      -2.5,
+      0
+     ],
+     "ground": [
+      21.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -3
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     13,
+     10,
+     39,
+     57
+    ],
+    "opaque_px": 837,
+    "components8": 1,
+    "grip_on_hand": true,
+    "hand_pouch_min_dist": 9,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    13,
+    10,
+    39,
+    57
+   ],
+   "opaque_px": 837,
+   "view": "right",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_right_attack2": {
+   "name": "hero_right_attack2",
+   "duration": 120,
+   "tag": "attack",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    25,
+    25
+   ],
+   "grip": [
+    28,
+    49
+   ],
+   "feet": {
+    "N": {
+     "sole": [
+      26.5,
+      58
+     ],
+     "local": [
+      2.5,
+      0
+     ],
+     "ground": [
+      26.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 2
+    },
+    "F": {
+     "sole": [
+      22.5,
+      58
+     ],
+     "local": [
+      -1.5,
+      0
+     ],
+     "ground": [
+      22.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -2
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     13,
+     10,
+     38,
+     57
+    ],
+    "opaque_px": 817,
+    "components8": 1,
+    "grip_on_hand": true,
+    "hand_pouch_min_dist": 7,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    13,
+    10,
+    38,
+    57
+   ],
+   "opaque_px": 817,
+   "view": "right",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_right_roll0": {
+   "name": "hero_right_roll0",
+   "duration": 100,
+   "tag": "roll",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    27,
+    31
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      27.5,
+      58
+     ],
+     "local": [
+      3.5,
+      0
+     ],
+     "ground": [
+      27.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 3
+    },
+    "F": {
+     "sole": [
+      25.5,
+      58
+     ],
+     "local": [
+      1.5,
+      0
+     ],
+     "ground": [
+      25.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 1
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     13,
+     16,
+     40,
+     57
+    ],
+    "opaque_px": 772,
+    "components8": 1,
+    "hand_pouch_min_dist": 7,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    13,
+    16,
+    40,
+    57
+   ],
+   "opaque_px": 772,
+   "view": "right",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_right_roll1": {
+   "name": "hero_right_roll1",
+   "duration": 100,
+   "tag": "roll",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    31,
+    45
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      11.5,
+      52
+     ],
+     "local": [
+      -12.5,
+      -6
+     ],
+     "ground": [
+      11.5,
+      58
+     ],
+     "planted": false,
+     "height": 5.92,
+     "height_level": 6,
+     "forward_offset": null
+    },
+    "F": {
+     "sole": [
+      15.5,
+      56
+     ],
+     "local": [
+      -8.5,
+      -2
+     ],
+     "ground": [
+      15.5,
+      58
+     ],
+     "planted": false,
+     "height": 2.52,
+     "height_level": 2,
+     "forward_offset": null
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     3,
+     35,
+     37,
+     57
+    ],
+    "opaque_px": 516,
+    "components8": 1,
+    "hand_pouch_min_dist": null,
+    "boot_pouch_min_dist": null
+   },
+   "bbox": [
+    3,
+    35,
+    37,
+    57
+   ],
+   "opaque_px": 516,
+   "view": "right",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_right_roll2": {
+   "name": "hero_right_roll2",
+   "duration": 100,
+   "tag": "roll",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    26,
+    28
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      27.5,
+      58
+     ],
+     "local": [
+      3.5,
+      0
+     ],
+     "ground": [
+      27.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 3
+    },
+    "F": {
+     "sole": [
+      25.5,
+      56
+     ],
+     "local": [
+      1.5,
+      -2
+     ],
+     "ground": [
+      25.5,
+      58
+     ],
+     "planted": false,
+     "height": 2.52,
+     "height_level": 2,
+     "forward_offset": 1
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     13,
+     13,
+     39,
+     57
+    ],
+    "opaque_px": 790,
+    "components8": 1,
+    "hand_pouch_min_dist": 8,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    13,
+    13,
+    39,
+    57
+   ],
+   "opaque_px": 790,
+   "view": "right",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点"
+  },
+  "hero_left_idle0": {
+   "name": "hero_left_idle0",
+   "duration": 600,
+   "tag": "idle",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    23,
+    24
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      21.5,
+      58
+     ],
+     "local": [
+      -2.5,
+      0
+     ],
+     "ground": [
+      21.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 2
+    },
+    "F": {
+     "sole": [
+      23.5,
+      58
+     ],
+     "local": [
+      -0.5,
+      0
+     ],
+     "ground": [
+      23.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     9,
+     37,
+     57
+    ],
+    "opaque_px": 808,
+    "components8": 1,
+    "hand_pouch_min_dist": 4,
+    "boot_pouch_min_dist": 3
+   },
+   "bbox": [
+    10,
+    9,
+    35,
+    57
+   ],
+   "opaque_px": 808,
+   "view": "left",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "local_x_flip": true,
+   "mirror_of": "hero_right_idle0",
+   "flip_pivot": [
+    24,
+    58
+   ]
+  },
+  "hero_left_idle1": {
+   "name": "hero_left_idle1",
+   "duration": 600,
+   "tag": "idle",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    23,
+    25
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      21.5,
+      58
+     ],
+     "local": [
+      -2.5,
+      0
+     ],
+     "ground": [
+      21.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 2
+    },
+    "F": {
+     "sole": [
+      23.5,
+      58
+     ],
+     "local": [
+      -0.5,
+      0
+     ],
+     "ground": [
+      23.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     10,
+     37,
+     57
+    ],
+    "opaque_px": 800,
+    "components8": 1,
+    "hand_pouch_min_dist": 4,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    10,
+    10,
+    35,
+    57
+   ],
+   "opaque_px": 800,
+   "view": "left",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "local_x_flip": true,
+   "mirror_of": "hero_right_idle1",
+   "flip_pivot": [
+    24,
+    58
+   ]
+  },
+  "hero_left_walk0": {
+   "name": "hero_left_walk0",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    23,
+    24
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      17.5,
+      58
+     ],
+     "local": [
+      -6.5,
+      0
+     ],
+     "ground": [
+      17.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 6
+    },
+    "F": {
+     "sole": [
+      29.5,
+      58
+     ],
+     "local": [
+      5.5,
+      0
+     ],
+     "ground": [
+      29.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -6
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     9,
+     37,
+     57
+    ],
+    "opaque_px": 843,
+    "components8": 1,
+    "hand_pouch_min_dist": 2,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    10,
+    9,
+    35,
+    57
+   ],
+   "opaque_px": 843,
+   "view": "left",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 0,
+   "local_x_flip": true,
+   "mirror_of": "hero_right_walk0",
+   "flip_pivot": [
+    24,
+    58
+   ]
+  },
+  "hero_left_walk1": {
+   "name": "hero_left_walk1",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    23,
+    23
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      23.5,
+      58
+     ],
+     "local": [
+      -0.5,
+      0
+     ],
+     "ground": [
+      23.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "F": {
+     "sole": [
+      23.5,
+      56
+     ],
+     "local": [
+      -0.5,
+      -2
+     ],
+     "ground": [
+      23.5,
+      58
+     ],
+     "planted": false,
+     "height": 2.52,
+     "height_level": 2,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     8,
+     37,
+     57
+    ],
+    "opaque_px": 812,
+    "components8": 1,
+    "hand_pouch_min_dist": 4,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    10,
+    8,
+    35,
+    57
+   ],
+   "opaque_px": 812,
+   "view": "left",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 1,
+   "local_x_flip": true,
+   "mirror_of": "hero_right_walk1",
+   "flip_pivot": [
+    24,
+    58
+   ]
+  },
+  "hero_left_walk2": {
+   "name": "hero_left_walk2",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    23,
+    24
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      29.5,
+      58
+     ],
+     "local": [
+      5.5,
+      0
+     ],
+     "ground": [
+      29.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -6
+    },
+    "F": {
+     "sole": [
+      17.5,
+      58
+     ],
+     "local": [
+      -6.5,
+      0
+     ],
+     "ground": [
+      17.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 6
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     9,
+     37,
+     57
+    ],
+    "opaque_px": 845,
+    "components8": 1,
+    "hand_pouch_min_dist": 6,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    10,
+    9,
+    35,
+    57
+   ],
+   "opaque_px": 845,
+   "view": "left",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 2,
+   "local_x_flip": true,
+   "mirror_of": "hero_right_walk2",
+   "flip_pivot": [
+    24,
+    58
+   ]
+  },
+  "hero_left_walk3": {
+   "name": "hero_left_walk3",
+   "duration": 110,
+   "tag": "walk",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    23,
+    23
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      23.5,
+      56
+     ],
+     "local": [
+      -0.5,
+      -2
+     ],
+     "ground": [
+      23.5,
+      58
+     ],
+     "planted": false,
+     "height": 2.52,
+     "height_level": 2,
+     "forward_offset": 0
+    },
+    "F": {
+     "sole": [
+      23.5,
+      58
+     ],
+     "local": [
+      -0.5,
+      0
+     ],
+     "ground": [
+      23.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     12,
+     8,
+     37,
+     57
+    ],
+    "opaque_px": 812,
+    "components8": 1,
+    "hand_pouch_min_dist": 4,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    10,
+    8,
+    35,
+    57
+   ],
+   "opaque_px": 812,
+   "view": "left",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "walk_distance_per_frame": 6,
+   "gait_phase": 3,
+   "local_x_flip": true,
+   "mirror_of": "hero_right_walk3",
+   "flip_pivot": [
+    24,
+    58
+   ]
+  },
+  "hero_left_attack0": {
+   "name": "hero_left_attack0",
+   "duration": 80,
+   "tag": "attack",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    24,
+    24
+   ],
+   "grip": [
+    28,
+    41
+   ],
+   "feet": {
+    "N": {
+     "sole": [
+      23.5,
+      58
+     ],
+     "local": [
+      -0.5,
+      0
+     ],
+     "ground": [
+      23.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 0
+    },
+    "F": {
+     "sole": [
+      26.5,
+      58
+     ],
+     "local": [
+      2.5,
+      0
+     ],
+     "ground": [
+      26.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -3
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     11,
+     9,
+     36,
+     57
+    ],
+    "opaque_px": 816,
+    "components8": 1,
+    "grip_on_hand": true,
+    "hand_pouch_min_dist": 4,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    11,
+    9,
+    36,
+    57
+   ],
+   "opaque_px": 816,
+   "view": "left",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "local_x_flip": true,
+   "mirror_of": "hero_right_attack0",
+   "flip_pivot": [
+    24,
+    58
+   ]
+  },
+  "hero_left_attack1": {
+   "name": "hero_left_attack1",
+   "duration": 80,
+   "tag": "attack",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    21,
+    25
+   ],
+   "grip": [
+    17,
+    46
+   ],
+   "feet": {
+    "N": {
+     "sole": [
+      20.5,
+      58
+     ],
+     "local": [
+      -3.5,
+      0
+     ],
+     "ground": [
+      20.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 3
+    },
+    "F": {
+     "sole": [
+      26.5,
+      58
+     ],
+     "local": [
+      2.5,
+      0
+     ],
+     "ground": [
+      26.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -3
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     13,
+     10,
+     39,
+     57
+    ],
+    "opaque_px": 837,
+    "components8": 1,
+    "grip_on_hand": true,
+    "hand_pouch_min_dist": 9,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    8,
+    10,
+    34,
+    57
+   ],
+   "opaque_px": 837,
+   "view": "left",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "local_x_flip": true,
+   "mirror_of": "hero_right_attack1",
+   "flip_pivot": [
+    24,
+    58
+   ]
+  },
+  "hero_left_attack2": {
+   "name": "hero_left_attack2",
+   "duration": 120,
+   "tag": "attack",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    22,
+    25
+   ],
+   "grip": [
+    19,
+    49
+   ],
+   "feet": {
+    "N": {
+     "sole": [
+      21.5,
+      58
+     ],
+     "local": [
+      -2.5,
+      0
+     ],
+     "ground": [
+      21.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 2
+    },
+    "F": {
+     "sole": [
+      25.5,
+      58
+     ],
+     "local": [
+      1.5,
+      0
+     ],
+     "ground": [
+      25.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": -2
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     13,
+     10,
+     38,
+     57
+    ],
+    "opaque_px": 817,
+    "components8": 1,
+    "grip_on_hand": true,
+    "hand_pouch_min_dist": 7,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    9,
+    10,
+    34,
+    57
+   ],
+   "opaque_px": 817,
+   "view": "left",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "local_x_flip": true,
+   "mirror_of": "hero_right_attack2",
+   "flip_pivot": [
+    24,
+    58
+   ]
+  },
+  "hero_left_roll0": {
+   "name": "hero_left_roll0",
+   "duration": 100,
+   "tag": "roll",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    20,
+    31
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      20.5,
+      58
+     ],
+     "local": [
+      -3.5,
+      0
+     ],
+     "ground": [
+      20.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 3
+    },
+    "F": {
+     "sole": [
+      22.5,
+      58
+     ],
+     "local": [
+      -1.5,
+      0
+     ],
+     "ground": [
+      22.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 1
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     13,
+     16,
+     40,
+     57
+    ],
+    "opaque_px": 772,
+    "components8": 1,
+    "hand_pouch_min_dist": 7,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    7,
+    16,
+    34,
+    57
+   ],
+   "opaque_px": 772,
+   "view": "left",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "local_x_flip": true,
+   "mirror_of": "hero_right_roll0",
+   "flip_pivot": [
+    24,
+    58
+   ]
+  },
+  "hero_left_roll1": {
+   "name": "hero_left_roll1",
+   "duration": 100,
+   "tag": "roll",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    16,
+    45
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      36.5,
+      52
+     ],
+     "local": [
+      12.5,
+      -6
+     ],
+     "ground": [
+      36.5,
+      58
+     ],
+     "planted": false,
+     "height": 5.92,
+     "height_level": 6,
+     "forward_offset": null
+    },
+    "F": {
+     "sole": [
+      32.5,
+      56
+     ],
+     "local": [
+      8.5,
+      -2
+     ],
+     "ground": [
+      32.5,
+      58
+     ],
+     "planted": false,
+     "height": 2.52,
+     "height_level": 2,
+     "forward_offset": null
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     3,
+     35,
+     37,
+     57
+    ],
+    "opaque_px": 516,
+    "components8": 1,
+    "hand_pouch_min_dist": null,
+    "boot_pouch_min_dist": null
+   },
+   "bbox": [
+    10,
+    35,
+    44,
+    57
+   ],
+   "opaque_px": 516,
+   "view": "left",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "local_x_flip": true,
+   "mirror_of": "hero_right_roll1",
+   "flip_pivot": [
+    24,
+    58
+   ]
+  },
+  "hero_left_roll2": {
+   "name": "hero_left_roll2",
+   "duration": 100,
+   "tag": "roll",
+   "pivot": [
+    24,
+    58
+   ],
+   "foot": [
+    24,
+    58
+   ],
+   "head": [
+    21,
+    28
+   ],
+   "grip": null,
+   "feet": {
+    "N": {
+     "sole": [
+      20.5,
+      58
+     ],
+     "local": [
+      -3.5,
+      0
+     ],
+     "ground": [
+      20.5,
+      58
+     ],
+     "planted": true,
+     "height": 0.82,
+     "height_level": 0,
+     "forward_offset": 3
+    },
+    "F": {
+     "sole": [
+      22.5,
+      56
+     ],
+     "local": [
+      -1.5,
+      -2
+     ],
+     "ground": [
+      22.5,
+      58
+     ],
+     "planted": false,
+     "height": 2.52,
+     "height_level": 2,
+     "forward_offset": 1
+    }
+   },
+   "lantern": {
+    "visible": false
+   },
+   "checks": {
+    "bbox": [
+     13,
+     13,
+     39,
+     57
+    ],
+    "opaque_px": 790,
+    "components8": 1,
+    "hand_pouch_min_dist": 8,
+    "boot_pouch_min_dist": 2
+   },
+   "bbox": [
+    8,
+    13,
+    34,
+    57
+   ],
+   "opaque_px": 790,
+   "view": "left",
+   "foot_ids": "L/R=画面左右(down/up)、N/F=近い側/遠い側(right/left)",
+   "sole_note": "sole=[靴底中央x, 靴底下端y](端座標)、ground=接地点",
+   "local_x_flip": true,
+   "mirror_of": "hero_right_roll2",
+   "flip_pivot": [
+    24,
+    58
+   ]
+  }
+ }
+}

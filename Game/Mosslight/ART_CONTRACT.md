@@ -16,7 +16,7 @@ atlasは `{frames:{name:{frame:{x,y,w,h},duration,...}},meta:{pivot,image,size,.
 
 地形の基準タイルは32×32、pivotは0,0。通常地形は `grass` / `darkgrass` / `dirt` / `sand` / `cave` / `moss` / `ruin` / `water` / `deepwater` / `farmland` / `path` の連番を使う。
 
-地形境界はdual-grid用の `edge_{地形名}_{1..15}`。NW=1、NE=2、SW=4、SE=8で32pxセルの四隅を判定する。初期のshore/grassedgerストリップを回転する方式は現行描画の契約ではない。
+地形の通常描画は `ground.js` が世界座標のマスクで土の上に草などを重ね、微細な装飾を散らす。地形境界のfallbackはdual-grid用の `edge_{地形名}_{1..15}`。NW=1、NE=2、SW=4、SE=8で32pxセルの四隅を判定する。耕地は別の `farmland_join0..15`（38×38/pivot3,3）を使い、N=1/E=2/S=4/W=8の接続辺では外周を描かない。
 
 洞窟壁は接続マスク付きの `cavewall_top0..15` と鉱種ごとの壁面を使う。露頭用のrock/copper/ironを拡大して壁へ並べる方式は採用しない。木造壁の `timber_wall0..15` はN=1、E=2、S=4、W=8の接続マスク。床、崖、屋根、家の正面は専用モジュールを使う。屋根など高さのあるタイルは32×32とは限らず、各atlasの寸法を使う。
 
@@ -24,7 +24,7 @@ atlasは `{frames:{name:{frame:{x,y,w,h},duration,...}},meta:{pivot,image,size,.
 
 樹木・大きな小物は96×96/pivot48,80が多いが、植物、小物、作物、正面壁、道具などは別寸法・pivotを持つ。落ち枝・小石・草は専用の小型原画を使う。家具・植物を一律に縮小して代用しない。
 
-主人公の有効名は `hero_{down|up|left|right}_{idle0..1|walk0..3|attack0..2|roll0..2}`、基準キャンバス32×48/pivot16,40。後のシートによる差し替えを優先する。歩行・攻撃・回避は異なるポーズのフレームを使い、手持ち道具は専用の `tool_{種別}_{素材}_{0..2}` を重ねる。
+主人公の有効名は `hero_{down|up|left|right}_{idle0..1|walk0..3|attack0..2|roll0..2}`。現行の仮 `explorer` は48×72/pivot24,58（初期heroは32×48/pivot16,40）。寸法とpivotはシート側が指定するため、新しい基準絵をこの数値へ合わせる必要はない。現在の造形は未承認で、作者の正面絵を基準に後日差し替える。歩行・攻撃・回避は異なるポーズのフレームを使い、手持ち道具は専用の `tool_{種別}_{素材}_{0..2}` を重ねる。手・足・歩幅は `art/explorer-poses.json` と同じ値をatlas.meta.frameMetaへ保存する。歩行は実際の移動距離に従い、各歩行コマの `walk_distance_per_frame` を使う。
 
 住人は `npc_{cook|farmer|builder}_{down|up|left|right}_walk0..3`。料理番・農夫・建築士はそれぞれ専用原画を持つ。初期の住人を色だけ変える方式は現行の契約ではない。
 
@@ -38,14 +38,14 @@ UIのpanel/button/selected/disabled/hotbarは24×24の9分割用ピクセル枠�
 
 ## 法線・height
 
-manifestのシートに `normal` と `height` が指定されている場合、色の画像と同寸のアトラスを持つ。UIとロゴを除く37組が対象で、欠けるシートは平坦な既定値で描く。alpha・キャンバス寸法・pivot・フレーム名と順序は色のシートと一致させる（`rebuild.py` が確認する）。
+manifestのシートに `normal` と `height` が指定されている場合、色の画像と同寸のアトラスを持つ。UIとロゴを除く38組が対象で、欠けるシートは平坦な既定値で描く。alpha・キャンバス寸法・pivot・フレーム名と順序は色のシートと一致させる（`rebuild.py` が確認する）。
 
 - normal: R=nx、G=ny（画面上が+）、B=発光。離散62色。nzはshaderで復元する。
 - height: R=高さ（px）、G=粗さ、B=描き込み光の補正gain（128=1.0、0.8〜1.25）。64色。
-- 色は固定64色の `art/palette.json`。normalとheightは別の離散パレットで、色パレットとは共有しない。
-- 法線はRGB輝度から作らない。alpha境界からの距離と材質・部位の近似で高さを作り、その勾配から求める。gainは旧絵に焼き込まれた左上光の陰影をnormalから弱めるだけで、完全なアルベドの復元ではない。
-- 正本は `art/normalmaps/{シート名}-{normal|height}.json`。生成は `art/build_normal_maps.py`、出力は `rebuild.py`。
-- 自然物・キャラクターのランダム左右反転は使わない。手持ち工具のleftだけ、normalのXを反転する。
+- 色はシートごとの固定64色以内。初期資産は `art/palette.json`。normalとheightは別の離散パレットで、色パレットとは共有しない。
+- 新しい法線・高さは部位の楕円体・円柱・面などの形状から求め、RGB輝度からは作らない。旧絵のgainは焼き込み光を弱めるだけで、完全なアルベドの復元ではない。
+- 正本は `art/normalmaps/{シート名}-{normal|height}.json`。現在の出力入口は `rebuild.py`。初期 `art/build_normal_maps.py` で全資産を上書きしない。
+- 自然物の左右反転を許可し、同時にnormalのXを反転する。heightは位置のみ反転する。足元の当たり判定も同じ反転を使う。
 
 ## ソースと再構築
 

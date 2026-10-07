@@ -23,6 +23,23 @@ def within(base: Path, relative: str) -> Path:
     return path
 
 
+def frame_metadata(project, poses):
+    """作画時のポーズを足・道具・灯りの位置の唯一のソースにする。"""
+    names = [f['name'] for f in project['frames']]
+    if (poses.get('size') != project['size'] or poses.get('pivot') != project['pivot']
+            or list(poses.get('frames', {})) != names):
+        raise ValueError('ポーズの大きさ・pivot・フレーム順が原画と不一致')
+    result = {}
+    for name in names:
+        pose = poses['frames'][name]
+        result[name] = {k: pose[k] for k in ('foot', 'grip', 'head', 'feet', 'lantern', 'walk_distance_per_frame', 'gait_phase') if k in pose}
+        step = result[name].get('walk_distance_per_frame')
+        if step is not None and (not isinstance(step, (int, float)) or isinstance(step, bool) or not 0 < step <= 64):
+            raise ValueError(f'{name}: 歩行距離が不正')
+        result[name].setdefault('foot', project['pivot'])
+    return result
+
+
 def preflight(load):
     manifest_path = ASSETS / 'manifest.json'
     original = manifest_path.read_bytes()
@@ -82,7 +99,16 @@ def preflight(load):
                 raise ValueError(f'{name}/{kind}: 出力先が重複')
             destinations.add(map_target)
             map_jobs.append((kind, map_project, map_target))
-        jobs.append((name, project, columns, image_path, atlas_path, atlas, map_jobs))
+        metadata = None
+        pose_source = ART / f'{name}-poses.json'
+        if pose_source.is_file():
+            inputs[pose_source] = pose_source.read_bytes()
+            metadata = frame_metadata(project, json.loads(inputs[pose_source].decode('utf-8')))
+            if atlas['meta'].get('frameMeta') != metadata:
+                raise ValueError(f'{name}: atlas と保存済みポーズの接地点が不一致')
+        elif atlas['meta'].get('frameMeta'):
+            raise ValueError(f'{name}: 接地点の保存済みポーズがありません')
+        jobs.append((name, project, columns, image_path, atlas_path, atlas, map_jobs, metadata))
     return manifest_path, original, jobs, inputs
 
 
@@ -109,10 +135,13 @@ def main():
     outputs = []
     with tempfile.TemporaryDirectory(prefix='.rebuild-', dir=ASSETS) as temporary:
         staging = Path(temporary)
-        for name, project, columns, image_path, atlas_path, old_atlas, map_jobs in jobs:
+        for name, project, columns, image_path, atlas_path, old_atlas, map_jobs, metadata in jobs:
             destination = staging / name
             report = export(project, destination, columns=columns)
             atlas = json.loads((destination / 'atlas.json').read_text(encoding='utf-8'))
+            if metadata is not None:
+                atlas['meta']['frameMeta'] = metadata
+                (destination / 'atlas.json').write_text(json.dumps(atlas, ensure_ascii=False, indent=2), encoding='utf-8')
             if atlas != old_atlas:
                 raise ValueError(f'{name}: ソースからの出力が既存 atlas メタデータと不一致。置換中止。')
             outputs.extend(((destination / 'atlas.png', image_path),

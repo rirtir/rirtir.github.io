@@ -2,6 +2,7 @@
 // 依存: data.js のみ。状態(state)には依存せず、canPlace だけ state の構造を読み取る。
 import {
   BALANCE, TILE, TERRAIN as T, TERRAIN_INFO, NODES, STRUCTURES, CAMP_LAYOUT, CAVE_LAYOUT, RUIN_TEMPLATE, WALL, layerOf,
+  FOOTPRINTS, footEllipse, footCenter, nodeMirrored,
 } from './data.js';
 
 /* ------------------------------------------------------------------ 乱数・ノイズ */
@@ -79,6 +80,20 @@ export function solidRadius(node) {
   if (node.solidR != null) return node.solidR;
   const d = NODES[node.type];
   return d && d.solid ? d.solid.r : 0;
+}
+
+// ノードの足元の楕円 {x,y,rx,ry,mirrored}。描画・当たり・クリックが共有する(根元の中心 = アンカー + 反転済みの変位)。
+// depleted=true は切り株などの伐採後(depletedSolid)。当たりが無ければ rx=0
+export function nodeFootprint(node, depleted = false) {
+  const d = NODES[node.type] || {};
+  const solid = depleted ? d.depletedSolid : (node.solidR != null ? { r: node.solidR } : d.solid);
+  const mirrored = nodeMirrored(node);
+  const sprite = depleted && d.depletedSprite ? d.depletedSprite : node.sprite;
+  const c = footCenter(sprite, mirrored, node.px, node.py);
+  const f = FOOTPRINTS[String(sprite || '').replace(/_v\d+$/, '')];
+  if (!solid || solid.r <= 0) return { x: c.x, y: c.y, rx: 0, ry: 0, mirrored };
+  const e = footEllipse(solid);
+  return { x: c.x, y: c.y, rx: f && f.rx != null ? f.rx : e.rx, ry: f && f.ry != null ? f.ry : e.ry, mirrored };
 }
 
 export function getMap(world, id) { return world.maps[id] || null; }
@@ -1238,7 +1253,7 @@ export function canPlace(state, type, map, x, y) {
     // 自分が立っている場所には置けない
     const px = Math.max(x * TILE, Math.min(p.x, x * TILE + TILE));
     const py = Math.max(y * TILE, Math.min(p.y, y * TILE + TILE));
-    if (Math.hypot(p.x - px, p.y - py) < BALANCE.player.radius + 1) return { ok: false, reason: '自分が立っている' };
+    if (Math.hypot(p.x - px, p.y - py) < BALANCE.player.footRadius + 1) return { ok: false, reason: '自分が立っている' };
   }
   return { ok: true, reason: '' };
 }

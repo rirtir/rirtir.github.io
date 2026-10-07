@@ -1162,8 +1162,8 @@
       "image": "explorer/atlas.png",
       "atlas": "explorer/atlas.json",
       "pivot": [
-        16,
-        40
+        24,
+        58
       ],
       "names": [
         "hero_down_idle0",
@@ -1223,8 +1223,8 @@
       "image": "villagers/atlas.png",
       "atlas": "villagers/atlas.json",
       "pivot": [
-        16,
-        40
+        24,
+        58
       ],
       "names": [
         "npc_cook_down_walk0",
@@ -1492,6 +1492,35 @@
       "overrides": "props",
       "normal": "nature_props/normal.png",
       "height": "nature_props/height.png"
+    },
+    "farmland": {
+      "image": "farmland/atlas.png",
+      "atlas": "farmland/atlas.json",
+      "pivot": [
+        3,
+        3
+      ],
+      "names": [
+        "farmland_join0",
+        "farmland_join1",
+        "farmland_join2",
+        "farmland_join3",
+        "farmland_join4",
+        "farmland_join5",
+        "farmland_join6",
+        "farmland_join7",
+        "farmland_join8",
+        "farmland_join9",
+        "farmland_join10",
+        "farmland_join11",
+        "farmland_join12",
+        "farmland_join13",
+        "farmland_join14",
+        "farmland_join15"
+      ],
+      "overrides": "tiles",
+      "normal": "farmland/normal.png",
+      "height": "farmland/height.png"
     }
   }
 }

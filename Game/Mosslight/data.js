@@ -13,15 +13,22 @@ export const BALANCE = {
   startClock: 80,
   player: {
     hpMax: 100, speed: 4.5, roadBonus: 1.15, shallowMul: 0.6, hungerMul: 0.8,
-    radius: 10, reach: 48, buildRange: 6 * TILE, stationRange: 3 * TILE,
+    // radius: 被弾判定用(戦闘の難度のため据え置き)。footRadius: 足元の円(移動・押し出し・設置の「立っている」判定)。靴の幅に合わせる
+    radius: 10, footRadius: 7, reach: 48, buildRange: 6 * TILE, stationRange: 3 * TILE,
     invuln: 0.6, knock: 0.4, actionMove: 0.35,
     rollTime: 0.25, rollDist: 2.5, rollInvuln: 0.2, rollCooldown: 0.8,
     swing: 0.45, hitStart: 0.10, hitEnd: 0.20, hitCone: 100, hitRange: 1.5, hitStop: 0.05,
   },
   hunger: { max: 100, interval: 7.2, sleepCost: 15, starveInterval: 4, starveFloor: 20, eatTime: 0.6 },
+  // 時計: 表示時刻 = 6 + tod/25 (1時間=25秒, tod 0 = 06:00)。見た目の太陽(sky.js)と同じ表で、夜の窓・睡眠・BGM を合わせる
+  //   dawn 06:00-08:00 / day -17:00 / dusk 17:00-21:00 / night 21:00-04:00(敵の出る窓。175tick) / predawn 04:00-06:00(暗いが敵は出ない)
   day: {
-    length: 600, dawn: [0, 60], day: [60, 390], dusk: [390, 450], night: [450, 600],
-    nightLight: 0.35, caveLight: 0.12, nightRadius: 2, caveRadius: 3, sleepFrom: 390, sleepTo: 30,
+    length: 600, dawn: [0, 50], day: [50, 275], dusk: [275, 375], night: [375, 550], predawn: [550, 600],
+    // nightLight/caveLight: 旧 ambientLight 互換の値(0.35..1)。GL の明るさは sky.js の板の表で決まる
+    nightLight: 0.35, caveLight: 0.12, caveRadius: 3, sleepFrom: 325, sleepTo: 30,
+    // 夜の主人公の光: 灯の代わりにならない小さな手提げ灯(暗い時間だけ。半径タイル・power)。nightRadius は旧名の互換
+    nightRadius: 1.4, handLight: { r: 1.4, power: 0.12 },
+    musicNight: [325, 475], // 19:00-05:00 の BGM を夜にする窓(main.js が参照できる)
   },
   gather: { bareTime: 0.3, toolTime: 0.4, hitAt: 0.5, retryDelay: 0.9 },
   items: { bagSlots: 30, stack: 99, hotbarSlots: 8, groundLife: 600, magnet: 2 * TILE, pickup: 12, containerSlots: 24 },
@@ -256,13 +263,14 @@ export const NODES = {
   },
   tree: {
     name: '木', verb: '伐る', tool: 'axe', hardness: 0, hp: 30, regen: 300, saplingGrow: 60, depletedSprite: 'stump',
-    sprites: ['oak', 'oak2', 'pine', 'amber_tree'], solid: { r: 10 }, depletedSolid: { r: 8 }, canopy: true,
+    // 当たりは幹の根元の楕円(樹冠は歩行を妨げない)。solid.r=横半径, ry=縦半径(省略時 r×FOOT_ASPECT)。hit は幹と樹冠下部のクリック範囲
+    sprites: ['oak', 'oak2', 'pine', 'amber_tree'], solid: { r: 6, ry: 4 }, depletedSolid: { r: 7, ry: 4 }, canopy: true,
     drops: [{ item: 'wood', n: 4 }, { item: 'resin', n: 1 }, { item: 'sapling', n: 1, chance: 0.3 }],
-    hit: { w: 40, h: 74 }, chip: ['#977142', '#527149', '#71905a'],
+    hit: { w: 30, h: 56 }, chip: ['#977142', '#527149', '#71905a'],
   },
   rock: {
     name: '岩', verb: '砕く', sprite: 'rock', tool: 'pick', hardness: 1, hp: 40, regen: 360,
-    solid: { r: 14 }, drops: [{ item: 'stone', n: 5 }], hit: { w: 38, h: 32 }, chip: ['#91a0a2', '#6c7b81', '#505c67'],
+    solid: { r: 12, ry: 7 }, drops: [{ item: 'stone', n: 5 }], hit: { w: 48, h: 22 }, chip: ['#91a0a2', '#6c7b81', '#505c67'],
   },
   clay: {
     name: '粘土地', verb: '掘る', sprite: 'clay_small', tool: 'pick', hardness: 1,
@@ -270,7 +278,7 @@ export const NODES = {
   },
   copper_deposit: {
     name: '銅鉱床', verb: '砕く', sprite: 'copper', tool: 'pick', hardness: 1, hp: 50, regen: 600,
-    solid: { r: 14 }, drops: [{ item: 'copper_ore', n: 3 }], hit: { w: 38, h: 32 }, chip: ['#d69968', '#b27450', '#505c67'],
+    solid: { r: 12, ry: 7 }, drops: [{ item: 'copper_ore', n: 3 }], hit: { w: 48, h: 22 }, chip: ['#d69968', '#b27450', '#505c67'],
   },
   // 地下用（次工程で配置・採掘を実装。ここでは数値だけ確定）
   dirt_wall: { name: '土壁', tool: 'pick', hardness: 1, hp: 20, drops: [{ item: 'stone', n: 1 }], regen: null, wall: true },
@@ -279,7 +287,7 @@ export const NODES = {
   iron_wall: { name: '翠鉄鉱壁', tool: 'pick', hardness: 2, hp: 50, drops: [{ item: 'iron_ore', n: 2 }], regen: null, wall: true },
   iron_outcrop: {
     name: '翠鉄の露頭', verb: '砕く', sprite: 'iron', tool: 'pick', hardness: 2, hp: 60, regen: 900,
-    solid: { r: 14 }, drops: [{ item: 'iron_ore', n: 3 }], hit: { w: 38, h: 32 }, chip: ['#c0cbbe', '#91a0a2'],
+    solid: { r: 12, ry: 7 }, drops: [{ item: 'iron_ore', n: 3 }], hit: { w: 46, h: 22 }, chip: ['#c0cbbe', '#91a0a2'],
   },
   // 装飾（採集不可）と目印
   decor: { name: '', decor: true },
@@ -332,8 +340,44 @@ export const NODES = {
   },
 };
 
+/* ------------------------------------------------------------------ 足元の共通アンカー(描画・当たり・クリックで共有) */
+// ノード/構造物のスプライトは pivot(=ノードの px,py)を地面の足元として描く。当たりとクリックの基準も同じ足元に置く。
+// FOOTPRINTS[スプライト名]: pivot から「根元の中心」への変位 dx,dy(反転しない向きで +x=右)。反転(mirror)した物は dx の符号を反転する。
+//   art/measure_footprints.py の計測値で差し替える表。計測前は 0(根元の中心 = pivot)。rx/ry で当たりの楕円を上書きできる。
+export const FOOT_ASPECT = 0.55; // 足元の楕円の縦横比(奥行きの圧縮)。solid.ry が無い時は r × この値
+export const FOOTPRINTS = {
+  oak: { dx: 0, dy: 0 }, oak2: { dx: 0, dy: 0 }, pine: { dx: 0, dy: 0 }, amber_tree: { dx: 0, dy: 0 },
+  stump: { dx: 0, dy: 0 },
+  rock: { dx: 2, dy: -9, rx: 24, ry: 7 },
+  copper: { dx: -4, dy: -9, rx: 24, ry: 7 },
+  iron: { dx: -4, dy: -9, rx: 23, ry: 7 },
+};
+// 決定的に左右反転してよい自然物(型)と、decor のうち反転してよいスプライト。建築物・目印・文字のある物は反転しない
+export const MIRROR_NODE_TYPES = new Set([
+  'tree', 'rock', 'copper_deposit', 'iron_outcrop', 'berry', 'grass', 'mushroom', 'glowmoss', 'branch', 'pebble', 'clay', 'moss_potato', 'border_pine',
+]);
+export const MIRROR_SPRITES = new Set(['oak', 'oak2', 'pine', 'amber_tree', 'rock', 'bush', 'berry', 'fern', 'flower', 'flowers', 'log', 'stump', 'barrel', 'mushroom']);
+export function baseSprite(name) { return String(name || '').replace(/_v\d+$/, ''); }
+export function nodeMirrored(node) {
+  if (!node || !node.flip || (node.meta && node.meta.noMirror)) return false;
+  const d = NODES[node.type];
+  return MIRROR_NODE_TYPES.has(node.type) || !!(d && d.decor && MIRROR_SPRITES.has(baseSprite(node.sprite)));
+}
+// 足元の楕円の半径。solid は {r, ry?} か数。戻り値は {rx, ry}
+export function footEllipse(solid) {
+  const rx = typeof solid === 'number' ? solid : solid.r;
+  const ry = typeof solid === 'object' && solid.ry != null ? solid.ry : Math.max(3, Math.round(rx * FOOT_ASPECT));
+  return { rx, ry };
+}
+// アンカー(px,py)・反転・スプライト名から根元の中心
+export function footCenter(sprite, mirrored, px, py) {
+  const f = FOOTPRINTS[baseSprite(sprite)];
+  const dx = f ? f.dx : 0, dy = f ? f.dy : 0;
+  return { x: px + (mirrored ? -dx : dx), y: py + dy };
+}
+
 /* ------------------------------------------------------------------ 構造物 */
-// solid: 'box'=タイル全体 / {r}=円。light: タイル単位の半径。item: 取り壊し時に戻るアイテム
+// solid: 'box'=タイル全体 / {r}=円(足元の楕円。中心は描く足元 ty*TILE+28)。light: タイル単位の半径。item: 取り壊し時に戻るアイテム
 export const STRUCTURES = {
   campfire: {
     name: '焚き火', sprite: 'campfire', station: 'campfire', provides: ['campfire'], solid: { r: 12 }, fixed: true,

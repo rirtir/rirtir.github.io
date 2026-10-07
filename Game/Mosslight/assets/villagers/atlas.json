@@ -4,1009 +4,1009 @@
       "frame": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_down_walk1": {
       "frame": {
-        "x": 32,
+        "x": 48,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_down_walk2": {
       "frame": {
-        "x": 64,
+        "x": 96,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_down_walk3": {
       "frame": {
-        "x": 96,
+        "x": 144,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_up_walk0": {
       "frame": {
-        "x": 128,
+        "x": 192,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_up_walk1": {
       "frame": {
-        "x": 160,
+        "x": 240,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_up_walk2": {
       "frame": {
-        "x": 192,
+        "x": 288,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_up_walk3": {
       "frame": {
-        "x": 224,
+        "x": 336,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_left_walk0": {
       "frame": {
         "x": 0,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "y": 64,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_left_walk1": {
       "frame": {
-        "x": 32,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 48,
+        "y": 64,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_left_walk2": {
       "frame": {
-        "x": 64,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 96,
+        "y": 64,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_left_walk3": {
       "frame": {
-        "x": 96,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 144,
+        "y": 64,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_right_walk0": {
       "frame": {
-        "x": 128,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 192,
+        "y": 64,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_right_walk1": {
       "frame": {
-        "x": 160,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 240,
+        "y": 64,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_right_walk2": {
       "frame": {
-        "x": 192,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 288,
+        "y": 64,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_cook_right_walk3": {
       "frame": {
-        "x": 224,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 336,
+        "y": 64,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_down_walk0": {
       "frame": {
         "x": 0,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "y": 128,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_down_walk1": {
       "frame": {
-        "x": 32,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 48,
+        "y": 128,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_down_walk2": {
       "frame": {
-        "x": 64,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 96,
+        "y": 128,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_down_walk3": {
       "frame": {
-        "x": 96,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 144,
+        "y": 128,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_up_walk0": {
       "frame": {
-        "x": 128,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 192,
+        "y": 128,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_up_walk1": {
       "frame": {
-        "x": 160,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 240,
+        "y": 128,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_up_walk2": {
       "frame": {
-        "x": 192,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 288,
+        "y": 128,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_up_walk3": {
       "frame": {
-        "x": 224,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 336,
+        "y": 128,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_left_walk0": {
       "frame": {
         "x": 0,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "y": 192,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_left_walk1": {
       "frame": {
-        "x": 32,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 48,
+        "y": 192,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_left_walk2": {
       "frame": {
-        "x": 64,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 96,
+        "y": 192,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_left_walk3": {
       "frame": {
-        "x": 96,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 144,
+        "y": 192,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_right_walk0": {
       "frame": {
-        "x": 128,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 192,
+        "y": 192,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_right_walk1": {
       "frame": {
-        "x": 160,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 240,
+        "y": 192,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_right_walk2": {
       "frame": {
-        "x": 192,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 288,
+        "y": 192,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_farmer_right_walk3": {
       "frame": {
-        "x": 224,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 336,
+        "y": 192,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_down_walk0": {
       "frame": {
         "x": 0,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "y": 256,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_down_walk1": {
       "frame": {
-        "x": 32,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 48,
+        "y": 256,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_down_walk2": {
       "frame": {
-        "x": 64,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 96,
+        "y": 256,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_down_walk3": {
       "frame": {
-        "x": 96,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 144,
+        "y": 256,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_up_walk0": {
       "frame": {
-        "x": 128,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 192,
+        "y": 256,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_up_walk1": {
       "frame": {
-        "x": 160,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 240,
+        "y": 256,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_up_walk2": {
       "frame": {
-        "x": 192,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 288,
+        "y": 256,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_up_walk3": {
       "frame": {
-        "x": 224,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 336,
+        "y": 256,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_left_walk0": {
       "frame": {
         "x": 0,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "y": 320,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_left_walk1": {
       "frame": {
-        "x": 32,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 48,
+        "y": 320,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_left_walk2": {
       "frame": {
-        "x": 64,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 96,
+        "y": 320,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_left_walk3": {
       "frame": {
-        "x": 96,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 144,
+        "y": 320,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_right_walk0": {
       "frame": {
-        "x": 128,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 192,
+        "y": 320,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_right_walk1": {
       "frame": {
-        "x": 160,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 240,
+        "y": 320,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_right_walk2": {
       "frame": {
-        "x": 192,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 288,
+        "y": 320,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     },
     "npc_builder_right_walk3": {
       "frame": {
-        "x": 224,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 336,
+        "y": 320,
+        "w": 48,
+        "h": 64
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 64
       },
-      "duration": 180
+      "duration": 110
     }
   },
   "meta": {
@@ -1015,21 +1015,1367 @@
     "image": "atlas.png",
     "format": "RGBA8888",
     "size": {
-      "w": 256,
-      "h": 288
+      "w": 384,
+      "h": 384
     },
     "scale": "1",
     "frameTags": [
       {
-        "name": "resident",
+        "name": "walk",
         "from": 0,
         "to": 47,
         "direction": "forward"
       }
     ],
     "pivot": [
-      16,
-      40
-    ]
+      24,
+      58
+    ],
+    "frameMeta": {
+      "npc_cook_down_walk0": {
+        "foot": [
+          24.0,
+          58
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": [
+            19.5,
+            58,
+            "P"
+          ],
+          "R": [
+            28.5,
+            54,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_down_walk1": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": [
+            20.5,
+            57,
+            "P"
+          ],
+          "R": [
+            28.5,
+            55,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_down_walk2": {
+        "foot": [
+          24.0,
+          58
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": [
+            19.5,
+            54,
+            "L"
+          ],
+          "R": [
+            28.5,
+            58,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_down_walk3": {
+        "foot": [
+          24.0,
+          57
+        ],
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": [
+            20.5,
+            55,
+            "L"
+          ],
+          "R": [
+            27.5,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_up_walk0": {
+        "foot": [
+          24.0,
+          58
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": [
+            19.5,
+            58,
+            "P"
+          ],
+          "R": [
+            28.5,
+            54,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_up_walk1": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": [
+            20.5,
+            57,
+            "P"
+          ],
+          "R": [
+            28.5,
+            55,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_up_walk2": {
+        "foot": [
+          24.0,
+          58
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": [
+            19.5,
+            54,
+            "L"
+          ],
+          "R": [
+            28.5,
+            58,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_up_walk3": {
+        "foot": [
+          24.0,
+          57
+        ],
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": [
+            20.5,
+            55,
+            "L"
+          ],
+          "R": [
+            27.5,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_left_walk0": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          22,
+          25
+        ],
+        "feet": {
+          "L": [
+            19.0,
+            57,
+            "P"
+          ],
+          "R": [
+            30.0,
+            56,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_left_walk1": {
+        "foot": [
+          23.0,
+          57
+        ],
+        "head": [
+          22,
+          24
+        ],
+        "feet": {
+          "L": [
+            21.0,
+            57,
+            "P"
+          ],
+          "R": [
+            25.0,
+            54,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_left_walk2": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          22,
+          25
+        ],
+        "feet": {
+          "L": [
+            29.0,
+            56,
+            "L"
+          ],
+          "R": [
+            20.0,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_left_walk3": {
+        "foot": [
+          23.5,
+          57
+        ],
+        "head": [
+          22,
+          24
+        ],
+        "feet": {
+          "L": [
+            25.0,
+            54,
+            "L"
+          ],
+          "R": [
+            22.0,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_right_walk0": {
+        "foot": [
+          23.5,
+          57
+        ],
+        "head": [
+          26,
+          25
+        ],
+        "feet": {
+          "R": [
+            29.0,
+            57,
+            "P"
+          ],
+          "L": [
+            18.0,
+            56,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_right_walk1": {
+        "foot": [
+          25.0,
+          57
+        ],
+        "head": [
+          26,
+          24
+        ],
+        "feet": {
+          "R": [
+            27.0,
+            57,
+            "P"
+          ],
+          "L": [
+            23.0,
+            54,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_right_walk2": {
+        "foot": [
+          23.5,
+          57
+        ],
+        "head": [
+          26,
+          25
+        ],
+        "feet": {
+          "R": [
+            19.0,
+            56,
+            "L"
+          ],
+          "L": [
+            28.0,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_cook_right_walk3": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          26,
+          24
+        ],
+        "feet": {
+          "R": [
+            23.0,
+            54,
+            "L"
+          ],
+          "L": [
+            26.0,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_down_walk0": {
+        "foot": [
+          24.0,
+          58
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": [
+            19.5,
+            58,
+            "P"
+          ],
+          "R": [
+            28.5,
+            54,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_down_walk1": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": [
+            20.5,
+            57,
+            "P"
+          ],
+          "R": [
+            28.5,
+            55,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_down_walk2": {
+        "foot": [
+          24.0,
+          58
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": [
+            19.5,
+            54,
+            "L"
+          ],
+          "R": [
+            28.5,
+            58,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_down_walk3": {
+        "foot": [
+          24.0,
+          57
+        ],
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": [
+            20.5,
+            55,
+            "L"
+          ],
+          "R": [
+            27.5,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_up_walk0": {
+        "foot": [
+          24.0,
+          58
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": [
+            19.5,
+            58,
+            "P"
+          ],
+          "R": [
+            28.5,
+            54,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_up_walk1": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": [
+            20.5,
+            57,
+            "P"
+          ],
+          "R": [
+            28.5,
+            55,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_up_walk2": {
+        "foot": [
+          24.0,
+          58
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": [
+            19.5,
+            54,
+            "L"
+          ],
+          "R": [
+            28.5,
+            58,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_up_walk3": {
+        "foot": [
+          24.0,
+          57
+        ],
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": [
+            20.5,
+            55,
+            "L"
+          ],
+          "R": [
+            27.5,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_left_walk0": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          22,
+          25
+        ],
+        "feet": {
+          "L": [
+            19.0,
+            57,
+            "P"
+          ],
+          "R": [
+            30.0,
+            56,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_left_walk1": {
+        "foot": [
+          23.0,
+          57
+        ],
+        "head": [
+          22,
+          24
+        ],
+        "feet": {
+          "L": [
+            21.0,
+            57,
+            "P"
+          ],
+          "R": [
+            25.0,
+            54,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_left_walk2": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          22,
+          25
+        ],
+        "feet": {
+          "L": [
+            29.0,
+            56,
+            "L"
+          ],
+          "R": [
+            20.0,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_left_walk3": {
+        "foot": [
+          23.5,
+          57
+        ],
+        "head": [
+          22,
+          24
+        ],
+        "feet": {
+          "L": [
+            25.0,
+            54,
+            "L"
+          ],
+          "R": [
+            22.0,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_right_walk0": {
+        "foot": [
+          23.5,
+          57
+        ],
+        "head": [
+          26,
+          25
+        ],
+        "feet": {
+          "R": [
+            29.0,
+            57,
+            "P"
+          ],
+          "L": [
+            18.0,
+            56,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_right_walk1": {
+        "foot": [
+          25.0,
+          57
+        ],
+        "head": [
+          26,
+          24
+        ],
+        "feet": {
+          "R": [
+            27.0,
+            57,
+            "P"
+          ],
+          "L": [
+            23.0,
+            54,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_right_walk2": {
+        "foot": [
+          23.5,
+          57
+        ],
+        "head": [
+          26,
+          25
+        ],
+        "feet": {
+          "R": [
+            19.0,
+            56,
+            "L"
+          ],
+          "L": [
+            28.0,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_farmer_right_walk3": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          26,
+          24
+        ],
+        "feet": {
+          "R": [
+            23.0,
+            54,
+            "L"
+          ],
+          "L": [
+            26.0,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_down_walk0": {
+        "foot": [
+          24.0,
+          58
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": [
+            19.5,
+            58,
+            "P"
+          ],
+          "R": [
+            28.5,
+            54,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_down_walk1": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": [
+            20.5,
+            57,
+            "P"
+          ],
+          "R": [
+            28.5,
+            55,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_down_walk2": {
+        "foot": [
+          24.0,
+          58
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": [
+            19.5,
+            54,
+            "L"
+          ],
+          "R": [
+            28.5,
+            58,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_down_walk3": {
+        "foot": [
+          24.0,
+          57
+        ],
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": [
+            20.5,
+            55,
+            "L"
+          ],
+          "R": [
+            27.5,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_up_walk0": {
+        "foot": [
+          24.0,
+          58
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": [
+            19.5,
+            58,
+            "P"
+          ],
+          "R": [
+            28.5,
+            54,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_up_walk1": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": [
+            20.5,
+            57,
+            "P"
+          ],
+          "R": [
+            28.5,
+            55,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_up_walk2": {
+        "foot": [
+          24.0,
+          58
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": [
+            19.5,
+            54,
+            "L"
+          ],
+          "R": [
+            28.5,
+            58,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_up_walk3": {
+        "foot": [
+          24.0,
+          57
+        ],
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": [
+            20.5,
+            55,
+            "L"
+          ],
+          "R": [
+            27.5,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_left_walk0": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          22,
+          25
+        ],
+        "feet": {
+          "L": [
+            19.0,
+            57,
+            "P"
+          ],
+          "R": [
+            30.0,
+            56,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_left_walk1": {
+        "foot": [
+          23.0,
+          57
+        ],
+        "head": [
+          22,
+          24
+        ],
+        "feet": {
+          "L": [
+            21.0,
+            57,
+            "P"
+          ],
+          "R": [
+            25.0,
+            54,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_left_walk2": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          22,
+          25
+        ],
+        "feet": {
+          "L": [
+            29.0,
+            56,
+            "L"
+          ],
+          "R": [
+            20.0,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_left_walk3": {
+        "foot": [
+          23.5,
+          57
+        ],
+        "head": [
+          22,
+          24
+        ],
+        "feet": {
+          "L": [
+            25.0,
+            54,
+            "L"
+          ],
+          "R": [
+            22.0,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_right_walk0": {
+        "foot": [
+          23.5,
+          57
+        ],
+        "head": [
+          26,
+          25
+        ],
+        "feet": {
+          "R": [
+            29.0,
+            57,
+            "P"
+          ],
+          "L": [
+            18.0,
+            56,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_right_walk1": {
+        "foot": [
+          25.0,
+          57
+        ],
+        "head": [
+          26,
+          24
+        ],
+        "feet": {
+          "R": [
+            27.0,
+            57,
+            "P"
+          ],
+          "L": [
+            23.0,
+            54,
+            "L"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_right_walk2": {
+        "foot": [
+          23.5,
+          57
+        ],
+        "head": [
+          26,
+          25
+        ],
+        "feet": {
+          "R": [
+            19.0,
+            56,
+            "L"
+          ],
+          "L": [
+            28.0,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      },
+      "npc_builder_right_walk3": {
+        "foot": [
+          24.5,
+          57
+        ],
+        "head": [
+          26,
+          24
+        ],
+        "feet": {
+          "R": [
+            23.0,
+            54,
+            "L"
+          ],
+          "L": [
+            26.0,
+            57,
+            "P"
+          ]
+        },
+        "lantern": {
+          "visible": false,
+          "glass_px": [],
+          "glass_center": null,
+          "light_anchor": null
+        }
+      }
+    }
   }
 }

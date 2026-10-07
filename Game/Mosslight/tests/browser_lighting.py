@@ -97,7 +97,7 @@ with sync_playwright() as p:
             check('固体壁が局所光を遮る',result['blocked']<result['open']*.7,result)
             check('物の高さが局所光の影を作る',result['pointShadow']<result['open']*.8,result)
             check('水の粗さが木や土と異なる反射を作る',result['wet']>result['matte']+3,result)
-            check('上向き法線は固定の左上太陽で明るい',result['up']>result['down']+5,result)
+            check('指定した太陽方向を向く法線が明るい',result['up']>result['down']+5,result)
             check('bufferの上下が反転しない',result['top'][0]>240 and result['top'][2]<10
                   and result['bottom'][2]>240 and result['bottom'][0]<10,result)
             check('context lostから再描画できる',result['contextExtension'] and result['lost'] and result['restored'],result)

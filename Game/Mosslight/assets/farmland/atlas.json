@@ -1,0 +1,363 @@
+{
+  "frames": {
+    "farmland_join0": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join1": {
+      "frame": {
+        "x": 38,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join2": {
+      "frame": {
+        "x": 76,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join3": {
+      "frame": {
+        "x": 114,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join4": {
+      "frame": {
+        "x": 0,
+        "y": 38,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join5": {
+      "frame": {
+        "x": 38,
+        "y": 38,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join6": {
+      "frame": {
+        "x": 76,
+        "y": 38,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join7": {
+      "frame": {
+        "x": 114,
+        "y": 38,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join8": {
+      "frame": {
+        "x": 0,
+        "y": 76,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join9": {
+      "frame": {
+        "x": 38,
+        "y": 76,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join10": {
+      "frame": {
+        "x": 76,
+        "y": 76,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join11": {
+      "frame": {
+        "x": 114,
+        "y": 76,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join12": {
+      "frame": {
+        "x": 0,
+        "y": 114,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join13": {
+      "frame": {
+        "x": 38,
+        "y": 114,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join14": {
+      "frame": {
+        "x": 76,
+        "y": 114,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    },
+    "farmland_join15": {
+      "frame": {
+        "x": 114,
+        "y": 114,
+        "w": 38,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 38
+      },
+      "duration": 140
+    }
+  },
+  "meta": {
+    "app": "Pixel Workbench",
+    "version": "1",
+    "image": "atlas.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 152,
+      "h": 152
+    },
+    "scale": "1",
+    "frameTags": [
+      {
+        "name": "default",
+        "from": 0,
+        "to": 15,
+        "direction": "forward"
+      }
+    ],
+    "pivot": [
+      3,
+      3
+    ]
+  }
+}

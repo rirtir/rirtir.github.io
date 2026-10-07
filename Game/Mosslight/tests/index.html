@@ -5,12 +5,15 @@
 <script type="module">
 import {runGameTests} from './gameplay.js';
 import {runSustainabilityTests} from './sustainability.js';
+import {runVisualRework3Tests} from './visual_rework3.js';
 const started = performance.now();
 window.testResult = await runGameTests();
-const extra = runSustainabilityTests();
-window.testResult.passed += extra.passed;
-window.testResult.failed += extra.failed;
-window.testResult.checks.push(...extra.checks);
+for (const extra of [runSustainabilityTests(), runVisualRework3Tests()]) {
+  window.testResult.passed += extra.passed;
+  window.testResult.failed += extra.failed;
+  window.testResult.checks.push(...extra.checks);
+  if (extra.skipped) (window.testResult.skipped ||= []).push(...extra.skipped);
+}
 const {passed, failed, checks} = window.testResult;
 document.querySelector('#result').textContent = `${passed} 成功 / ${failed} 失敗 / ${Math.round(performance.now()-started)}ms\n\n` + checks.filter(c=>!c.ok).map(c=>`${c.name}\n${c.detail}`).join('\n\n');
 document.title = failed ? 'MOSSLIGHT 検証失敗' : 'MOSSLIGHT 検証成功';

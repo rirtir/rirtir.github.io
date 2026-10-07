@@ -12,10 +12,10 @@
 //   rotatePressed  回転(R)
 //   slot           0..7 ホットバー番号キー(なければ-1/undefined)  wheel: -1/0/1
 import {
-  BALANCE, TILE, TERRAIN_INFO, ITEMS, RECIPE_BY_ID, STATIONS, NODES, STRUCTURES, CAMP_LAYOUT, CROPS, WALL, WALL_NODE,
+  BALANCE, TILE, TERRAIN_INFO, ITEMS, RECIPE_BY_ID, STATIONS, NODES, STRUCTURES, CAMP_LAYOUT, CROPS, WALL, WALL_NODE, footEllipse,
 } from './data.js';
 import {
-  getTile, nodeAt, solidRadius, canPlace, findWalkableNear, mulberry32, openWallTile, resetWorldTerrain, isBuildTerrain,
+  getTile, nodeAt, solidRadius, nodeFootprint, canPlace, findWalkableNear, mulberry32, openWallTile, resetWorldTerrain, isBuildTerrain,
 } from './world.js';
 import {
   createIndexes, objectAt, floorAt, structureAt, farmAt, addStructureRecord, removeStructureRecord,
@@ -27,6 +27,8 @@ import * as progression from './progression.js';
 import { validateSave as validateSaveData, migrateSave, encodeBits, decodeBits, SAVE_VERSION, SAVE_FORMAT, summarizeSave } from './save.js';
 
 const P = BALANCE.player;
+const FOOT = P.footRadius; // 主人公の足元の円(移動・押し出し)。被弾判定の P.radius とは別
+const STRUCT_FOOT_Y = 28;  // 構造物の足元(renderer.drawStructure の ay = ty*TILE+28 と同じ)
 const EMPTY = Object.freeze({});
 
 export { structureAt, objectAt, floorAt, migrateSave, summarizeSave };
@@ -646,10 +648,9 @@ export function replantTree(state, node) {
   return { ok: true };
 }
 
-function nodeRadius(state, node) {
-  if (nodeAlive(state, node)) return solidRadius(node);
-  const d = NODES[node.type];
-  return d.depletedSolid ? d.depletedSolid.r : 0;
+// ノードの当たり(足元の楕円 {x,y,rx,ry})。生きている物は solid、伐採後は depletedSolid。無ければ rx=0。描画・クリックと同じ足元を使う
+function nodeFootprintOf(state, node) {
+  return nodeFootprint(node, !nodeAlive(state, node));
 }
 
 export function toolProblem(p, def) {
@@ -760,19 +761,22 @@ function collect(state, map, tx0, ty0, tx1, ty1) {
       const i = ty * map.w + tx;
       const s = sidx.get(i);
       if (s && STRUCTURES[s.type].use) {
-        out.push({ kind: 'structure', ref: s, x: tx * TILE + 16, y: ty * TILE + 16, prio: 2, rect: [tx * TILE, ty * TILE - 26, tx * TILE + TILE, ty * TILE + TILE] });
+        out.push({ kind: 'structure', ref: s, x: tx * TILE + 16, y: ty * TILE + STRUCT_FOOT_Y, prio: 2, rect: [tx * TILE, ty * TILE - 26, tx * TILE + TILE, ty * TILE + TILE] });
       }
       const cr = cidx.get(i);
       if (cr) out.push({ kind: 'crop', ref: cr, x: tx * TILE + 16, y: ty * TILE + 16, prio: 2, rect: [tx * TILE, ty * TILE - 8, tx * TILE + TILE, ty * TILE + TILE] });
       const n = nodeAt(map, tx, ty);
       if (n) {
         const def = NODES[n.type];
+        // クリック・フォーカスの足元は、描画と当たりと同じ「根元の中心」(反転した物は dx も反転済み)
         if (n.type === 'tree' && !nodeAlive(state, n) && countItem(state, 'sapling') > 0) {
-          out.push({ kind: 'stump', ref: n, x: n.px, y: n.py, prio: 5, rect: [n.px - 16, n.py - 22, n.px + 16, n.py + 6], top: n.py - 22 });
+          const f = nodeFootprint(n, true);
+          out.push({ kind: 'stump', ref: n, x: f.x, y: f.y, by: f.y, prio: 5, rect: [f.x - 16, f.y - 22, f.x + 16, f.y + 6], top: f.y - 22 });
         }
         if (!((def.decor && !n.info) || !nodeAlive(state, n))) {
           const h = def.hit || { w: 28, h: 36 };
-          out.push({ kind: 'node', ref: n, x: n.px, y: n.py, prio: 3, rect: [n.px - h.w / 2, n.py - h.h, n.px + h.w / 2, n.py + 6], top: n.py - h.h });
+          const f = nodeFootprint(n, false);
+          out.push({ kind: 'node', ref: n, x: f.x, y: f.y, by: f.y, prio: 3, rect: [f.x - h.w / 2, f.y - h.h, f.x + h.w / 2, f.y + Math.max(f.ry, 3) + 3], top: f.y - h.h });
         }
       }
       if (map.id === 'underground' && wallDef(map, tx, ty)) {
@@ -827,7 +831,10 @@ function updateFocus(state, input) {
     const tx = Math.floor(mx / TILE), ty = Math.floor(my / TILE);
     const list = collect(state, map, tx - 2, ty - 1, tx + 2, ty + 4).filter((c) => mx >= c.rect[0] && mx <= c.rect[2] && my >= c.rect[1] && my <= c.rect[3]);
     if (!list.length) return;
-    list.sort((a, b) => a.prio - b.prio || b.y - a.y);
+    // 同じ優先度なら、見えている手前の物(足元が下)を選ぶ。足元の高さが10px未満しか違わない時は、足元が横に近い方を選ぶ
+    // (遠くの木の樹冠の矩形が、手前の物の足元付近のクリックを奪わないようにする)
+    const by = (c) => (c.by != null ? c.by : c.y);
+    list.sort((a, b) => a.prio - b.prio || (Math.abs(by(a) - by(b)) < 10 ? Math.abs(a.x - mx) - Math.abs(b.x - mx) : by(b) - by(a)));
     state.focus = describe(state, list[0], true);
     return;
   }
@@ -1084,7 +1091,19 @@ function pushCircle(e, cx, cy, cr, r) {
   return true;
 }
 
-// 足元の円(半径r)を、地形・資源・構造物(物体のみ。床は歩ける)から押し出す
+// 足元の楕円(中心cx,cy・半径rx,ry)と、動く物の円(半径r)。ミンコフスキー和を楕円(rx+r, ry+r)で近似し、中心から放射状に押し出す
+export function pushEllipse(e, cx, cy, rx, ry, r) {
+  const a = rx + r, b = ry + r;
+  const dx = e.x - cx, dy = e.y - cy;
+  const q = (dx * dx) / (a * a) + (dy * dy) / (b * b);
+  if (q >= 1) return false;
+  if (q < 1e-10) { e.y += b; return true; }
+  const k = 1 / Math.sqrt(q);
+  e.x = cx + dx * k; e.y = cy + dy * k;
+  return true;
+}
+
+// 足元の円(半径r)を、地形・資源(足元の楕円)・構造物(物体のみ。床は歩ける)から押し出す。樹冠・屋根の見た目は歩行を妨げない
 function resolveCollisions(state, map, e, r) {
   const x0 = Math.floor((e.x - r) / TILE) - 1, x1 = Math.floor((e.x + r) / TILE) + 1;
   const y0 = Math.floor((e.y - r) / TILE) - 1, y1 = Math.floor((e.y + r) / TILE) + 1;
@@ -1096,8 +1115,8 @@ function resolveCollisions(state, map, e, r) {
         if (TERRAIN_INFO[getTile(map, tx, ty)].solid) { if (pushBox(e, tx * TILE, ty * TILE, TILE, TILE, r)) moved = true; }
         const n = nodeAt(map, tx, ty);
         if (n) {
-          const nr = nodeRadius(state, n);
-          if (nr > 0 && pushCircle(e, n.px, n.py, nr, r)) moved = true;
+          const f = nodeFootprintOf(state, n);
+          if (f.rx > 0 && pushEllipse(e, f.x, f.y, f.rx, f.ry, r)) moved = true;
         }
         if (tx >= 0 && ty >= 0 && tx < map.w && ty < map.h) {
           const s = sidx.get(ty * map.w + tx);
@@ -1107,7 +1126,11 @@ function resolveCollisions(state, map, e, r) {
               const kind = STRUCTURES[s.type].kind;
               const inset = kind ? 0 : 3;
               if (pushBox(e, tx * TILE + inset, ty * TILE + inset, TILE - inset * 2, TILE - inset * 2, r)) moved = true;
-            } else if (sol && pushCircle(e, tx * TILE + 16, ty * TILE + 16, sol.r, r)) moved = true;
+            } else if (sol) {
+              // 構造物の円は、描く足元(ty*TILE+28)に置く。以前はタイル中心(+16)で、見た目の根元より12px北にずれていた
+              const fe = footEllipse(sol);
+              if (pushEllipse(e, tx * TILE + 16, ty * TILE + STRUCT_FOOT_Y, fe.rx, fe.ry, r)) moved = true;
+            }
           }
         }
       }
@@ -1149,7 +1172,7 @@ function updateMovement(state, dt, input) {
     r.t += dt;
     const sp = P.rollDist * TILE / P.rollTime;
     p.invuln = Math.max(p.invuln, r.t < P.rollInvuln ? 0.05 : 0);
-    moveEntity(state, map, p, r.dx * sp * dt, r.dy * sp * dt, P.radius);
+    moveEntity(state, map, p, r.dx * sp * dt, r.dy * sp * dt, FOOT);
     p.vx = r.dx * sp; p.vy = r.dy * sp; p.moving = true;
     if (r.t >= P.rollTime) p.roll = null;
     return;
@@ -1173,7 +1196,7 @@ function updateMovement(state, dt, input) {
     p.fx = mx / fl; p.fy = my / fl;
     if (!p.action) p.dir = dirFromVec(mx, my, p.dir);
     const bx = p.x, by = p.y;
-    moveEntity(state, map, p, p.vx * dt, p.vy * dt, P.radius);
+    moveEntity(state, map, p, p.vx * dt, p.vy * dt, FOOT);
     const moved = Math.hypot(p.x - bx, p.y - by);
     p.walkT += moved;
     p.stepT += moved;
@@ -1181,7 +1204,7 @@ function updateMovement(state, dt, input) {
     p.moving = moved > 0.05;
   } else {
     p.vx = 0; p.vy = 0; p.moving = false;
-    resolveCollisions(state, map, p, P.radius);
+    resolveCollisions(state, map, p, FOOT);
   }
   // 扉は近づくと自動で開く
   for (const s of state.doors) {
@@ -1262,7 +1285,7 @@ export function teleport(state, mapId, tx, ty) {
   const changed = p.map !== mapId;
   p.map = mapId; p.x = spot.x * TILE + 16; p.y = spot.y * TILE + 16;
   p.vx = p.vy = 0; p.action = null; p.roll = null;
-  moveEntity(state, m, p, 0, 0, P.radius);
+  moveEntity(state, m, p, 0, 0, FOOT);
   if (changed) combat.onMapChange(state, mapId);
   state.focus = null; state.preview = null;
   revealAround(state);
@@ -1465,5 +1488,5 @@ function placePlayerSafely(state, pl) {
     if (spot) { x = spot.x * TILE + 16; y = spot.y * TILE + 16; } else { p.map = state.player.spawn.map; x = p.spawn.x; y = p.spawn.y; }
   }
   p.x = x; p.y = y;
-  moveEntity(state, state.world.maps[p.map], p, 0, 0, P.radius);
+  moveEntity(state, state.world.maps[p.map], p, 0, 0, FOOT);
 }

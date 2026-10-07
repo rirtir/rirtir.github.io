@@ -4,1007 +4,1007 @@
       "frame": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 600
     },
     "hero_down_idle1": {
       "frame": {
-        "x": 32,
+        "x": 48,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 600
     },
     "hero_down_walk0": {
       "frame": {
-        "x": 64,
+        "x": 96,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_down_walk1": {
       "frame": {
-        "x": 96,
+        "x": 144,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_down_walk2": {
       "frame": {
-        "x": 128,
+        "x": 192,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_down_walk3": {
       "frame": {
-        "x": 160,
+        "x": 240,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_down_attack0": {
       "frame": {
-        "x": 192,
+        "x": 288,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 80
     },
     "hero_down_attack1": {
       "frame": {
-        "x": 224,
+        "x": 336,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 80
     },
     "hero_down_attack2": {
       "frame": {
         "x": 0,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "y": 72,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 120
     },
     "hero_down_roll0": {
       "frame": {
-        "x": 32,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 48,
+        "y": 72,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "duration": 100
     },
     "hero_down_roll1": {
       "frame": {
-        "x": 64,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 96,
+        "y": 72,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "duration": 100
     },
     "hero_down_roll2": {
       "frame": {
-        "x": 96,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 144,
+        "y": 72,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "duration": 100
     },
     "hero_up_idle0": {
       "frame": {
-        "x": 128,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 192,
+        "y": 72,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 600
     },
     "hero_up_idle1": {
       "frame": {
-        "x": 160,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 240,
+        "y": 72,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 600
     },
     "hero_up_walk0": {
       "frame": {
-        "x": 192,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 288,
+        "y": 72,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_up_walk1": {
       "frame": {
-        "x": 224,
-        "y": 48,
-        "w": 32,
-        "h": 48
+        "x": 336,
+        "y": 72,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_up_walk2": {
       "frame": {
         "x": 0,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "y": 144,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_up_walk3": {
       "frame": {
-        "x": 32,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 48,
+        "y": 144,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_up_attack0": {
       "frame": {
-        "x": 64,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 96,
+        "y": 144,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 80
     },
     "hero_up_attack1": {
       "frame": {
-        "x": 96,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 144,
+        "y": 144,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 80
     },
     "hero_up_attack2": {
       "frame": {
-        "x": 128,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 192,
+        "y": 144,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 120
     },
     "hero_up_roll0": {
       "frame": {
-        "x": 160,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 240,
+        "y": 144,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "duration": 100
     },
     "hero_up_roll1": {
       "frame": {
-        "x": 192,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 288,
+        "y": 144,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "duration": 100
     },
     "hero_up_roll2": {
       "frame": {
-        "x": 224,
-        "y": 96,
-        "w": 32,
-        "h": 48
+        "x": 336,
+        "y": 144,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "duration": 100
     },
     "hero_right_idle0": {
       "frame": {
         "x": 0,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "y": 216,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 600
     },
     "hero_right_idle1": {
       "frame": {
-        "x": 32,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 48,
+        "y": 216,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 600
     },
     "hero_right_walk0": {
       "frame": {
-        "x": 64,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 96,
+        "y": 216,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_right_walk1": {
       "frame": {
-        "x": 96,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 144,
+        "y": 216,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_right_walk2": {
       "frame": {
-        "x": 128,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 192,
+        "y": 216,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_right_walk3": {
       "frame": {
-        "x": 160,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 240,
+        "y": 216,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_right_attack0": {
       "frame": {
-        "x": 192,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 288,
+        "y": 216,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 80
     },
     "hero_right_attack1": {
       "frame": {
-        "x": 224,
-        "y": 144,
-        "w": 32,
-        "h": 48
+        "x": 336,
+        "y": 216,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 80
     },
     "hero_right_attack2": {
       "frame": {
         "x": 0,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "y": 288,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 120
     },
     "hero_right_roll0": {
       "frame": {
-        "x": 32,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 48,
+        "y": 288,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "duration": 100
     },
     "hero_right_roll1": {
       "frame": {
-        "x": 64,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 96,
+        "y": 288,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "duration": 100
     },
     "hero_right_roll2": {
       "frame": {
-        "x": 96,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 144,
+        "y": 288,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "duration": 100
     },
     "hero_left_idle0": {
       "frame": {
-        "x": 128,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 192,
+        "y": 288,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 600
     },
     "hero_left_idle1": {
       "frame": {
-        "x": 160,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 240,
+        "y": 288,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 600
     },
     "hero_left_walk0": {
       "frame": {
-        "x": 192,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 288,
+        "y": 288,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_left_walk1": {
       "frame": {
-        "x": 224,
-        "y": 192,
-        "w": 32,
-        "h": 48
+        "x": 336,
+        "y": 288,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_left_walk2": {
       "frame": {
         "x": 0,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "y": 360,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_left_walk3": {
       "frame": {
-        "x": 32,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 48,
+        "y": 360,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 104
+      "duration": 110
     },
     "hero_left_attack0": {
       "frame": {
-        "x": 64,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 96,
+        "y": 360,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 80
     },
     "hero_left_attack1": {
       "frame": {
-        "x": 96,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 144,
+        "y": 360,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 80
     },
     "hero_left_attack2": {
       "frame": {
-        "x": 128,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 192,
+        "y": 360,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
-      "duration": 100
+      "duration": 120
     },
     "hero_left_roll0": {
       "frame": {
-        "x": 160,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 240,
+        "y": 360,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "duration": 100
     },
     "hero_left_roll1": {
       "frame": {
-        "x": 192,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 288,
+        "y": 360,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "duration": 100
     },
     "hero_left_roll2": {
       "frame": {
-        "x": 224,
-        "y": 240,
-        "w": 32,
-        "h": 48
+        "x": 336,
+        "y": 360,
+        "w": 48,
+        "h": 72
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "sourceSize": {
-        "w": 32,
-        "h": 48
+        "w": 48,
+        "h": 72
       },
       "duration": 100
     }
@@ -1015,8 +1015,8 @@
     "image": "atlas.png",
     "format": "RGBA8888",
     "size": {
-      "w": 256,
-      "h": 288
+      "w": 384,
+      "h": 432
     },
     "scale": "1",
     "frameTags": [
@@ -1118,8 +1118,2574 @@
       }
     ],
     "pivot": [
-      16,
-      40
-    ]
+      24,
+      58
+    ],
+    "frameMeta": {
+      "hero_down_idle0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              58
+            ],
+            "local": [
+              -4.0,
+              0
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.42,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              58
+            ],
+            "local": [
+              4.0,
+              0
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.42,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_down_idle1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          24
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              58
+            ],
+            "local": [
+              -4.0,
+              0
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              58
+            ],
+            "local": [
+              4.0,
+              0
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_down_walk0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              64
+            ],
+            "local": [
+              -4.0,
+              6
+            ],
+            "ground": [
+              20.0,
+              64
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 6
+          },
+          "R": {
+            "sole": [
+              28.0,
+              52
+            ],
+            "local": [
+              4.0,
+              -6
+            ],
+            "ground": [
+              28.0,
+              52
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -6
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 0
+      },
+      "hero_down_walk1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              58
+            ],
+            "local": [
+              -4.0,
+              0
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              56
+            ],
+            "local": [
+              4.0,
+              -2
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": false,
+            "height": 2.52,
+            "height_level": 2,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 1
+      },
+      "hero_down_walk2": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              52
+            ],
+            "local": [
+              -4.0,
+              -6
+            ],
+            "ground": [
+              20.0,
+              52
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -6
+          },
+          "R": {
+            "sole": [
+              28.0,
+              64
+            ],
+            "local": [
+              4.0,
+              6
+            ],
+            "ground": [
+              28.0,
+              64
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 6
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 2
+      },
+      "hero_down_walk3": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              56
+            ],
+            "local": [
+              -4.0,
+              -2
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": false,
+            "height": 2.52,
+            "height_level": 2,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              58
+            ],
+            "local": [
+              4.0,
+              0
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 3
+      },
+      "hero_down_attack0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": [
+          36,
+          41
+        ],
+        "head": [
+          25,
+          23
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              58
+            ],
+            "local": [
+              -4.0,
+              0
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              58
+            ],
+            "local": [
+              4.0,
+              0
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_down_attack1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": [
+          35,
+          50
+        ],
+        "head": [
+          24,
+          24
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              57
+            ],
+            "local": [
+              -4.0,
+              -1
+            ],
+            "ground": [
+              20.0,
+              57
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -1
+          },
+          "R": {
+            "sole": [
+              28.0,
+              60
+            ],
+            "local": [
+              4.0,
+              2
+            ],
+            "ground": [
+              28.0,
+              60
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 2
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_down_attack2": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": [
+          29,
+          50
+        ],
+        "head": [
+          23,
+          24
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              58
+            ],
+            "local": [
+              -4.0,
+              0
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              59
+            ],
+            "local": [
+              4.0,
+              1
+            ],
+            "ground": [
+              28.0,
+              59
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 1
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_down_roll0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          30
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              58
+            ],
+            "local": [
+              -4.0,
+              0
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              58
+            ],
+            "local": [
+              4.0,
+              0
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_down_roll1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          50
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              14.0,
+              53
+            ],
+            "local": [
+              -10.0,
+              -5
+            ],
+            "ground": [
+              14.0,
+              58
+            ],
+            "planted": false,
+            "height": 5.07,
+            "height_level": 6,
+            "forward_offset": null
+          },
+          "R": {
+            "sole": [
+              34.0,
+              53
+            ],
+            "local": [
+              10.0,
+              -5
+            ],
+            "ground": [
+              34.0,
+              58
+            ],
+            "planted": false,
+            "height": 5.07,
+            "height_level": 6,
+            "forward_offset": null
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_down_roll2": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          27
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              60
+            ],
+            "local": [
+              -4.0,
+              2
+            ],
+            "ground": [
+              20.0,
+              60
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 2
+          },
+          "R": {
+            "sole": [
+              28.0,
+              56
+            ],
+            "local": [
+              4.0,
+              -2
+            ],
+            "ground": [
+              28.0,
+              56
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -2
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_up_idle0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              58
+            ],
+            "local": [
+              -4.0,
+              0
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              58
+            ],
+            "local": [
+              4.0,
+              0
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_up_idle1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          24
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              58
+            ],
+            "local": [
+              -4.0,
+              0
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              58
+            ],
+            "local": [
+              4.0,
+              0
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_up_walk0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              52
+            ],
+            "local": [
+              -4.0,
+              -6
+            ],
+            "ground": [
+              20.0,
+              52
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 6
+          },
+          "R": {
+            "sole": [
+              28.0,
+              64
+            ],
+            "local": [
+              4.0,
+              6
+            ],
+            "ground": [
+              28.0,
+              64
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -6
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 0
+      },
+      "hero_up_walk1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              58
+            ],
+            "local": [
+              -4.0,
+              0
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              56
+            ],
+            "local": [
+              4.0,
+              -2
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": false,
+            "height": 2.52,
+            "height_level": 2,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 1
+      },
+      "hero_up_walk2": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              64
+            ],
+            "local": [
+              -4.0,
+              6
+            ],
+            "ground": [
+              20.0,
+              64
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -6
+          },
+          "R": {
+            "sole": [
+              28.0,
+              52
+            ],
+            "local": [
+              4.0,
+              -6
+            ],
+            "ground": [
+              28.0,
+              52
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 6
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 2
+      },
+      "hero_up_walk3": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          22
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              56
+            ],
+            "local": [
+              -4.0,
+              -2
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": false,
+            "height": 2.52,
+            "height_level": 2,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              58
+            ],
+            "local": [
+              4.0,
+              0
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 3
+      },
+      "hero_up_attack0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": [
+          36,
+          41
+        ],
+        "head": [
+          25,
+          23
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              58
+            ],
+            "local": [
+              -4.0,
+              0
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              58
+            ],
+            "local": [
+              4.0,
+              0
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_up_attack1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": [
+          34,
+          39
+        ],
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              59
+            ],
+            "local": [
+              -4.0,
+              1
+            ],
+            "ground": [
+              20.0,
+              59
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -1
+          },
+          "R": {
+            "sole": [
+              28.0,
+              56
+            ],
+            "local": [
+              4.0,
+              -2
+            ],
+            "ground": [
+              28.0,
+              56
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 2
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_up_attack2": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": [
+          29,
+          48
+        ],
+        "head": [
+          23,
+          23
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              58
+            ],
+            "local": [
+              -4.0,
+              0
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              58
+            ],
+            "local": [
+              4.0,
+              0
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_up_roll0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          30
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              58
+            ],
+            "local": [
+              -4.0,
+              0
+            ],
+            "ground": [
+              20.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "R": {
+            "sole": [
+              28.0,
+              58
+            ],
+            "local": [
+              4.0,
+              0
+            ],
+            "ground": [
+              28.0,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_up_roll1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          41
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              14.0,
+              53
+            ],
+            "local": [
+              -10.0,
+              -5
+            ],
+            "ground": [
+              14.0,
+              58
+            ],
+            "planted": false,
+            "height": 5.07,
+            "height_level": 6,
+            "forward_offset": null
+          },
+          "R": {
+            "sole": [
+              34.0,
+              53
+            ],
+            "local": [
+              10.0,
+              -5
+            ],
+            "ground": [
+              34.0,
+              58
+            ],
+            "planted": false,
+            "height": 5.07,
+            "height_level": 6,
+            "forward_offset": null
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_up_roll2": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          27
+        ],
+        "feet": {
+          "L": {
+            "sole": [
+              20.0,
+              56
+            ],
+            "local": [
+              -4.0,
+              -2
+            ],
+            "ground": [
+              20.0,
+              56
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 2
+          },
+          "R": {
+            "sole": [
+              28.0,
+              60
+            ],
+            "local": [
+              4.0,
+              2
+            ],
+            "ground": [
+              28.0,
+              60
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -2
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_right_idle0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          24
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              26.5,
+              58
+            ],
+            "local": [
+              2.5,
+              0
+            ],
+            "ground": [
+              26.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 2
+          },
+          "F": {
+            "sole": [
+              24.5,
+              58
+            ],
+            "local": [
+              0.5,
+              0
+            ],
+            "ground": [
+              24.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_right_idle1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          25
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              26.5,
+              58
+            ],
+            "local": [
+              2.5,
+              0
+            ],
+            "ground": [
+              26.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 2
+          },
+          "F": {
+            "sole": [
+              24.5,
+              58
+            ],
+            "local": [
+              0.5,
+              0
+            ],
+            "ground": [
+              24.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_right_walk0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          24
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              30.5,
+              58
+            ],
+            "local": [
+              6.5,
+              0
+            ],
+            "ground": [
+              30.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 6
+          },
+          "F": {
+            "sole": [
+              18.5,
+              58
+            ],
+            "local": [
+              -5.5,
+              0
+            ],
+            "ground": [
+              18.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -6
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 0
+      },
+      "hero_right_walk1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              24.5,
+              58
+            ],
+            "local": [
+              0.5,
+              0
+            ],
+            "ground": [
+              24.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "F": {
+            "sole": [
+              24.5,
+              56
+            ],
+            "local": [
+              0.5,
+              -2
+            ],
+            "ground": [
+              24.5,
+              58
+            ],
+            "planted": false,
+            "height": 2.52,
+            "height_level": 2,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 1
+      },
+      "hero_right_walk2": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          24
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              18.5,
+              58
+            ],
+            "local": [
+              -5.5,
+              0
+            ],
+            "ground": [
+              18.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -6
+          },
+          "F": {
+            "sole": [
+              30.5,
+              58
+            ],
+            "local": [
+              6.5,
+              0
+            ],
+            "ground": [
+              30.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 6
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 2
+      },
+      "hero_right_walk3": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          24,
+          23
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              24.5,
+              56
+            ],
+            "local": [
+              0.5,
+              -2
+            ],
+            "ground": [
+              24.5,
+              58
+            ],
+            "planted": false,
+            "height": 2.52,
+            "height_level": 2,
+            "forward_offset": 0
+          },
+          "F": {
+            "sole": [
+              24.5,
+              58
+            ],
+            "local": [
+              0.5,
+              0
+            ],
+            "ground": [
+              24.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 3
+      },
+      "hero_right_attack0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": [
+          19,
+          41
+        ],
+        "head": [
+          23,
+          24
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              24.5,
+              58
+            ],
+            "local": [
+              0.5,
+              0
+            ],
+            "ground": [
+              24.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "F": {
+            "sole": [
+              21.5,
+              58
+            ],
+            "local": [
+              -2.5,
+              0
+            ],
+            "ground": [
+              21.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -3
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_right_attack1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": [
+          30,
+          46
+        ],
+        "head": [
+          26,
+          25
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              27.5,
+              58
+            ],
+            "local": [
+              3.5,
+              0
+            ],
+            "ground": [
+              27.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 3
+          },
+          "F": {
+            "sole": [
+              21.5,
+              58
+            ],
+            "local": [
+              -2.5,
+              0
+            ],
+            "ground": [
+              21.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -3
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_right_attack2": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": [
+          28,
+          49
+        ],
+        "head": [
+          25,
+          25
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              26.5,
+              58
+            ],
+            "local": [
+              2.5,
+              0
+            ],
+            "ground": [
+              26.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 2
+          },
+          "F": {
+            "sole": [
+              22.5,
+              58
+            ],
+            "local": [
+              -1.5,
+              0
+            ],
+            "ground": [
+              22.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -2
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_right_roll0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          27,
+          31
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              27.5,
+              58
+            ],
+            "local": [
+              3.5,
+              0
+            ],
+            "ground": [
+              27.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 3
+          },
+          "F": {
+            "sole": [
+              25.5,
+              58
+            ],
+            "local": [
+              1.5,
+              0
+            ],
+            "ground": [
+              25.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 1
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_right_roll1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          31,
+          45
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              11.5,
+              52
+            ],
+            "local": [
+              -12.5,
+              -6
+            ],
+            "ground": [
+              11.5,
+              58
+            ],
+            "planted": false,
+            "height": 5.92,
+            "height_level": 6,
+            "forward_offset": null
+          },
+          "F": {
+            "sole": [
+              15.5,
+              56
+            ],
+            "local": [
+              -8.5,
+              -2
+            ],
+            "ground": [
+              15.5,
+              58
+            ],
+            "planted": false,
+            "height": 2.52,
+            "height_level": 2,
+            "forward_offset": null
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_right_roll2": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          26,
+          28
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              27.5,
+              58
+            ],
+            "local": [
+              3.5,
+              0
+            ],
+            "ground": [
+              27.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 3
+          },
+          "F": {
+            "sole": [
+              25.5,
+              56
+            ],
+            "local": [
+              1.5,
+              -2
+            ],
+            "ground": [
+              25.5,
+              58
+            ],
+            "planted": false,
+            "height": 2.52,
+            "height_level": 2,
+            "forward_offset": 1
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_left_idle0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          23,
+          24
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              21.5,
+              58
+            ],
+            "local": [
+              -2.5,
+              0
+            ],
+            "ground": [
+              21.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 2
+          },
+          "F": {
+            "sole": [
+              23.5,
+              58
+            ],
+            "local": [
+              -0.5,
+              0
+            ],
+            "ground": [
+              23.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_left_idle1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          23,
+          25
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              21.5,
+              58
+            ],
+            "local": [
+              -2.5,
+              0
+            ],
+            "ground": [
+              21.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 2
+          },
+          "F": {
+            "sole": [
+              23.5,
+              58
+            ],
+            "local": [
+              -0.5,
+              0
+            ],
+            "ground": [
+              23.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_left_walk0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          23,
+          24
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              17.5,
+              58
+            ],
+            "local": [
+              -6.5,
+              0
+            ],
+            "ground": [
+              17.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 6
+          },
+          "F": {
+            "sole": [
+              29.5,
+              58
+            ],
+            "local": [
+              5.5,
+              0
+            ],
+            "ground": [
+              29.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -6
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 0
+      },
+      "hero_left_walk1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          23,
+          23
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              23.5,
+              58
+            ],
+            "local": [
+              -0.5,
+              0
+            ],
+            "ground": [
+              23.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "F": {
+            "sole": [
+              23.5,
+              56
+            ],
+            "local": [
+              -0.5,
+              -2
+            ],
+            "ground": [
+              23.5,
+              58
+            ],
+            "planted": false,
+            "height": 2.52,
+            "height_level": 2,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 1
+      },
+      "hero_left_walk2": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          23,
+          24
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              29.5,
+              58
+            ],
+            "local": [
+              5.5,
+              0
+            ],
+            "ground": [
+              29.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -6
+          },
+          "F": {
+            "sole": [
+              17.5,
+              58
+            ],
+            "local": [
+              -6.5,
+              0
+            ],
+            "ground": [
+              17.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 6
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 2
+      },
+      "hero_left_walk3": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          23,
+          23
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              23.5,
+              56
+            ],
+            "local": [
+              -0.5,
+              -2
+            ],
+            "ground": [
+              23.5,
+              58
+            ],
+            "planted": false,
+            "height": 2.52,
+            "height_level": 2,
+            "forward_offset": 0
+          },
+          "F": {
+            "sole": [
+              23.5,
+              58
+            ],
+            "local": [
+              -0.5,
+              0
+            ],
+            "ground": [
+              23.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          }
+        },
+        "lantern": {
+          "visible": false
+        },
+        "walk_distance_per_frame": 6,
+        "gait_phase": 3
+      },
+      "hero_left_attack0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": [
+          28,
+          41
+        ],
+        "head": [
+          24,
+          24
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              23.5,
+              58
+            ],
+            "local": [
+              -0.5,
+              0
+            ],
+            "ground": [
+              23.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 0
+          },
+          "F": {
+            "sole": [
+              26.5,
+              58
+            ],
+            "local": [
+              2.5,
+              0
+            ],
+            "ground": [
+              26.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -3
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_left_attack1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": [
+          17,
+          46
+        ],
+        "head": [
+          21,
+          25
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              20.5,
+              58
+            ],
+            "local": [
+              -3.5,
+              0
+            ],
+            "ground": [
+              20.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 3
+          },
+          "F": {
+            "sole": [
+              26.5,
+              58
+            ],
+            "local": [
+              2.5,
+              0
+            ],
+            "ground": [
+              26.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -3
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_left_attack2": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": [
+          19,
+          49
+        ],
+        "head": [
+          22,
+          25
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              21.5,
+              58
+            ],
+            "local": [
+              -2.5,
+              0
+            ],
+            "ground": [
+              21.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 2
+          },
+          "F": {
+            "sole": [
+              25.5,
+              58
+            ],
+            "local": [
+              1.5,
+              0
+            ],
+            "ground": [
+              25.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": -2
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_left_roll0": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          20,
+          31
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              20.5,
+              58
+            ],
+            "local": [
+              -3.5,
+              0
+            ],
+            "ground": [
+              20.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 3
+          },
+          "F": {
+            "sole": [
+              22.5,
+              58
+            ],
+            "local": [
+              -1.5,
+              0
+            ],
+            "ground": [
+              22.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 1
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_left_roll1": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          16,
+          45
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              36.5,
+              52
+            ],
+            "local": [
+              12.5,
+              -6
+            ],
+            "ground": [
+              36.5,
+              58
+            ],
+            "planted": false,
+            "height": 5.92,
+            "height_level": 6,
+            "forward_offset": null
+          },
+          "F": {
+            "sole": [
+              32.5,
+              56
+            ],
+            "local": [
+              8.5,
+              -2
+            ],
+            "ground": [
+              32.5,
+              58
+            ],
+            "planted": false,
+            "height": 2.52,
+            "height_level": 2,
+            "forward_offset": null
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      },
+      "hero_left_roll2": {
+        "foot": [
+          24,
+          58
+        ],
+        "grip": null,
+        "head": [
+          21,
+          28
+        ],
+        "feet": {
+          "N": {
+            "sole": [
+              20.5,
+              58
+            ],
+            "local": [
+              -3.5,
+              0
+            ],
+            "ground": [
+              20.5,
+              58
+            ],
+            "planted": true,
+            "height": 0.82,
+            "height_level": 0,
+            "forward_offset": 3
+          },
+          "F": {
+            "sole": [
+              22.5,
+              56
+            ],
+            "local": [
+              -1.5,
+              -2
+            ],
+            "ground": [
+              22.5,
+              58
+            ],
+            "planted": false,
+            "height": 2.52,
+            "height_level": 2,
+            "forward_offset": 1
+          }
+        },
+        "lantern": {
+          "visible": false
+        }
+      }
+    }
   }
 }
