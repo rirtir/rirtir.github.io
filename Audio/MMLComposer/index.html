@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MMLコードメーカー</title>
 <meta name="description" content="ピアノロールで作曲してマビノギ形式のMMLコード（メロディ＋和音）を出力するツール">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#f5f5f5; --panel:#fff; --line:#dee2e6; --text:#212529; --sub:#6c757d; --accent:#007bff;
@@ -124,6 +127,57 @@ details ul{margin:2px 0;padding-left:20px}
   .tracks{flex-direction:row;overflow-x:auto;padding-bottom:4px}
   .trk{min-width:238px}
 }
+
+/* ===== テーマ：やわらかい羊皮紙と空色 ===== */
+:root{--bg:#f8f1dc;--panel:#fffaf0;--line:#e3d3b0;--text:#5a4632;--sub:#9a8566;--accent:#4fb3d6;--accent-d:#3a9bc0;--danger:#c9473f;}
+body{
+  font-family:"Zen Maru Gothic","M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Yu Gothic UI",sans-serif;
+  background:linear-gradient(180deg,#cfeaf5 0,#eaf3e6 240px,#f8f1dc 520px) fixed;color:var(--text);
+}
+header{padding:14px 16px 6px;max-width:1500px;margin:0 auto}
+header h1{color:#6b4a22;text-shadow:0 2px 0 #fff,0 3px 6px rgba(120,90,40,.2);letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+header h1::before{content:"";width:14px;height:14px;background:linear-gradient(135deg,#ffe08a,#f0a030);border:2px solid #d98f2a;transform:rotate(45deg);border-radius:3px;flex:none}
+header p{color:#7d6a4c}
+.toolbar,.panel,.out,details,.trk{
+  background:var(--panel);border:2px solid #e3d3b0;border-radius:14px;
+  box-shadow:0 2px 0 #e0cfa4,0 8px 18px rgba(120,90,40,.12);
+}
+.trk{border-left-width:8px;border-left-color:var(--c);border-radius:12px}
+.trk.active{box-shadow:0 0 0 3px var(--c),0 6px 14px rgba(120,90,40,.2)}
+button{
+  border:2px solid #dbc89c;border-radius:10px;color:var(--text);
+  background:linear-gradient(#fffdf6,#f6ebd0);box-shadow:0 2px 0 #dfcc9f;font-family:inherit;
+}
+button:hover{background:linear-gradient(#fffef9,#fff1cf)}
+button:active{transform:translateY(2px);box-shadow:none}
+button.primary{
+  background:linear-gradient(#ffe590,#f6a93f);border-color:#d98f2a;color:#5a3410;
+  text-shadow:0 1px 0 rgba(255,255,255,.55);box-shadow:0 2px 0 #c98122;
+}
+button.primary:hover{background:linear-gradient(#fff0b0,#ffb852)}
+button.on{
+  background:linear-gradient(#9fdcf0,#4fb3d6);border-color:#3a9bc0;color:#fff;
+  text-shadow:0 1px 0 rgba(0,70,100,.35);box-shadow:0 2px 0 #3187ab;
+}
+button.danger{color:var(--danger)}
+.seg button{box-shadow:none}
+select,input[type=number]{background:#fffdf6;border:2px solid #dbc89c;border-radius:9px;color:var(--text);font-family:inherit}
+input[type=range]{accent-color:#e9a23b}
+input[type=checkbox],input[type=radio]{accent-color:#4fb3d6}
+.sep{background:#e3d3b0}
+.trk-head input.name{color:var(--text);font-family:inherit}
+.trk-head input.name:focus{background:#fffdf6;border-color:#dbc89c}
+.add{background:rgba(255,250,240,.6);border:2px dashed #d3bf94;box-shadow:none}
+.roll{
+  background:#fffdf6;border:3px solid #d3bf94;border-radius:16px;
+  box-shadow:inset 0 2px 8px rgba(120,90,40,.15),0 8px 18px rgba(120,90,40,.14);
+}
+.out textarea,.prow input{background:#fffdf6;border:2px solid #e3d3b0;border-radius:10px;color:var(--text)}
+.prow input{background:#fff7e4}
+details code{background:#f6ebd0;color:#7a4e12}
+.hint,.note{color:var(--sub)}
+.parts{border-top:2px dotted #e3d3b0}
+.msg{color:#3f9a58}
 </style>
 </head>
 <body>
@@ -266,7 +320,7 @@ const TPW = 192;                    // 全音符 = 192 tick（64分=3, 3連32分
 const MMIN = 24, MMAX = 119;        // C1 〜 B8（MIDIノート番号。o4 の c = 60）
 const ROWS = MMAX - MMIN + 1;
 const ROW_H = 16, KEY_W = 60, RULER_H = 24;
-const COLORS = ['#e8590c', '#1c7ed6', '#2f9e44', '#ae3ec9', '#d6336c', '#0c8599', '#f08c00', '#5c7cfa'];
+const COLORS = ['#f0813f', '#4a9fd6', '#5fb35f', '#b077d6', '#e8688a', '#36b0a8', '#e5ad2e', '#7487da'];
 const INSTS = { piano: 'ピアノ風', flute: 'フルート風', pluck: 'リュート風', organ: 'オルガン風' };
 const INST_ORDER = ['piano', 'flute', 'pluck', 'organ'];
 const METERS = { '4/4': [192, 48], '3/4': [144, 48], '2/4': [96, 48], '6/8': [144, 72] };
@@ -885,8 +939,8 @@ function drawNotes(tr, color, ghost, sx, sy) {
     cx.fillStyle = color; roundRect(cx, x, y, w, h, 3); cx.fill();
     if (!ghost) {
       cx.globalAlpha = 1;
-      if (n === S.sel) { cx.lineWidth = 2; cx.strokeStyle = '#212529'; cx.stroke(); }
-      else { cx.lineWidth = 1; cx.strokeStyle = 'rgba(0,0,0,.35)'; cx.stroke(); }
+      if (n === S.sel) { cx.lineWidth = 2; cx.strokeStyle = '#5a3a10'; cx.stroke(); }
+      else { cx.lineWidth = 1; cx.strokeStyle = 'rgba(90,58,16,.45)'; cx.stroke(); }
       if (w > 28) { cx.fillStyle = '#fff'; cx.font = '10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'left'; cx.fillText(midiName(n.p), x + 4, y + h / 2 + 0.5); }
     }
   }
@@ -905,26 +959,26 @@ function draw() {
   for (let m = MMAX; m >= MMIN; m--) {
     const y = rowY(m, sy);
     if (y > ch || y < RULER_H - ROW_H) continue;
-    cx.fillStyle = BLACK[m % 12] ? '#f1f3f5' : '#ffffff';
-    if (m === S.hoverRow) cx.fillStyle = '#e7f1ff';
+    cx.fillStyle = BLACK[m % 12] ? '#f7f0dd' : '#fffdf6';
+    if (m === S.hoverRow) cx.fillStyle = '#ffefc2';
     cx.fillRect(KEY_W, y, cw - KEY_W, ROW_H);
-    cx.fillStyle = m % 12 === 0 ? '#adb5bd' : '#eceff1';
+    cx.fillStyle = m % 12 === 0 ? '#cdb98f' : '#f0e6cc';
     cx.fillRect(KEY_W, y + ROW_H - 1, cw - KEY_W, 1);
   }
   /* 縦線（吸着・拍・小節） */
   const g = gridTicks(), bt = beatT(), bar = barT();
   const t0 = Math.floor(sx / z / g) * g, t1 = (sx + cw - KEY_W) / z;
   if (g * z >= 4) {
-    cx.fillStyle = '#eef0f2';
+    cx.fillStyle = '#f3ead3';
     for (let t = t0; t <= t1; t += g) if (t % bt) cx.fillRect(Math.round(tickX(t, sx)), RULER_H, 1, ch);
   }
   for (let t = Math.floor(sx / z / bt) * bt; t <= t1; t += bt) {
-    cx.fillStyle = t % bar === 0 ? '#868e96' : '#ced4da';
+    cx.fillStyle = t % bar === 0 ? '#a8916a' : '#e2d4b4';
     cx.fillRect(Math.round(tickX(t, sx)), RULER_H, 1, ch);
   }
   /* 曲の終わり以降を少し暗く */
   const se = songEnd();
-  if (se) { const ex = tickX(Math.ceil(se / bar) * bar, sx); if (ex < cw) { cx.fillStyle = 'rgba(0,0,0,.035)'; cx.fillRect(Math.max(ex, KEY_W), RULER_H, cw, ch); } }
+  if (se) { const ex = tickX(Math.ceil(se / bar) * bar, sx); if (ex < cw) { cx.fillStyle = 'rgba(120,80,20,.05)'; cx.fillRect(Math.max(ex, KEY_W), RULER_H, cw, ch); } }
 
   /* 音 */
   S.tracks.forEach((tr, i) => { if (i !== S.cur) drawNotes(tr, COLORS[i % COLORS.length], true, sx, sy); });
@@ -933,7 +987,7 @@ function draw() {
 
   /* 再生位置 */
   const hx = Math.round(tickX(S.head, sx));
-  if (hx >= KEY_W && hx <= cw) { cx.fillStyle = S.playing ? '#e03131' : '#1971c2'; cx.fillRect(hx, RULER_H, 2, ch); }
+  if (hx >= KEY_W && hx <= cw) { cx.fillStyle = S.playing ? '#e8604c' : '#2f9fc6'; cx.fillRect(hx, RULER_H, 2, ch); }
   cx.restore();
 
   /* 鍵盤 */
@@ -943,32 +997,32 @@ function draw() {
     const y = rowY(m, sy);
     if (y > ch || y < RULER_H - ROW_H) continue;
     const black = BLACK[m % 12];
-    cx.fillStyle = m === S.hoverRow ? '#74c0fc' : '#fff'; cx.fillRect(0, y, KEY_W, ROW_H);
-    cx.fillStyle = '#ced4da'; cx.fillRect(0, y + ROW_H - 1, KEY_W, 1);
-    if (black) { cx.fillStyle = m === S.hoverRow ? '#1971c2' : '#343a40'; cx.fillRect(0, y + 1, KEY_W * 0.62, ROW_H - 2); }
+    cx.fillStyle = m === S.hoverRow ? '#ffd98a' : '#fffdf6'; cx.fillRect(0, y, KEY_W, ROW_H);
+    cx.fillStyle = '#e2d4b4'; cx.fillRect(0, y + ROW_H - 1, KEY_W, 1);
+    if (black) { cx.fillStyle = m === S.hoverRow ? '#2f9fc6' : '#6b4f3a'; cx.fillRect(0, y + 1, KEY_W * 0.62, ROW_H - 2); }
     if (m % 12 === 0 || m === S.hoverRow) {
-      cx.fillStyle = black ? '#fff' : '#495057'; cx.font = '10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'right';
+      cx.fillStyle = black ? '#fff' : '#7a5c3e'; cx.font = '10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'right';
       cx.fillText(midiName(m), KEY_W - 5, y + ROW_H / 2 + 0.5);
     }
   }
   cx.restore();
-  cx.fillStyle = '#868e96'; cx.fillRect(KEY_W - 1, RULER_H, 1, ch);
+  cx.fillStyle = '#a8916a'; cx.fillRect(KEY_W - 1, RULER_H, 1, ch);
 
   /* ルーラー */
-  cx.fillStyle = '#f1f3f5'; cx.fillRect(0, 0, cw, RULER_H);
-  cx.fillStyle = '#adb5bd'; cx.fillRect(0, RULER_H - 1, cw, 1);
+  cx.fillStyle = '#f7f0dd'; cx.fillRect(0, 0, cw, RULER_H);
+  cx.fillStyle = '#cdb98f'; cx.fillRect(0, RULER_H - 1, cw, 1);
   cx.save();
   cx.beginPath(); cx.rect(KEY_W, 0, cw - KEY_W, RULER_H); cx.clip();
   cx.font = '11px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'left';
   for (let t = Math.floor(sx / z / bt) * bt; t <= t1; t += bt) {
     const x = Math.round(tickX(t, sx));
-    if (t % bar === 0) { cx.fillStyle = '#495057'; cx.fillRect(x, 4, 1, RULER_H - 5); cx.fillText(String(t / bar + 1), x + 4, RULER_H / 2); }
-    else { cx.fillStyle = '#adb5bd'; cx.fillRect(x, RULER_H - 8, 1, 7); }
+    if (t % bar === 0) { cx.fillStyle = '#7a5c3e'; cx.fillRect(x, 4, 1, RULER_H - 5); cx.fillText(String(t / bar + 1), x + 4, RULER_H / 2); }
+    else { cx.fillStyle = '#cdb98f'; cx.fillRect(x, RULER_H - 8, 1, 7); }
   }
-  if (hx >= KEY_W && hx <= cw) { cx.fillStyle = S.playing ? '#e03131' : '#1971c2'; cx.beginPath(); cx.moveTo(hx - 5, 0); cx.lineTo(hx + 7, 0); cx.lineTo(hx + 1, 9); cx.fill(); }
+  if (hx >= KEY_W && hx <= cw) { cx.fillStyle = S.playing ? '#e8604c' : '#2f9fc6'; cx.beginPath(); cx.moveTo(hx - 5, 0); cx.lineTo(hx + 7, 0); cx.lineTo(hx + 1, 9); cx.fill(); }
   cx.restore();
-  cx.fillStyle = '#e9ecef'; cx.fillRect(0, 0, KEY_W, RULER_H - 1);
-  cx.fillStyle = '#6c757d'; cx.font = '10px sans-serif'; cx.textAlign = 'center'; cx.fillText('小節', KEY_W / 2, RULER_H / 2);
+  cx.fillStyle = '#efe3c6'; cx.fillRect(0, 0, KEY_W, RULER_H - 1);
+  cx.fillStyle = '#9a8566'; cx.font = '10px sans-serif'; cx.textAlign = 'center'; cx.fillText('小節', KEY_W / 2, RULER_H / 2);
 }
 
 /* ================= ズーム ================= */
