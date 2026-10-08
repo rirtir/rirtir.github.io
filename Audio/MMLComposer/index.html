@@ -188,6 +188,8 @@ details summary,details h3{color:#ffcf7a}
 .trk-body .vol b{color:#fff}
 .parts{border-top:1px dashed var(--line)}
 .msg{color:#5fd6a0}
+.midi-st{font-size:12px;color:var(--sub)}
+.midi-st.ok{color:#5fd6a0;font-weight:bold}
 .msg.err{color:var(--danger)}
 .out .stat.warn{color:var(--danger)}
 </style>
@@ -242,6 +244,13 @@ details summary,details h3{color:#ffcf7a}
       <button id="bRedo" title="やり直す（Ctrl+Y）">↪</button>
       <button id="bNew" class="danger" title="全部消して最初から">新規</button>
       <button id="bSample" title="サンプル曲を読み込む">サンプル</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp" id="midiGrp">
+      <button id="bMidi" title="MIDIキーボードを接続して、今選んでいるパートの音で試し弾きします">🎹 MIDIキーボード</button>
+      <label for="sMidiOct" title="鍵盤の音域がずれているときに調整します">オクターブ</label>
+      <select id="sMidiOct"><option value="-2">-2</option><option value="-1">-1</option><option value="0" selected>±0</option><option value="1">+1</option><option value="2">+2</option></select>
+      <span class="midi-st" id="midiSt">未接続</span>
     </div>
   </div>
 
@@ -312,6 +321,7 @@ details summary,details h3{color:#ffcf7a}
       <li>M＝ミュート、S＝ソロ（そのパートだけ再生）。音量はパートごとに指定でき、MMLの <code>v</code> に反映されます。</li>
       <li>範囲選択：「⬚ 選択」の道具（または描く道具でShift+ドラッグ）で囲むと複数の音を選べます。Ctrl+Aで全選択。選んだ音はドラッグや矢印キーでまとめて移動、Deleteでまとめて削除できます。</li>
       <li>コピー／貼り付け：選択してCtrl+C（切り取りはCtrl+X）→ 上の目盛りをクリックして再生開始位置（しるし）を決める → Ctrl+V。選んだ音のうち一番先頭の音が、しるしの位置に来るように貼り付きます。別のパートに切り替えてから貼り付けることもできます。</li>
+      <li>MIDIキーボード：ツールバーの「🎹 MIDIキーボード」を押して許可すると、接続したキーボードで試し弾きできます（Chrome／Edge向け）。今選んでいるパートの楽器と音量で鳴り、弾いた鍵盤は画面の鍵盤にも光ります。サスティンペダルにも対応しています。</li>
       <li>ショートカット：スペース＝再生／停止、Ctrl+Z／Ctrl+Y＝元に戻す／やり直す、矢印キー＝選択中の音を移動（Shift+↑↓でオクターブ）。</li>
     </ul>
     <h3>和音パートについて</h3>
@@ -352,7 +362,7 @@ const S = {
   tempo: 120, meter: '4/4', tracks: [], cur: 0,
   tool: 'pen', lenN: 8, dot: false, trip: false, grid: 'auto', zoom: 2,
   loop: false, useShift: false, limit: 0, chordTempo: false, pfmt: 'bare',
-  sel: [], clip: null, marq: null, cursor: 0, head: 0, playing: false, hoverRow: -1,
+  sel: [], clip: null, marq: null, live: new Set(), cursor: 0, head: 0, playing: false, hoverRow: -1,
 };
 
 const $ = id => document.getElementById(id);
@@ -1053,6 +1063,7 @@ function draw() {
     if (y > ch || y < RULER_H - ROW_H) continue;
     cx.fillStyle = BLACK[m % 12] ? '#151d28' : '#1d2733';
     if (m === S.hoverRow) cx.fillStyle = '#263a4d';
+    if (S.live.has(m)) cx.fillStyle = '#1f4a45';
     cx.fillRect(KEY_W, y, cw - KEY_W, ROW_H);
     cx.fillStyle = m % 12 === 0 ? '#4d5f76' : '#26313f';
     cx.fillRect(KEY_W, y + ROW_H - 1, cw - KEY_W, 1);
@@ -1098,9 +1109,9 @@ function draw() {
     const y = rowY(m, sy);
     if (y > ch || y < RULER_H - ROW_H) continue;
     const black = BLACK[m % 12];
-    cx.fillStyle = m === S.hoverRow ? '#9fe3c8' : '#e6ebf2'; cx.fillRect(0, y, KEY_W, ROW_H);
+    cx.fillStyle = S.live.has(m) ? '#5fe0b5' : m === S.hoverRow ? '#9fe3c8' : '#e6ebf2'; cx.fillRect(0, y, KEY_W, ROW_H);
     cx.fillStyle = '#9aa6b6'; cx.fillRect(0, y + ROW_H - 1, KEY_W, 1);
-    if (black) { cx.fillStyle = m === S.hoverRow ? '#1fb386' : '#2a3340'; cx.fillRect(0, y + 1, KEY_W * 0.62, ROW_H - 2); }
+    if (black) { cx.fillStyle = S.live.has(m) ? '#1fb386' : m === S.hoverRow ? '#1fb386' : '#2a3340'; cx.fillRect(0, y + 1, KEY_W * 0.62, ROW_H - 2); }
     if (m % 12 === 0 || m === S.hoverRow) {
       cx.fillStyle = black ? '#fff' : '#3a4656'; cx.font = '10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'right';
       cx.fillText(midiName(m), KEY_W - 5, y + ROW_H / 2 + 0.5);
@@ -1353,6 +1364,70 @@ document.addEventListener('keydown', e => {
   if (dp) preview(ns[0].p);
 });
 
+/* ================= MIDIキーボード（Web MIDI） ================= */
+const midi = { access: null, held: new Map(), sustained: new Set(), pedal: false };
+function liveOn(note) {
+  if (note < MMIN || note > MMAX) return;
+  if (midi.held.has(note)) liveOff(note, true);
+  midi.sustained.delete(note);
+  const tr = S.tracks[S.cur], c = audio();
+  const relG = c.createGain(); relG.connect(master);
+  const nodes = [];
+  voice(tr.inst, note, c.currentTime + 0.005, 20, tr.vol, relG, nodes);
+  midi.held.set(note, { relG, nodes });
+  S.live.add(note); requestDraw();
+}
+function liveRelease(note) {
+  const h = midi.held.get(note); if (!h) return;
+  midi.held.delete(note); S.live.delete(note); requestDraw();
+  const t = actx.currentTime;
+  h.relG.gain.cancelScheduledValues(t);
+  h.relG.gain.setValueAtTime(h.relG.gain.value, t);
+  h.relG.gain.linearRampToValueAtTime(0, t + 0.08);
+  setTimeout(() => { h.nodes.forEach(o => { try { o.stop(); } catch (e) {} }); try { h.relG.disconnect(); } catch (e) {} }, 400);
+}
+function liveOff(note, force) {
+  if (!midi.held.has(note)) return;
+  if (midi.pedal && !force) { midi.sustained.add(note); S.live.delete(note); requestDraw(); return; }
+  liveRelease(note);
+}
+function midiMessage(data) {
+  const st = data[0] & 0xf0, ch = data[0] & 0x0f;
+  if (ch === 9) return;                                     // ドラム用チャンネルは無視
+  const shift = Number($('sMidiOct').value) * 12;
+  if (st === 0x90 && data[2] > 0) liveOn(data[1] + shift);
+  else if (st === 0x80 || st === 0x90) liveOff(data[1] + shift);
+  else if (st === 0xb0 && data[1] === 64) {                 // サスティンペダル
+    midi.pedal = data[2] >= 64;
+    if (!midi.pedal) { midi.sustained.forEach(n => liveRelease(n)); midi.sustained.clear(); }
+  } else if (st === 0xb0 && (data[1] === 123 || data[1] === 120)) {   // 全ノートオフ
+    [...midi.held.keys()].forEach(n => liveRelease(n)); midi.sustained.clear();
+  }
+}
+function midiRefresh() {
+  const st = $('midiSt');
+  const names = [];
+  midi.access.inputs.forEach(inp => { inp.onmidimessage = e => midiMessage(e.data); names.push(inp.name || '名称不明のデバイス'); });
+  if (names.length) { st.textContent = '接続中：' + names.join('、'); st.classList.add('ok'); }
+  else { st.textContent = '接続を待っています（キーボードをつないでください）'; st.classList.remove('ok'); }
+}
+async function midiConnect() {
+  const st = $('midiSt');
+  if (!navigator.requestMIDIAccess) { st.textContent = 'このブラウザはMIDI非対応です（Chrome／Edgeで使えます）'; return; }
+  try {
+    midi.access = await navigator.requestMIDIAccess();
+    midi.access.onstatechange = midiRefresh;
+    midiRefresh();
+  } catch (e) {
+    st.textContent = 'MIDIを利用できませんでした（' + (e.name || 'エラー') + '）。ブラウザの許可設定を確認してください'; st.classList.remove('ok');
+  }
+}
+$('bMidi').onclick = () => { audio(); midiConnect(); };
+if (!navigator.requestMIDIAccess) { $('bMidi').disabled = true; $('midiSt').textContent = 'このブラウザはMIDI非対応です（Chrome／Edgeで使えます）'; }
+else if (navigator.permissions && navigator.permissions.query) {   // 許可済みなら自動で接続する
+  navigator.permissions.query({ name: 'midi' }).then(r => { if (r.state === 'granted') midiConnect(); }).catch(() => {});
+}
+
 /* ================= サンプル・起動 ================= */
 const SAMPLE = 'MML@t100v12l4o4cc g g a a g2 f f e e d d c2,' +
   'v8l4o3a a o4e e f f e2 d d c c o3b b a2,' +
@@ -1380,7 +1455,7 @@ function init() {
   scroller.scrollTop = Math.max(0, RULER_H + (MMAX - mid) * ROW_H - ($('roll').clientHeight / 2));
 }
 init();
-window.__mml = { audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
+window.__mml = { midiMessage, audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
 })();
 </script>
 </body>
