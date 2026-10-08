@@ -128,60 +128,68 @@ details ul{margin:2px 0;padding-left:20px}
   .trk{min-width:238px}
 }
 
-/* ===== テーマ：淡い空と生成りの、やわらかい絵本風 ===== */
+/* ===== テーマ：夜の森の紺色パネル・白い丸タブ・エメラルドのボタン ===== */
 :root{
-  --bg:#eef3f1;--panel:#fffefb;--line:#d6dfe0;--text:#4a4238;--sub:#7b756b;
-  --accent:#6aaec6;--accent-d:#5598b1;--danger:#c0594f;--shadow:0 1px 0 rgba(255,255,255,.9) inset,0 3px 10px rgba(90,110,120,.14);
+  color-scheme:dark;
+  --bg:#0f1720;--panel:#18212d;--card:#1f2a39;--line:#33425a;--text:#eef2f8;--sub:#9fadc0;
+  --green:#1fb386;--green-h:#27c796;--gold:#f5b942;--danger:#ff8f84;
+  --accent:#1fb386;--accent-d:#179a73;
 }
 body{
   font-family:"Zen Maru Gothic","M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Yu Gothic UI",sans-serif;
   background:
-    radial-gradient(900px 340px at 12% -60px,rgba(255,255,255,.75),transparent 70%),
-    linear-gradient(180deg,#dcebf0 0,#e9f1ee 320px,#f1efe6 100%) fixed;
+    radial-gradient(1100px 520px at 12% -140px,#27505e 0,transparent 65%),
+    radial-gradient(900px 480px at 100% -80px,#2b3a68 0,transparent 60%),
+    linear-gradient(#0f1822,#121b27) fixed;
   color:var(--text);
 }
 header{padding:16px 16px 6px;max-width:1500px;margin:0 auto}
-header h1{color:#4f5f66;letter-spacing:.06em;display:flex;align-items:center;gap:10px;font-weight:700}
-header h1::before{content:"";width:12px;height:12px;background:#e6c27a;border-radius:50% 0 50% 0;transform:rotate(45deg);flex:none}
+header h1{color:#fff;letter-spacing:.04em;display:flex;align-items:center;gap:10px;font-weight:700}
+header h1::before{content:"";width:11px;height:11px;background:var(--gold);transform:rotate(45deg);border-radius:2px;flex:none}
 header p{color:var(--sub)}
-.toolbar,.panel,.out,details,.trk{
-  background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+.toolbar,.panel,.out,details{
+  background:rgba(24,33,45,.94);border:1px solid #2e3b50;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,.35);
 }
-.trk{border-left:6px solid var(--c);border-radius:14px}
-.trk.active{box-shadow:0 0 0 2px var(--c),var(--shadow)}
+.trk{
+  background:var(--card);border:1.5px solid #3a4960;border-left:6px solid var(--c);border-radius:16px;box-shadow:none;
+}
+.trk.active{border-color:var(--c);box-shadow:0 0 0 2px var(--c),0 6px 16px rgba(0,0,0,.4)}
 button{
-  border:1px solid #cfd8d9;border-radius:999px;color:var(--text);font-family:inherit;font-weight:700;
-  background:#fbfcfb;box-shadow:0 1px 0 #e2e8e8;padding:6px 12px;
+  border:none;border-radius:999px;background:#2b3748;color:#c9d3e0;font-family:inherit;font-weight:700;
+  padding:7px 14px;box-shadow:none;
 }
-button:hover{background:#f1f6f6}
-button:active{transform:translateY(1px);box-shadow:none}
-button.primary{background:#ecc977;border-color:#d9b15a;color:#5a4620;box-shadow:0 2px 0 #cfa94f}
-button.primary:hover{background:#f1d28b}
-button.on{background:#7fb8cd;border-color:#6aa3b9;color:#fff;box-shadow:0 1px 0 #5f97ac;text-shadow:0 1px 0 rgba(30,70,90,.25)}
+button:hover{background:#38475c;color:#fff}
+button:active{transform:scale(.96)}
+button:disabled{opacity:.35}
+button.primary{background:var(--green);color:#fff;text-shadow:0 1px 0 rgba(0,60,40,.3)}
+button.primary:hover{background:var(--green-h)}
+button.on{background:#fff;color:#1b2430;text-shadow:none}
 button.danger{color:var(--danger)}
-.seg button{border-radius:0;box-shadow:none;padding:6px 10px}
-.seg button:first-child{border-radius:999px 0 0 999px}
+.seg button{border-radius:0;padding:7px 11px;margin-left:2px}
+.seg button:first-child{border-radius:999px 0 0 999px;margin-left:0}
 .seg button:last-child{border-radius:0 999px 999px 0}
-.trk-head button,.trk-body button{border-radius:8px;padding:3px 8px}
-select,input[type=number]{background:#fff;border:1px solid #cfd8d9;border-radius:10px;color:var(--text);font-family:inherit}
-input[type=range]{accent-color:#7fb8cd}
-input[type=checkbox],input[type=radio]{accent-color:#6aaec6}
+.trk-head button,.trk-body button{border-radius:10px;padding:3px 9px}
+.trk-head button.on{background:var(--gold);color:#2b2008}
+select,input[type=number]{background:#111922;border:1px solid #34435a;border-radius:12px;color:var(--text);font-family:inherit}
+input[type=range]{accent-color:var(--green)}
+input[type=checkbox],input[type=radio]{accent-color:var(--green)}
 .sep{background:var(--line)}
 .grp>label,.grp>.lab,.panel .row>span{color:var(--sub)}
-.trk-head input.name{color:var(--text);font-family:inherit}
-.trk-head input.name:focus{background:#fff;border-color:var(--line)}
-.add{background:transparent;border:1.5px dashed #bccacc;box-shadow:none;border-radius:14px;color:var(--sub)}
-.roll{
-  background:#fcfdfd;border:1px solid #c9d6d9;border-radius:16px;
-  box-shadow:0 3px 10px rgba(90,110,120,.14);
-}
-.out textarea,.prow input{background:#fff;border:1px solid #cfd8d9;border-radius:10px;color:var(--text)}
-.prow input{background:#f6f9f8}
-details code{background:#eef3f1;color:#5b6a62}
+.trk-head input.name{color:#fff;font-family:inherit}
+.trk-head input.name:focus{background:#111922;border-color:var(--line)}
+.add{background:transparent;border:1.5px dashed #4a5a73;color:var(--sub);border-radius:16px}
+.add:hover{background:#1f2a39;color:#fff}
+.roll{background:#1c2531;border:1px solid #33425a;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.out textarea,.prow input{background:#111922;border:1px solid #34435a;border-radius:12px;color:#cfe6ff}
+.out h2,.panel b.t{color:#fff}
+details code{background:#2a3544;color:#ffcf7a}
+details summary,details h3{color:#ffcf7a}
 .hint,.note,.trk-body,.out .stat{color:var(--sub)}
+.trk-body .vol b{color:#fff}
 .parts{border-top:1px dashed var(--line)}
-.msg{color:#4d8a62}
-details summary{color:#4f5f66}
+.msg{color:#5fd6a0}
+.msg.err{color:var(--danger)}
+.out .stat.warn{color:var(--danger)}
 </style>
 </head>
 <body>
@@ -330,7 +338,7 @@ const TPW = 192;                    // 全音符 = 192 tick（64分=3, 3連32分
 const MMIN = 24, MMAX = 119;        // C1 〜 B8（MIDIノート番号。o4 の c = 60）
 const ROWS = MMAX - MMIN + 1;
 const ROW_H = 16, KEY_W = 60, RULER_H = 24;
-const COLORS = ['#d07a50', '#5b8fc0', '#62a06e', '#9774b6', '#c76e88', '#4a9894', '#bb9439', '#6e7fbb'];
+const COLORS = ['#f2a03d', '#3fc79b', '#6aa8f0', '#c18af0', '#f0809e', '#52cfe0', '#d9b84a', '#97a6f7'];
 const INSTS = { piano: 'ピアノ風', flute: 'フルート風', pluck: 'リュート風', organ: 'オルガン風', clarinet: 'クラリネット風' };
 const INST_ORDER = ['piano', 'flute', 'pluck', 'organ'];
 const METERS = { '4/4': [192, 48], '3/4': [144, 48], '2/4': [96, 48], '6/8': [144, 72] };
@@ -976,9 +984,9 @@ function drawNotes(tr, color, ghost, sx, sy) {
     cx.fillStyle = color; roundRect(cx, x, y, w, h, 3); cx.fill();
     if (!ghost) {
       cx.globalAlpha = 1;
-      if (S.sel.includes(n)) { cx.lineWidth = 2.5; cx.strokeStyle = '#2f3a40'; cx.stroke(); }
-      else { cx.lineWidth = 1; cx.strokeStyle = 'rgba(30,45,55,.45)'; cx.stroke(); }
-      if (w > 28) { cx.fillStyle = '#fff'; cx.font = 'bold 10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'left'; cx.shadowColor = 'rgba(0,0,0,.55)'; cx.shadowBlur = 2; cx.fillText(midiName(n.p), x + 4, y + h / 2 + 0.5); cx.shadowBlur = 0; }
+      if (S.sel.includes(n)) { cx.lineWidth = 2.5; cx.strokeStyle = '#ffffff'; cx.stroke(); }
+      else { cx.lineWidth = 1; cx.strokeStyle = 'rgba(0,0,0,.5)'; cx.stroke(); }
+      if (w > 28) { cx.fillStyle = '#0f1b27'; cx.font = 'bold 10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'left'; cx.fillText(midiName(n.p), x + 4, y + h / 2 + 0.5); }
     }
   }
   cx.globalAlpha = 1;
@@ -997,26 +1005,26 @@ function draw() {
   for (let m = MMAX; m >= MMIN; m--) {
     const y = rowY(m, sy);
     if (y > ch || y < RULER_H - ROW_H) continue;
-    cx.fillStyle = BLACK[m % 12] ? '#e9eff1' : '#fcfdfd';
-    if (m === S.hoverRow) cx.fillStyle = '#e0f0f6';
+    cx.fillStyle = BLACK[m % 12] ? '#151d28' : '#1d2733';
+    if (m === S.hoverRow) cx.fillStyle = '#263a4d';
     cx.fillRect(KEY_W, y, cw - KEY_W, ROW_H);
-    cx.fillStyle = m % 12 === 0 ? '#aebcc2' : '#dbe4e7';
+    cx.fillStyle = m % 12 === 0 ? '#4d5f76' : '#26313f';
     cx.fillRect(KEY_W, y + ROW_H - 1, cw - KEY_W, 1);
   }
   /* 縦線（吸着・拍・小節） */
   const g = gridTicks(), bt = beatT(), bar = barT();
   const t0 = Math.floor(sx / z / g) * g, t1 = (sx + cw - KEY_W) / z;
   if (g * z >= 4) {
-    cx.fillStyle = '#e8eef0';
+    cx.fillStyle = '#222d3b';
     for (let t = t0; t <= t1; t += g) if (t % bt) cx.fillRect(Math.round(tickX(t, sx)), RULER_H, 1, ch);
   }
   for (let t = Math.floor(sx / z / bt) * bt; t <= t1; t += bt) {
-    cx.fillStyle = t % bar === 0 ? '#8a9ca4' : '#c5d2d7';
+    cx.fillStyle = t % bar === 0 ? '#70829a' : '#34424f';
     cx.fillRect(Math.round(tickX(t, sx)), RULER_H, 1, ch);
   }
   /* 曲の終わり以降を少し暗く */
   const se = songEnd();
-  if (se) { const ex = tickX(Math.ceil(se / bar) * bar, sx); if (ex < cw) { cx.fillStyle = 'rgba(80,110,125,.05)'; cx.fillRect(Math.max(ex, KEY_W), RULER_H, cw, ch); } }
+  if (se) { const ex = tickX(Math.ceil(se / bar) * bar, sx); if (ex < cw) { cx.fillStyle = 'rgba(0,0,0,.2)'; cx.fillRect(Math.max(ex, KEY_W), RULER_H, cw, ch); } }
 
   /* 音 */
   S.tracks.forEach((tr, i) => { if (i !== S.cur) drawNotes(tr, COLORS[i % COLORS.length], true, sx, sy); });
@@ -1028,13 +1036,13 @@ function draw() {
     const m = S.marq;
     const x = Math.min(m.x0, m.x1) + KEY_W - sx, y = Math.min(m.y0, m.y1) + RULER_H - sy;
     const w = Math.abs(m.x1 - m.x0), h = Math.abs(m.y1 - m.y0);
-    cx.fillStyle = 'rgba(79,179,214,.18)'; cx.fillRect(x, y, w, h);
-    cx.setLineDash([5, 3]); cx.lineWidth = 1.5; cx.strokeStyle = '#4a9fbd'; cx.strokeRect(x + .5, y + .5, w, h); cx.setLineDash([]);
+    cx.fillStyle = 'rgba(95,214,160,.16)'; cx.fillRect(x, y, w, h);
+    cx.setLineDash([5, 3]); cx.lineWidth = 1.5; cx.strokeStyle = '#5fd6a0'; cx.strokeRect(x + .5, y + .5, w, h); cx.setLineDash([]);
   }
 
   /* 再生位置 */
   const hx = Math.round(tickX(S.head, sx));
-  if (hx >= KEY_W && hx <= cw) { cx.fillStyle = S.playing ? '#e07a6a' : '#4a9fbd'; cx.fillRect(hx, RULER_H, 2, ch); }
+  if (hx >= KEY_W && hx <= cw) { cx.fillStyle = S.playing ? '#ff8a7a' : '#7cc4ff'; cx.fillRect(hx, RULER_H, 2, ch); }
   cx.restore();
 
   /* 鍵盤 */
@@ -1044,32 +1052,32 @@ function draw() {
     const y = rowY(m, sy);
     if (y > ch || y < RULER_H - ROW_H) continue;
     const black = BLACK[m % 12];
-    cx.fillStyle = m === S.hoverRow ? '#bfe3f0' : '#fcfdfd'; cx.fillRect(0, y, KEY_W, ROW_H);
-    cx.fillStyle = '#c5d2d7'; cx.fillRect(0, y + ROW_H - 1, KEY_W, 1);
-    if (black) { cx.fillStyle = m === S.hoverRow ? '#4a9fbd' : '#5d6a73'; cx.fillRect(0, y + 1, KEY_W * 0.62, ROW_H - 2); }
+    cx.fillStyle = m === S.hoverRow ? '#9fe3c8' : '#e6ebf2'; cx.fillRect(0, y, KEY_W, ROW_H);
+    cx.fillStyle = '#9aa6b6'; cx.fillRect(0, y + ROW_H - 1, KEY_W, 1);
+    if (black) { cx.fillStyle = m === S.hoverRow ? '#1fb386' : '#2a3340'; cx.fillRect(0, y + 1, KEY_W * 0.62, ROW_H - 2); }
     if (m % 12 === 0 || m === S.hoverRow) {
-      cx.fillStyle = black ? '#fff' : '#44525a'; cx.font = '10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'right';
+      cx.fillStyle = black ? '#fff' : '#3a4656'; cx.font = '10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'right';
       cx.fillText(midiName(m), KEY_W - 5, y + ROW_H / 2 + 0.5);
     }
   }
   cx.restore();
-  cx.fillStyle = '#8a9ca4'; cx.fillRect(KEY_W - 1, RULER_H, 1, ch);
+  cx.fillStyle = '#0e141c'; cx.fillRect(KEY_W - 1, RULER_H, 1, ch);
 
   /* ルーラー */
-  cx.fillStyle = '#e9eff1'; cx.fillRect(0, 0, cw, RULER_H);
-  cx.fillStyle = '#aebcc2'; cx.fillRect(0, RULER_H - 1, cw, 1);
+  cx.fillStyle = '#222d3b'; cx.fillRect(0, 0, cw, RULER_H);
+  cx.fillStyle = '#3a4a5d'; cx.fillRect(0, RULER_H - 1, cw, 1);
   cx.save();
   cx.beginPath(); cx.rect(KEY_W, 0, cw - KEY_W, RULER_H); cx.clip();
   cx.font = '11px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'left';
   for (let t = Math.floor(sx / z / bt) * bt; t <= t1; t += bt) {
     const x = Math.round(tickX(t, sx));
-    if (t % bar === 0) { cx.fillStyle = '#44525a'; cx.fillRect(x, 4, 1, RULER_H - 5); cx.fillText(String(t / bar + 1), x + 4, RULER_H / 2); }
-    else { cx.fillStyle = '#aebcc2'; cx.fillRect(x, RULER_H - 8, 1, 7); }
+    if (t % bar === 0) { cx.fillStyle = '#dbe4f0'; cx.fillRect(x, 4, 1, RULER_H - 5); cx.fillText(String(t / bar + 1), x + 4, RULER_H / 2); }
+    else { cx.fillStyle = '#5b6c82'; cx.fillRect(x, RULER_H - 8, 1, 7); }
   }
-  if (hx >= KEY_W && hx <= cw) { cx.fillStyle = S.playing ? '#e07a6a' : '#4a9fbd'; cx.beginPath(); cx.moveTo(hx - 5, 0); cx.lineTo(hx + 7, 0); cx.lineTo(hx + 1, 9); cx.fill(); }
+  if (hx >= KEY_W && hx <= cw) { cx.fillStyle = S.playing ? '#ff8a7a' : '#7cc4ff'; cx.beginPath(); cx.moveTo(hx - 5, 0); cx.lineTo(hx + 7, 0); cx.lineTo(hx + 1, 9); cx.fill(); }
   cx.restore();
-  cx.fillStyle = '#dde7ea'; cx.fillRect(0, 0, KEY_W, RULER_H - 1);
-  cx.fillStyle = '#6a7a82'; cx.font = '10px sans-serif'; cx.textAlign = 'center'; cx.fillText('小節', KEY_W / 2, RULER_H / 2);
+  cx.fillStyle = '#2a3646'; cx.fillRect(0, 0, KEY_W, RULER_H - 1);
+  cx.fillStyle = '#9aa7b8'; cx.font = '10px sans-serif'; cx.textAlign = 'center'; cx.fillText('小節', KEY_W / 2, RULER_H / 2);
 }
 
 /* ================= ズーム ================= */
