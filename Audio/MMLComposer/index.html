@@ -282,7 +282,7 @@ details summary,details h3{color:#ffcf7a}
         <canvas id="cv"></canvas>
         <div class="scroller edit" id="scroller"><div class="spacer" id="spacer"></div></div>
       </div>
-      <p class="hint">クリックで音を置く／ドラッグで長さ調整／音をドラッグで移動／右クリックまたはDeleteで削除／Shift+ドラッグで範囲選択→Ctrl+C／Ctrl+Vで、上の目盛りで決めた再生開始位置に貼り付け／左の鍵盤をクリックで試聴／Ctrl+ホイールで拡大縮小</p>
+      <p class="hint">クリックで音を置く／ドラッグで長さ調整／音をドラッグで移動／右クリックまたはDeleteで削除／Shift+ドラッグで範囲選択→Ctrl+C／Ctrl+Vで、上の目盛りかA／Dキーで決めた再生開始位置に貼り付け／左の鍵盤をクリックで試聴／Ctrl+ホイールで拡大縮小</p>
     </section>
   </div>
 
@@ -322,6 +322,7 @@ details summary,details h3{color:#ffcf7a}
       <li>範囲選択：「⬚ 選択」の道具（または描く道具でShift+ドラッグ）で囲むと複数の音を選べます。Ctrl+Aで全選択。選んだ音はドラッグや矢印キーでまとめて移動、Deleteでまとめて削除できます。</li>
       <li>コピー／貼り付け：選択してCtrl+C（切り取りはCtrl+X）→ 上の目盛りをクリックして再生開始位置（しるし）を決める → Ctrl+V。選んだ音のうち一番先頭の音が、しるしの位置に来るように貼り付きます。別のパートに切り替えてから貼り付けることもできます。</li>
       <li>MIDIキーボード：ツールバーの「🎹 MIDIキーボード」を押して許可すると、接続したキーボードで試し弾きできます（Chrome／Edge向け）。今選んでいるパートの楽器と音量で鳴り、弾いた鍵盤は画面の鍵盤にも光ります。サスティンペダルにも対応しています。</li>
+      <li>シークバー（再生開始位置・貼り付け位置）：上の目盛りをクリック、またはAキー／Dキーで左右に動かせます（吸着の幅ぶん。Shiftを押すと1小節ずつ）。Home／Endで先頭／最後へ。W／Sキーで編集するパートを上下に切り替えます。</li>
       <li>ショートカット：スペース＝再生／停止、Ctrl+Z／Ctrl+Y＝元に戻す／やり直す、矢印キー＝選択中の音を移動（Shift+↑↓でオクターブ）。</li>
     </ul>
     <h3>和音パートについて</h3>
@@ -1331,6 +1332,20 @@ function pasteClip() {
 }
 $('bClipCopy').onclick = copySel; $('bClipCut').onclick = cutSel; $('bClipPaste').onclick = pasteClip;
 
+/* シークバーを t(tick) へ移動。再生中なら、その位置から再生し直す */
+let seekTimer = 0;
+function seekTo(t) {
+  t = Math.max(0, t);
+  S.cursor = t;
+  const resume = S.playing || seekTimer;
+  if (S.playing) stop();
+  S.head = t;
+  const x = t * S.zoom, vw = scroller.clientWidth - KEY_W;
+  if (x < scroller.scrollLeft || x > scroller.scrollLeft + vw - 40) scroller.scrollLeft = Math.max(0, x - vw * 0.3);
+  requestDraw();
+  if (resume) { clearTimeout(seekTimer); seekTimer = setTimeout(() => { seekTimer = 0; play(); }, 140); }
+}
+
 /* ================= キーボード ================= */
 document.addEventListener('keydown', e => {
   const tag = (e.target.tagName || '').toLowerCase();
@@ -1348,6 +1363,20 @@ document.addEventListener('keydown', e => {
   }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (k === ' ') { e.preventDefault(); S.playing ? stop() : play(); return; }
+  const kl = k.toLowerCase();
+  if (kl === 'a' || kl === 'd') {                            // A/D：シークバーを左右へ（Shiftで1小節）
+    e.preventDefault();
+    const g = e.shiftKey ? barT() : gridTicks();
+    const base = Math.round((S.playing ? S.head : S.cursor) / g) * g;
+    seekTo(base + (kl === 'd' ? g : -g)); return;
+  }
+  if (k === 'Home') { e.preventDefault(); seekTo(0); return; }
+  if (k === 'End') { e.preventDefault(); seekTo(songEnd()); return; }
+  if ((kl === 'w' || kl === 's') && !e.repeat) {             // W/S：編集するパートを上下に切り替え
+    const i = clamp(S.cur + (kl === 's' ? 1 : -1), 0, S.tracks.length - 1);
+    if (i !== S.cur) { setCur(i); flash('編集中：' + S.tracks[i].name); }
+    return;
+  }
   const tr = S.tracks[S.cur];
   const ns = selectedNotes();
   if (!ns.length) return;
