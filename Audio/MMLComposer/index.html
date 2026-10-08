@@ -101,6 +101,13 @@ input[type=number]{width:64px}
 .out .bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
 .out .stat{font-size:13px;color:var(--sub)}
 .out .stat.warn{color:var(--danger);font-weight:bold}
+.parts{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.parts h3{margin:0 0 6px;font-size:14px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.parts h3 .opts{font-weight:normal;font-size:13px;display:flex;gap:10px;flex-wrap:wrap}
+.prow{display:flex;align-items:center;gap:6px;margin:4px 0}
+.prow .pn{width:74px;flex:none;font-weight:bold;font-size:13px;border-left:6px solid var(--c);padding-left:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow input{flex:1;min-width:0;font-family:Consolas,monospace;font-size:12px;padding:6px;border:1px solid var(--line);border-radius:6px;background:#f8f9fa}
+.prow .pc{flex:none;width:62px;text-align:right;font-size:12px;color:var(--sub)}
 .msg{font-size:13px;color:#2b8a3e;min-height:1.2em}
 .msg.err{color:var(--danger)}
 details{margin-top:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.7}
@@ -209,6 +216,16 @@ details ul{margin:2px 0;padding-left:20px}
       <span class="stat" id="stat"></span>
       <span class="msg" id="msg"></span>
     </div>
+    <div class="parts">
+      <h3>パートごとにコピー
+        <span class="opts">
+          <label class="chk"><input type="radio" name="pfmt" value="bare" checked>パートのMMLだけ</label>
+          <label class="chk"><input type="radio" name="pfmt" value="full"><code>MML@…;</code>付き</label>
+          <label class="chk" title="ふつう和音パートのテンポはメロディから引き継がれます"><input type="checkbox" id="cChordTempo">和音にもテンポ(t)を付ける</label>
+        </span>
+      </h3>
+      <div id="partRows"></div>
+    </div>
     <div class="settings" style="margin-top:6px;font-size:13px">
       <label class="chk" title="オクターブ変更を o5 ではなく < > で書いて文字数を減らします（> が上、< が下）"><input type="checkbox" id="cShift">オクターブ移動に &lt; &gt; を使う</label>
       <label>文字数の上限警告 <input type="number" id="iLimit" min="0" max="99999" value="0" style="width:80px"> <span style="color:var(--sub)">（0＝警告なし。ゲームの上限に合わせて設定）</span></label>
@@ -262,7 +279,7 @@ const SAVE_KEY = 'mmlcomposer.v1';
 const S = {
   tempo: 120, meter: '4/4', tracks: [], cur: 0,
   tool: 'pen', lenN: 8, dot: false, trip: false, grid: 'auto', zoom: 2,
-  loop: false, useShift: false, limit: 0,
+  loop: false, useShift: false, limit: 0, chordTempo: false, pfmt: 'bare',
   sel: null, cursor: 0, head: 0, playing: false, hoverRow: -1,
 };
 
@@ -346,7 +363,9 @@ function genTrack(tr, withTempo) {
   }
   return out;
 }
-function genAll() { return 'MML@' + S.tracks.map((tr, i) => genTrack(tr, i === 0)).join(',') + ';'; }
+const partMML = i => genTrack(S.tracks[i], i === 0 || S.chordTempo);
+function partCopyText(i) { return S.pfmt === 'full' ? 'MML@' + partMML(i) + ';' : partMML(i); }
+function genAll() { return 'MML@' + S.tracks.map((_, i) => partMML(i)).join(',') + ';'; }
 
 /* ================= MML 読み込み ================= */
 function parseMML(text) {
@@ -459,6 +478,19 @@ function updateSpacer() {
 function updateOutput() {
   const ta = $('tOut');
   ta.value = genAll();
+  const rows = $('partRows');
+  if (rows.children.length !== S.tracks.length) {
+    rows.innerHTML = S.tracks.map((_, i) => '<div class="prow" data-i="' + i + '"><span class="pn"></span><input readonly><span class="pc"></span><button data-act="pcopy">コピー</button></div>').join('');
+  }
+  S.tracks.forEach((tr, i) => {
+    const r = rows.children[i];
+    r.style.setProperty('--c', COLORS[i % COLORS.length]);
+    r.querySelector('.pn').textContent = tr.name;
+    const text = partCopyText(i);
+    r.querySelector('input').value = text;
+    r.querySelector('.pc').textContent = text.length + '文字';
+    r.querySelector('button').textContent = tr.name + 'をコピー';
+  });
 }
 function updateCounts() {
   const total = $('tOut').value.length;
@@ -468,7 +500,7 @@ function updateCounts() {
   if (over) st.textContent += '（上限 ' + S.limit + ' を ' + (total - S.limit) + ' 超過）';
   st.classList.toggle('warn', over);
   document.querySelectorAll('.trk').forEach((el, i) => {
-    const c = el.querySelector('.cnt'); if (c && S.tracks[i]) c.textContent = genTrack(S.tracks[i], i === 0).length + '文字';
+    const c = el.querySelector('.cnt'); if (c && S.tracks[i]) c.textContent = partMML(i).length + '文字';
   });
 }
 function flash(text, err) {
@@ -500,7 +532,7 @@ function renderTracks() {
         '<select data-act="inst">' + Object.keys(INSTS).map(k => '<option value="' + k + '"' + (k === tr.inst ? ' selected' : '') + '>' + INSTS[k] + '</option>').join('') + '</select>' +
         '<span class="vol">音量<input type="range" data-act="vol" min="1" max="15" value="' + tr.vol + '"><b>' + tr.vol + '</b></span>' +
         '<span class="cnt"></span>' +
-        '<button data-act="copy" title="このパートだけのMMLをコピー">コピー</button>' +
+        '<button data-act="copy" title="このパートのMMLだけをコピー（形式は下の「パートごとにコピー」の設定に従います）">コピー</button>' +
       '</div>';
     box.appendChild(el);
   });
@@ -526,7 +558,7 @@ $('tracks').addEventListener('click', e => {
     edit(() => { S.tracks.splice(i, 1); S.cur = clamp(S.cur >= i ? S.cur - 1 : S.cur, 0, S.tracks.length - 1); S.sel = null; renumberNames(); });
     return;
   }
-  if (act === 'copy') { copyText(genTrack(tr, true).replace(/^/, 'MML@') + ';', tr.name + 'をコピーしました'); return; }
+  if (act === 'copy') { copyText(partCopyText(i), tr.name + 'のMMLをコピーしました'); return; }
   setCur(i);
 });
 function setCur(i) {
@@ -538,7 +570,7 @@ function setCur(i) {
 $('tracks').addEventListener('input', e => {
   const row = e.target.closest('.trk'); if (!row) return;
   const tr = S.tracks[Number(row.dataset.i)];
-  if (e.target.classList.contains('name')) { tr.name = e.target.value; saveSoon(); }
+  if (e.target.classList.contains('name')) { tr.name = e.target.value; updateOutput(); saveSoon(); }
   else if (e.target.dataset.act === 'vol') {
     tr.vol = Number(e.target.value); e.target.nextSibling.textContent = tr.vol; updateOutput(); updateCounts(); saveSoon();
   }
@@ -631,6 +663,14 @@ $('hGo').onclick = () => {
   };
   $('sMeter').onchange = e => { const b = snapshot(); S.meter = e.target.value; pushUndo(b); notesChanged(); };
   $('cLoop').onchange = e => { S.loop = e.target.checked; };
+  $('partRows').addEventListener('click', e => {
+    const row = e.target.closest('.prow'); if (!row || e.target.dataset.act !== 'pcopy') return;
+    const i = Number(row.dataset.i);
+    copyText(partCopyText(i), S.tracks[i].name + 'のMMLをコピーしました');
+  });
+  $('partRows').addEventListener('focusin', e => { if (e.target.tagName === 'INPUT') e.target.select(); });
+  document.querySelectorAll('input[name=pfmt]').forEach(r => r.onchange = () => { S.pfmt = r.value; if (r.checked) updateOutput(); });
+  $('cChordTempo').onchange = e => { S.chordTempo = e.target.checked; notesChanged(); };
   $('cShift').onchange = e => { S.useShift = e.target.checked; notesChanged(); };
   $('iLimit').onchange = e => { S.limit = Math.max(0, Number(e.target.value) || 0); updateCounts(); };
   $('bUndo').onclick = undo; $('bRedo').onclick = redo;
