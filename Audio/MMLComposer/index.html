@@ -178,6 +178,28 @@ details code{background:#f6ebd0;color:#7a4e12}
 .hint,.note{color:var(--sub)}
 .parts{border-top:2px dotted #e3d3b0}
 .msg{color:#3f9a58}
+
+/* ===== コントラスト強化 ===== */
+:root{--text:#3b2a16;--sub:#6b5738;--line:#c9b486;}
+body{background:linear-gradient(180deg,#9fd3e8 0,#c4e2d6 260px,#e6d9b2 600px) fixed;color:var(--text)}
+header h1{color:#4f3210;text-shadow:0 2px 0 rgba(255,255,255,.7)}
+header p{color:#3f3322}
+.toolbar,.panel,.out,details,.trk{border-color:#c9b486;background:#fffaf0;box-shadow:0 2px 0 #b9a271,0 8px 18px rgba(80,55,20,.18)}
+.grp>label,.grp>.lab,.panel .row>span{color:#5d4a2c;font-weight:bold}
+.hint,.note,.out .stat,.trk-body{color:#5d4a2c}
+.trk-body .cnt{color:#5d4a2c}
+button{border-color:#b39a62;color:#3b2a16;font-weight:bold;box-shadow:0 2px 0 #b39a62}
+button.primary{border-color:#b9771a;box-shadow:0 2px 0 #a8650f;color:#3f2305}
+button.on{background:linear-gradient(#5bbbe0,#2a86b0);border-color:#1f6f94;box-shadow:0 2px 0 #1b6486;text-shadow:0 1px 0 rgba(0,40,70,.5)}
+button.danger{color:#b3302a}
+select,input[type=number]{border-color:#b39a62;color:#3b2a16;font-weight:bold}
+.roll{border-color:#a8925f}
+.trk{border-left-width:10px}
+.trk-head input.name{font-size:15px}
+.out textarea,.prow input{border-color:#b39a62;color:#2b1d0c;background:#fffefa}
+.sep{background:#c9b486}
+details summary{color:#4f3210}
+.msg{color:#1f7a3c;font-weight:bold}
 </style>
 </head>
 <body>
@@ -204,7 +226,8 @@ details code{background:#f6ebd0;color:#7a4e12}
     <div class="grp">
       <span class="lab">道具</span>
       <div class="seg" id="tools">
-        <button data-tool="pen" class="on" title="クリックで音を置く／ドラッグで移動・長さ変更／右クリックで削除">✏️ 描く</button>
+        <button data-tool="pen" class="on" title="クリックで音を置く／ドラッグで移動・長さ変更／右クリックで削除／Shift+ドラッグで範囲選択">✏️ 描く</button>
+        <button data-tool="select" title="ドラッグで範囲選択（Shiftで追加）。選んだ音はまとめて移動できます">⬚ 選択</button>
         <button data-tool="erase" title="クリックした音を消す">🧽 消す</button>
         <button data-tool="hand" title="スマホ用：ドラッグでスクロール">✋ 移動</button>
       </div>
@@ -222,6 +245,9 @@ details code{background:#f6ebd0;color:#7a4e12}
       <label for="rZoom">拡大</label><input type="range" id="rZoom" min="0.6" max="7" step="0.1" value="2" style="width:80px">
     </div>
     <div class="grp">
+      <button id="bClipCopy" title="選択した音をコピー（Ctrl+C）">コピー</button>
+      <button id="bClipCut" title="選択した音を切り取り（Ctrl+X）">切り取り</button>
+      <button id="bClipPaste" title="再生開始位置（上の目盛りのしるし）に貼り付け（Ctrl+V）">貼り付け</button>
       <button id="bUndo" title="元に戻す（Ctrl+Z）">↩</button>
       <button id="bRedo" title="やり直す（Ctrl+Y）">↪</button>
       <button id="bNew" class="danger" title="全部消して最初から">新規</button>
@@ -257,7 +283,7 @@ details code{background:#f6ebd0;color:#7a4e12}
         <canvas id="cv"></canvas>
         <div class="scroller edit" id="scroller"><div class="spacer" id="spacer"></div></div>
       </div>
-      <p class="hint">クリックで音を置く／ドラッグで長さ調整／音をドラッグで移動／右クリックまたはDeleteで削除／左の鍵盤をクリックで試聴／上の目盛りをクリックで再生開始位置を指定／Ctrl+ホイールで拡大縮小</p>
+      <p class="hint">クリックで音を置く／ドラッグで長さ調整／音をドラッグで移動／右クリックまたはDeleteで削除／Shift+ドラッグで範囲選択→Ctrl+C／Ctrl+Vで、上の目盛りで決めた再生開始位置に貼り付け／左の鍵盤をクリックで試聴／Ctrl+ホイールで拡大縮小</p>
     </section>
   </div>
 
@@ -294,6 +320,8 @@ details code{background:#f6ebd0;color:#7a4e12}
       <li>置いた音は、本体をドラッグで移動、右端をドラッグで長さ変更、右クリック（またはDelete）で削除。スマホでは「🧽 消す」「✋ 移動」を使います。</li>
       <li>左の「メロディ」「和音1」…をクリックして編集するパートを切り替えます。編集中でないパートの音は薄く表示されるので、重なりを見ながら和音を作れます。</li>
       <li>M＝ミュート、S＝ソロ（そのパートだけ再生）。音量はパートごとに指定でき、MMLの <code>v</code> に反映されます。</li>
+      <li>範囲選択：「⬚ 選択」の道具（または描く道具でShift+ドラッグ）で囲むと複数の音を選べます。Ctrl+Aで全選択。選んだ音はドラッグや矢印キーでまとめて移動、Deleteでまとめて削除できます。</li>
+      <li>コピー／貼り付け：選択してCtrl+C（切り取りはCtrl+X）→ 上の目盛りをクリックして再生開始位置（しるし）を決める → Ctrl+V。選んだ音のうち一番先頭の音が、しるしの位置に来るように貼り付きます。別のパートに切り替えてから貼り付けることもできます。</li>
       <li>ショートカット：スペース＝再生／停止、Ctrl+Z／Ctrl+Y＝元に戻す／やり直す、矢印キー＝選択中の音を移動（Shift+↑↓でオクターブ）。</li>
     </ul>
     <h3>和音パートについて</h3>
@@ -320,7 +348,7 @@ const TPW = 192;                    // 全音符 = 192 tick（64分=3, 3連32分
 const MMIN = 24, MMAX = 119;        // C1 〜 B8（MIDIノート番号。o4 の c = 60）
 const ROWS = MMAX - MMIN + 1;
 const ROW_H = 16, KEY_W = 60, RULER_H = 24;
-const COLORS = ['#f0813f', '#4a9fd6', '#5fb35f', '#b077d6', '#e8688a', '#36b0a8', '#e5ad2e', '#7487da'];
+const COLORS = ['#e0651f', '#2f84c4', '#3f9a45', '#9255c2', '#d03e6a', '#1f9690', '#cf9412', '#5468c8'];
 const INSTS = { piano: 'ピアノ風', flute: 'フルート風', pluck: 'リュート風', organ: 'オルガン風' };
 const INST_ORDER = ['piano', 'flute', 'pluck', 'organ'];
 const METERS = { '4/4': [192, 48], '3/4': [144, 48], '2/4': [96, 48], '6/8': [144, 72] };
@@ -334,7 +362,7 @@ const S = {
   tempo: 120, meter: '4/4', tracks: [], cur: 0,
   tool: 'pen', lenN: 8, dot: false, trip: false, grid: 'auto', zoom: 2,
   loop: false, useShift: false, limit: 0, chordTempo: false, pfmt: 'bare',
-  sel: null, cursor: 0, head: 0, playing: false, hoverRow: -1,
+  sel: [], clip: null, marq: null, cursor: 0, head: 0, playing: false, hoverRow: -1,
 };
 
 const $ = id => document.getElementById(id);
@@ -480,7 +508,7 @@ function snapshot() {
 function restore(json) {
   const o = JSON.parse(json);
   S.tempo = o.tempo; S.meter = o.meter || '4/4'; S.tracks = o.tracks;
-  S.cur = clamp(o.cur || 0, 0, S.tracks.length - 1); S.sel = null;
+  S.cur = clamp(o.cur || 0, 0, S.tracks.length - 1); S.sel = [];
   $('iTempo').value = S.tempo; $('sMeter').value = S.meter;
 }
 function pushUndo(before) {
@@ -609,7 +637,7 @@ $('tracks').addEventListener('click', e => {
   if (act === 'solo') { tr.solo = !tr.solo; renderTracks(); requestDraw(); return; }
   if (act === 'del') {
     if (tr.notes.length && !confirm('「' + tr.name + '」を削除しますか？')) return;
-    edit(() => { S.tracks.splice(i, 1); S.cur = clamp(S.cur >= i ? S.cur - 1 : S.cur, 0, S.tracks.length - 1); S.sel = null; renumberNames(); });
+    edit(() => { S.tracks.splice(i, 1); S.cur = clamp(S.cur >= i ? S.cur - 1 : S.cur, 0, S.tracks.length - 1); S.sel = []; renumberNames(); });
     return;
   }
   if (act === 'copy') { copyText(partCopyText(i), tr.name + 'のMMLをコピーしました'); return; }
@@ -617,7 +645,7 @@ $('tracks').addEventListener('click', e => {
 });
 function setCur(i) {
   if (S.cur === i) return;
-  S.cur = i; S.sel = null;
+  S.cur = i; S.sel = [];
   document.querySelectorAll('.trk').forEach((el, k) => el.classList.toggle('active', k === i));
   requestDraw();
 }
@@ -637,7 +665,7 @@ $('tracks').addEventListener('change', e => {
 });
 $('bAdd').onclick = () => {
   if (S.tracks.length >= MAX_TRACKS) return;
-  edit(() => { S.tracks.push(newTrack(S.tracks.length)); S.cur = S.tracks.length - 1; S.sel = null; });
+  edit(() => { S.tracks.push(newTrack(S.tracks.length)); S.cur = S.tracks.length - 1; S.sel = []; });
 };
 
 /* ================= 和音の自動生成 ================= */
@@ -686,7 +714,7 @@ $('hGo').onclick = () => {
   edit(() => {
     const tr = newTrack(S.tracks.length);
     tr.notes = harmonize(src.notes, steps, key);
-    S.tracks.push(tr); S.cur = S.tracks.length - 1; S.sel = null;
+    S.tracks.push(tr); S.cur = S.tracks.length - 1; S.sel = [];
   });
   flash('「' + PCNAME[key.root] + (key.mode === 'maj' ? '長調' : '短調') + '」の音階で和音パートを追加しました');
 };
@@ -732,7 +760,7 @@ $('hGo').onclick = () => {
   $('bHome').onclick = () => { const was = S.playing; stop(); S.cursor = 0; S.head = 0; scroller.scrollLeft = 0; requestDraw(); if (was) play(); };
   $('bNew').onclick = () => {
     if (S.tracks.some(t => t.notes.length) && !confirm('今の曲を消して新しく始めますか？（元に戻すで復元できます）')) return;
-    edit(() => { stop(); S.tracks = [newTrack(0), newTrack(1), newTrack(2)]; S.cur = 0; S.sel = null; S.cursor = 0; });
+    edit(() => { stop(); S.tracks = [newTrack(0), newTrack(1), newTrack(2)]; S.cur = 0; S.sel = []; S.cursor = 0; });
   };
   $('bSample').onclick = () => {
     if (S.tracks.some(t => t.notes.length) && !confirm('サンプル曲を読み込みます。今の曲は消えます（元に戻すで復元できます）。')) return;
@@ -762,7 +790,7 @@ function loadParsed(res) {
   if (res.tempo) S.tempo = res.tempo;
   S.tracks = res.tracks;
   while (S.tracks.length < 3) S.tracks.push(newTrack(S.tracks.length));
-  S.cur = 0; S.sel = null; S.cursor = 0; S.head = 0;
+  S.cur = 0; S.sel = []; S.cursor = 0; S.head = 0;
   $('iTempo').value = S.tempo;
 }
 function copyText(text, okMsg) {
@@ -935,19 +963,20 @@ function drawNotes(tr, color, ghost, sx, sy) {
     if (n.s + n.l < vis0 || n.s > vis1) continue;
     const x = tickX(n.s, sx), w = Math.max(3, n.l * S.zoom - 1), y = rowY(n.p, sy) + 1, h = ROW_H - 2;
     if (y < RULER_H - ROW_H || y > ch) continue;
-    cx.globalAlpha = ghost ? 0.28 : 1;
+    cx.globalAlpha = ghost ? 0.42 : 1;
     cx.fillStyle = color; roundRect(cx, x, y, w, h, 3); cx.fill();
     if (!ghost) {
       cx.globalAlpha = 1;
-      if (n === S.sel) { cx.lineWidth = 2; cx.strokeStyle = '#5a3a10'; cx.stroke(); }
-      else { cx.lineWidth = 1; cx.strokeStyle = 'rgba(90,58,16,.45)'; cx.stroke(); }
-      if (w > 28) { cx.fillStyle = '#fff'; cx.font = '10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'left'; cx.fillText(midiName(n.p), x + 4, y + h / 2 + 0.5); }
+      if (S.sel.includes(n)) { cx.lineWidth = 2.5; cx.strokeStyle = '#2b1a05'; cx.stroke(); }
+      else { cx.lineWidth = 1; cx.strokeStyle = 'rgba(50,30,5,.65)'; cx.stroke(); }
+      if (w > 28) { cx.fillStyle = '#fff'; cx.font = 'bold 10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'left'; cx.shadowColor = 'rgba(0,0,0,.55)'; cx.shadowBlur = 2; cx.fillText(midiName(n.p), x + 4, y + h / 2 + 0.5); cx.shadowBlur = 0; }
     }
   }
   cx.globalAlpha = 1;
 }
 function draw() {
   drawPending = false;
+  updateClipButtons();
   cx.setTransform(dpr, 0, 0, dpr, 0, 0);
   cx.clearRect(0, 0, cw, ch);
   const sx = scroller.scrollLeft, sy = scroller.scrollTop, z = S.zoom;
@@ -959,21 +988,21 @@ function draw() {
   for (let m = MMAX; m >= MMIN; m--) {
     const y = rowY(m, sy);
     if (y > ch || y < RULER_H - ROW_H) continue;
-    cx.fillStyle = BLACK[m % 12] ? '#f7f0dd' : '#fffdf6';
-    if (m === S.hoverRow) cx.fillStyle = '#ffefc2';
+    cx.fillStyle = BLACK[m % 12] ? '#ecdfbf' : '#fffdf6';
+    if (m === S.hoverRow) cx.fillStyle = '#ffe9a8';
     cx.fillRect(KEY_W, y, cw - KEY_W, ROW_H);
-    cx.fillStyle = m % 12 === 0 ? '#cdb98f' : '#f0e6cc';
+    cx.fillStyle = m % 12 === 0 ? '#a8925f' : '#e2d3ac';
     cx.fillRect(KEY_W, y + ROW_H - 1, cw - KEY_W, 1);
   }
   /* 縦線（吸着・拍・小節） */
   const g = gridTicks(), bt = beatT(), bar = barT();
   const t0 = Math.floor(sx / z / g) * g, t1 = (sx + cw - KEY_W) / z;
   if (g * z >= 4) {
-    cx.fillStyle = '#f3ead3';
+    cx.fillStyle = '#eadfc0';
     for (let t = t0; t <= t1; t += g) if (t % bt) cx.fillRect(Math.round(tickX(t, sx)), RULER_H, 1, ch);
   }
   for (let t = Math.floor(sx / z / bt) * bt; t <= t1; t += bt) {
-    cx.fillStyle = t % bar === 0 ? '#a8916a' : '#e2d4b4';
+    cx.fillStyle = t % bar === 0 ? '#7d6639' : '#c9b588';
     cx.fillRect(Math.round(tickX(t, sx)), RULER_H, 1, ch);
   }
   /* 曲の終わり以降を少し暗く */
@@ -984,6 +1013,15 @@ function draw() {
   S.tracks.forEach((tr, i) => { if (i !== S.cur) drawNotes(tr, COLORS[i % COLORS.length], true, sx, sy); });
   const ct = S.tracks[S.cur];
   if (ct) drawNotes(ct, COLORS[S.cur % COLORS.length], false, sx, sy);
+
+  /* 範囲選択の枠 */
+  if (S.marq) {
+    const m = S.marq;
+    const x = Math.min(m.x0, m.x1) + KEY_W - sx, y = Math.min(m.y0, m.y1) + RULER_H - sy;
+    const w = Math.abs(m.x1 - m.x0), h = Math.abs(m.y1 - m.y0);
+    cx.fillStyle = 'rgba(79,179,214,.18)'; cx.fillRect(x, y, w, h);
+    cx.setLineDash([5, 3]); cx.lineWidth = 1.5; cx.strokeStyle = '#2f9fc6'; cx.strokeRect(x + .5, y + .5, w, h); cx.setLineDash([]);
+  }
 
   /* 再生位置 */
   const hx = Math.round(tickX(S.head, sx));
@@ -998,31 +1036,31 @@ function draw() {
     if (y > ch || y < RULER_H - ROW_H) continue;
     const black = BLACK[m % 12];
     cx.fillStyle = m === S.hoverRow ? '#ffd98a' : '#fffdf6'; cx.fillRect(0, y, KEY_W, ROW_H);
-    cx.fillStyle = '#e2d4b4'; cx.fillRect(0, y + ROW_H - 1, KEY_W, 1);
-    if (black) { cx.fillStyle = m === S.hoverRow ? '#2f9fc6' : '#6b4f3a'; cx.fillRect(0, y + 1, KEY_W * 0.62, ROW_H - 2); }
+    cx.fillStyle = '#c9b588'; cx.fillRect(0, y + ROW_H - 1, KEY_W, 1);
+    if (black) { cx.fillStyle = m === S.hoverRow ? '#2f9fc6' : '#4a3523'; cx.fillRect(0, y + 1, KEY_W * 0.62, ROW_H - 2); }
     if (m % 12 === 0 || m === S.hoverRow) {
-      cx.fillStyle = black ? '#fff' : '#7a5c3e'; cx.font = '10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'right';
+      cx.fillStyle = black ? '#fff' : '#3d2b17'; cx.font = '10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'right';
       cx.fillText(midiName(m), KEY_W - 5, y + ROW_H / 2 + 0.5);
     }
   }
   cx.restore();
-  cx.fillStyle = '#a8916a'; cx.fillRect(KEY_W - 1, RULER_H, 1, ch);
+  cx.fillStyle = '#7d6639'; cx.fillRect(KEY_W - 1, RULER_H, 1, ch);
 
   /* ルーラー */
-  cx.fillStyle = '#f7f0dd'; cx.fillRect(0, 0, cw, RULER_H);
-  cx.fillStyle = '#cdb98f'; cx.fillRect(0, RULER_H - 1, cw, 1);
+  cx.fillStyle = '#ecdfbf'; cx.fillRect(0, 0, cw, RULER_H);
+  cx.fillStyle = '#a8925f'; cx.fillRect(0, RULER_H - 1, cw, 1);
   cx.save();
   cx.beginPath(); cx.rect(KEY_W, 0, cw - KEY_W, RULER_H); cx.clip();
   cx.font = '11px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'left';
   for (let t = Math.floor(sx / z / bt) * bt; t <= t1; t += bt) {
     const x = Math.round(tickX(t, sx));
-    if (t % bar === 0) { cx.fillStyle = '#7a5c3e'; cx.fillRect(x, 4, 1, RULER_H - 5); cx.fillText(String(t / bar + 1), x + 4, RULER_H / 2); }
-    else { cx.fillStyle = '#cdb98f'; cx.fillRect(x, RULER_H - 8, 1, 7); }
+    if (t % bar === 0) { cx.fillStyle = '#3d2b17'; cx.fillRect(x, 4, 1, RULER_H - 5); cx.fillText(String(t / bar + 1), x + 4, RULER_H / 2); }
+    else { cx.fillStyle = '#a8925f'; cx.fillRect(x, RULER_H - 8, 1, 7); }
   }
   if (hx >= KEY_W && hx <= cw) { cx.fillStyle = S.playing ? '#e8604c' : '#2f9fc6'; cx.beginPath(); cx.moveTo(hx - 5, 0); cx.lineTo(hx + 7, 0); cx.lineTo(hx + 1, 9); cx.fill(); }
   cx.restore();
-  cx.fillStyle = '#efe3c6'; cx.fillRect(0, 0, KEY_W, RULER_H - 1);
-  cx.fillStyle = '#9a8566'; cx.font = '10px sans-serif'; cx.textAlign = 'center'; cx.fillText('小節', KEY_W / 2, RULER_H / 2);
+  cx.fillStyle = '#dcc99a'; cx.fillRect(0, 0, KEY_W, RULER_H - 1);
+  cx.fillStyle = '#5d4a2c'; cx.font = '10px sans-serif'; cx.textAlign = 'center'; cx.fillText('小節', KEY_W / 2, RULER_H / 2);
 }
 
 /* ================= ズーム ================= */
@@ -1059,16 +1097,19 @@ function hitNote(tr, tick, midi) {
 }
 function nearEnd(n, tick) { return (n.s + n.l - tick) * S.zoom <= Math.min(8, n.l * S.zoom / 2.5); }
 
-/* 追加・移動した音 nt と重なる同パートの音を整理する */
-function resolveOverlaps(tr, nt) {
-  const ne = nt.s + nt.l;
+/* 追加・移動した音 nts と重なる同パートの音を整理する（nts 同士は触らない） */
+function resolveOverlaps(tr, nts) {
+  const set = new Set(nts);
   tr.notes = tr.notes.filter(o => {
-    if (o === nt) return true;
-    const oe = o.s + o.l;
-    if (oe <= nt.s || o.s >= ne) return true;
-    if (o.s >= nt.s && oe <= ne) return false;
-    if (o.s < nt.s) { o.l = nt.s - o.s; return o.l > 0; }
-    o.l = oe - ne; o.s = ne; return o.l > 0;
+    if (set.has(o)) return true;
+    for (const nt of nts) {
+      const ne = nt.s + nt.l, oe = o.s + o.l;
+      if (oe <= nt.s || o.s >= ne) continue;
+      if (o.s >= nt.s && oe <= ne) return false;
+      if (o.s < nt.s) { o.l = nt.s - o.s; continue; }
+      o.l = oe - ne; o.s = ne;
+    }
+    return o.l > 0;
   });
   tr.notes.sort((a, b) => a.s - b.s);
 }
@@ -1078,16 +1119,16 @@ scroller.addEventListener('contextmenu', e => {
   e.preventDefault();
   const p = posOf(e); if (p.x < KEY_W || p.y < RULER_H) return;
   const tr = S.tracks[S.cur], n = hitNote(tr, p.tick, p.midi);
-  if (n) edit(() => { tr.notes.splice(tr.notes.indexOf(n), 1); if (S.sel === n) S.sel = null; });
+  if (n) edit(() => { tr.notes.splice(tr.notes.indexOf(n), 1); S.sel = S.sel.filter(x => x !== n); });
 });
 scroller.addEventListener('pointerdown', e => {
   const p = posOf(e);
   if (p.onScrollbar) return;
   audio();
   if (p.x < KEY_W && p.y >= RULER_H) { preview(p.midi); return; }
-  if (p.y < RULER_H) {                       // ルーラー：再生開始位置
-    const g = beatT();
-    S.cursor = Math.max(0, Math.round((p.tick) / g) * g);
+  if (p.y < RULER_H) {                       // ルーラー：再生開始位置（貼り付け位置にもなる）
+    const g = gridTicks();
+    S.cursor = Math.max(0, Math.round(p.tick / g) * g);
     const was = S.playing; stop(); S.head = S.cursor; requestDraw(); if (was) play();
     return;
   }
@@ -1096,18 +1137,29 @@ scroller.addEventListener('pointerdown', e => {
   const hit = hitNote(tr, p.tick, p.midi);
   const g = gridTicks();
   const before = snapshot();
+  const add = e.shiftKey || e.ctrlKey || e.metaKey;
   if (S.tool === 'erase') {
-    if (hit) { tr.notes.splice(tr.notes.indexOf(hit), 1); if (S.sel === hit) S.sel = null; pushUndo(before); notesChanged(); }
+    if (hit) { tr.notes.splice(tr.notes.indexOf(hit), 1); S.sel = S.sel.filter(x => x !== hit); pushUndo(before); notesChanged(); }
     return;
   }
   scroller.setPointerCapture(e.pointerId);
+  const cxp = p.x - KEY_W + scroller.scrollLeft, cyp = p.y - RULER_H + scroller.scrollTop;
   if (hit) {
-    S.sel = hit; preview(hit.p);
-    drag = { mode: nearEnd(hit, p.tick) ? 'resize' : 'move', n: hit, before, dx: p.tick - hit.s, x0: p.x, y0: p.y, moved: false };
+    if (add && S.sel.includes(hit)) { S.sel = S.sel.filter(x => x !== hit); requestDraw(); return; }   // Shift+クリックで選択解除
+    if (!S.sel.includes(hit)) S.sel = add ? S.sel.concat(hit) : [hit];
+    preview(hit.p);
+    const resize = S.tool === 'pen' && !add && nearEnd(hit, p.tick);
+    if (resize) S.sel = [hit];
+    drag = { mode: resize ? 'resize' : 'move', n: hit, before, dx: p.tick - hit.s, x0: p.x, y0: p.y, moved: false,
+             items: S.sel.map(n => ({ n, s: n.s, p: n.p })), s0: hit.s, p0: hit.p };
+  } else if (S.tool === 'select' || add) {
+    drag = { mode: 'marquee', base: add ? S.sel.slice() : [], x0: p.x, y0: p.y };
+    S.marq = { x0: cxp, y0: cyp, x1: cxp, y1: cyp };
+    if (!add) S.sel = [];
   } else {
     if (p.midi < MMIN || p.midi > MMAX || p.tick < 0) return;
     const n = { s: Math.floor(p.tick / g) * g, l: curLenTicks(), p: p.midi };
-    tr.notes.push(n); S.sel = n; preview(n.p);
+    tr.notes.push(n); S.sel = [n]; preview(n.p);
     drag = { mode: 'create', n, before, x0: p.x, y0: p.y, moved: false };
   }
   requestDraw();
@@ -1123,17 +1175,29 @@ scroller.addEventListener('pointermove', e => {
     else if (p.y < RULER_H) cur = 'pointer';
     else if (S.tool === 'hand') cur = 'grab';
     else if (S.tool === 'erase') cur = 'not-allowed';
-    else { const h = hitNote(S.tracks[S.cur], p.tick, p.midi); if (h) cur = nearEnd(h, p.tick) ? 'ew-resize' : 'move'; }
+    else { const h = hitNote(S.tracks[S.cur], p.tick, p.midi); if (h) cur = S.tool === 'pen' && nearEnd(h, p.tick) ? 'ew-resize' : 'move'; }
     scroller.style.cursor = cur;
     return;
   }
-  const g = gridTicks(), n = drag.n;
+  const g = gridTicks();
+  if (drag.mode === 'marquee') {
+    const m = S.marq;
+    m.x1 = p.x - KEY_W + scroller.scrollLeft; m.y1 = p.y - RULER_H + scroller.scrollTop;
+    const t0 = Math.min(m.x0, m.x1) / S.zoom, t1 = Math.max(m.x0, m.x1) / S.zoom;
+    const r0 = Math.min(m.y0, m.y1) / ROW_H, r1 = Math.max(m.y0, m.y1) / ROW_H;
+    const inside = S.tracks[S.cur].notes.filter(n => n.s < t1 && n.s + n.l > t0 && (MMAX - n.p) + 1 > r0 && (MMAX - n.p) < r1);
+    S.sel = drag.base.concat(inside.filter(n => !drag.base.includes(n)));
+    requestDraw(); return;
+  }
+  const n = drag.n;
   if (Math.abs(p.x - drag.x0) + Math.abs(p.y - drag.y0) > 4) drag.moved = true;
   if (drag.mode === 'move') {
-    const ns = Math.max(0, Math.round((p.tick - drag.dx) / g) * g);
-    const np = clamp(p.midi, MMIN, MMAX);
-    if (np !== n.p) preview(np);
-    n.s = ns; n.p = np; S.hoverRow = np;
+    let ds = Math.round((p.tick - drag.dx) / g) * g - drag.s0;
+    let dp = clamp(p.midi, MMIN, MMAX) - drag.p0;
+    drag.items.forEach(it => { ds = Math.max(ds, -it.s); dp = clamp(dp, MMIN - it.p, MMAX - it.p); });
+    if (n.p !== drag.p0 + dp) preview(drag.p0 + dp);
+    drag.items.forEach(it => { it.n.s = it.s + ds; it.n.p = it.p + dp; });
+    S.hoverRow = drag.p0 + dp;
   } else if (drag.mode === 'resize' || (drag.mode === 'create' && drag.moved)) {
     const raw = drag.mode === 'create' ? Math.ceil((p.tick - n.s) / g) : Math.round((p.tick - n.s) / g);
     n.l = Math.max(g, raw * g);
@@ -1143,13 +1207,55 @@ scroller.addEventListener('pointermove', e => {
 function endDrag(e) {
   if (!drag) return;
   const tr = S.tracks[S.cur], d = drag; drag = null;
-  resolveOverlaps(tr, d.n);
+  if (d.mode === 'marquee') { S.marq = null; requestDraw(); return; }
+  resolveOverlaps(tr, d.mode === 'move' ? d.items.map(it => it.n) : [d.n]);
   if (snapshot() !== d.before) pushUndo(d.before);
   notesChanged();
 }
 scroller.addEventListener('pointerup', endDrag);
 scroller.addEventListener('pointercancel', endDrag);
 scroller.addEventListener('pointerleave', () => { if (!drag && S.hoverRow !== -1) { S.hoverRow = -1; requestDraw(); } });
+
+/* ================= 範囲選択・コピー／切り取り／貼り付け ================= */
+function selectedNotes() {
+  const tr = S.tracks[S.cur];
+  return S.sel.filter(n => tr.notes.includes(n)).sort((a, b) => a.s - b.s || a.p - b.p);
+}
+function updateClipButtons() {
+  const has = selectedNotes().length > 0;
+  $('bClipCopy').disabled = !has; $('bClipCut').disabled = !has; $('bClipPaste').disabled = !(S.clip && S.clip.length);
+}
+function copySel() {
+  const ns = selectedNotes();
+  if (!ns.length) { flash('先に音を選択してください（「選択」の道具でドラッグ、またはShift+ドラッグ）', true); return false; }
+  const base = ns[0].s;
+  S.clip = ns.map(n => ({ s: n.s - base, l: n.l, p: n.p }));
+  flash(ns.length + '個の音をコピーしました。再生開始位置に貼り付けできます');
+  updateClipButtons();
+  return true;
+}
+function cutSel() {
+  if (!copySel()) return;
+  const tr = S.tracks[S.cur], ns = new Set(selectedNotes());
+  edit(() => { tr.notes = tr.notes.filter(n => !ns.has(n)); S.sel = []; });
+  flash(ns.size + '個の音を切り取りました');
+}
+function pasteClip() {
+  if (!S.clip || !S.clip.length) { flash('先に音をコピーしてください', true); return; }
+  const g = gridTicks();
+  const pos = S.playing ? Math.max(0, Math.round(S.head / g) * g) : S.cursor;
+  const tr = S.tracks[S.cur];
+  edit(() => {
+    const added = S.clip.map(c => ({ s: pos + c.s, l: c.l, p: c.p }));
+    tr.notes.push(...added);
+    resolveOverlaps(tr, added);
+    S.sel = added;
+  });
+  const x = pos * S.zoom;
+  if (x < scroller.scrollLeft || x > scroller.scrollLeft + scroller.clientWidth - KEY_W - 40) scroller.scrollLeft = Math.max(0, x - 80);
+  flash(S.clip.length + '個の音を貼り付けました');
+}
+$('bClipCopy').onclick = copySel; $('bClipCut').onclick = cutSel; $('bClipPaste').onclick = pasteClip;
 
 /* ================= キーボード ================= */
 document.addEventListener('keydown', e => {
@@ -1159,22 +1265,29 @@ document.addEventListener('keydown', e => {
   const k = e.key;
   if ((e.ctrlKey || e.metaKey) && (k === 'z' || k === 'Z')) { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if ((e.ctrlKey || e.metaKey) && (k === 'y' || k === 'Y')) { e.preventDefault(); redo(); return; }
+  if (e.ctrlKey || e.metaKey) {
+    const key = k.toLowerCase();
+    if (key === 'c') { e.preventDefault(); copySel(); return; }
+    if (key === 'x') { e.preventDefault(); cutSel(); return; }
+    if (key === 'v') { e.preventDefault(); pasteClip(); return; }
+    if (key === 'a') { e.preventDefault(); S.sel = S.tracks[S.cur].notes.slice(); requestDraw(); return; }
+  }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (k === ' ') { e.preventDefault(); S.playing ? stop() : play(); return; }
-  const tr = S.tracks[S.cur], n = S.sel;
-  if (!n || !tr.notes.includes(n)) return;
-  if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); edit(() => { tr.notes.splice(tr.notes.indexOf(n), 1); S.sel = null; }); return; }
+  const tr = S.tracks[S.cur];
+  const ns = selectedNotes();
+  if (!ns.length) return;
+  if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); edit(() => { const set = new Set(ns); tr.notes = tr.notes.filter(n => !set.has(n)); S.sel = []; }); return; }
+  if (k === 'Escape') { S.sel = []; requestDraw(); return; }
   const g = gridTicks();
-  let moved = true;
-  edit(() => {
-    if (k === 'ArrowLeft') n.s = Math.max(0, n.s - g);
-    else if (k === 'ArrowRight') n.s += g;
-    else if (k === 'ArrowUp') n.p = clamp(n.p + (e.shiftKey ? 12 : 1), MMIN, MMAX);
-    else if (k === 'ArrowDown') n.p = clamp(n.p - (e.shiftKey ? 12 : 1), MMIN, MMAX);
-    else moved = false;
-    if (moved) resolveOverlaps(tr, n);
-  });
-  if (moved) { e.preventDefault(); if (k === 'ArrowUp' || k === 'ArrowDown') preview(n.p); }
+  let ds = 0, dp = 0;
+  if (k === 'ArrowLeft') ds = -g; else if (k === 'ArrowRight') ds = g;
+  else if (k === 'ArrowUp') dp = e.shiftKey ? 12 : 1; else if (k === 'ArrowDown') dp = e.shiftKey ? -12 : -1;
+  else return;
+  e.preventDefault();
+  ns.forEach(n => { ds = Math.max(ds, -n.s); dp = clamp(dp, MMIN - n.p, MMAX - n.p); });
+  edit(() => { ns.forEach(n => { n.s += ds; n.p += dp; }); resolveOverlaps(tr, ns); });
+  if (dp) preview(ns[0].p);
 });
 
 /* ================= サンプル・起動 ================= */
