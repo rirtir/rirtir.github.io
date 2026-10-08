@@ -339,7 +339,7 @@ const MMIN = 24, MMAX = 119;        // C1 〜 B8（MIDIノート番号。o4 の 
 const ROWS = MMAX - MMIN + 1;
 const ROW_H = 16, KEY_W = 60, RULER_H = 24;
 const COLORS = ['#f2a03d', '#3fc79b', '#6aa8f0', '#c18af0', '#f0809e', '#52cfe0', '#d9b84a', '#97a6f7'];
-const INSTS = { piano: 'ピアノ風', flute: 'フルート風', pluck: 'リュート風', organ: 'オルガン風', clarinet: 'クラリネット風' };
+const INSTS = { mandolin: 'マンドリン風', piano: 'ピアノ風', flute: 'フルート風', pluck: 'リュート風', organ: 'オルガン風', clarinet: 'クラリネット風' };
 const INST_ORDER = ['piano', 'flute', 'pluck', 'organ'];
 const METERS = { '4/4': [192, 48], '3/4': [144, 48], '2/4': [96, 48], '6/8': [144, 72] };
 const PCNAME = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -362,7 +362,7 @@ const beatT = () => METERS[S.meter][1];
 const midiName = m => PCNAME[m % 12] + (Math.floor(m / 12) - 1);
 
 function newTrack(i, name) {
-  return { name: name || (i === 0 ? 'メロディ' : '和音' + i), vol: i === 0 ? 12 : 8, inst: INST_ORDER[i % 4], mute: false, solo: false, notes: [] };
+  return { name: name || (i === 0 ? 'メロディ' : '和音' + i), vol: i === 0 ? 12 : 8, inst: 'mandolin', mute: false, solo: false, notes: [] };
 }
 
 /* ================= 長さ（tick）計算 ================= */
@@ -831,7 +831,18 @@ function voice(inst, midi, t, dur, vol, dest, nodes) {
     g.gain.linearRampToValueAtTime(1e-4, t + d + rel);
     return t + d + rel + 0.02;
   };
-  if (inst === 'piano') {
+  if (inst === 'mandolin') {
+    /* マンドリン：複弦のカープラス・ストロング弦モデル。ピックで弾いて自然に減衰する */
+    const src = add(c.createBufferSource()); src.buffer = mandolinBuf(midi);
+    const eq = c.createBiquadFilter(); eq.type = 'peaking'; eq.frequency.value = 1500; eq.Q.value = 0.8; eq.gain.value = 3;
+    src.connect(eq); eq.connect(g);
+    const d = Math.max(dur, 0.06);
+    g.gain.setValueAtTime(peak * 1.7, t);
+    g.gain.setValueAtTime(peak * 1.7, t + d);
+    g.gain.exponentialRampToValueAtTime(1e-4, t + d + 0.22);
+    end = t + d + 0.24;
+    src.start(t); src.stop(end);
+  } else if (inst === 'piano') {
     const o1 = add(c.createOscillator()); o1.type = 'triangle'; o1.frequency.value = f;
     const o2 = add(c.createOscillator()); o2.type = 'sine'; o2.frequency.value = f * 2;
     const g2 = c.createGain(); g2.gain.value = 0.35;
@@ -880,6 +891,39 @@ function voice(inst, midi, t, dur, vol, dest, nodes) {
     end = sus(0.04, 0.06);
     o.start(t); o.stop(end);
   }
+}
+const mandoCache = new Map();
+function mandolinBuf(midi) {
+  if (mandoCache.has(midi)) return mandoCache.get(midi);
+  const sr = actx.sampleRate, f0 = mtof(midi), len = Math.floor(sr * 2.4);
+  const out = new Float32Array(len);
+  const t60 = clamp(2.1 - midi * 0.013, 0.55, 1.5);        // 低い音ほど長く響く
+  let seed = midi * 7919 + 17;                               // 音ごとに決まった乱数（毎回同じ音）
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2147483648 - 1; };
+  [0.9987, 1.0013].forEach(det => {                          // 複弦のわずかなズレ
+    const P = sr / (f0 * det), N = Math.max(2, Math.floor(P - 0.5)), frac = P - 0.5 - N;
+    const a = (1 - frac) / (1 + frac);
+    const g = Math.pow(10, -3 / (t60 * f0 * det));           // 1周ごとの減衰（T60で-60dB）
+    const line = new Float32Array(N);
+    const nz = new Float32Array(N); let lp = 0;
+    for (let i = 0; i < N; i++) { lp += 0.6 * (rnd() - lp); nz[i] = lp; }
+    const k = Math.max(1, Math.round(N * 0.17));              // ピックの位置（櫛形フィルタ）
+    for (let i = 0; i < N; i++) line[i] = nz[i] - nz[(i - k + N) % N];
+    let prev = 0, apIn = 0, apOut = 0, idx = 0;
+    for (let n = 0; n < len; n++) {
+      const sOld = line[idx];
+      const lpv = g * 0.5 * (sOld + prev); prev = sOld;
+      const ap = a * lpv + apIn - a * apOut; apIn = lpv; apOut = ap;
+      line[idx] = ap; out[n] += ap;
+      if (++idx >= N) idx = 0;
+    }
+  });
+  let peak = 0;
+  for (let n = 0; n < len; n++) peak = Math.max(peak, Math.abs(out[n]));
+  const buf = actx.createBuffer(1, len, sr), d = buf.getChannelData(0), sc = peak ? 0.9 / peak : 1;
+  for (let n = 0; n < len; n++) d[n] = out[n] * sc;
+  mandoCache.set(midi, buf);
+  return buf;
 }
 let noiseBuffer = null;
 function noiseBuf() {
@@ -1321,7 +1365,9 @@ function init() {
   if (!loaded) {
     loadParsed(parseMML(SAMPLE));
   }
-  S.tracks.forEach((t, i) => { t.inst = INSTS[t.inst] ? t.inst : INST_ORDER[i % 4]; });
+  let migrated = false;
+  try { migrated = !!localStorage.getItem('mmlcomposer.mandolin'); localStorage.setItem('mmlcomposer.mandolin', '1'); } catch (e) { migrated = true; }
+  S.tracks.forEach((t, i) => { t.inst = !migrated ? 'mandolin' : INSTS[t.inst] ? t.inst : 'mandolin'; });
   $('iTempo').value = S.tempo; $('sMeter').value = S.meter;
   syncLen(); updateUndoButtons();
   structureChanged();
@@ -1332,7 +1378,7 @@ function init() {
   scroller.scrollTop = Math.max(0, RULER_H + (MMAX - mid) * ROW_H - ($('roll').clientHeight / 2));
 }
 init();
-window.__mml = { S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
+window.__mml = { audio, mandolinBuf, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
 })();
 </script>
 </body>
