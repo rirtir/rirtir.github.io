@@ -237,6 +237,13 @@ const data = [
         category: "音声処理",
         links: [
             {
+                title: "MMLコードメーカー",
+                url: "https://rirtir.com/Audio/MMLComposer/",
+                desc: "ピアノロールで作曲して、マビノギ形式のMMLコード（メロディ＋和音）を出力する。和音パートはいくつでも追加でき、メロディから3度下などの和音を自動生成。試聴・MMLの読み込みにも対応。",
+                tags: ["音楽", "作曲", "MML", "マビノギ", "オフライン"],
+                main: true,
+            },
+            {
                 title: "動画から音声抽出",
                 url: "https://rirtir.com/Audio/Video2Audio/",
                 desc: "動画から音声ファイルを抽出する。オリジナル、mp3、wavから選べる。",
