@@ -809,8 +809,8 @@ function audio() {
 }
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 /* 1音鳴らす。dest にゲインを繋ぎ、nodes に作ったノードを積む */
-function voice(inst, midi, t, dur, vol, dest, nodes) {
-  const c = actx, f = mtof(midi);
+function voice(inst, midi, t, dur, vol, dest, nodes, ctx) {
+  const c = ctx || actx, f = mtof(midi);
   const g = c.createGain(); g.connect(dest);
   const peak = Math.pow(vol / 15, 1.4) * 0.3;
   const add = o => { nodes.push(o); return o; };
@@ -832,16 +832,21 @@ function voice(inst, midi, t, dur, vol, dest, nodes) {
     return t + d + rel + 0.02;
   };
   if (inst === 'mandolin') {
-    /* マンドリン：複弦のカープラス・ストロング弦モデル。ピックで弾いて自然に減衰する */
-    const src = add(c.createBufferSource()); src.buffer = mandolinBuf(midi);
-    const eq = c.createBiquadFilter(); eq.type = 'peaking'; eq.frequency.value = 1500; eq.Q.value = 0.8; eq.gain.value = 3;
-    src.connect(eq); eq.connect(g);
-    const d = Math.max(dur, 0.06);
-    g.gain.setValueAtTime(peak * 1.7, t);
-    g.gain.setValueAtTime(peak * 1.7, t + d);
-    g.gain.exponentialRampToValueAtTime(1e-4, t + d + 0.22);
-    end = t + d + 0.24;
-    src.start(t); src.stop(end);
+    /* マンドリン：ゲーム内の録音の計測値に合わせた音色。
+       ほぼ正弦波＋少しの倍音（音域で2種類）、約0.04秒で立ち上がり、2段階でゆっくり減衰、音の終わりで短く切れる */
+    const o = add(c.createOscillator());
+    o.setPeriodicWave(mandoWave(c, midi < 63.5 ? 0 : 1)); o.frequency.value = f;
+    o.connect(g);
+    const d = Math.max(dur, 0.05), rel = 0.08, total = d + rel;
+    const n = Math.max(2, Math.ceil(total * 400));
+    const curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const tau = i / (n - 1) * total;
+      curve[i] = peak * 1.7 * mandoEnv(tau) * (tau > d ? Math.pow(Math.max(0, 1 - (tau - d) / rel), 2) : 1);
+    }
+    g.gain.setValueCurveAtTime(curve, t, total);
+    end = t + total + 0.02;
+    o.start(t); o.stop(end);
   } else if (inst === 'piano') {
     const o1 = add(c.createOscillator()); o1.type = 'triangle'; o1.frequency.value = f;
     const o2 = add(c.createOscillator()); o2.type = 'sine'; o2.frequency.value = f * 2;
@@ -892,38 +897,35 @@ function voice(inst, midi, t, dur, vol, dest, nodes) {
     o.start(t); o.stop(end);
   }
 }
-const mandoCache = new Map();
-function mandolinBuf(midi) {
-  if (mandoCache.has(midi)) return mandoCache.get(midi);
-  const sr = actx.sampleRate, f0 = mtof(midi), len = Math.floor(sr * 2.4);
-  const out = new Float32Array(len);
-  const t60 = clamp(2.1 - midi * 0.013, 0.55, 1.5);        // 低い音ほど長く響く
-  let seed = midi * 7919 + 17;                               // 音ごとに決まった乱数（毎回同じ音）
-  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2147483648 - 1; };
-  [0.9987, 1.0013].forEach(det => {                          // 複弦のわずかなズレ
-    const P = sr / (f0 * det), N = Math.max(2, Math.floor(P - 0.5)), frac = P - 0.5 - N;
-    const a = (1 - frac) / (1 + frac);
-    const g = Math.pow(10, -3 / (t60 * f0 * det));           // 1周ごとの減衰（T60で-60dB）
-    const line = new Float32Array(N);
-    const nz = new Float32Array(N); let lp = 0;
-    for (let i = 0; i < N; i++) { lp += 0.6 * (rnd() - lp); nz[i] = lp; }
-    const k = Math.max(1, Math.round(N * 0.17));              // ピックの位置（櫛形フィルタ）
-    for (let i = 0; i < N; i++) line[i] = nz[i] - nz[(i - k + N) % N];
-    let prev = 0, apIn = 0, apOut = 0, idx = 0;
-    for (let n = 0; n < len; n++) {
-      const sOld = line[idx];
-      const lpv = g * 0.5 * (sOld + prev); prev = sOld;
-      const ap = a * lpv + apIn - a * apOut; apIn = lpv; apOut = ap;
-      line[idx] = ap; out[n] += ap;
-      if (++idx >= N) idx = 0;
-    }
-  });
-  let peak = 0;
-  for (let n = 0; n < len; n++) peak = Math.max(peak, Math.abs(out[n]));
-  const buf = actx.createBuffer(1, len, sr), d = buf.getChannelData(0), sc = peak ? 0.9 / peak : 1;
-  for (let n = 0; n < len; n++) d[n] = out[n] * sc;
-  mandoCache.set(midi, buf);
-  return buf;
+/* ゲーム内マンドリンの倍音の強さ（dB）。低め／高めの音域で別々に計測 */
+const MANDO_HARM = [
+  [0, -7.8, -20, -38.5, -31.3, -23.4, -39.9, -42.8, -46, -46, -48, -48],     // 〜D4
+  [0, -32.7, -15.9, -28.6, -37.1, -29.5, -31.5, -38.9, -34, -40, -42, -44],  // E4〜
+];
+const mandoWaves = new WeakMap();
+function mandoWave(c, reg) {
+  let m = mandoWaves.get(c); if (!m) { m = []; mandoWaves.set(c, m); }
+  if (!m[reg]) {
+    const re = new Float32Array(13), im = new Float32Array(13);
+    MANDO_HARM[reg].forEach((db, k) => { im[k + 1] = Math.pow(10, db / 20); });
+    m[reg] = c.createPeriodicWave(re, im);
+  }
+  return m[reg];
+}
+/* 立ち上がり→2段階の減衰（基音の包絡の計測値：0.3秒で-9.5dB、0.5秒で-14.5dB） */
+const MANDO_ENV = [[0.04, 1], [0.3, 0.33], [0.5, 0.19], [1.0, 0.095], [2.5, 0.012], [8, 0.0005]];
+function mandoEnv(tau) {
+  if (tau < MANDO_ENV[0][0]) return 0.12 + 0.88 * tau / MANDO_ENV[0][0];
+  for (let i = 1; i < MANDO_ENV.length; i++) {
+    const [t1, v1] = MANDO_ENV[i - 1], [t2, v2] = MANDO_ENV[i];
+    if (tau <= t2) return v1 * Math.pow(v2 / v1, (tau - t1) / (t2 - t1));
+  }
+  return 0;
+}
+async function renderNote(inst, midi, dur) {          // 検証用：音をオフラインで描画して波形を返す
+  const oc = new OfflineAudioContext(1, 44100 * 3, 44100), nodes = [];
+  voice(inst, midi, 0.02, dur, 12, oc.destination, nodes, oc);
+  return Array.from((await oc.startRendering()).getChannelData(0));
 }
 let noiseBuffer = null;
 function noiseBuf() {
@@ -1378,7 +1380,7 @@ function init() {
   scroller.scrollTop = Math.max(0, RULER_H + (MMAX - mid) * ROW_H - ($('roll').clientHeight / 2));
 }
 init();
-window.__mml = { audio, mandolinBuf, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
+window.__mml = { audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
 })();
 </script>
 </body>
