@@ -188,6 +188,26 @@ details summary,details h3{color:#ffcf7a}
 .trk-body .vol b{color:#fff}
 .parts{border-top:1px dashed var(--line)}
 .msg{color:#5fd6a0}
+dialog{background:#18212d;color:var(--text);border:1px solid #2e3b50;border-radius:20px;padding:18px 20px;width:min(680px,94vw);max-height:92vh;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+dialog::backdrop{background:rgba(5,10,16,.7)}
+dialog h2{margin:0 0 6px;font-size:18px;color:#fff}
+.beta{background:var(--gold);color:#2b2008;border-radius:8px;padding:1px 8px;font-size:12px;margin-left:8px;vertical-align:middle}
+.imp-drop{border:2px dashed #4a5a73;border-radius:16px;padding:14px;text-align:center;color:var(--sub);margin:8px 0}
+.imp-drop.dragover{border-color:var(--green);background:#16302b;color:#fff}
+.imp-name{color:#fff;font-weight:bold;margin-top:6px;word-break:break-all}
+.imp-row{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:10px 0;font-size:13px;color:var(--sub)}
+.imp-row label{display:flex;align-items:center;gap:6px}
+.imp-row input[type=number]{width:72px}
+.imp-tracks{margin:6px 0;font-size:13px;max-height:200px;overflow:auto}
+.imp-tracks table{width:100%;border-collapse:collapse}
+.imp-tracks td,.imp-tracks th{padding:4px 6px;border-bottom:1px solid #2a3647;text-align:left}
+.imp-tracks th{color:var(--sub);font-weight:normal}
+dialog progress{width:100%;height:10px;accent-color:var(--green)}
+.imp-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+#impMsg{font-size:13px;margin-top:8px;min-height:1.3em;color:#5fd6a0}
+#impMsg.err{color:var(--danger)}
+.imp-note{font-size:12px;color:var(--sub);line-height:1.6;margin:4px 0}
+dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not([data-kind]) .only-audio,dialog:not([data-kind]) .only-midi{display:none}
 .out textarea.dropping{outline:3px dashed var(--green);outline-offset:2px}
 .midi-st{font-size:12px;color:var(--sub)}
 .midi-st.ok{color:#5fd6a0;font-weight:bold}
@@ -245,6 +265,7 @@ details summary,details h3{color:#ffcf7a}
       <button id="bRedo" title="やり直す（Ctrl+Y）">↪</button>
       <button id="bNew" class="danger" title="全部消して最初から">新規</button>
       <button id="bSample" title="サンプル曲を読み込む">サンプル</button>
+      <button id="bImport" title="MIDIファイルや音声ファイルから譜面を作ります（ベータ版）">🎵 曲から譜面（β）</button>
     </div>
     <div class="sep"></div>
     <div class="grp" id="midiGrp">
@@ -295,7 +316,7 @@ details summary,details h3{color:#ffcf7a}
       <button id="bLoad">MMLから読み込む</button>
       <button id="bSaveFile" title="今のMMLをテキストファイル（.txt）として保存します">💾 ファイルに保存</button>
       <button id="bOpenFile" title="MMLが書かれたテキストファイルを読み込みます（ファイルをこのページにドラッグしても読み込めます）">📂 ファイルを読み込む</button>
-      <input type="file" id="fOpen" accept=".txt,.mml,text/plain" hidden>
+      <input type="file" id="fOpen" accept=".txt,.mml,text/plain,.mid,.midi,audio/*" hidden>
       <span class="stat" id="stat"></span>
       <span class="msg" id="msg"></span>
     </div>
@@ -326,6 +347,7 @@ details summary,details h3{color:#ffcf7a}
       <li>範囲選択：「⬚ 選択」の道具（または描く道具でShift+ドラッグ）で囲むと複数の音を選べます。Ctrl+Aで全選択。選んだ音はドラッグや矢印キーでまとめて移動、Deleteでまとめて削除できます。</li>
       <li>コピー／貼り付け：選択してCtrl+C（切り取りはCtrl+X）→ 上の目盛りをクリックして再生開始位置（しるし）を決める → Ctrl+V。選んだ音のうち一番先頭の音が、しるしの位置に来るように貼り付きます。別のパートに切り替えてから貼り付けることもできます。</li>
       <li>ファイル：「💾 ファイルに保存」で今のMMLをテキストファイル（.txt）にします（Chrome／Edgeでは保存先を選べます）。「📂 ファイルを読み込む」、またはファイルをページにドラッグ＆ドロップで、MMLの書かれたテキストを読み込んで編集できます。</li>
+      <li>曲から譜面（β）：「🎵 曲から譜面（β）」に、MIDIファイル（.mid）や音声ファイル（MP3・WAV等）を渡すと、メロディと和音のパートに分けた譜面を作ります。MIDIはほぼそのまま取り込めます。音声の自動採譜はベータ版で、単音のメロディなど単純な曲向きです。</li>
       <li>MIDIキーボード：ツールバーの「🎹 MIDIキーボード」を押して許可すると、接続したキーボードで試し弾きできます（Chrome／Edge向け）。今選んでいるパートの楽器と音量で鳴り、弾いた鍵盤は画面の鍵盤にも光ります。サスティンペダルにも対応しています。</li>
       <li>シークバー（再生開始位置・貼り付け位置）：上の目盛りをクリック、またはAキー／Dキーで左右に動かせます（吸着の幅ぶん。Shiftを押すと1小節ずつ）。Home／Endで先頭／最後へ。W／Sキーで編集するパートを上下に切り替えます。</li>
       <li>ショートカット：スペース＝再生／停止、Ctrl+Z／Ctrl+Y＝元に戻す／やり直す、矢印キー＝選択中の音を移動（Shift+↑↓でオクターブ）。</li>
@@ -344,6 +366,31 @@ details summary,details h3{color:#ffcf7a}
     </ul>
   </details>
 </div>
+
+<dialog id="dlgImport">
+  <h2>曲から譜面を作る<span class="beta">β</span></h2>
+  <p class="imp-note">MIDIファイル（.mid）は音符をそのまま取り込めるので正確です。MP3・WAV等の音声は自動採譜（ベータ版）で、単音のメロディや、音数の少ない曲ほどうまくいきます。バンド演奏などの混ざった音は、音の抜けや音程違いが出ます。取り込んだあとは、ピアノロールで直せます。曲の著作権にご注意ください（個人で楽しむ範囲で）。</p>
+  <div class="imp-drop" id="impDrop">ここにファイルをドロップ　または　<button id="impPick">ファイルを選ぶ</button>
+    <input type="file" id="impFile" accept=".mid,.midi,audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus" hidden>
+    <div class="imp-name" id="impName"></div>
+  </div>
+  <div class="imp-row">
+    <label>開始(秒)<input type="number" id="impStart" min="0" max="3600" step="1" value="0"></label>
+    <label>長さ(秒)<input type="number" id="impLen" min="0" max="120" step="1" value="30"></label>
+    <label>パート数<select id="impParts"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></label>
+    <label>テンポ<input type="number" id="impTempo" min="32" max="255" step="0.5" placeholder="自動"></label>
+    <label>最小の音符<select id="impGrid"><option value="12" selected>16分</option><option value="24">8分</option><option value="6">32分</option><option value="48">4分</option></select></label>
+  </div>
+  <div class="imp-note only-audio">音声は「長さ」の秒数ぶんだけ解析します（最大120秒）。メロディは一番高い音、和音1・和音2は次に高い音から採ります。</div>
+  <div class="imp-tracks only-midi" id="impTracks"></div>
+  <progress id="impProg" value="0" max="1" hidden></progress>
+  <div class="imp-actions">
+    <button id="impAnalyze" class="only-audio">解析する</button>
+    <button id="impApply" class="primary" disabled>譜面にする</button>
+    <button id="impClose">閉じる</button>
+  </div>
+  <div id="impMsg"></div>
+</dialog>
 
 <script>
 (() => {
@@ -784,6 +831,12 @@ function loadMMLText(text, from) {
   const n = res.tracks.length;
   flash(from + '読み込みました（' + n + 'パート）。元に戻すで戻せます' + (res.warn.length ? '　注意：' + res.warn.join(' / ') : ''), res.warn.length > 0);
 }
+function routeFile(file) {
+  if (!file) return;
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (['mid', 'midi', 'mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'opus', 'webm'].includes(ext) || (file.type || '').startsWith('audio/')) openImport(file);
+  else readFileAsMML(file);
+}
 function readFileAsMML(file) {
   if (!file) return;
   if (file.size > 2 * 1024 * 1024) { flash('ファイルが大きすぎます（2MBまで）', true); return; }
@@ -810,7 +863,7 @@ async function saveMMLFile() {
 }
 $('bSaveFile').onclick = saveMMLFile;
 $('bOpenFile').onclick = () => $('fOpen').click();
-$('fOpen').onchange = e => { readFileAsMML(e.target.files[0]); e.target.value = ''; };
+$('fOpen').onchange = e => { routeFile(e.target.files[0]); e.target.value = ''; };
 /* ファイルのドラッグ＆ドロップ */
 (function () {
   const ta = $('tOut');
@@ -820,7 +873,7 @@ $('fOpen').onchange = e => { readFileAsMML(e.target.files[0]); e.target.value = 
   document.addEventListener('drop', e => {
     if (!hasFile(e)) return;
     e.preventDefault(); ta.classList.remove('dropping');
-    readFileAsMML(e.dataTransfer.files[0]);
+    routeFile(e.dataTransfer.files[0]);
   });
 })();
 
@@ -1504,6 +1557,381 @@ else if (navigator.permissions && navigator.permissions.query) {   // 許可済�
   navigator.permissions.query({ name: 'midi' }).then(r => { if (r.state === 'granted') midiConnect(); }).catch(() => {});
 }
 
+/* ================= 曲から譜面（β）：MIDI取り込み・音声の自動採譜 ================= */
+const IMP_SR = 11025;
+const imp = { file: null, kind: null, buf: null, smf: null, audio: null, busy: false };
+
+/* --- 標準MIDIファイル(SMF)の読み取り。時間は4分音符を1とする拍で返す --- */
+function parseSMF(buf) {
+  const dv = new DataView(buf), len = dv.byteLength;
+  if (len < 14 || dv.getUint32(0) !== 0x4d546864) return null;
+  const hl = dv.getUint32(4), nt = dv.getUint16(10), div = dv.getUint16(12);
+  if (div & 0x8000) throw new Error('SMPTE時間形式のMIDIには未対応です');
+  if (!div) throw new Error('時間の分解能が不正です');
+  let p = 8 + hl;
+  const tempos = [], tracks = [];
+  while (p + 8 <= len && tracks.length < nt + 16) {
+    const id = dv.getUint32(p), tl = dv.getUint32(p + 4); p += 8;
+    const end = Math.min(p + tl, len);
+    if (id !== 0x4d54726b) { p = end; continue; }
+    let tick = 0, run = 0, name = '', prog = -1, drum = false;
+    const notes = [], open = new Map();
+    const vl = () => { let v = 0, b; do { b = dv.getUint8(p++); v = v * 128 + (b & 127); } while ((b & 128) && p < end); return v; };
+    while (p < end) {
+      tick += vl();
+      if (p >= end) break;
+      let st = dv.getUint8(p);
+      if (st < 0x80) { if (!run) break; st = run; } else p++;
+      if (st === 0xff) {
+        const type = dv.getUint8(p++), l = vl();
+        if (type === 0x51 && l === 3) tempos.push({ tick, us: dv.getUint8(p) * 65536 + dv.getUint8(p + 1) * 256 + dv.getUint8(p + 2) });
+        else if (type === 0x03) { let t = ''; for (let i = 0; i < l && i < 60; i++) t += String.fromCharCode(dv.getUint8(p + i)); name = t.replace(/[^\x20-\x7e]/g, ''); }
+        p += l;
+      } else if (st === 0xf0 || st === 0xf7) { p += vl(); }
+      else {
+        run = st;
+        const hi = st & 0xf0, ch = st & 15, d1 = dv.getUint8(p++), d2 = (hi === 0xc0 || hi === 0xd0) ? 0 : dv.getUint8(p++);
+        if (hi === 0xc0 && prog < 0) prog = d1;
+        if (ch === 9) drum = true;
+        const k = ch * 128 + d1;
+        if (hi === 0x90 && d2 > 0) { if (!open.has(k)) open.set(k, []); open.get(k).push(tick); }
+        else if (hi === 0x80 || hi === 0x90) {
+          const a = open.get(k);
+          if (a && a.length) { const s0 = a.shift(); if (ch !== 9) notes.push({ s: s0 / div, e: Math.max(tick, s0 + 1) / div, p: d1 }); }
+        }
+      }
+    }
+    open.forEach((a, k) => a.forEach(s0 => { if ((k >> 7) !== 9) notes.push({ s: s0 / div, e: Math.max(tick, s0 + div / 4) / div, p: k & 127 }); }));
+    tracks.push({ name, prog, notes, drum });
+    p = end;
+  }
+  tempos.sort((a, b) => a.tick - b.tick);
+  return { tracks, bpm: tempos.length ? 60e6 / tempos[0].us : 120, tempoChanges: tempos.length };
+}
+
+/* --- 音符(ticks)を、同時に鳴る音の高い順にP個の単音パートへ振り分ける --- */
+function layerSplit(notes, P, bass) {
+  const res = Array.from({ length: P }, () => []);
+  if (!notes.length) return res;
+  const pts = [...new Set(notes.flatMap(n => [n.s, n.e]))].sort((a, b) => a - b);
+  const sorted = notes.map((n, i) => ({ s: n.s, e: n.e, p: n.p, id: i })).sort((a, b) => a.s - b.s);
+  let active = [], ni = 0;
+  const last = new Array(P).fill(null);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1];
+    while (ni < sorted.length && sorted[ni].s <= a) active.push(sorted[ni++]);
+    active = active.filter(n => n.e > a);
+    const cur = active.slice().sort((x, y) => y.p - x.p || x.id - y.id);
+    for (let r = 0; r < P; r++) {
+      const n = (bass && P >= 2 && r === P - 1 && cur.length > P) ? cur[cur.length - 1] : cur[r];   // bass: 最後のパートは一番低い音
+      if (!n) { last[r] = null; continue; }
+      const l = last[r];
+      if (l && l.id === n.id && l.note.e === a) l.note.e = b;
+      else { const nn = { s: a, e: b, p: n.p }; res[r].push(nn); last[r] = { id: n.id, note: nn }; }
+    }
+  }
+  return res;
+}
+
+/* --- FFT（基数2） --- */
+function makeFFT(N) {
+  const levels = Math.round(Math.log2(N)), rev = new Uint32Array(N), cs = new Float64Array(N / 2), sn = new Float64Array(N / 2);
+  for (let i = 0; i < N; i++) rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (levels - 1));
+  for (let i = 0; i < N / 2; i++) { cs[i] = Math.cos(2 * Math.PI * i / N); sn[i] = Math.sin(2 * Math.PI * i / N); }
+  return (re, im) => {
+    for (let i = 0; i < N; i++) { const j = rev[i]; if (j > i) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
+    for (let size = 2; size <= N; size <<= 1) {
+      const half = size >> 1, step = N / size;
+      for (let i = 0; i < N; i += size) {
+        for (let j = 0, k = 0; j < half; j++, k += step) {
+          const l = i + j, r = l + half;
+          const tr = re[r] * cs[k] + im[r] * sn[k], ti = im[r] * cs[k] - re[r] * sn[k];
+          re[r] = re[l] - tr; im[r] = im[l] - ti; re[l] += tr; im[l] += ti;
+        }
+      }
+    }
+  };
+}
+
+/* --- 音声の自動採譜：倍音を足し合わせた「基音らしさ」で上位K音を取り、時間方向になめらかにして音符にする --- */
+const TR = { FR: 2048, N: 4096, HOP: 256, MLO: 43, MHI: 96, NH: 6, LEAD: 0.2, TAIL: 0.2 };
+async function transcribeAudio(x, sr, K, onProg) {
+  const { FR, N, HOP, MLO, MHI, NH } = TR;
+  const nF = Math.floor((x.length - FR) / HOP) + 1;
+  if (nF < 8) throw new Error('音声が短すぎます');
+  const nm = MHI - MLO + 1, binHz = sr / N;
+  const win = new Float32Array(FR); let ws = 0;
+  for (let i = 0; i < FR; i++) { win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (FR - 1)); ws += win[i]; }
+  const rng = [];
+  for (let m = 0; m < nm; m++) {
+    rng.push([]);
+    for (let h = 1; h <= NH; h++) {
+      const f = mtof(MLO + m) * h;
+      rng[m].push(f > sr * 0.45 ? null : [Math.max(1, Math.floor(f * Math.pow(2, -1 / 24) / binHz)), Math.max(1, Math.ceil(f * Math.pow(2, 1 / 24) / binHz))]);
+    }
+  }
+  const wts = Array.from({ length: NH }, (_, h) => Math.pow(0.8, h));
+  const fft = makeFFT(N), re = new Float64Array(N), im = new Float64Array(N);
+  const mag = new Float32Array(N / 2), comp = new Float32Array(N / 2);
+  const cand = new Array(nF), F1 = new Float32Array(nF * nm);
+  let peak = 0;
+  for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > peak) peak = a; }
+  const g0 = peak ? 1 / peak : 1;
+  const salience = m => {
+    let s = 0, a1 = 0, amax = 0;
+    for (let h = 0; h < NH; h++) {
+      const r = rng[m][h]; if (!r) break;
+      let a = 0; for (let b = r[0]; b <= r[1]; b++) if (comp[b] > a) a = comp[b];
+      if (h === 0) a1 = a;
+      if (h < 3 && a > amax) amax = a;
+      s += wts[h] * a;
+    }
+    return a1 < 0.4 * amax ? s * 0.4 : s;
+  };
+  for (let t = 0; t < nF; t++) {
+    const off = t * HOP;
+    for (let i = 0; i < FR; i++) re[i] = x[off + i] * g0 * win[i];
+    for (let i = FR; i < N; i++) re[i] = 0;
+    im.fill(0); fft(re, im);
+    for (let i = 0; i < N / 2; i++) { const v = Math.sqrt(re[i] * re[i] + im[i] * im[i]) / (ws / 2); mag[i] = v; comp[i] = Math.sqrt(v * 50); }
+    for (let m = 0; m < nm; m++) { const r = rng[m][0]; let mx = 0; if (r) for (let b = r[0]; b <= r[1]; b++) if (mag[b] > mx) mx = mag[b]; F1[t * nm + m] = mx; }
+    const list = [];
+    for (let k = 0; k < K; k++) {
+      let best = -1, bs = 0;
+      for (let m = 0; m < nm; m++) {
+        if (list.some(c => Math.abs(c.m - (m + MLO)) <= 1)) continue;      // 取った音のすぐ隣は取らない
+        const sv = salience(m); if (sv > bs) { bs = sv; best = m; }
+      }
+      if (best < 0) break;
+      list.push({ m: best + MLO, s: bs });
+      /* 取った音の基音と倍音ぶんを引く（別の音と倍音が重なっても残るように、引きすぎない） */
+      let a1 = 0; { const r0 = rng[best][0]; for (let b = r0[0]; b <= r0[1]; b++) if (comp[b] > a1) a1 = comp[b]; }
+      for (let h = 0; h < NH; h++) {
+        const r = rng[best][h]; if (!r) break;
+        const amt = a1 * (h === 0 ? 0.95 : 0.7 * Math.pow(0.8, h));
+        for (let b = r[0]; b <= r[1]; b++) comp[b] = Math.max(0, comp[b] - amt);
+      }
+    }
+    cand[t] = list;
+    if (t % 40 === 0) { onProg && onProg(t / nF); await new Promise(r => setTimeout(r)); }
+  }
+  /* 全体の強さの目安（上位10%）に対する割合で、鳴っている音を判定 */
+  const tops = cand.map(l => l.length ? l[0].s : 0).filter(v => v > 0).sort((a, b) => a - b);
+  const ref = tops.length ? tops[Math.floor(tops.length * 0.9)] : 1;
+  const R = Array.from({ length: K }, () => new Int16Array(nF).fill(-1));
+  for (let t = 0; t < nF; t++) {
+    const keep = cand[t].filter((c, k) => k === 0 ? c.s >= 0.3 * ref : k === 1 ? (c.s >= 0.3 * ref && c.s >= 0.3 * cand[t][0].s) : (c.s >= 0.25 * ref && c.s >= 0.25 * cand[t][0].s));
+    keep.map(c => c.m).sort((a, b) => b - a).forEach((m, r) => { R[r][t] = m; });
+  }
+  /* 各声部をなめらかにして音符にする */
+  const T = f => (f * HOP + FR / 2) / sr;
+  const ranks = R.map(arr => {
+    const sm = new Int16Array(nF).fill(-1);
+    for (let t = 0; t < nF; t++) {                                  // 窓5の多数決
+      const cnt = new Map(); for (let d = -2; d <= 2; d++) { const v = arr[Math.min(nF - 1, Math.max(0, t + d))]; cnt.set(v, (cnt.get(v) || 0) + (d === 0 ? 1.5 : 1)); }
+      let bv = -1, bc = -1; cnt.forEach((c, v) => { if (c > bc) { bc = c; bv = v; } }); sm[t] = bv;
+    }
+    const runs = [];
+    for (let t = 0; t < nF;) {
+      if (sm[t] < 0) { t++; continue; }
+      let u = t; while (u + 1 < nF && sm[u + 1] === sm[t]) u++;
+      const prev = runs[runs.length - 1];
+      if (prev && prev.p === sm[t] && t - prev.b <= 3) prev.b = u; else runs.push({ p: sm[t], a: t, b: u });
+      t = u + 1;
+    }
+    const notes = [];
+    runs.filter(r => r.b - r.a + 1 >= 3).forEach(r => {
+      const e = []; for (let t = r.a; t <= r.b; t++) e.push(F1[t * nm + (r.p - MLO)]);
+      const es = e.map((v, i) => ((e[i - 1] ?? v) + v + (e[i + 1] ?? v)) / 3);
+      const cuts = [r.a];
+      if (es.length >= 8) {                                          // 同じ高さの連打：強さの谷で分ける
+        const emax = Math.max(...es); let lastPk = -1;
+        for (let i = 1; i < es.length - 1; i++) {
+          if (es[i] >= es[i - 1] && es[i] >= es[i + 1] && es[i] > 0.3 * emax) {
+            if (lastPk >= 0 && i - lastPk >= 4) {
+              let vi = lastPk, vv = es[lastPk]; for (let j = lastPk; j <= i; j++) if (es[j] < vv) { vv = es[j]; vi = j; }
+              if (vv < 0.6 * Math.min(es[lastPk], es[i])) cuts.push(r.a + vi);
+            }
+            lastPk = i;
+          }
+        }
+      }
+      cuts.push(r.b + 1);
+      for (let c = 0; c + 1 < cuts.length; c++) {
+        if (cuts[c + 1] - cuts[c] < 3) continue;
+        notes.push({ s: T(cuts[c]) + TR.LEAD * FR / sr, e: T(cuts[c + 1] - 1) - TR.TAIL * FR / sr + HOP / sr, p: r.p });
+      }
+    });
+    return notes.filter(n => n.e - n.s >= 0.08);
+  });
+  const onsets = ranks.flatMap(r => r.map(n => n.s)).sort((a, b) => a - b);
+  return { ranks, onsets, frames: nF, cand, ref };
+}
+
+/* --- テンポの推定（8分音符の格子に、音の始まりがどれだけ揃うか） --- */
+function coherence(onsets, bpm) {
+  const B = 60 / bpm / 2; let c = 0, s = 0;
+  for (const t of onsets) { const a = 2 * Math.PI * t / B; c += Math.cos(a); s += Math.sin(a); }
+  return { score: Math.hypot(c, s) / Math.max(1, onsets.length), phase: Math.atan2(s, c) / (2 * Math.PI) * B };
+}
+function estimateTempo(onsets) {
+  if (onsets.length < 4) return 120;
+  let best = 120, bs = -1;
+  for (let b = 60; b <= 200; b += 0.5) { const sc = coherence(onsets, b).score * (1 - 0.004 * Math.abs(b - 100)); if (sc > bs) { bs = sc; best = b; } }
+  let fb = best, fs = -1;
+  for (let b = best - 1; b <= best + 1; b += 0.05) { const sc = coherence(onsets, b).score; if (sc > fs) { fs = sc; fb = b; } }
+  return fb;
+}
+
+/* --- 秒の音符 → ticks の単音パート --- */
+function buildFromAudio(tempo, g, P) {
+  const ph = coherence(imp.audio.onsets, tempo).phase, tickSec = 240 / tempo / TPW;
+  const raw = imp.audio.ranks.slice(0, P).map(ns => ns.map(n => {
+    const s = Math.round((n.s - ph) / tickSec / g) * g;
+    let e = Math.round((n.e - ph) / tickSec / g) * g; if (e <= s) e = s + g;
+    return { s, e, p: n.p };
+  }).filter(n => n.p >= MMIN && n.p <= MMAX));
+  const minS = Math.min(...raw.flat().map(n => n.s));
+  const base = Number.isFinite(minS) ? minS : 0;      // 最初の音を先頭にそろえる
+  return raw.map(ns => layerSplit(ns.map(n => ({ s: n.s - base, e: n.e - base, p: n.p })), 1)[0]);
+}
+/* --- MIDI の音符(拍) → ticks の単音パート --- */
+function buildFromMIDI(g, P, assign, startBeat, endBeat) {
+  const q = b => Math.round(b * 48 / g) * g;
+  const parts = Array.from({ length: P }, () => []), split = [];
+  imp.smf.tracks.forEach((tr, i) => {
+    const a = assign[i]; if (!a || a === 'off') return;
+    const ns = [];
+    tr.notes.forEach(n => {
+      if (n.e <= startBeat || n.s >= endBeat || n.p < MMIN || n.p > MMAX) return;
+      const s = q(Math.max(n.s, startBeat) - startBeat); let e = q(Math.min(n.e, endBeat) - startBeat); if (e <= s) e = s + g;
+      ns.push({ s, e, p: n.p });
+    });
+    if (a === 'split') split.push(...ns); else if (parts[Number(a)]) parts[Number(a)].push(...ns);
+  });
+  const out = parts.map(ns => layerSplit(ns, 1)[0]);
+  if (split.length) {                                         // 他のトラックが使っていないパートに、高い音から順に振り分ける
+    const used = new Set(Object.values(assign).filter(v => v !== 'off' && v !== 'split').map(Number));
+    let free = []; for (let k = 0; k < P; k++) if (!used.has(k)) free.push(k);
+    if (!free.length) free = Array.from({ length: P }, (_, k) => k);
+    layerSplit(split, free.length, true).forEach((l, i) => { const k = free[i]; out[k] = out[k].length ? layerSplit(out[k].concat(l), 1)[0] : l; });
+  }
+  return out;
+}
+
+/* --- ダイアログの操作 --- */
+const dlg = $('dlgImport');
+function impMsg(t, err) { const m = $('impMsg'); m.textContent = t; m.classList.toggle('err', !!err); }
+function impSync() {
+  if (imp.kind) dlg.dataset.kind = imp.kind; else delete dlg.dataset.kind;
+  $('impAnalyze').disabled = imp.busy;
+  $('impApply').disabled = imp.busy || !(imp.kind === 'midi' ? imp.smf : imp.audio);
+}
+function openImport(file) { if (!dlg.open) dlg.showModal(); if (file) impLoad(file); }
+function impTrackTable() {
+  const P = Number($('impParts').value), box = $('impTracks');
+  const keep = imp.smf.assign || {};
+  const use = imp.smf.tracks.map((t, i) => ({ t, i })).filter(o => o.t.notes.length && !o.t.drum);
+  if (!imp.smf.assign) {
+    imp.smf.assign = {};
+    let next = 0;       // 単音のトラックは順にパートへ、和音（同時に鳴る）のトラックは自動で振り分け
+    use.slice().sort((a, b) => mean(b.t.notes) - mean(a.t.notes)).forEach(o => {
+      if (maxPoly(o.t.notes) >= 2) imp.smf.assign[o.i] = 'split';
+      else imp.smf.assign[o.i] = next < P ? String(next++) : 'off';
+    });
+  }
+  const opts = cur => ['off', 'split'].concat(Array.from({ length: P }, (_, k) => String(k))).map(v =>
+    '<option value="' + v + '"' + (v === cur ? ' selected' : '') + '>' + (v === 'off' ? '使わない' : v === 'split' ? '高い音から自動で振り分け' : (v === '0' ? 'メロディ' : '和音' + v)) + '</option>').join('');
+  box.innerHTML = '<table><tr><th>トラック</th><th>音数</th><th>音域</th><th>使い方</th></tr>' + (use.length ? use.map(o => {
+    const ps = o.t.notes.map(n => n.p), cur = imp.smf.assign[o.i] === undefined ? 'off' : imp.smf.assign[o.i];
+    const nm = (o.t.name || 'トラック' + (o.i + 1)).replace(/</g, '&lt;') + (o.t.prog >= 0 ? '（音色' + o.t.prog + '）' : '');
+    return '<tr><td>' + nm + '</td><td>' + o.t.notes.length + '</td><td>' + midiName(Math.min(...ps)) + '〜' + midiName(Math.max(...ps)) + '</td><td><select data-i="' + o.i + '">' + opts(Number(cur) >= P ? 'off' : cur) + '</select></td></tr>';
+  }).join('') : '<tr><td colspan="4">音符のあるトラックがありません</td></tr>') + '</table>';
+  void keep;
+}
+function maxPoly(ns) {
+  const ev = ns.flatMap(n => [[n.s, 1], [n.e, -1]]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  let c = 0, m = 0; ev.forEach(e => { c += e[1]; if (c > m) m = c; }); return m;
+}
+const mean = ns => ns.reduce((a, n) => a + n.p, 0) / Math.max(1, ns.length);
+async function impLoad(file) {
+  imp.file = file; imp.audio = null; imp.smf = null; imp.kind = null; impMsg('');
+  $('impName').textContent = file.name + '（' + Math.round(file.size / 1024) + ' KB）';
+  if (file.size > 60 * 1024 * 1024) { impMsg('ファイルが大きすぎます（60MBまで）', true); impSync(); return; }
+  imp.buf = await file.arrayBuffer();
+  const h = new Uint8Array(imp.buf, 0, Math.min(4, imp.buf.byteLength));
+  if (h[0] === 0x4d && h[1] === 0x54 && h[2] === 0x68 && h[3] === 0x64) {
+    try { imp.smf = parseSMF(imp.buf); } catch (e) { impMsg('MIDIを読み込めませんでした：' + e.message, true); impSync(); return; }
+    imp.kind = 'midi';
+    $('impLen').value = 0; $('impStart').value = 0;
+    $('impTempo').value = Math.round(clamp(imp.smf.bpm, 32, 255) * 10) / 10;
+    impTrackTable();
+    const nn = imp.smf.tracks.reduce((a, t) => a + (t.drum ? 0 : t.notes.length), 0);
+    impMsg('MIDIを読み込みました（' + nn + '音）。使い方を確認して「譜面にする」を押してください' + (imp.smf.tempoChanges > 1 ? '　※テンポ変化は最初のテンポだけを使います' : ''));
+  } else {
+    imp.kind = 'audio'; $('impTempo').value = ''; if (!Number($('impLen').value)) $('impLen').value = 30;
+    impMsg('「解析する」を押すと、音の高さを調べて音符にします（時間がかかることがあります）');
+  }
+  impSync();
+}
+$('bImport').onclick = () => openImport(null);
+$('impClose').onclick = () => dlg.close();
+$('impPick').onclick = () => $('impFile').click();
+$('impFile').onchange = e => { if (e.target.files[0]) impLoad(e.target.files[0]); e.target.value = ''; };
+$('impParts').onchange = () => { if (imp.kind === 'midi') { imp.smf.assign = null; impTrackTable(); } };
+$('impTracks').addEventListener('change', e => { if (e.target.dataset.i !== undefined) imp.smf.assign[e.target.dataset.i] = e.target.value; });
+(function () {
+  const dz = $('impDrop');
+  dz.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); dz.classList.remove('dragover'); if (e.dataTransfer.files[0]) impLoad(e.dataTransfer.files[0]); });
+})();
+$('impAnalyze').onclick = async () => {
+  if (imp.busy || imp.kind !== 'audio') return;
+  imp.busy = true; imp.audio = null; impSync();
+  const prog = $('impProg'); prog.hidden = false; prog.value = 0; impMsg('音声を読み込んでいます…');
+  try {
+    const ab = imp.buf.slice(0);
+    const buf = await audio().decodeAudioData(ab);
+    const start = Math.max(0, Number($('impStart').value) || 0);
+    const lenS = clamp(Number($('impLen').value) || 30, 3, 120);
+    const dur = Math.min(lenS, buf.duration - start);
+    if (dur < 1) throw new Error('指定した範囲に音声がありません');
+    const oc = new OfflineAudioContext(1, Math.ceil(dur * IMP_SR), IMP_SR), src = oc.createBufferSource();
+    src.buffer = buf; src.connect(oc.destination); src.start(0, start, dur);
+    const x = (await oc.startRendering()).getChannelData(0);
+    impMsg('音の高さを解析しています…');
+    const K = clamp(Number($('impParts').value) || 3, 1, 4);
+    imp.audio = await transcribeAudio(x, IMP_SR, K, f => { prog.value = f; });
+    const est = estimateTempo(imp.audio.onsets);
+    $('impTempo').value = Math.round(est * 10) / 10;
+    impMsg('解析できました（' + imp.audio.ranks.map((r, i) => (i === 0 ? 'メロディ' : '和音' + i) + ' ' + r.length + '音').join('、') + '）。推定テンポ ' + Math.round(est) + ' を確認して「譜面にする」を押してください。テンポが違うときは数値を直して、もう一度押せます');
+  } catch (e) { impMsg('解析に失敗しました：' + (e.message || e), true); }
+  imp.busy = false; prog.hidden = true; impSync();
+};
+$('impApply').onclick = () => {
+  const P = clamp(Number($('impParts').value) || 3, 1, 4), g = Number($('impGrid').value) || 12;
+  let tempo = clamp(Number($('impTempo').value) || (imp.kind === 'midi' ? imp.smf.bpm : 120), 32, 255);
+  let parts;
+  try {
+    if (imp.kind === 'midi') {
+      const st = Math.max(0, Number($('impStart').value) || 0), ln = Number($('impLen').value) || 0;
+      const bpm = imp.smf.bpm;
+      parts = buildFromMIDI(g, P, imp.smf.assign, st * bpm / 60, ln > 0 ? (st + ln) * bpm / 60 : Infinity);
+    } else parts = buildFromAudio(tempo, g, P);
+  } catch (e) { impMsg('変換に失敗しました：' + e.message, true); return; }
+  const total = parts.reduce((a, q) => a + q.length, 0);
+  if (!total) { impMsg('音符が見つかりませんでした。パートの割り当てや範囲を確認してください', true); return; }
+  edit(() => {
+    stop();
+    S.tempo = Math.round(tempo); S.cursor = 0; S.head = 0; S.cur = 0; S.sel = [];
+    S.tracks = parts.map((ns, i) => { const tr = newTrack(i); tr.notes = ns.map(n => ({ s: n.s, l: n.e - n.s, p: n.p })); return tr; });
+    $('iTempo').value = S.tempo;
+  });
+  dlg.close();
+  flash('譜面を作りました（' + total + '音）。元に戻すで取り消せます。ピアノロールで直してください');
+};
+
 /* ================= サンプル・起動 ================= */
 const SAMPLE = 'MML@t100v12l4o4cc g g a a g2 f f e e d d c2,' +
   'v8l4o3a a o4e e f f e2 d d c c o3b b a2,' +
@@ -1531,7 +1959,7 @@ function init() {
   scroller.scrollTop = Math.max(0, RULER_H + (MMAX - mid) * ROW_H - ($('roll').clientHeight / 2));
 }
 init();
-window.__mml = { midiMessage, audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
+window.__mml = { voice, parseSMF, layerSplit, transcribeAudio, estimateTempo, coherence, TR, midiMessage, audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
 })();
 </script>
 </body>
