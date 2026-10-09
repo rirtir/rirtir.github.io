@@ -1078,17 +1078,35 @@ function preview(midi, tr) {
 
 const tickSec = () => 240 / S.tempo / TPW;
 let sess = null;
-function scheduleAll(t0, fromTick) {
-  const ts = tickSec();
+/* 再生：曲全体を最初に予約すると、音が多いほど（4パートなど）急に重くなるので、
+   これから鳴らす数秒ぶんだけを、再生しながら順に予約する */
+const LOOKAHEAD = 1.2;     // 秒：この先ここまでの音を予約しておく
+function buildEvents(t0, fromTick) {        // 1周ぶんの音を時刻順に並べる（まだ鳴らさない）
+  const ts = tickSec(), ev = [];
   S.tracks.forEach((tr, i) => {
     if (!isAudible(i)) return;
     tr.notes.forEach(n => {
       if (n.s + n.l <= fromTick) return;
       const st = Math.max(n.s, fromTick);
-      voice(tr.inst, n.p, t0 + (st - fromTick) * ts, (n.s + n.l - st) * ts, tr.vol, sess.out, sess.nodes);
+      ev.push({ at: t0 + (st - fromTick) * ts, dur: (n.s + n.l - st) * ts, p: n.p, tr });
     });
   });
-  return t0 + (songEnd() - fromTick) * ts;
+  ev.sort((a, b) => a.at - b.at);
+  return { ev, end: t0 + (songEnd() - fromTick) * ts };
+}
+function pump() {
+  if (!sess) return;
+  const now = actx.currentTime, limit = now + LOOKAHEAD;
+  while (sess.pos < sess.ev.length && sess.ev[sess.pos].at < limit) {
+    const e = sess.ev[sess.pos++];
+    voice(e.tr.inst, e.p, Math.max(e.at, now), e.dur, e.tr.vol, sess.out, sess.nodes);
+  }
+  if (sess.nodes.length > 600) sess.nodes.splice(0, sess.nodes.length - 300);     // 終わった音の記録を捨てる
+  if (S.loop && !sess.queued && sess.pos >= sess.ev.length) {           // ループ：最後まで予約したら次の周を用意する
+    const loopT = sess.endT + 0.5;           // 余韻ぶん少し空ける
+    const b = buildEvents(loopT, 0);
+    sess.ev = b.ev; sess.pos = 0; sess.queued = true; sess.nextT0 = loopT; sess.nextEnd = b.end;
+  }
 }
 function play() {
   const c = audio();
@@ -1096,36 +1114,32 @@ function play() {
   const end = songEnd();
   if (!end) { flash('音を置いてから再生してください', true); return; }
   if (S.cursor >= end) S.cursor = 0;
-  sess = { out: c.createGain(), nodes: [], t0: c.currentTime + 0.08, from: S.cursor, queued: false };
+  const t0 = c.currentTime + 0.08, b = buildEvents(t0, S.cursor);
+  sess = { out: c.createGain(), nodes: [], t0, from: S.cursor, ev: b.ev, pos: 0, endT: b.end, queued: false, nextT0: null, nextEnd: 0 };
   sess.out.connect(master);
-  sess.endT = scheduleAll(sess.t0, sess.from);
+  pump();
+  sess.timer = setInterval(pump, 100);       // 別タブなどで描画が止まっても、音の予約は続ける
   S.playing = true; $('bPlay').textContent = '■ 停止'; $('bPlay').classList.remove('primary');
   requestAnimationFrame(tick);
 }
 function stop() {
   if (!S.playing) return;
   S.playing = false; $('bPlay').textContent = '▶ 再生'; $('bPlay').classList.add('primary');
-  if (sess) { try { sess.out.disconnect(); } catch (e) {} sess.nodes.forEach(o => { try { o.stop(); } catch (e) {} }); sess = null; }
+  if (sess) { clearInterval(sess.timer); try { sess.out.disconnect(); } catch (e) {} sess.nodes.forEach(o => { try { o.stop(); } catch (e) {} }); sess = null; }
   S.head = S.cursor; requestDraw();
 }
 function tick() {
   if (!S.playing) return;
   const now = actx.currentTime;
+  pump();
   S.head = sess.from + Math.max(0, now - sess.t0) / tickSec();
-  if (S.loop && !sess.queued && now > sess.endT - 0.4) {
-    sess.queued = true;
-    const loopT = sess.endT + 0.5;           // 余韻ぶん少し空ける
-    sess.next = { t0: loopT };
-    sess.endT2 = scheduleAt(loopT);
-  }
-  if (sess.next && now >= sess.next.t0) {
-    sess.t0 = sess.next.t0; sess.from = 0; sess.endT = sess.endT2; sess.next = null; sess.queued = false;
+  if (sess.nextT0 !== null && now >= sess.nextT0) {
+    sess.t0 = sess.nextT0; sess.from = 0; sess.endT = sess.nextEnd; sess.nextT0 = null; sess.queued = false;
   }
   if (!S.loop && now > sess.endT + 0.5) { stop(); return; }
   followHead(); requestDraw();
   requestAnimationFrame(tick);
 }
-function scheduleAt(t0) { return scheduleAll(t0, 0); }
 function followHead() {
   const x = KEY_W + S.head * S.zoom - scroller.scrollLeft;
   const w = scroller.clientWidth;
