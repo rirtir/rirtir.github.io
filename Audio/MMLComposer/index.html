@@ -404,6 +404,20 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
     <label>テンポ<input type="number" id="impTempo" min="32" max="255" step="0.5" placeholder="自動"></label>
     <label>最小の音符<select id="impGrid"><option value="12" selected>16分</option><option value="24">8分</option><option value="6">32分</option><option value="48">4分</option></select></label>
   </div>
+  <div class="imp-row only-midi" id="impMidiOpts">
+    <label>割り当て
+      <select id="impAssignMode">
+        <option value="new">一番高いトラック→メロディ、一番低いトラック→ベース（おすすめ）</option>
+        <option value="old">和音のトラックは、空いているパートへ自動で振り分け（従来）</option>
+      </select></label>
+    <label><input type="checkbox" id="impFrag" checked>音が入れ替わるときの短いカケラを除く</label>
+    <label>テンポの初期値
+      <select id="impTempoMode">
+        <option value="avg">曲全体の平均</option>
+        <option value="first">最初のテンポ</option>
+      </select></label>
+    <label><input type="checkbox" id="impMeter" checked>MIDIの拍子（9/8など）を反映</label>
+  </div>
   <div class="imp-note only-audio">音声は「長さ」の秒数ぶんだけ解析します（最大120秒）。メロディは一番高い音、和音1・和音2は次に高い音から採ります。</div>
   <div class="imp-tracks only-midi" id="impTracks"></div>
   <progress id="impProg" value="0" max="1" hidden></progress>
@@ -1890,7 +1904,7 @@ function buildFromAudio(tempo, g, P) {
 }
 /* --- MIDI の音符(拍) → ticks の単音パート --- */
 function buildFromMIDI(g, P, assign, startBeat, endBeat) {
-  const q = b => Math.round(b * 48 / g) * g, FM = Math.max(g, 12);
+  const q = b => Math.round(b * 48 / g) * g, FM = $('impFrag').checked ? Math.max(g, 12) : 0;
   const parts = Array.from({ length: P }, () => ({ hi: [], lo: [] })), split = [];
   imp.smf.tracks.forEach((tr, i) => {
     const a = assign[i]; if (!a || a === 'off') return;
@@ -1927,6 +1941,11 @@ function impSync() {
   $('impApply').disabled = imp.busy || !(imp.kind === 'midi' ? imp.smf : imp.audio);
 }
 function openImport(file) { if (!dlg.open) dlg.showModal(); if (file) impLoad(file); }
+function impSetTempo() {
+  if (imp.kind !== 'midi') return;
+  const b = $('impTempoMode').value === 'first' ? imp.smf.bpm : imp.smf.avgBpm;
+  $('impTempo').value = Math.round(clamp(b, 32, 255) * 10) / 10;
+}
 function impTrackTable() {
   const P = Number($('impParts').value), box = $('impTracks');
   const keep = imp.smf.assign || {};
@@ -1937,7 +1956,10 @@ function impTrackTable() {
        間のトラックは、単音なら順にパートへ・和音なら空いているパートへ自動で振り分け */
     const order = use.slice().sort((a, b) => mean(b.t.notes) - mean(a.t.notes));
     if (order.length === 1) imp.smf.assign[order[0].i] = 'split';
-    else {
+    else if ($('impAssignMode').value === 'old') {
+      let next = 0;      // 従来：単音のトラックは順にパートへ、和音（同時に鳴る）のトラックは空いているパートへ自動で振り分け
+      order.forEach(o => { imp.smf.assign[o.i] = maxPoly(o.t.notes) >= 2 ? 'split' : (next < P ? String(next++) : 'off'); });
+    } else {
       let next = 1;
       order.forEach((o, k) => {
         if (k === 0) imp.smf.assign[o.i] = '0';
@@ -1972,10 +1994,10 @@ async function impLoad(file) {
     try { imp.smf = parseSMF(imp.buf); } catch (e) { impMsg('MIDIを読み込めませんでした：' + e.message, true); impSync(); return; }
     imp.kind = 'midi';
     $('impLen').value = 0; $('impStart').value = 0;
-    $('impTempo').value = Math.round(clamp(imp.smf.avgBpm, 32, 255) * 10) / 10;
+    impSetTempo();
     impTrackTable();
     const nn = imp.smf.tracks.reduce((a, t) => a + (t.drum ? 0 : t.notes.length), 0);
-    impMsg('MIDIを読み込みました（' + nn + '音）。使い方を確認して「譜面にする」を押してください' + (imp.smf.tempoChanges > 1 ? '　※この曲はテンポが ' + imp.smf.tempoChanges + ' 回変化します（約 ' + Math.round(imp.smf.minBpm) + '〜' + Math.round(imp.smf.maxBpm) + '）。このツールはテンポ一定なので、全体の平均 ' + Math.round(imp.smf.avgBpm) + ' にしました。ゆれは再現されません' : '') + (imp.smf.meter && !METERS[imp.smf.meter] ? '　※拍子 ' + imp.smf.meter + ' には未対応のため4/4で表示します' : ''));
+    impMsg('MIDIを読み込みました（' + nn + '音）。使い方を確認して「譜面にする」を押してください' + (imp.smf.tempoChanges > 1 ? '　※この曲はテンポが ' + imp.smf.tempoChanges + ' 回変化します（約 ' + Math.round(imp.smf.minBpm) + '〜' + Math.round(imp.smf.maxBpm) + '）。このツールはテンポ一定なので、' + ($('impTempoMode').value === 'first' ? '最初のテンポ' : '全体の平均') + ' ' + $('impTempo').value + ' にしました（「テンポの初期値」で切り替えられます）。ゆれは再現されません' : '') + (imp.smf.meter && !METERS[imp.smf.meter] ? '　※拍子 ' + imp.smf.meter + ' には未対応のため4/4で表示します' : ''));
   } else {
     imp.kind = 'audio'; $('impTempo').value = ''; if (!Number($('impLen').value)) $('impLen').value = 30;
     impMsg('「解析する」を押すと、音の高さを調べて音符にします（時間がかかることがあります）');
@@ -1986,6 +2008,8 @@ $('bImport').onclick = () => openImport(null);
 $('impClose').onclick = () => dlg.close();
 $('impPick').onclick = () => $('impFile').click();
 $('impFile').onchange = e => { if (e.target.files[0]) impLoad(e.target.files[0]); e.target.value = ''; };
+$('impAssignMode').onchange = () => { if (imp.kind === 'midi') { imp.smf.assign = null; impTrackTable(); } };
+$('impTempoMode').onchange = impSetTempo;
 $('impParts').onchange = () => { if (imp.kind === 'midi') { imp.smf.assign = null; impTrackTable(); } };
 $('impTracks').addEventListener('change', e => { if (e.target.dataset.i !== undefined) imp.smf.assign[e.target.dataset.i] = e.target.value; });
 (function () {
@@ -2035,7 +2059,7 @@ $('impApply').onclick = () => {
     S.tempo = Math.round(tempo); S.cursor = 0; S.head = 0; S.cur = 0; S.sel = [];
     S.tracks = parts.map((ns, i) => { const tr = newTrack(i); tr.notes = ns.map(n => ({ s: n.s, l: n.e - n.s, p: n.p })); return tr; });
     $('iTempo').value = S.tempo;
-    if (imp.kind === 'midi' && METERS[imp.smf.meter]) { S.meter = imp.smf.meter; $('sMeter').value = S.meter; }
+    if (imp.kind === 'midi' && $('impMeter').checked && METERS[imp.smf.meter]) { S.meter = imp.smf.meter; $('sMeter').value = S.meter; }
   });
   dlg.close();
   flash('譜面を作りました（' + total + '音）。元に戻すで取り消せます。ピアノロールで直してください');
