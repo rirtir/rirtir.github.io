@@ -188,6 +188,7 @@ details summary,details h3{color:#ffcf7a}
 .trk-body .vol b{color:#fff}
 .parts{border-top:1px dashed var(--line)}
 .msg{color:#5fd6a0}
+.panel .row button{flex:1;width:auto;margin:0;padding:6px 8px}
 dialog{background:#18212d;color:var(--text);border:1px solid #2e3b50;border-radius:20px;padding:18px 20px;width:min(680px,94vw);max-height:92vh;box-shadow:0 20px 60px rgba(0,0,0,.6)}
 dialog::backdrop{background:rgba(5,10,16,.7)}
 dialog h2{margin:0 0 6px;font-size:18px;color:#fff}
@@ -297,6 +298,27 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
         <button id="hGo">和音パートとして追加</button>
         <p class="note">元のパートの音を調の音階に合わせてずらし、新しい和音パートにします。あとから自由に編集できます。</p>
       </div>
+
+      <div class="panel" id="mvPanel">
+        <b class="t">↕ 全体を動かす</b>
+        <div class="row"><span>対象</span>
+          <select id="mvScope">
+            <option value="part">このパート全体</option>
+            <option value="sel">選択した音だけ</option>
+            <option value="all">全パートまとめて</option>
+          </select></div>
+        <div class="row"><span>音程</span><button data-mv="p:-1" title="半音下げる（Alt+↓）">半音 ↓</button><button data-mv="p:1" title="半音上げる（Alt+↑）">半音 ↑</button></div>
+        <div class="row"><span></span><button data-mv="p:-12">1オクターブ ↓</button><button data-mv="p:12">1オクターブ ↑</button></div>
+        <div class="row"><span>時間</span>
+          <select id="mvStep">
+            <option value="6">32分音符ずつ</option>
+            <option value="12" selected>16分音符ずつ</option>
+            <option value="24">8分音符ずつ</option>
+            <option value="48">4分音符ずつ</option>
+            <option value="bar">1小節ずつ</option>
+          </select></div>
+        <div class="row"><span></span><button data-mv="t:-1" title="早める（Alt+←）">◀ 早める</button><button data-mv="t:1" title="遅める（Alt+→）">遅める ▶</button></div>
+      </div>
     </aside>
 
     <section class="rollbox">
@@ -348,6 +370,7 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
       <li>コピー／貼り付け：選択してCtrl+C（切り取りはCtrl+X）→ 上の目盛りをクリックして再生開始位置（しるし）を決める → Ctrl+V。選んだ音のうち一番先頭の音が、しるしの位置に来るように貼り付きます。別のパートに切り替えてから貼り付けることもできます。</li>
       <li>ファイル：「💾 ファイルに保存」で今のMMLをテキストファイル（.txt）にします（Chrome／Edgeでは保存先を選べます）。「📂 ファイルを読み込む」、またはファイルをページにドラッグ＆ドロップで、MMLの書かれたテキストを読み込んで編集できます。</li>
       <li>曲から譜面（β）：「🎵 曲から譜面（β）」に、MIDIファイル（.mid）や音声ファイル（MP3・WAV等）を渡すと、メロディと和音のパートに分けた譜面を作ります。MIDIはほぼそのまま取り込めます。音声の自動採譜はベータ版で、単音のメロディなど単純な曲向きです。</li>
+      <li>全体を動かす：左の「↕ 全体を動かす」で、今のパート（または選んだ音だけ／全パート）をまとめて、半音・1オクターブ単位で上下、32分〜1小節単位で早く／遅くできます。Alt+↑↓で半音、Alt+←→で時間（設定した幅ぶん）でも動かせます。</li>
       <li>MIDIキーボード：ツールバーの「🎹 MIDIキーボード」を押して許可すると、接続したキーボードで試し弾きできます（Chrome／Edge向け）。今選んでいるパートの楽器と音量で鳴り、弾いた鍵盤は画面の鍵盤にも光ります。サスティンペダルにも対応しています。</li>
       <li>シークバー（再生開始位置・貼り付け位置）：上の目盛りをクリック、またはAキー／Dキーで左右に動かせます（吸着の幅ぶん。Shiftを押すと1小節ずつ）。Home／Endで先頭／最後へ。W／Sキーで編集するパートを上下に切り替えます。</li>
       <li>ショートカット：スペース＝再生／停止、Ctrl+Z／Ctrl+Y＝元に戻す／やり直す、矢印キー＝選択中の音を移動（Shift+↑↓でオクターブ）。</li>
@@ -1391,6 +1414,40 @@ scroller.addEventListener('pointerup', endDrag);
 scroller.addEventListener('pointercancel', endDrag);
 scroller.addEventListener('pointerleave', () => { if (!drag && S.hoverRow !== -1) { S.hoverRow = -1; requestDraw(); } });
 
+/* ================= パート全体の移動（音程・時間） ================= */
+function moveNotes(dp, dir) {
+  const scope = $('mvScope').value;
+  let items = [];
+  if (scope === 'all') S.tracks.forEach(t => items.push(...t.notes));
+  else if (scope === 'sel') items = selectedNotes();
+  else items = S.tracks[S.cur].notes.slice();
+  if (!items.length) { flash(scope === 'sel' ? '先に動かす音を選択してください' : '動かす音がありません', true); return; }
+  let ds = 0;
+  if (dir) { const st = $('mvStep').value; ds = dir * (st === 'bar' ? barT() : Number(st)); }
+  if (dp) {
+    const lo = Math.min(...items.map(n => n.p)), hi = Math.max(...items.map(n => n.p));
+    if (lo + dp < MMIN || hi + dp > MMAX) { flash('音域（o1〜o8）の外に出てしまうので、これ以上動かせません', true); return; }
+  }
+  let note = '';
+  if (ds < 0) {
+    const mn = Math.min(...items.map(n => n.s));
+    if (mn <= 0) { flash('先頭に音があるので、これ以上早められません。（先に全体を遅めてから動かしてください）', true); return; }
+    if (mn + ds < 0) { ds = -mn; note = '（先頭までで止めました）'; }
+  }
+  edit(() => {
+    items.forEach(n => { n.p += dp; n.s += ds; });
+    if (scope === 'sel') resolveOverlaps(S.tracks[S.cur], items);
+  });
+  if (dp) preview(items[0].p);
+  const what = scope === 'all' ? '全パート' : scope === 'sel' ? '選択した音' : '「' + S.tracks[S.cur].name + '」';
+  flash(what + 'を' + (dp ? (dp > 0 ? '上へ' : '下へ') + Math.abs(dp) + '半音' : (ds > 0 ? '遅く' : '早く')) + '動かしました' + note);
+}
+$('mvPanel').addEventListener('click', e => {
+  const v = e.target.dataset && e.target.dataset.mv; if (!v) return;
+  const [k, n] = v.split(':');
+  if (k === 'p') moveNotes(Number(n), 0); else moveNotes(0, Number(n));
+});
+
 /* ================= 範囲選択・コピー／切り取り／貼り付け ================= */
 function selectedNotes() {
   const tr = S.tracks[S.cur];
@@ -1460,6 +1517,12 @@ document.addEventListener('keydown', e => {
     if (key === 'x') { e.preventDefault(); cutSel(); return; }
     if (key === 'v') { e.preventDefault(); pasteClip(); return; }
     if (key === 'a') { e.preventDefault(); S.sel = S.tracks[S.cur].notes.slice(); requestDraw(); return; }
+  }
+  if (e.altKey && !e.ctrlKey && !e.metaKey && k.startsWith('Arrow')) {      // Alt+矢印：パート全体を動かす
+    e.preventDefault();
+    if (k === 'ArrowUp') moveNotes(1, 0); else if (k === 'ArrowDown') moveNotes(-1, 0);
+    else moveNotes(0, k === 'ArrowRight' ? 1 : -1);
+    return;
   }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (k === ' ') { e.preventDefault(); S.playing ? stop() : play(); return; }
