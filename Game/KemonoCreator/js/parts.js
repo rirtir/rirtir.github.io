@@ -75,12 +75,12 @@ export function addTuft(B, o) {
 
 // ---------------------------------------------------------------- 耳
 export const EAR_TYPES = [
-  { W: 0.033, H: 0.078, round: 0.12, cup: 0.55, fold: 0, a: 0.6, b: -0.05 },   // とがり耳
-  { W: 0.042, H: 0.105, round: 0.08, cup: 0.6, fold: 0, a: 0.66, b: -0.02 },   // 大きいとがり耳
-  { W: 0.038, H: 0.062, round: 0.22, cup: 0.55, fold: 0, a: 0.66, b: -0.08 },  // 猫耳
-  { W: 0.034, H: 0.044, round: 1.0, cup: 0.45, fold: 0, a: 0.78, b: -0.05 },   // 丸耳
-  { W: 0.038, H: 0.09, round: 0.65, cup: 0.25, fold: 1, a: 1.0, b: 0.05 },     // 垂れ耳
-  { W: 0.03, H: 0.165, round: 0.72, cup: 0.6, fold: 0, a: 0.4, b: -0.12 },     // うさぎ耳
+  { W: 0.033, H: 0.078, round: 0.12, cup: 0.55, fold: 0, a: 0.74, b: 0.0 },    // とがり耳
+  { W: 0.042, H: 0.105, round: 0.08, cup: 0.6, fold: 0, a: 0.78, b: 0.02 },    // 大きいとがり耳
+  { W: 0.038, H: 0.062, round: 0.22, cup: 0.55, fold: 0, a: 0.78, b: -0.02 },  // 猫耳
+  { W: 0.034, H: 0.044, round: 1.0, cup: 0.45, fold: 0, a: 0.86, b: 0.0 },     // 丸耳
+  { W: 0.042, H: 0.09, round: 0.75, cup: 0.25, fold: 0, a: 0.95, b: 0.0, hang: true }, // 垂れ耳
+  { W: 0.03, H: 0.165, round: 0.72, cup: 0.6, fold: 0, a: 0.5, b: -0.08 },     // うさぎ耳
 ];
 
 export function buildEar(st, cols) {
@@ -133,7 +133,7 @@ export function buildEar(st, cols) {
   for (let i = 0; i < nv; i++) {
     for (let j = 0; j < ring; j++) {
       const a = i * ring + j, b = i * ring + (j + 1) % ring, c2 = a + ring, d = b + ring;
-      B.tri(a, c2, d); B.tri(a, d, b);
+      B.tri(a, d, c2); B.tri(a, b, d);
     }
   }
   // 耳の中の毛

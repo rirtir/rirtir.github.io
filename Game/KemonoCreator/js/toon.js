@@ -151,10 +151,12 @@ vec3 kcAlbedo(out float isPad) {
   float my = dot(q, uMzU);
   float zz = jag * 0.006 * (abs(fract(p.z * 70.0 + ax * 40.0) - 0.5) - 0.25) * 4.0;
   float muzLine = my - mix(-0.045, 0.045, uMark.y) + zz;
-  float muz = vMaskA.r * kc_aa(muzLine);
+  float isMuz = smoothstep(0.32, 0.38, vMaskA.r);
+  float isHead = smoothstep(0.32, 0.38, vMaskA.g);
+  float muz = isMuz * kc_aa(muzLine);
   float h = (p.y - (uEyeC.y - 0.03 - 0.035 * (1.0 - uMark.y))) + 0.55 * (uEyeC.z - p.z) + zz;
-  float cheek = uMark3.z * vMaskA.g * (1.0 - vMaskA.r) * kc_aa(h) * step(-0.06, p.z - uEyeC.z + 0.12);
-  float throat = vMaskA.g * (1.0 - vMaskA.r) * kc_aa(p.y - (uMzRoot.y - 0.055) + zz + 0.4 * (uEyeC.z - 0.02 - p.z) * 0.0) * step(-0.03, p.z) * step(0.01, uMark.x);
+  float cheek = uMark3.z * isHead * kc_aa(h) * step(-0.06, p.z - uEyeC.z + 0.12);
+  float throat = isHead * (1.0 - isMuz) * kc_aa(p.y - (uMzRoot.y - 0.055) + zz) * step(-0.03, p.z) * step(0.01, uMark.x);
   float faceW = max(max(muz, cheek), throat);
   col = mix(col, uColSub, clamp(max(front, faceW), 0.0, 1.0));
   // 手先・足先
@@ -370,7 +372,7 @@ ${NOISE.replace(/float kc_aa[^\n]*\n/, '')}
 bool kcClothedV(vec3 p, vec4 mA, vec4 mB) {
   float waist = 1.005;
   float hemY = uClothV.y < 0.5 ? 0.665 : (uClothV.y < 1.5 ? 0.47 : 0.105);
-  if (p.y < waist + 0.012 && p.y > hemY - 0.025 && mB.x < 0.001 && mA.a < 0.5 && mA.g < 0.35) return true;
+  if (p.y < waist + 0.05 && p.y > hemY - 0.025 && mB.x < 0.001 && mA.a < 0.5 && mA.g < 0.35) return true;
   if (uClothV.x > 0.5 && p.y > waist - 0.07 && p.y < 1.5 && mA.g < 0.35 && mB.y < 0.001) {
     if (uClothV.x < 1.5) return mB.x < 0.001 && abs(p.x) < 0.19;
     return mB.x < (uClothV.x < 2.5 ? 0.3 : 0.86);

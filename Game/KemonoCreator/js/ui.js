@@ -8,6 +8,14 @@ const PALETTE = [
   '#e58a2a', '#d4a25c', '#c8423b', '#3d5a80', '#2d6a3a', '#7a3b8a', '#f3c6c4', '#9fd8e8',
 ];
 const STORE = 'kemono-creator-v1';
+const BODY_KEYS = ['muscle', 'fat', 'belly', 'shoulderW', 'chest', 'pecs', 'waist', 'torsoLen', 'neckThick', 'neckLen', 'armLen', 'armThick', 'handSize', 'hipW', 'glutes', 'legLen', 'legThick', 'calf', 'footSize', 'height'];
+const BODY_TYPES = [
+  ['細身', { _w: 0.55, muscle: 0.1, fat: -0.7, shoulderW: -0.3, chest: -0.4, waist: -0.4, armThick: -0.5, legThick: -0.5, neckThick: -0.4, legLen: 0.3, height: 0.98 }],
+  ['標準', { _w: 0.75, muscle: 0.35 }],
+  ['筋肉質', { _w: 0.95, muscle: 1, shoulderW: 0.6, chest: 0.6, pecs: 0.5, armThick: 0.6, legThick: 0.4, neckThick: 0.6, waist: -0.3, calf: 0.4, height: 1.03 }],
+  ['ぽっちゃり', { _w: 1.05, muscle: 0.15, fat: 0.7, belly: 0.7, waist: 0.6, hipW: 0.4, armThick: 0.3, legThick: 0.4, neckThick: 0.5, glutes: 0.4 }],
+  ['巨漢', { _w: 1.2, muscle: 0.8, fat: 0.6, belly: 0.4, shoulderW: 1, chest: 1, armThick: 1, legThick: 0.9, neckThick: 1, neckLen: -0.6, handSize: 0.6, footSize: 0.5, height: 1.12 }],
+];
 const CAM_FOR = { preset: 'full', body: 'full', head: 'face', muzzle: 'face', eyes: 'eyes', mouth: 'face', ears: 'face', hair: 'face', fur: 'upper', tail: 'back', color: 'full', outfit: 'full', pose: 'full', view: 'full' };
 
 export function buildUI({ chara, stage, camera, controls, renderer }) {
@@ -76,6 +84,24 @@ export function buildUI({ chara, stage, camera, controls, renderer }) {
     panel.innerHTML = '';
     for (const k of Object.keys(controlsById)) delete controlsById[k];
     if (cur === 'preset') return renderPresets();
+    if (cur === 'body') {
+      const sec = el('section', 'grp');
+      sec.appendChild(el('h3', null, '体型タイプ'));
+      const row = el('div', 'body-types');
+      for (const [name, vals] of BODY_TYPES) {
+        const b = el('button', 'btype');
+        b.innerHTML = `<span class="bt-ic" style="--w:${vals._w}"></span><span>${name}</span>`;
+        b.onclick = () => {
+          const s = structuredClone(ui.state);
+          for (const k of BODY_KEYS) s[k] = DEFAULT_STATE[k];
+          for (const [k, v] of Object.entries(vals)) if (k[0] !== '_') s[k] = v;
+          setState(s);
+        };
+        row.appendChild(b);
+      }
+      sec.appendChild(row);
+      panel.appendChild(sec);
+    }
     for (const g of c.groups) {
       const sec = el('section', 'grp');
       sec.appendChild(el('h3', null, g.label));

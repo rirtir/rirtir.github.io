@@ -107,9 +107,9 @@ export const DEFAULT_STATE = Object.fromEntries(Object.values(ITEMS).map(it => [
 export const PRESETS = [
   {
     name: '狼', sub: 'オオカミ', swatch: ['#7d7f86', '#e9e6e0'], s: {
-      muzLen: 0.45, muzW: -0.1, muzH: -0.05, muzTaper: 0.2, stop: 0.2, cheek: 0.2, earType: 0, earSize: 1.0, earH: 1.1, earRound: 0.15,
+      muzLen: 0.45, muzW: -0.1, muzH: -0.05, muzTaper: 0.2, stop: 0.2, cheek: 0.2, earType: 0, earSize: 1.15, earH: 1.1, earRound: 0.15,
       furMain: '#7d7f86', furSub: '#ece9e4', furAccent: '#4b4c52', patternColor: '#3f4046', backMark: 0.55, cheekWhite: 1, muzzleCover: 0.55, bellyW: 0.6,
-      irisTop: '#7a5a12', irisBot: '#f2c33a', eyeTilt: 0.3, eyeAspect: 0.66, browType: 1, hairStyle: 4, cheekFluff: 2, tailType: 0, neckRuff: 0.6, chestFluff: 0.7,
+      irisTop: '#7a5a12', irisBot: '#f2c33a', eyeTilt: 0.3, eyeAspect: 0.66, browType: 1, hairStyle: 1, hairLen: 1.25, cheekFluff: 2, tailType: 0, neckRuff: 0.6, chestFluff: 0.7,
       noseType: 0, mouthCorner: 0.22, fang: 0.4, muscle: 0.5, shoulderW: 0.3,
     },
   },

@@ -341,13 +341,24 @@ export class Character {
       m.userData.ownGeo = sx > 0;
       if (sx < 0) m.scale.x = -1;
       // 向き: 上方向は 法線と真上の中間、開口は前、外/後ろへの傾き
-      const up = s.n.clone().lerp(V(0, 1, 0), st.earType === 4 ? 0.1 : 0.55).normalize();
-      const q = new THREE.Quaternion().setFromUnitVectors(V(0, 1, 0), up);
-      const ry = (sx > 0 ? -1 : 1) * (0.25 + 0.5 * st.earTurn) * 1.0;
-      q.multiply(new THREE.Quaternion().setFromAxisAngle(V(0, 1, 0), ry));
-      q.multiply(new THREE.Quaternion().setFromAxisAngle(V(0, 0, 1), -sx * 0.35 * st.earOut));
-      q.multiply(new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), -0.4 * st.earBack));
-      if (st.earType === 4) q.multiply(new THREE.Quaternion().setFromAxisAngle(V(0, 0, 1), -sx * 0.6));
+      let q;
+      if (ET.hang) {
+        // 垂れ耳: 頭の横から下へ垂らし、内側（くぼみ）を頭に向ける
+        const down = V(sx * (0.62 + 0.3 * st.earOut), -1, 0.22 - 0.3 * st.earBack).normalize();
+        const out = V(-sx * 0.5, 0, -0.87);   // 開口は頭の内側・後ろ向き → 正面からは耳の外側が見える
+        const zf = out.clone().addScaledVector(down, -down.dot(out)).normalize();
+        const xf = new THREE.Vector3().crossVectors(down, zf).normalize();
+        const mtx = new THREE.Matrix4().makeBasis(xf, down, zf);
+        q = new THREE.Quaternion().setFromRotationMatrix(mtx);
+        q.multiply(new THREE.Quaternion().setFromAxisAngle(V(0, 1, 0), 0.4 * st.earTurn));
+      } else {
+        const up = s.n.clone().lerp(V(0, 1, 0), 0.55).normalize();
+        q = new THREE.Quaternion().setFromUnitVectors(V(0, 1, 0), up);
+        const ry = (sx > 0 ? -1 : 1) * (0.25 + 0.5 * st.earTurn);
+        q.multiply(new THREE.Quaternion().setFromAxisAngle(V(0, 1, 0), ry));
+        q.multiply(new THREE.Quaternion().setFromAxisAngle(V(0, 0, 1), -sx * 0.35 * st.earOut));
+        q.multiply(new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), -0.4 * st.earBack));
+      }
       m.quaternion.copy(q);
       m.position.copy(this._local('head', s.p.addScaledVector(s.n, -0.006)));
       m.userData.ear = sx;
