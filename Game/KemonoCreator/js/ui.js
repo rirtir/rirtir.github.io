@@ -258,6 +258,17 @@ export function buildUI({ chara, stage, camera, controls, renderer }) {
     const iris = Math.random();
     const ic = new THREE.Color().setHSL(iris, 0.7, 0.55), it2 = new THREE.Color().setHSL(iris, 0.6, 0.22);
     s.irisBot = '#' + ic.getHexString(); s.irisTop = '#' + it2.getHexString();
+    if (!colorOnly) {
+      s.top = [0, 0, 1, 2, 3, 4, 4][Math.floor(Math.random() * 7)];
+      s.bottom = Math.floor(Math.random() * 3);
+      s.pantStripe = Math.random() < 0.35;
+      s.scarf = Math.random() < 0.25;
+      s.bracelet = Math.random() < 0.25;
+    }
+    const cloth = ['#3d5a80', '#2e3440', '#7a2e2e', '#2f5d50', '#5a4a7a', '#c8c2b6', '#1f1f24', '#8a6a3a', '#3a6ea5', '#a8452f'];
+    const pick = () => cloth[Math.floor(Math.random() * cloth.length)];
+    s.topColor = pick(); s.bottomColor = pick(); s.scarfColor = pick();
+    s.trimColor = ['#d9b45a', '#f2efe6', '#c8423b', '#1f1f24', '#7fb8d8'][Math.floor(Math.random() * 5)];
     for (const k of ['theme', 'faceViews', 'outlineW', 'anime', 'shadeHue', 'shadeDark', 'rim', 'faceSoft', 'lightAz', 'lightEl']) s[k] = ui.state[k];
     setState(s);
   }

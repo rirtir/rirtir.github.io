@@ -14,7 +14,7 @@ function rng(seed) {
 
 // 服（体を法線方向に少しふくらませた殻。範囲はシェーダーで切り抜く）
 const SHELL_PARS = /* glsl */`
-uniform vec4 uTop; uniform vec4 uBot; uniform vec3 uTopCol, uBotCol, uBeltCol; uniform vec4 uArmA, uArmD;
+uniform vec4 uTop; uniform vec4 uBot; uniform vec3 uTopCol, uBotCol, uBeltCol, uTrimCol; uniform vec4 uArmA, uArmD;
 vec3 kcCloth() {
   vec3 p = vPos;
   float head = vMaskA.g, armT = vMaskB.x, legT = vMaskB.y;
@@ -32,19 +32,37 @@ vec3 kcCloth() {
       if (abs(p.x) < 0.024 && p.z > 0.0) c = vec3(0.86, 0.72, 0.36);
     }
     c *= 1.0 - 0.12 * (1.0 - smoothstep(0.0, 0.004, abs(p.x))) * step(0.0, p.z);
+    // 横のライン
+    if (uBot.z > 0.5 && p.y < waist - 0.045) {
+      float side = atan(p.z, abs(p.x) - 0.05);
+      float st = 1.0 - smoothstep(0.1, 0.13, abs(side + 0.05));
+      c = mix(c, uTrimCol, st * step(0.06, abs(p.x)));
+    }
     return c;
   }
   // 上
   if (uTop.x < 0.5) discard;
   float sLen = uTop.x < 1.5 ? -1.0 : (uTop.x < 2.5 ? 0.24 : 0.97);
+  bool jacket = uTop.x > 3.5;
   vec3 pa = vec3(abs(p.x), p.y, p.z);
   float at = armT > 0.0 ? dot(pa - uArmA.xyz, uArmD.xyz) / uArmA.w : 0.0;
   bool sleeveOK = sLen < 0.0 ? (armT < 0.001 && abs(p.x) < 0.175) : (at < sLen);
   float frontV = max(0.0, 1.0 - abs(p.x) / 0.11) * step(0.0, p.z);
-  float neckY = 1.475 - 0.02 * step(0.0, p.z) - uTop.y * 0.16 * frontV;
+  float neckY = 1.475 - 0.02 * step(0.0, p.z) - uTop.y * 0.16 * frontV + (jacket ? 0.03 * (1.0 - step(0.0, p.z) * 0.0) : 0.0);
+  // ジャケット: 前を開ける（上ほど広く）
+  float openW = 0.035 + 0.075 * smoothstep(1.05, 1.45, p.y) * (0.4 + uTop.y);
+  if (jacket && p.z > 0.0 && abs(p.x) < openW && armT < 0.001) discard;
   if (p.y > waist - 0.06 && p.y < neckY && sleeveOK && legT < 0.001 && vMaskA.a < 0.5) {
     vec3 c = uTopCol;
     float e = smoothstep(neckY - 0.022, neckY - 0.01, p.y);
+    if (jacket) {
+      // 前立てと襟の縁取り
+      float edge = 1.0 - smoothstep(0.012, 0.018, abs(p.x) - openW);
+      if (p.z > 0.0 && armT < 0.001) c = mix(c, uTrimCol, edge);
+      if (p.y > neckY - 0.03) c = uTrimCol;
+      if (armT > 0.0 && at > 0.9) c = uTrimCol;
+      e = 0.0;
+    }
     if (sLen > 0.0 && armT > 0.0) e = max(e, smoothstep(sLen - 0.05, sLen - 0.025, at));
     if (sLen < 0.0) e = max(e, smoothstep(0.155, 0.17, abs(p.x)) * step(1.3, p.y));
     c *= 1.0 - 0.2 * e;
@@ -56,7 +74,7 @@ vec3 kcCloth() {
 `;
 
 // パーツの作り直しが不要な項目
-const NON_PART = /^(faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|top|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
+const NON_PART = /^(faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
 
 export class Character {
   constructor(data, scene) {
@@ -89,7 +107,7 @@ export class Character {
     this.shellU = {
       uTop: { value: new THREE.Vector4(0, 0.3, 0, 0) }, uBot: { value: new THREE.Vector4(1, 1, 0, 0) },
       uArmA: { value: new THREE.Vector4() }, uArmD: { value: new THREE.Vector4() },
-      uTopCol: { value: col('#3d5a80') }, uBotCol: { value: col('#2e3440') }, uBeltCol: { value: col('#7a5230') },
+      uTopCol: { value: col('#3d5a80') }, uTrimCol: { value: col('#d9b45a') }, uBotCol: { value: col('#2e3440') }, uBeltCol: { value: col('#7a5230') },
     };
     {
       const J = data.meta.joints;
@@ -220,7 +238,8 @@ export class Character {
     // 服
     const S = this.shellU;
     S.uTop.value.set(st.top, st.topNeck, 0, 0);
-    S.uBot.value.set(st.bottom, st.belt ? 1 : 0, 0, 0);
+    S.uBot.value.set(st.bottom, st.belt ? 1 : 0, st.pantStripe ? 1 : 0, 0);
+    S.uTrimCol.value.set(st.trimColor);
     S.uTopCol.value.set(st.topColor); S.uBotCol.value.set(st.bottomColor); S.uBeltCol.value.set(st.beltColor);
     // 絵づくり
     LIGHT.uOutlinePx.value = st.outlineW;
@@ -493,7 +512,8 @@ export class Character {
         tuft(['neck'], 'neck', nC.clone().add(V(0, 0.03, 0)), dir, V(Math.sin(a) * 0.6, -0.8, Math.cos(a) * 0.6).normalize(), 0.06 * (0.6 + 0.6 * st.neckRuff), 0.04 * tw, { builder: FB.neck, c0, c1: c0, tipAmt: 0, bend: V(0, -0.1, 0), mess: 0.5, sink: 0.012 });
       }
     }
-    if (st.chestFluff > 0.01) {
+    const shirt = st.top >= 1 && st.top <= 3;
+    if (st.chestFluff > 0.01 && !shirt) {
       const cC = this.baseJoint('chest');
       const pts = [[0, 0.16, 1.0], [0.035, 0.13, 0.95], [-0.035, 0.13, 0.95], [0.0, 0.09, 0.9], [0.06, 0.105, 0.8], [-0.06, 0.105, 0.8]];
       const cnt = Math.round(2 + st.chestFluff * 4);
@@ -503,7 +523,7 @@ export class Character {
         tuft(['chest'], 'chest', null, null, V(x * 3, -0.75, 0.55).normalize(), 0.06 * s * st.chestLen * (0.7 + 0.5 * st.chestFluff), 0.035 * tw, { target: tgt, builder: FB.chest, c0: chestC, c1: chestC, tipAmt: 0, bend: V(0, -0.3, -0.05), sink: 0.01, mess: 0.5 });
       }
     }
-    if (st.backMane > 0.01) {
+    if (st.backMane > 0.01 && !shirt) {
       for (let k = 0; k < 6; k++) {
         const y = 1.53 - k * 0.06;
         const tgt = V(0, y, -0.2);

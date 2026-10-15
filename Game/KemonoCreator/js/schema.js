@@ -78,8 +78,8 @@ export const CATEGORIES = [
   },
   {
     id: 'outfit', label: '服', icon: '服', groups: [
-      { label: '上', items: [S('top', '上の服', ['なし', 'タンクトップ', 'Tシャツ', '長袖'], 0), C('topColor', '色', '#3d5a80'), R('topNeck', '襟ぐり', 0, 1, 0.3)] },
-      { label: '下', items: [S('bottom', '下の服', ['ショートパンツ', 'ハーフパンツ', 'ロングパンツ'], 1), C('bottomColor', '色', '#2e3440'), T('belt', 'ベルト', true), C('beltColor', 'ベルトの色', '#7a5230')] },
+      { label: '上', items: [S('top', '上の服', ['なし', 'タンクトップ', 'Tシャツ', '長袖', 'ジャケット（前開き）'], 0), C('topColor', '色', '#3d5a80'), R('topNeck', '襟ぐり・前の開き', 0, 1, 0.3), C('trimColor', '縁取りの色', '#d9b45a')] },
+      { label: '下', items: [S('bottom', '下の服', ['ショートパンツ', 'ハーフパンツ', 'ロングパンツ'], 1), C('bottomColor', '色', '#2e3440'), T('belt', 'ベルト', true), C('beltColor', 'ベルトの色', '#7a5230'), T('pantStripe', '横のライン（縁取りの色）', false)] },
       { label: '小物', items: [T('scarf', 'スカーフ', false), C('scarfColor', 'スカーフの色', '#c8423b'), T('bracelet', '腕輪', false), C('accColor', '腕輪の色', '#d9b45a')] },
     ],
   },
