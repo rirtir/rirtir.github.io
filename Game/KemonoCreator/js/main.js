@@ -50,7 +50,7 @@ function loop() {
   renderer.render(scene, camera);
 
   // 3面プレビュー
-  if (ui.state.faceViews) {
+  if (ui.state.faceViews && !document.body.classList.contains('ui-hidden')) {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     const narrow = window.innerWidth < 760;
     const sz = narrow ? Math.round(Math.min(84, h * 0.22)) : Math.round(Math.min(150, Math.max(90, h * 0.17)));

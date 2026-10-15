@@ -109,6 +109,8 @@ body.night #hint { color: #b8b4d8; }
 body.night .brand, body.night .home { color: #ece8ff; }
 body.night .brand-en { color: #b8b4d8; }
 
+body.ui-hidden #top, body.ui-hidden #rail, body.ui-hidden #panel, body.ui-hidden #cam-bar, body.ui-hidden #hint { display: none; }
+
 /* ダイアログ */
 dialog { border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; width: min(520px, 92vw); background: #fbfbfd; color: var(--ink); }
 dialog::backdrop { background: rgba(30, 34, 44, .35); }

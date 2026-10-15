@@ -8,6 +8,26 @@ const PALETTE = [
   '#e58a2a', '#d4a25c', '#c8423b', '#3d5a80', '#2d6a3a', '#7a3b8a', '#f3c6c4', '#9fd8e8',
 ];
 const STORE = 'kemono-creator-v1';
+const QUICK = {
+  eyes: { label: '目の形タイプ', items: [
+    ['ふつう', { eyeAspect: 0.78, eyeTilt: 0.14, eyeUpper: 0.7, eyeLower: 0.45, irisSize: 0.62, eyeSize: 0.021 }],
+    ['つり目', { eyeAspect: 0.6, eyeTilt: 0.42, eyeUpper: 0.55, eyeLower: 0.35, irisSize: 0.58, eyeSize: 0.022 }],
+    ['たれ目', { eyeAspect: 0.75, eyeTilt: -0.3, eyeUpper: 0.9, eyeLower: 0.4, irisSize: 0.66, eyeSize: 0.021 }],
+    ['まんまる', { eyeAspect: 1.05, eyeTilt: 0.0, eyeUpper: 1.2, eyeLower: 0.85, irisSize: 0.8, eyeSize: 0.02 }],
+    ['細目', { eyeAspect: 0.4, eyeTilt: 0.15, eyeUpper: 0.5, eyeLower: 0.25, irisSize: 0.5, eyeSize: 0.023 }],
+    ['鋭い', { eyeAspect: 0.5, eyeTilt: 0.5, eyeUpper: 0.35, eyeLower: 0.55, irisSize: 0.48, pupilType: 1, eyeSize: 0.023 }],
+    ['黒目がち', { eyeAspect: 0.85, eyeTilt: 0.08, irisSize: 0.95, pupilSize: 0.5, eyeSize: 0.019 }],
+  ] },
+  muzzle: { label: 'マズルのタイプ', items: [
+    ['犬', { muzLen: 0.2, muzW: 0, muzH: 0, muzTaper: 0.1, muzDrop: 0, stop: 0.3, padSize: 0, jawLen: 0, bridge: 0 }],
+    ['狼', { muzLen: 0.5, muzW: -0.1, muzH: -0.05, muzTaper: 0.25, muzDrop: 0, stop: 0.15, padSize: -0.2, jawLen: 0.1, bridge: 0.2 }],
+    ['狐', { muzLen: 0.6, muzW: -0.4, muzH: -0.35, muzTaper: 0.7, muzDrop: 0.1, stop: -0.2, padSize: -0.4, jawLen: 0, bridge: -0.2 }],
+    ['猫', { muzLen: -0.85, muzW: 0.1, muzH: -0.25, muzTaper: -0.2, muzDrop: 0, stop: 0.6, padSize: 0.7, jawLen: -0.4, bridge: -0.3 }],
+    ['獅子・虎', { muzLen: -0.4, muzW: 0.45, muzH: 0.25, muzTaper: -0.1, muzDrop: 0.1, stop: 0.5, padSize: 0.8, jawLen: 0, bridge: 0.3 }],
+    ['熊', { muzLen: -0.2, muzW: 0.5, muzH: 0.35, muzTaper: -0.4, muzDrop: 0.15, stop: 0.9, padSize: 0.2, jawLen: 0.1, bridge: 0 }],
+    ['ドーベル', { muzLen: 0.8, muzW: -0.3, muzH: -0.1, muzTaper: 0.35, muzDrop: -0.1, stop: 0.5, padSize: -0.3, jawLen: 0.2, bridge: 0.4 }],
+  ] },
+};
 const BODY_KEYS = ['muscle', 'fat', 'belly', 'shoulderW', 'chest', 'pecs', 'waist', 'torsoLen', 'neckThick', 'neckLen', 'armLen', 'armThick', 'handSize', 'hipW', 'glutes', 'legLen', 'legThick', 'calf', 'footSize', 'height'];
 const BODY_TYPES = [
   ['細身', { _w: 0.55, muscle: 0.1, fat: -0.7, shoulderW: -0.3, chest: -0.4, waist: -0.4, armThick: -0.5, legThick: -0.5, neckThick: -0.4, legLen: 0.3, height: 0.98 }],
@@ -84,6 +104,19 @@ export function buildUI({ chara, stage, camera, controls, renderer }) {
     panel.innerHTML = '';
     for (const k of Object.keys(controlsById)) delete controlsById[k];
     if (cur === 'preset') return renderPresets();
+    if (QUICK[cur]) {
+      const q = QUICK[cur];
+      const sec = el('section', 'grp');
+      sec.appendChild(el('h3', null, q.label));
+      const row = el('div', 'chips');
+      for (const [name, vals] of q.items) {
+        const b = el('button', 'chip', name);
+        b.onclick = () => setState({ ...structuredClone(ui.state), ...vals });
+        row.appendChild(b);
+      }
+      sec.appendChild(row);
+      panel.appendChild(sec);
+    }
     if (cur === 'body') {
       const sec = el('section', 'grp');
       sec.appendChild(el('h3', null, '体型タイプ'));
@@ -334,6 +367,7 @@ export function buildUI({ chara, stage, camera, controls, renderer }) {
   // キーボード
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'h' || e.key === 'H') { document.body.classList.toggle('ui-hidden'); return; }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); (e.shiftKey ? $('#btn-redo') : $('#btn-undo')).click(); }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); $('#btn-redo').click(); }
   });
