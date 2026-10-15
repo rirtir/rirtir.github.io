@@ -282,13 +282,15 @@ export class Tail {
       pts.push(p.clone()); dirs.push(d);
       p.addScaledVector(d, ds);
     }
-    const up = new THREE.Vector3(0, 1, 0);
+    // 平行移動フレーム（尻尾が真上を向いてもねじれない）
+    const A = new THREE.Vector3(0, 1, 0).addScaledVector(dirs[0], -dirs[0].y);
+    if (A.lengthSq() < 1e-6) A.set(0, 0, 1);
+    A.normalize();
     let rProf;
     for (let i = 0; i < segs; i++) {
       const s = i / (segs - 1);
       const d = dirs[i];
-      const A = _a.copy(up).addScaledVector(d, -up.dot(d));
-      if (A.lengthSq() < 1e-6) A.set(0, 0, 1); A.normalize();
+      A.addScaledVector(d, -A.dot(d)).normalize();
       const Bv = _b.crossVectors(d, A).normalize();
       if (T.tip === 3) {
         // 短い・丸い

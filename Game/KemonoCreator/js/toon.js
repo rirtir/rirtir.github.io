@@ -417,6 +417,7 @@ vWN = normalize(mat3(modelMatrix) * objectNormal);
   #endif
   px *= clamp(2.4 / gl_Position.w, 0.5, 1.25);
   gl_Position.xy += dir * px * 2.0 / uViewport * gl_Position.w;
+  gl_Position.z += 0.0012 * gl_Position.w;
 }
 #endif`);
     // ---- fragment
