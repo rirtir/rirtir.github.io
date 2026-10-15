@@ -48,7 +48,7 @@ vec3 kcCloth() {
   float at = armT > 0.0 ? dot(pa - uArmA.xyz, uArmD.xyz) / uArmA.w : 0.0;
   bool sleeveOK = sLen < 0.0 ? (armT < 0.001 && abs(p.x) < 0.175) : (at < sLen);
   float frontV = max(0.0, 1.0 - abs(p.x) / 0.11) * step(0.0, p.z);
-  float neckY = 1.475 - 0.02 * step(0.0, p.z) - uTop.y * 0.16 * frontV + (jacket ? 0.03 * (1.0 - step(0.0, p.z) * 0.0) : 0.0);
+  float neckY = 1.475 - 0.02 * step(0.0, p.z) - uTop.y * 0.16 * frontV + (jacket ? 0.03 : 0.0) + 0.1 * smoothstep(0.07, 0.17, abs(p.x));
   // ジャケット: 前を開ける（上ほど広く）
   float openW = 0.035 + 0.075 * smoothstep(1.05, 1.45, p.y) * (0.4 + uTop.y);
   if (jacket && p.z > 0.0 && abs(p.x) < openW && armT < 0.001) discard;

@@ -373,7 +373,7 @@ bool kcClothedV(vec3 p, vec4 mA, vec4 mB) {
   float waist = 1.005;
   float hemY = uClothV.y < 0.5 ? 0.665 : (uClothV.y < 1.5 ? 0.47 : 0.105);
   if (p.y < waist + 0.05 && p.y > hemY - 0.025 && mB.x < 0.001 && mA.a < 0.5 && mA.g < 0.35) return true;
-  if (uClothV.x > 0.5 && p.y > waist - 0.07 && p.y < 1.5 && mA.g < 0.35 && mB.y < 0.001) {
+  if (uClothV.x > 0.5 && p.y > waist - 0.07 && p.y < 1.5 + 0.1 * smoothstep(0.07, 0.17, abs(p.x)) && mA.g < 0.35 && mB.y < 0.001) {
     if (uClothV.x < 1.5) return mB.x < 0.001 && abs(p.x) < 0.19;
     if (uClothV.x > 3.5 && p.z > 0.0 && abs(p.x) < 0.035 + 0.075 * smoothstep(1.05, 1.45, p.y) * (0.4 + uClothV.z) && mB.x < 0.001) return false;
     return mB.x < (uClothV.x < 2.5 ? 0.3 : 0.86);
