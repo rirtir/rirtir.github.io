@@ -201,4 +201,36 @@ export const PRESETS = [
       shoulderW: 0.5, muscle: 0.6, legLen: -0.3, armLen: 0.2,
     },
   },
+  {
+    name: '狸', sub: 'タヌキ', swatch: ['#8a7058', '#2a221e'], s: {
+      muzLen: -0.25, muzW: 0.2, muzH: 0.0, muzTaper: 0.3, stop: 0.5, cheek: 0.7, headW: 0.2, earType: 3, earSize: 0.9, earH: 1.2, earRound: 0.6,
+      furMain: '#8a7058', furSub: '#d9ccb8', furAccent: '#2a221e', patternColor: '#2a221e', eyeMask: 0.7, muzzleCover: 0.35, cheekWhite: 1, bellyW: 0.3, sockArm: 0.7, sockLeg: 0.55,
+      irisTop: '#2a170e', irisBot: '#8a5a2a', eyeTilt: -0.2, eyeAspect: 0.85, irisSize: 0.75, browType: 0, noseType: 0, noseSize: 0.85, hairStyle: 1, hairLen: 0.6, cheekFluff: 2, cheekLen: 1.3,
+      tailType: 0, tailThick: 1.2, tailTipAmt: 0.2, tailTipColor: '#2a221e', fat: 0.5, belly: 0.6, muscle: 0.15, height: 0.95,
+    },
+  },
+  {
+    name: 'シェパード', sub: 'シェパード', swatch: ['#b77a3e', '#2a2220'], s: {
+      muzLen: 0.55, muzW: -0.1, muzTaper: 0.2, stop: 0.45, cheek: -0.1, earType: 1, earSize: 1.0, earH: 1.1, earRound: 0.1,
+      furMain: '#c8873f', furSub: '#e2b77a', furAccent: '#c8873f', patternColor: '#2a2220', backMark: 0.75, muzzleCover: 0.3, bellyW: 0.45, cheekWhite: 0,
+      irisTop: '#3a1e0c', irisBot: '#a8682a', eyeTilt: 0.25, eyeAspect: 0.66, browType: 1, hairStyle: 3, hairUseFur: false, hairColor: '#2a2220', cheekFluff: 1, chestFluff: 0.6, neckRuff: 0.5,
+      tailType: 0, tailTipAmt: 0.25, tailTipColor: '#2a2220', muscle: 0.6, shoulderW: 0.3,
+    },
+  },
+  {
+    name: 'ユキヒョウ', sub: 'ユキヒョウ', swatch: ['#dcdad4', '#4a4a50'], s: {
+      muzLen: -0.6, muzW: 0.1, muzH: -0.1, padSize: 0.6, stop: 0.6, cheek: 0.3, earType: 3, earSize: 0.8, earRound: 0.7,
+      furMain: '#dcdad4', furSub: '#f6f5f2', furAccent: '#dcdad4', patternColor: '#4a4a50', pattern: 2, patternAmt: 0.55, patternScale: 1.1, muzzleCover: 0.6, bellyW: 0.7, cheekWhite: 1,
+      irisTop: '#3a6a6a', irisBot: '#bfe8d8', eyeTilt: 0.25, eyeAspect: 0.7, pupilType: 1, noseType: 1, noseColor: '#b8848a', whiskers: 3, tailType: 2, tailThick: 1.6, tailLen: 1.3, tailFluff: 0.5,
+      hairStyle: 2, cheekFluff: 2, chestFluff: 0.6, muscle: 0.45, fat: -0.2,
+    },
+  },
+  {
+    name: '白虎', sub: 'ホワイトタイガー', swatch: ['#f1efea', '#2a2a30'], s: {
+      muzLen: -0.45, muzW: 0.45, muzH: 0.2, padSize: 0.8, stop: 0.5, headW: 0.25, headSize: 0.1, cheek: 0.6, jaw: 0.4, earType: 3, earSize: 0.85,
+      furMain: '#f1efea', furSub: '#ffffff', furAccent: '#f1efea', patternColor: '#2a2a30', pattern: 1, patternAmt: 0.5, cheekWhite: 1, muzzleCover: 0.7, bellyW: 0.75, earTipAmt: 0.25, earTipColor: '#2a2a30',
+      irisTop: '#1f5a9a', irisBot: '#9fd8f8', eyeAspect: 0.7, eyeTilt: 0.2, noseType: 1, noseColor: '#d8909a', whiskers: 3, mouthCorner: 0.42, fang: 0.5,
+      tailType: 2, tailThick: 1.25, tailTipAmt: 0.12, tailTipColor: '#2a2a30', hairStyle: 4, cheekFluff: 3, cheekLen: 1.3, muscle: 0.85, shoulderW: 0.6, chest: 0.5, armThick: 0.5, neckThick: 0.5,
+    },
+  },
 ];
