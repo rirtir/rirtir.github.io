@@ -1,0 +1,142 @@
+/* ケモノキャラクリ: BLUE PROTOCOL 系の明るいすりガラス UI を参考にした独自スタイル */
+:root {
+  --ink: #2b2f38;
+  --ink2: #5b6270;
+  --line: rgba(60, 70, 90, 0.16);
+  --glass: rgba(250, 251, 253, 0.78);
+  --glass2: rgba(255, 255, 255, 0.55);
+  --acc: #e0913f;
+  --acc2: #2fb3a6;
+  --on: #2b2f38;
+  --panel-w: 360px;
+  --rail-w: 78px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #c9ced6; color: var(--ink);
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+button { font: inherit; color: inherit; cursor: pointer; }
+
+/* 上 */
+#top { position: fixed; top: 0; left: 0; right: 0; height: 56px; display: flex; align-items: center; gap: 14px;
+  padding: 0 14px; pointer-events: none; z-index: 5; }
+#top > * { pointer-events: auto; }
+.home { text-decoration: none; color: var(--ink2); font-size: 18px; width: 34px; height: 34px; display: grid; place-items: center;
+  border-radius: 50%; background: var(--glass2); border: 1px solid var(--line); }
+.brand { line-height: 1.05; }
+.brand-en { font-size: 11px; letter-spacing: 0.32em; color: var(--ink2); font-weight: 600; }
+.brand-ja { font-size: 19px; font-weight: 700; letter-spacing: 0.06em; }
+.top-btns { margin-left: auto; display: flex; gap: 6px; }
+.top-btns button { height: 34px; min-width: 38px; padding: 0 12px; border-radius: 17px; border: 1px solid var(--line);
+  background: var(--glass); backdrop-filter: blur(8px); font-size: 13px; }
+.top-btns button:hover { background: #fff; }
+
+/* 左のカテゴリ */
+#rail { position: fixed; left: 12px; top: 68px; bottom: 70px; width: var(--rail-w); display: flex; flex-direction: column; gap: 4px;
+  overflow-y: auto; scrollbar-width: none; z-index: 4; padding: 6px 0; }
+#rail::-webkit-scrollbar { display: none; }
+.rail-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 2px 6px; border: 1px solid transparent;
+  background: var(--glass2); border-radius: 12px; backdrop-filter: blur(6px); transition: background .15s, transform .15s; }
+.rail-btn:hover { background: rgba(255, 255, 255, 0.85); }
+.rail-btn.on { background: var(--on); color: #fff; border-color: var(--on); }
+.rail-ic { font-size: 16px; font-weight: 700; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%;
+  border: 1.5px solid currentColor; opacity: .9; }
+.rail-lb { font-size: 10.5px; letter-spacing: 0.02em; white-space: nowrap; }
+
+/* 右のパネル */
+#panel { position: fixed; right: 12px; top: 64px; bottom: 12px; width: var(--panel-w); display: flex; flex-direction: column;
+  background: var(--glass); backdrop-filter: blur(14px); border: 1px solid var(--line); border-radius: 16px; z-index: 4;
+  box-shadow: 0 10px 40px rgba(40, 50, 80, 0.14); transition: transform .25s, opacity .25s; }
+body.panel-hidden #panel { transform: translateX(calc(100% + 20px)); opacity: 0; pointer-events: none; }
+#panel-head { display: flex; align-items: baseline; gap: 10px; padding: 14px 18px 8px; border-bottom: 1px solid var(--line); }
+#panel-head h2 { margin: 0; font-size: 17px; letter-spacing: 0.06em; }
+#panel-head h2::before { content: ""; display: inline-block; width: 4px; height: 15px; background: var(--acc); margin-right: 8px; vertical-align: -1px; border-radius: 2px; }
+#panel-count { margin-left: auto; color: var(--ink2); font-size: 12px; letter-spacing: 0.1em; }
+#panel-body { overflow-y: auto; padding: 6px 16px 24px; scrollbar-width: thin; }
+.grp { padding: 10px 0 6px; border-bottom: 1px dashed var(--line); }
+.grp:last-child { border-bottom: 0; }
+.grp h3 { margin: 4px 0 8px; font-size: 12px; color: var(--ink2); letter-spacing: 0.14em; font-weight: 600; }
+.ctl { margin: 7px 0 9px; }
+.ctl-lb { display: block; font-size: 13px; margin-bottom: 4px; user-select: none; cursor: default; }
+.ctl-range { display: grid; grid-template-columns: 112px 1fr; align-items: center; gap: 8px; margin: 3px 0; }
+.ctl-range .ctl-lb { margin: 0; font-size: 12.5px; }
+.rng { display: flex; align-items: center; gap: 8px; }
+.rng input { flex: 1; -webkit-appearance: none; appearance: none; height: 22px; background: transparent; margin: 0; }
+.rng input::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--ink) var(--p), rgba(60, 70, 90, .18) var(--p)); }
+.rng input::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--ink) var(--p), rgba(60, 70, 90, .18) var(--p)); }
+.rng input::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid var(--ink); margin-top: -6px; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.rng input::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: #fff; border: 2px solid var(--ink); }
+.val { width: 28px; text-align: right; font-size: 11.5px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { padding: 5px 10px; border-radius: 14px; border: 1px solid var(--line); background: var(--glass2); font-size: 12.5px; }
+.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.ctl-toggle { display: flex; align-items: center; justify-content: space-between; }
+.ctl-toggle .ctl-lb { margin: 0; }
+.tog { width: 56px; height: 26px; border-radius: 13px; border: 1px solid var(--line); background: rgba(60, 70, 90, .12); font-size: 11px; font-weight: 700; color: var(--ink2); }
+.tog.on { background: var(--acc2); color: #fff; border-color: var(--acc2); }
+.colbox { display: flex; flex-direction: column; gap: 6px; }
+.colline { display: flex; gap: 6px; align-items: center; }
+.colline input[type=color] { width: 40px; height: 28px; border: 1px solid var(--line); border-radius: 8px; padding: 0; background: none; }
+.hex { width: 90px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,.7); padding: 0 8px; font: 12px ui-monospace, monospace; color: var(--ink); }
+.swatches { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; }
+.sw { aspect-ratio: 1; border-radius: 50%; border: 1px solid rgba(0,0,0,.15); padding: 0; }
+.sw.on { outline: 2px solid var(--ink); outline-offset: 1px; }
+.preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.preset { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 4px 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--glass2); }
+.preset:hover { background: #fff; }
+.pz { width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.pn { font-size: 12.5px; font-weight: 600; }
+.btn-row { display: flex; gap: 8px; }
+.wide { flex: 1; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--ink); color: #fff; font-size: 13px; }
+.wide:hover { opacity: .9; }
+.hint { font-size: 12px; color: var(--ink2); line-height: 1.7; }
+
+/* カメラ */
+#cam-bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(calc(-50% - var(--panel-w) / 2 + var(--rail-w) / 2)); display: flex; gap: 4px; padding: 4px;
+  background: var(--glass); border: 1px solid var(--line); border-radius: 20px; backdrop-filter: blur(8px); z-index: 4; }
+body.panel-hidden #cam-bar { transform: translateX(-50%); }
+.cam-btn { height: 30px; padding: 0 14px; border-radius: 15px; border: 0; background: transparent; font-size: 13px; white-space: nowrap; }
+.cam-btn.on { background: var(--ink); color: #fff; }
+
+#hint { position: fixed; left: calc(var(--rail-w) + 26px); bottom: 20px; font-size: 11.5px; color: var(--ink2); letter-spacing: .05em; z-index: 3; pointer-events: none; opacity: .8; }
+body.night #hint { color: #b8b4d8; }
+body.night .brand, body.night .home { color: #ece8ff; }
+body.night .brand-en { color: #b8b4d8; }
+
+/* ダイアログ */
+dialog { border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; width: min(520px, 92vw); background: #fbfbfd; color: var(--ink); }
+dialog::backdrop { background: rgba(30, 34, 44, .35); }
+dialog h3 { margin: 0 0 6px; }
+dialog p { font-size: 13px; color: var(--ink2); margin: 0 0 8px; }
+dialog textarea { width: 100%; font: 12px ui-monospace, monospace; border-radius: 8px; border: 1px solid var(--line); padding: 8px; resize: vertical; }
+.dlg-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+.dlg-btns button { height: 34px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
+.dlg-btns button:first-child { background: var(--ink); color: #fff; }
+
+/* 読み込み */
+#loading { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; background: linear-gradient(#eef0f3, #a9afb8); z-index: 10; transition: opacity .5s; font-size: 14px; color: var(--ink2); letter-spacing: .1em; }
+#loading.done { opacity: 0; pointer-events: none; }
+.ld-ring { width: 40px; height: 40px; border-radius: 50%; border: 3px solid rgba(60,70,90,.2); border-top-color: var(--acc); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* スマホ: パネルは下に */
+@media (max-width: 760px) {
+  :root { --panel-w: 0px; --rail-w: 0px; }
+  #top { height: 50px; padding: 0 10px; gap: 8px; }
+  .brand-en { display: none; }
+  .brand-ja { font-size: 15px; }
+  .top-btns { gap: 4px; }
+  .top-btns button { height: 30px; min-width: 30px; padding: 0 8px; font-size: 12px; }
+  #btn-reset, #btn-shot, #hint { display: none; }
+  #panel { left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; height: 44vh; }
+  #rail { left: 8px; right: 8px; top: auto; bottom: calc(44vh + 14px); width: auto; height: 58px; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 0; }
+  .rail-btn { min-width: 60px; }
+  #cam-bar { bottom: auto; top: 54px; left: 50%; transform: translateX(-50%); }
+  body.panel-hidden #cam-bar { transform: translateX(-50%); }
+  .cam-btn { white-space: nowrap; padding: 0 10px; height: 28px; font-size: 12px; }
+  #view { height: calc(56vh - 72px); }
+  body.panel-hidden #view { height: 100%; }
+  .ctl-range { grid-template-columns: 96px 1fr; }
+  .swatches { grid-template-columns: repeat(12, 1fr); }
+  body.panel-hidden #rail { display: none; }
+}

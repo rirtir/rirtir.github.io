@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ケモノキャラクリ ― アニメ調3Dの獣人キャラクター作成</title>
+<meta name="description" content="ブラウザで動くアニメ調3Dのケモノ（獣人）男性キャラクタークリエイト。マズルの長さや太さ、目・鼻・口、ヒゲ、頭まわりの毛、体の毛、尻尾、細かい体型まで調整できます。">
+<meta property="og:title" content="ケモノキャラクリ ― アニメ調3Dの獣人キャラクター作成">
+<meta property="og:description" content="マズル・目・耳・毛並み・体型まで、ブラウザで細かく作れるアニメ調3Dのケモノ男性キャラクリ。">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#d9dde3">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%23e9ecf0%27/%3E%3Cpath d=%27M7 13 9 4l5 6h4l5-6 2 9c2 3 2 9-3 12-3 2-9 2-12 0-5-3-5-9-3-12z%27 fill=%27%23c98a52%27/%3E%3Cpath d=%27M11 21c2 3 8 3 10 0-1-3-9-3-10 0z%27 fill=%27%23f4e6d4%27/%3E%3Ccircle cx=%2712%27 cy=%2716%27 r=%271.6%27 fill=%27%232a1c1a%27/%3E%3Ccircle cx=%2720%27 cy=%2716%27 r=%271.6%27 fill=%27%232a1c1a%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./style.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+</head>
+<body>
+<canvas id="view" tabindex="0" aria-label="キャラクターのプレビュー（ドラッグで回転、ホイールで拡大）"></canvas>
+
+<header id="top">
+  <a class="home" href="../../" title="rirtir.com トップへ">◂</a>
+  <div class="brand">
+    <div class="brand-en">KEMONO CREATOR</div>
+    <div class="brand-ja">ケモノキャラクリ</div>
+  </div>
+  <div class="top-btns">
+    <button id="btn-undo" title="元に戻す (Ctrl+Z)">↶</button>
+    <button id="btn-redo" title="やり直す (Ctrl+Y)">↷</button>
+    <button id="btn-random" title="ランダム">ランダム</button>
+    <button id="btn-reset" title="初期化">初期化</button>
+    <button id="btn-code" title="キャラコードで保存・読み込み">コード</button>
+    <button id="btn-shot" title="画像を保存">撮影</button>
+    <button id="btn-panel" title="パネルの表示切り替え">☰</button>
+  </div>
+</header>
+
+<nav id="rail" aria-label="カテゴリ"></nav>
+
+<aside id="panel">
+  <div id="panel-head">
+    <h2 id="panel-title">プリセット</h2>
+    <span id="panel-count"></span>
+  </div>
+  <div id="panel-body"></div>
+</aside>
+
+<div id="cam-bar">
+  <button class="cam-btn" data-cam="full">全身</button>
+  <button class="cam-btn" data-cam="upper">上半身</button>
+  <button class="cam-btn" data-cam="face">顔</button>
+  <button class="cam-btn" data-cam="back">後ろ</button>
+</div>
+
+<div id="hint">ドラッグ：回転　ホイール：拡大　右ドラッグ：移動</div>
+
+<dialog id="code-dlg">
+  <h3>キャラコード</h3>
+  <p id="code-msg"></p>
+  <textarea id="code-text" rows="6" spellcheck="false"></textarea>
+  <div class="dlg-btns">
+    <button id="code-copy">コピー</button>
+    <button id="code-url">URLをコピー</button>
+    <button id="code-load">読み込む</button>
+    <button id="code-close">閉じる</button>
+  </div>
+</dialog>
+
+<div id="loading"><div class="ld-ring"></div><div>読み込み中…</div></div>
+<noscript>このページは JavaScript と WebGL が必要です。</noscript>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
