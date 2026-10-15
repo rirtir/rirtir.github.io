@@ -111,6 +111,7 @@ export const PRESETS = [
       furMain: '#7d7f86', furSub: '#ece9e4', furAccent: '#4b4c52', patternColor: '#3f4046', backMark: 0.55, cheekWhite: 1, muzzleCover: 0.55, bellyW: 0.6,
       irisTop: '#7a5a12', irisBot: '#f2c33a', eyeTilt: 0.3, eyeAspect: 0.66, browType: 1, hairStyle: 1, hairLen: 1.25, cheekFluff: 2, tailType: 0, neckRuff: 0.6, chestFluff: 0.7,
       noseType: 0, mouthCorner: 0.22, fang: 0.4, muscle: 0.5, shoulderW: 0.3,
+      top: 4, topColor: '#2c3e5c', trimColor: '#d9b45a', topNeck: 0.35, bottom: 2, bottomColor: '#3a3430', pantStripe: true,
     },
   },
   {

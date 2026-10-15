@@ -32,14 +32,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .top-btns button:hover { background: #fff; }
 
 /* 左のカテゴリ */
-#rail { position: fixed; left: 12px; top: 68px; bottom: 70px; width: var(--rail-w); display: flex; flex-direction: column; gap: 4px;
+#rail { position: fixed; left: 12px; top: 64px; bottom: 44px; width: var(--rail-w); display: flex; flex-direction: column; gap: 4px;
   overflow-y: auto; scrollbar-width: none; z-index: 4; padding: 6px 0; }
 #rail::-webkit-scrollbar { display: none; }
-.rail-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 2px 6px; border: 1px solid transparent;
+.rail-btn { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 2px 4px; flex-shrink: 0; border: 1px solid transparent;
   background: var(--glass2); border-radius: 12px; backdrop-filter: blur(6px); transition: background .15s, transform .15s; }
 .rail-btn:hover { background: rgba(255, 255, 255, 0.85); }
 .rail-btn.on { background: var(--on); color: #fff; border-color: var(--on); }
-.rail-ic { font-size: 16px; font-weight: 700; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%;
+.rail-ic { font-size: 14px; font-weight: 700; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%;
   border: 1.5px solid currentColor; opacity: .9; }
 .rail-lb { font-size: 10.5px; letter-spacing: 0.02em; white-space: nowrap; }
 
