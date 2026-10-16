@@ -74,7 +74,7 @@ vec3 kcCloth() {
 `;
 
 // パーツの作り直しが不要な項目
-const NON_PART = /^(muscleLine|faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
+const NON_PART = /^(lineStr|muscleLine|faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
 
 export class Character {
   constructor(data, scene) {
@@ -127,6 +127,7 @@ export class Character {
     // 毛の輪郭（裏面だけ描く、ノイズでふくらませた殻）
     this.furHull = new THREE.SkinnedMesh(this.body.geometry, this.mats.fur);
     this.furHull.frustumCulled = false;
+    this.furHull.layers.set(1);
     this.furHull.morphTargetInfluences = this.body.mesh.morphTargetInfluences;
     this.furHull.morphTargetDictionary = this.body.mesh.morphTargetDictionary;
     this.furHull.receiveShadow = true;
@@ -185,6 +186,8 @@ export class Character {
     this.shell = mk(this.mats.shell);
     this.shell.castShadow = true;
     this.shellO = mk(this.mats.shellO);
+    this.shell.layers.set(1);
+    this.shellO.layers.set(1);
   }
 
   // ---------------------------------------------------------------- 状態の反映
@@ -329,6 +332,7 @@ export class Character {
     this.parts.push(m);
     if (matO) {
       const o = new THREE.Mesh(geo, matO);
+      o.layers.set(1);
       m.add(o);
     }
     return m;
@@ -411,59 +415,99 @@ export class Character {
         tipAmt: opt.tipAmt ?? st.hairTipAmt, segs: opt.segs || 7, sides: 6, sink: opt.sink ?? 0.008,
       });
     };
+    // 毛束: 表面に沿って流れ、先だけ持ち上がる平たい房（表面の法線を厚み方向にする）
+    let layer = 0;
+    const clump = (bones, bone, dirFromCenter, center, flowV, len, w, opt = {}) => {
+      const s = opt.target ? this.near(bones, opt.target) : this.pick(bones, center, dirFromCenter);
+      const N = s.n.clone();
+      const fl = flowV.clone().add(V(R() - 0.5, R() - 0.5, R() - 0.5).multiplyScalar(0.35 * mess * (opt.mess ?? 1)));
+      const T = fl.addScaledVector(N, -fl.dot(N)).normalize();
+      const lift = opt.lift ?? 0.3;
+      const d = T.clone().addScaledVector(N, lift).normalize();
+      const p = this._local(bone, s.p).addScaledVector(N, (opt.layer ?? layer) * 0.0012);
+      addTuft(opt.builder || B, {
+        p, d, up: N, len: len * (1 + (R() - 0.5) * 0.25 * mess), w, t: w * (opt.flat ?? 0.3),
+        bend: N.clone().multiplyScalar(opt.curl ?? 0.1).addScaledVector(T, 0.0), sharp: opt.sharp ?? Math.max(0.55, sharp),
+        c0: opt.c0 || hairC, c1: opt.c1 || (st.hairTipAmt > 0 ? hairTip : opt.c0 || hairC),
+        tipAmt: opt.tipAmt ?? st.hairTipAmt, segs: opt.segs || 8, sides: 8, sink: opt.sink ?? 0.006,
+      });
+    };
     const HL = st.hairLen, HV = st.hairVol, flow = st.hairFlow;
     const sph = (az, el) => { const a = az * Math.PI / 180, e = el * Math.PI / 180; return V(Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)); };
     const style = st.hairStyle;
-    const head = (az, el, d, len, w, opt) => tuft(hb, 'head', headCb, sph(az, el), d, len * HL, w * HV, opt);
-    if (style === 1) {          // ツンツン（短く後ろへ流れる）
-      const L = [[0, 62, 1.1], [28, 58, 1], [-28, 58, 1], [58, 46, 0.9], [-58, 46, 0.9], [0, 84, 1.15], [35, 78, 1], [-35, 78, 1], [100, 55, 0.9], [-100, 55, 0.9], [150, 62, 1], [-150, 62, 1], [180, 48, 1]];
-      for (const [az, el, k] of L) {
-        const n = sph(az, el);
-        const back = V(Math.sin(az * Math.PI / 180) * 0.25, 0.15, -1).normalize();
-        head(az, el, n.clone().multiplyScalar(0.55).add(back.multiplyScalar(0.85)).add(V(0, 0, flow * 0.6)), 0.06 * k, 0.036, { bend: V(0, 0.12, -0.15), up: n });
-      }
+    const backFlow = (az, down = 0.25) => V(Math.sin(az * Math.PI / 180) * 0.35, -down, -1 + flow * 1.2).normalize();
+    const hairC2 = hairC.clone().multiplyScalar(0.9);
+    // 頭皮を覆う毛束の並び（後ろの列から先に置き、前の列ほど上に重ねる）
+    const scalp = (rows, opt = {}) => {
+      rows.forEach(([el, n, len, w, lift, azMax], ri) => {
+        layer = ri;
+        // 低い列は顔の横（こめかみ）を避けて後ろ半分だけ
+        const azMin = el < 25 ? 95 : (el < 45 ? 70 : 0);
+        const list = [];
+        if (azMin > 0) {
+          const half = Math.max(1, Math.ceil(n / 2));
+          for (let i = 0; i < half; i++) { const a = azMin + (azMax - azMin) * (half === 1 ? 1 : i / (half - 1)); list.push(a, -a); }
+          list.push(180);
+        } else for (let i = 0; i < n; i++) list.push(n === 1 ? 0 : -azMax + 2 * azMax * (i / (n - 1)));
+        for (let i = 0; i < list.length; i++) {
+          const az = list[i];
+          const alt = i % 2 ? 0.82 : 1.0;
+          clump(hb, 'head', sph(az, el), headCb, opt.flowFn ? opt.flowFn(az, el) : backFlow(az), len * HL * alt, w * HV, {
+            lift, curl: opt.curl ?? 0.15, c0: ri % 2 ? hairC2 : hairC,
+          });
+        }
+      });
+      layer = 0;
+    };
+    if (style === 1) {          // 短髪（後ろへ流れる）
+      scalp([
+        [8, 7, 0.06, 0.042, 0.45, 150], [30, 7, 0.065, 0.042, 0.4, 135], [52, 6, 0.065, 0.042, 0.35, 105],
+        [70, 5, 0.06, 0.04, 0.32, 70], [82, 3, 0.055, 0.04, 0.3, 40],
+      ]);
     } else if (style === 2) {   // 前髪
-      for (const az of [-45, -22, 0, 22, 45]) head(az, 48, V(Math.sin(az * Math.PI / 180) * 0.35, -0.25, 1).add(V(0, 0, flow * 0.5)), 0.075, 0.034, { bend: V(0, -0.85, 0.1), up: V(0, 1, 0.3).normalize() });
-      for (const [az, el] of [[0, 80], [70, 60], [-70, 60], [140, 55], [-140, 55], [180, 65]]) { const n = sph(az, el); head(az, el, n.clone().multiplyScalar(0.5).add(V(0, 0.3, -0.7)), 0.07, 0.034, { bend: V(0, -0.3, -0.2) }); }
-    } else if (style === 3) {   // オールバック
-      for (let r = 0; r < 3; r++) for (const az of [-50, -25, 0, 25, 50]) {
-        const el = 52 + r * 22;
-        head(az * (1 - r * 0.15), el, V(Math.sin(az * Math.PI / 180) * 0.25, 0.25 - r * 0.2, -1).add(V(0, 0, flow * 0.6)).add(sph(az, el).multiplyScalar(0.3)), 0.08 + r * 0.02, 0.036, { bend: V(0, -0.5, -0.1), up: sph(az, el), flat: 0.35 });
-      }
-    } else if (style === 4) {   // ワイルド（後ろへ跳ねる大きな房）
-      const L = [[0, 60, 1.1], [24, 56, 1], [-24, 56, 1], [52, 46, 0.95], [-52, 46, 0.95], [0, 82, 1.2], [30, 76, 1.1], [-30, 76, 1.1], [85, 48, 0.95], [-85, 48, 0.95], [125, 58, 1.15], [-125, 58, 1.15], [180, 60, 1.25], [155, 38, 1.05], [-155, 38, 1.05], [110, 25, 0.85], [-110, 25, 0.85]];
-      for (const [az, el, k] of L) {
-        const n = sph(az, el);
-        const back = V(Math.sin(az * Math.PI / 180) * 0.45, 0.25, -1).normalize();
-        head(az, el, n.clone().multiplyScalar(0.6).add(back.multiplyScalar(0.8)).add(V(0, 0, flow * 0.6)), 0.09 * k, 0.042, { bend: V(0, 0.2, -0.25), mess: 1.3, up: n });
-      }
+      scalp([[10, 7, 0.07, 0.044, 0.4, 150], [35, 7, 0.07, 0.044, 0.35, 135], [62, 5, 0.065, 0.042, 0.3, 95]]);
+      layer = 4;
+      for (const az of [-38, -19, 0, 19, 38]) clump(hb, 'head', sph(az, 64), headCb, V(Math.sin(az * Math.PI / 180) * 0.3, -0.35, 1).normalize(), 0.07 * HL, 0.04 * HV, { lift: 0.12, curl: 0.05 });
+      layer = 0;
+    } else if (style === 3) {   // オールバック（長く寝た毛）
+      scalp([[12, 7, 0.09, 0.046, 0.25, 150], [40, 7, 0.1, 0.046, 0.2, 125], [65, 5, 0.1, 0.044, 0.16, 80], [80, 3, 0.1, 0.044, 0.14, 40]], { curl: 0.2 });
+    } else if (style === 4) {   // ワイルド（大きく跳ねる）
+      scalp([
+        [5, 7, 0.085, 0.05, 0.6, 150], [28, 7, 0.09, 0.05, 0.55, 135], [50, 6, 0.09, 0.05, 0.5, 105],
+        [68, 5, 0.085, 0.048, 0.45, 70], [82, 3, 0.08, 0.046, 0.5, 40],
+      ], { curl: 0.35 });
+      // 前の跳ね毛
+      layer = 6;
+      for (const az of [-14, 14]) clump(hb, 'head', sph(az, 70), headCb, V(az * 0.01, 0.6, 0.6).normalize(), 0.05 * HL, 0.035 * HV, { lift: 0.5, curl: 0.2 });
+      layer = 0;
     } else if (style === 5) {   // モヒカン
       for (let k = 0; k < 7; k++) {
-        const el = 40 + k * 20;
+        layer = 7 - k;
+        const el = 45 + k * 20;
         const az = el > 90 ? 180 : 0, e2 = el > 90 ? 180 - el : el;
-        head(az, e2, sph(az, e2).multiplyScalar(0.8).add(V(0, 0.5, -0.4 + flow * 0.4)), 0.08 * (1 - Math.abs(k - 2.5) * 0.06), 0.045, { bend: V(0, 0.0, -0.4), up: V(1, 0, 0) });
+        clump(hb, 'head', sph(az, e2), headCb, V(0, 0.2, -1), 0.08 * HL * (1 - Math.abs(k - 2.5) * 0.06), 0.045 * HV, { lift: 0.75, curl: 0.25, flat: 0.45 });
       }
+      layer = 0;
     } else if (style === 6) {   // 長髪
-      for (const az of [-35, 0, 35]) head(az, 50, V(Math.sin(az * Math.PI / 180) * 0.3, -0.2, 1), 0.07, 0.034, { bend: V(0, -0.8, 0.0) });
-      for (let r = 0; r < 2; r++) for (const az of [70, 100, 130, 160, 180, -160, -130, -100, -70]) {
-        const el = 55 - r * 25;
-        head(az, el, V(Math.sin(az * Math.PI / 180) * 0.3, -0.35, -0.6).normalize(), 0.18 + r * 0.06, 0.04, { bend: V(0, -1.4, -0.1), up: sph(az, el), segs: 9 });
-      }
+      scalp([[0, 7, 0.17, 0.048, 0.15, 150], [28, 7, 0.16, 0.048, 0.15, 130], [55, 6, 0.13, 0.046, 0.15, 100], [75, 4, 0.11, 0.044, 0.15, 60]],
+        { curl: 0.1, flowFn: (az) => V(Math.sin(az * Math.PI / 180) * 0.3, -0.75, -0.65 + flow).normalize() });
     }
 
-    // ---- 頬毛・たてがみ・あご
+    // ---- 頬毛（頬から後ろ下へ流れ、先が外へ張り出す）・たてがみ・あご
     const cheekC = st.cheekWhite > 0.5 ? cSub : cMain;
     const ck = st.cheekFluff;
     if (ck > 0) {
-      // 頬から顎の後ろへ並ぶギザギザの毛（長短を交互に）
-      const rows = ck === 3 ? [[0.0, 5, 1.0], [0.25, 3, 0.75]] : (ck === 1 ? [[0.1, 3, 0.7]] : [[0.0, 5, 1.0]]);
-      for (const sx of [1, -1]) for (const [y0, cnt, k] of rows) for (let i = 0; i < cnt; i++) {
-        const t = cnt > 1 ? i / (cnt - 1) : 0.5;
-        const dir = V(sx * 0.95, -0.12 - 0.55 * t + y0, 0.08 - 0.6 * t).normalize();
-        const out = V(sx * (0.85 + 0.3 * st.cheekSpread), -0.2 - 0.55 * t + y0 * 0.5, -0.3 - 0.2 * t).normalize();
-        const alt = (i % 2 === 0) ? 1.0 : 0.72;
-        tuft(hb, 'head', headCb, dir, out, 0.042 * k * alt * st.cheekLen * (1 - 0.2 * t), 0.024 * tw, { c0: cheekC, c1: cheekC, tipAmt: 0, bend: V(0, -0.12, -0.12), sink: 0.012, mess: 0.25, flat: 0.32, sharp: Math.max(0.75, sharp) });
-      }
+      const rows = ck === 3 ? [[0, 6, 1.0, 0.5], [-12, 5, 0.85, 0.45]] : (ck === 1 ? [[-4, 4, 0.7, 0.35]] : [[-4, 6, 1.0, 0.45]]);
+      for (const sx of [1, -1]) rows.forEach(([el0, cnt, k, lift], ri) => {
+        for (let i = 0; i < cnt; i++) {
+          const t = cnt > 1 ? i / (cnt - 1) : 0.5;
+          const az = sx * (72 + 42 * t);
+          const el = el0 + 0 - 30 * t;
+          const alt = i % 2 ? 0.75 : 1.0;
+          clump(hb, 'head', sph(az, el), headCb, V(sx * (0.25 + 0.25 * st.cheekSpread), -0.35 - 0.3 * t, -1).normalize(),
+            0.055 * k * alt * st.cheekLen, 0.026 * tw, { lift: lift + 0.2 * st.cheekSpread, curl: 0.12, flat: 0.5, sharp: 0.85, c0: cheekC, c1: cheekC, tipAmt: 0, layer: ri * 3 + (i % 2), mess: 0.4 });
+        }
+      });
     }
     if (st.mane > 0.01) {
       const maneC = st.hairUseFur ? cMain.clone().multiplyScalar(0.8) : hairC;

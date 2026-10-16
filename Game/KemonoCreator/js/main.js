@@ -6,10 +6,13 @@ import { LIGHT } from './toon.js';
 import { Character } from './character.js';
 import { buildUI } from './ui.js';
 import { DEFAULT_STATE } from './schema.js';
+import { LinePass } from './lines.js';
 
 const canvas = document.getElementById('view');
 const stage = createStage(canvas);
 const { renderer, scene, camera, controls } = stage;
+const linePass = new LinePass(renderer);
+stage.onResize = (w, h) => linePass.setSize(w, h);
 
 const loading = document.getElementById('loading');
 const data = await loadBodyData('./assets/');
@@ -28,7 +31,7 @@ new ResizeObserver(() => stage.resize()).observe(canvas);
 stage.resize();
 
 // 顔の3面プレビュー用カメラ
-const faceCams = [0, 1, 2].map(() => new THREE.PerspectiveCamera(20, 1, 0.05, 20));
+const faceCams = [0, 1, 2].map(() => { const c = new THREE.PerspectiveCamera(20, 1, 0.05, 20); c.layers.enable(1); return c; });
 
 const clock = new THREE.Timer();
 let frame = 0;
@@ -45,9 +48,14 @@ function loop() {
   LIGHT.uHeadC.value.copy(chara.headCenterWorld());
 
   renderer.setScissorTest(false);
-  renderer.clear();
-  renderer.render(stage.bgScene, stage.bgCam);
-  renderer.render(scene, camera);
+  linePass.u.uStr.value = ui.state.lineStr ?? 0.8;
+  if (linePass.u.uStr.value > 0.001) {
+    linePass.render(scene, camera, () => renderer.render(stage.bgScene, stage.bgCam));
+  } else {
+    renderer.clear();
+    renderer.render(stage.bgScene, stage.bgCam);
+    renderer.render(scene, camera);
+  }
 
   // 3面プレビュー
   if (ui.state.faceViews && !document.body.classList.contains('ui-hidden')) {

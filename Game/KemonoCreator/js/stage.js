@@ -14,6 +14,7 @@ export function createStage(canvas) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 50);
+  camera.layers.enable(1);
   camera.position.set(0.0, 1.25, 4.6);
   const controls = new OrbitControls(camera, canvas);
   controls.target.set(0, 1.0, 0);
@@ -43,6 +44,7 @@ export function createStage(canvas) {
   shadowFloor.rotation.x = -Math.PI / 2;
   shadowFloor.position.y = 0.001;
   shadowFloor.receiveShadow = true;
+  shadowFloor.layers.set(1);
   floorGroup.add(shadowFloor);
 
   // 背景（フルスクリーンのグラデーション＋光の粒）
@@ -112,6 +114,7 @@ export function createStage(canvas) {
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.0;
   ring.renderOrder = -1;
+  ring.layers.set(1);
   floorGroup.add(ring);
 
   const themes = {
@@ -149,8 +152,10 @@ export function createStage(canvas) {
     camera.updateProjectionMatrix();
     const pr = renderer.getPixelRatio();
     LIGHT.uViewport.value.set(w * pr, h * pr);
+    if (stage.onResize) stage.onResize(w * pr, h * pr);
     bgU.uAspect.value = w / h;
   }
 
-  return { renderer, scene, camera, controls, key, lightRig, bgScene, bgCam, bgU, setTheme, updateLight, resize, floorGroup };
+  const stage = { renderer, scene, camera, controls, key, lightRig, bgScene, bgCam, bgU, setTheme, updateLight, resize, floorGroup };
+  return stage;
 }

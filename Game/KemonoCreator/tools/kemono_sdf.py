@@ -537,7 +537,12 @@ def build(params=None):
           k=0.016, bones=hb, group='muzzle')
     E('chin', hp_([0, yb[7] + 0.006, Z[7] - 0.004]), np.array([0.016 * mW, 0.01, 0.018]) * hsz * jw, k=0.02, bones=hb, group='muzzle')
     M0 = hp_([0, yS - 0.04, zS])
-    J['noseTip'] = hp_([0, yTip - 0.004, zS + mL + 0.002])
+    # 鼻: マズルの先端の表面を前から探し、少しめり込ませて置く
+    q0 = hp_([0, yTip - 0.012, zS + mL + 0.06])
+    fwd = nrm(hp_([0, yTip - 0.012, zS + mL]) - q0)
+    for _ in range(60):
+        q0 = q0 + fwd * eval_union(prims, q0[None])[0]
+    J['noseTip'] = q0 + fwd * 0.004 * hsz
     J['muzzleRoot'] = M0
     J['headTop'] = hp_([0, 0.2, -0.02])
     # 目の中心（表面に乗せる前の目安）。build_body 側で表面に投影する

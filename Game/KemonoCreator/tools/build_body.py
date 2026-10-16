@@ -144,6 +144,10 @@ def smoothstep(a, b, x):
 
 def shape_changed(a, b):
     """位置以外（大きさ・向き・長さ）が変わったか"""
+    if hasattr(a, 'cv'):
+        if np.abs(a.Z - b.Z).max() > 1e-9 or abs(a.hsz - b.hsz) > 1e-9 or abs(a.hw - b.hw) > 1e-9:
+            return True
+        return any(np.abs(a.cv[k] - b.cv[k]).max() > 1e-9 for k in a.cv)
     for k in ('r', 'R', 'ra', 'rb', 'sq', 'w0', 'w1', 'L', 'F'):
         if hasattr(a, k):
             va, vb = np.asarray(getattr(a, k)), np.asarray(getattr(b, k))
@@ -153,6 +157,8 @@ def shape_changed(a, b):
 
 
 def prim_changed(a, b):
+    if hasattr(a, 'cv'):
+        return shape_changed(a, b) or np.abs(a.H - b.H).max() > 1e-9
     for k in ('c', 'r', 'R', 'a', 'b', 'ra', 'rb', 'sq', 'w0', 'w1'):
         if hasattr(a, k):
             va, vb = np.asarray(getattr(a, k)), np.asarray(getattr(b, k))

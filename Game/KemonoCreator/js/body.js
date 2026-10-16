@@ -98,6 +98,7 @@ export class Body {
     this.mesh.receiveShadow = true;
     this.mesh.add(this.root);
     this.outline = new THREE.SkinnedMesh(g, outlineMaterial);
+    this.outline.layers.set(1);
     this.outline.frustumCulled = false;
     this.mesh.add(this.outline);
     this.mesh.morphTargetInfluences = new Array(meta.morphs.length).fill(0);
