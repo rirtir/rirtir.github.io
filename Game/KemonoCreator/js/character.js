@@ -442,7 +442,8 @@ export class Character {
       // 根元は表面に沿わせ（断面が見えない）、先へ行くほど持ち上がる
       const lift = opt.lift ?? 0.3;
       const d = T.clone().addScaledVector(N, lift * 0.25).normalize();
-      const p = this._local(bone, s.p).addScaledVector(N, (opt.layer ?? layer) * 0.0012 - 0.0025);
+      const tk = w * (opt.flat ?? 0.5);
+      const p = this._local(bone, s.p).addScaledVector(N, (opt.layer ?? layer) * 0.0012 - tk * 0.3 - 0.0015);
       addTuft(opt.builder || B, {
         p, d, up: N, len: len * (1 + (R() - 0.5) * 0.25 * mess), w, t: w * (opt.flat ?? 0.5),
         bend: N.clone().multiplyScalar((opt.curl ?? 0.1) + lift * 0.8), rootThin: true, sharp: opt.sharp ?? Math.max(0.55, sharp),
