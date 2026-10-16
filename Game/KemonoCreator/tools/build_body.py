@@ -162,15 +162,14 @@ def prim_changed(a, b):
 
 
 def find_eyes(prims, J):
+    """目の位置: 削った目の面の中心（法線方向から表面に乗せる）。向きは目の面の法線"""
     eyes = {}
-    for side, sx in (('L', 1), ('R', -1)):
-        e = K.nrm([sx * np.sin(np.radians(30)), 0.1, np.cos(np.radians(30))])
-        p = np.asarray(J['eye.' + side]) + e * 0.12
+    for side in ('L', 'R'):
+        n = np.asarray(J['eyeN.' + side], float)
+        p = np.asarray(J['eye.' + side], float) + n * 0.05
         for _ in range(60):
-            f = K.eval_union(prims, p[None])[0]
-            p = p - e * f
-        nn = grad(prims, p[None])[0]; nn = nn / np.linalg.norm(nn)
-        eyes[side] = dict(pos=p.tolist(), normal=nn.tolist(), dir=e.tolist())
+            p = p - n * K.eval_union(prims, p[None])[0]
+        eyes[side] = dict(pos=p.tolist(), normal=n.tolist(), dir=n.tolist())
     return eyes
 
 

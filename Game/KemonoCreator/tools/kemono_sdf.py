@@ -174,6 +174,69 @@ class TaperBox(Prim):
         return o.a + np.stack([u, v, w], axis=1) @ o.F.T
 
 
+
+def _pchip(zs, vs, z):
+    from scipy.interpolate import PchipInterpolator
+    return PchipInterpolator(zs, vs, extrapolate=True)(z)
+
+
+class Loft(Prim):
+    """頭の土台: 前後方向 (z) に並べた断面（上下で幅の違う超楕円）をなめらかにつないだ形。
+    横顔の上の線 yt(z)・下の線 yb(z)、上半分の幅 wt(z)・下半分の幅 wb(z)、角張り n(z) を
+    共通の節点 Z で与える。頭ローカル座標（H を原点、hsz 倍、x は hw 倍）で定義する。"""
+
+    def __init__(self, name, H, hsz, hw, Z, yt, yb, wt, wb, ne, k=0.03, bones=None, group=''):
+        self.name = name
+        self.H, self.hsz, self.hw = np.asarray(H, float), float(hsz), float(hw)
+        self.Z = np.asarray(Z, float)
+        self.cv = {k_: np.asarray(v, float) for k_, v in dict(yt=yt, yb=yb, wt=wt, wb=wb, ne=ne).items()}
+        self.k, self.bones, self.group = k, bones or {}, group
+
+    def _f(self, key, z):
+        return _pchip(self.Z, self.cv[key], z)
+
+    def _local(self, P):
+        q = (P - self.H) / self.hsz
+        return q[:, 0] / self.hw, q[:, 1], q[:, 2]
+
+    def _sec(self, z):
+        zc = np.clip(z, self.Z[0], self.Z[-1])
+        yt, yb = self._f('yt', zc), self._f('yb', zc)
+        return zc, yt, yb, self._f('wt', zc), self._f('wb', zc), self._f('ne', zc)
+
+    def sdf(self, P):
+        x, y, z = self._local(P)
+        zc, yt, yb, wt, wb, ne = self._sec(z)
+        yc, h = (yt + yb) * 0.5, np.maximum((yt - yb) * 0.5, 1e-4)
+        t = (y - yc) / h
+        s_ = np.clip((t + 0.45) / 0.9, 0, 1)
+        w = np.maximum(wb + (wt - wb) * (s_ * s_ * (3 - 2 * s_)), 1e-4)
+        r = (np.abs(x / w) ** ne + np.abs(t) ** ne) ** (1.0 / ne)
+        d2 = (r - 1.0) * np.minimum(w, h) * 0.85
+        dz = np.maximum(self.Z[0] - z, z - self.Z[-1])     # 前後の端までの符号付き距離（内側は負）
+        out = np.sqrt(np.maximum(d2, 0) ** 2 + np.maximum(dz, 0) ** 2) + np.minimum(np.maximum(d2, dz), 0)
+        return out * self.hsz * min(1.0, self.hw)
+
+    def map_to(self, o, P):
+        x, y, z = self._local(P)
+        z2 = np.interp(z, self.Z, o.Z, left=np.nan, right=np.nan)
+        z2 = np.where(z < self.Z[0], o.Z[0] + (z - self.Z[0]), z2)
+        z2 = np.where(z > self.Z[-1], o.Z[-1] + (z - self.Z[-1]), z2)
+        _, yt, yb, wt, wb, _ = self._sec(z)
+        _, yt2, yb2, wt2, wb2, _ = o._sec(z2)
+        yc, h = (yt + yb) * 0.5, np.maximum((yt - yb) * 0.5, 1e-4)
+        yc2, h2 = (yt2 + yb2) * 0.5, (yt2 - yb2) * 0.5
+        t = (y - yc) / h
+        s_ = np.clip((t + 0.45) / 0.9, 0, 1)
+        sm = s_ * s_ * (3 - 2 * s_)
+        w = wb + (wt - wb) * sm
+        w2 = wb2 + (wt2 - wb2) * sm
+        x2 = x * w2 / np.maximum(w, 1e-4)
+        y2 = yc2 + t * h2
+        loc = np.stack([x2 * o.hw, y2, z2], axis=1) * o.hsz
+        return o.H + loc
+
+
 def eval_union(prims, P, return_all=False):
     d = None
     D = [] if return_all else None
@@ -198,7 +261,7 @@ DEFAULTS = dict(
     # 体
     legLen=0.0, torsoLen=0.0, armLen=0.0, shoulderW=0.0, chest=0.0, muscle=0.0, fat=0.0,
     belly=0.0, waist=0.0, hipW=0.0, armThick=0.0, legThick=0.0, neckThick=0.0, neckLen=0.0,
-    handSize=0.0, footSize=0.0, pecs=0.0, glutes=0.0, calf=0.0, digi=0.0, bulk=0.0, traps=0.0,
+    handSize=0.0, footSize=0.0, pecs=0.0, glutes=0.0, calf=0.0, digi=0.0, bulk=0.0, traps=0.0, socket=0.0,
     # 頭
     headSize=0.0, headW=0.0, craniumH=0.0, cheek=0.0, jaw=0.0, stop=0.0, brow=0.0, forehead=0.0,
     # マズル
@@ -218,8 +281,10 @@ def build(params=None):
     prims = []
     J = {}
 
-    def E(name, c, r, R=None, k=0.025, bones=None, group=''):
-        prims.append(Ellipsoid(name, c, r, R, k, bones, group))
+    def E(name, c, r, R=None, k=0.025, bones=None, group='', sub=False):
+        e = Ellipsoid(name, c, r, R, k, bones, group)
+        e.sub = sub
+        prims.append(e)
 
     def C(name, a, b, ra, rb, sq=(1, 1), up=(0, 1, 0), k=0.025, bones=None, group=''):
         prims.append(RoundCone(name, a, b, ra, rb, sq, up, k, bones, group))
@@ -418,61 +483,65 @@ def build(params=None):
 
     hb = {'head': 1.0}
     crH = 1.0 + 0.12 * g('craniumH')
-    E('cranium', hp_([0, 0.094, -0.026]), np.array([0.09 * hw, 0.088 * crH, 0.098]) * hsz, k=0.035, bones=hb, group='head')
-    E('crown', hp_([0, 0.126, -0.036]), np.array([0.078 * hw, 0.046 * crH, 0.08]) * hsz, k=0.04, bones=hb, group='head')
-    fh = 1.0 + 0.3 * g('forehead')
-    E('forehead', hp_([0, 0.108, 0.033]), np.array([0.072 * hw, 0.054, 0.064 * fh]) * hsz, k=0.03, bones=hb, group='head')
-    ch = 1.0 + 0.22 * g('cheek') + 0.3 * fat
-    br = 0.5 + 0.5 * g('brow')
-    for sx in (1, -1):
-        E('cheek', hp_([sx * 0.056, 0.044, -0.004]), np.array([0.054 * ch, 0.048 * ch, 0.058]) * hsz,
-          k=0.045, bones=hb, group='head')
-        E('jowlBack', hp_([sx * 0.048, 0.032, -0.048]), np.array([0.05 * ch, 0.05, 0.05]) * hsz,
-          k=0.05, bones={'head': 0.85, 'neck': 0.15}, group='head')
-        E('brow', hp_([sx * 0.037, 0.119, 0.071]), np.array([0.04, 0.012 + 0.01 * br, 0.025]) * hsz,
-          R=rot_z(-sx * 0.12), k=0.022, bones=hb, group='head')
-    jw = 1.0 + 0.15 * g('jaw') + 0.3 * fat
-    E('throat', hp_([0, 0.014, 0.018]), np.array([0.054 * jw, 0.045, 0.058]) * hsz, k=0.04,
-      bones={'head': 0.7, 'neck': 0.3}, group='head')
-
-    # マズル（幅広く先が丸い）
-    mL = 0.145 * (1.0 + 0.4 * g('muzLen'))
+    fh = g('forehead')
+    ch = 1.0 + 0.2 * g('cheek') + 0.25 * fat
+    br = 1.0 + 0.45 * g('brow')
+    jw = 1.0 + 0.15 * g('jaw') + 0.25 * fat
+    hd = dict(bones=hb, group='head')
+    # ---- 頭の土台（ロフト）。節点: 後頭 / 後頭部 / 頭頂 / 額 / 眉骨 / ストップ / マズル中ほど / あご先 / 鼻先手前 / 鼻先
+    ml_ = g('muzLen')
+    mL = 0.118 * (1.0 + (0.42 if ml_ > 0 else 0.62) * ml_)
     mW = 1.0 + 0.22 * g('muzW')
     mH = 1.0 + 0.2 * g('muzH')
-    drop = np.radians(4.0 + 14.0 * g('muzDrop'))
     tap = 1.0 - 0.25 * g('muzTaper')
     jL = 1.0 + 0.2 * g('jawLen')
     pad = 1.0 + 0.25 * g('padSize')
-    M0 = hp_([0, 0.066, 0.042])
-    f = np.array([0.0, -np.sin(drop), np.cos(drop)])
-    u = np.array([0.0, np.cos(drop), np.sin(drop)])
-    X = np.array([1.0, 0, 0])
-    mu = lambda ff, uu, xx=0.0: M0 + (f * ff + u * uu) * hsz + X * xx * hsz * hw
-    mz = dict(bones=hb, group='muzzle')
     st = g('stop')
-    bh = 1.0 + 0.4 * g('bridge')
-    # 上あご（鼻筋〜上唇）: 側面と上面が平らで先が鈍い箱
-    TB('muzzle', mu(-0.02, 0.006 * mH), mu(mL * 0.93, 0.0),
-       (0.044 * mW * hsz, 0.036 * mH * hsz), (0.03 * mW * tap * hsz, 0.024 * mH * (0.9 + 0.1 * tap) * hsz), 0.016 * hsz,
-       up=u, k=0.035, **mz)
-    C('bridge', mu(-0.012, 0.03 * mH * bh), mu(mL * 0.84, 0.019 * mH), 0.026, 0.018 * tap,
-      sq=(mW * 1.25, 1.0), up=u, k=0.025 + 0.012 * st, **mz)
-    E('stopFill', mu(-0.005, 0.05, 0.0), np.array([0.05 * mW, 0.04, 0.045]) * (1.0 - 0.3 * st), k=0.04, **mz)
+    bh = g('bridge')
+    dr = g('muzDrop')
+    zS = 0.07
+    Z = [-0.118, -0.075, -0.03, 0.024, 0.056, zS, zS + 0.5 * mL, zS + min(0.72 * jL, 0.84) * mL, zS + 0.9 * mL, zS + mL]
+    yS = 0.11 - 0.01 * st
+    yTip = 0.044 + 0.042 * mH - 0.018 * dr
+    yMid = yS + (yTip - yS) * 0.5 + 0.004 * bh
+    yCh = yS + (yTip - yS) * min(0.72 * jL, 0.84)
+    yt = [0.08, 0.146 * crH, 0.166 * crH, 0.156 + 0.004 * fh, 0.13 + 0.006 * fh, yS, yMid, yCh, yTip, yTip - 0.014]
+    ym = 0.046 - 0.012 * dr              # 口の線（上唇の下）の高さ
+    yb = [0.062, 0.016, -0.006 - 0.004 * (jw - 1) * 4, -0.004, -0.002, 0.0, 0.003, 0.012 - 0.006 * (jw - 1) * 4, ym - 0.004, ym + 0.004]
+    wt = [0.034, 0.07, 0.081, 0.076, 0.066, 0.043 * mW, 0.034 * mW, 0.03 * mW * tap, 0.027 * mW * tap, 0.019 * mW]
+    wb = [0.034, 0.062 * jw, 0.071 * ch, 0.07 * ch, 0.066 * ch, 0.058 * (0.5 + 0.5 * mW) * ch, 0.043 * mW * pad, 0.035 * mW * pad * tap, 0.029 * mW * tap, 0.02 * mW]
+    ne = [2.2, 2.2, 2.2, 2.3, 2.3, 2.4, 2.7, 2.8, 2.7, 2.4]
+    prims.append(Loft('skull', H, hsz, hw, Z, yt, yb, wt, wb, ne, k=0.03, bones=hb, group='head'))
+    # ---- 目の面: 眉骨の下〜頬骨の上を、広く浅く平らに削る（目の絵がゆがまない）
+    sdep = 0.0042 * hsz * (1.0 + 0.6 * g('socket'))
+    sthk = 0.022 * hsz
+    for side, sx in (('L', 1), ('R', -1)):
+        a = np.radians(30.0)
+        n = nrm(np.array([sx * np.sin(a) / hw, 0.06, np.cos(a)]))
+        c = hp_([sx * 0.045, 0.092, 0.05])
+        q0 = c + n * 0.1
+        for _ in range(80):
+            q0 = q0 - n * eval_union(prims, q0[None])[0]
+        Rv = nrm(np.cross([0.0, 1.0, 0.0], n))
+        Uv = np.cross(n, Rv)
+        E('socket', q0 + n * (sthk - sdep), np.array([0.03 * hsz, 0.024 * hsz, sthk]),
+          R=np.stack([Rv, Uv, n], axis=1), k=0.018, group='head', bones=hb, sub=True)
+        J['eye.' + side] = q0 - n * sdep
+        J['eyeN.' + side] = n
+    # ---- 眉骨（目の上の庇）・頬骨・上唇・あご先
     for sx in (1, -1):
-        E('lipPad', mu(mL * 0.8, -0.016 * mH, sx * 0.019 * mW), np.array([0.02 * mW, 0.013 * mH, 0.026]) * pad,
-          R=rot_x(-drop), k=0.02, **mz)
-    # 下あご
-    TB('jaw', mu(-0.02, -0.036 * mH), mu(mL * 0.8 * jL, -0.036 * mH),
-       (0.038 * jw * mW * hsz, 0.02 * hsz), (0.019 * jw * mW * tap * hsz, 0.011 * hsz), 0.01 * hsz,
-       up=u, k=0.03, bones=hb, group='muzzle')
-    E('chin', mu(mL * 0.66 * jL, -0.046 * mH), np.array([0.018 * mW, 0.012, 0.022]) * jw, k=0.02, bones=hb, group='muzzle')
-
-    J['noseTip'] = mu(mL * 0.93 + 0.004, 0.02 * mH)
+        C('brow', hp_([sx * 0.01, 0.118, 0.062]), hp_([sx * 0.058, 0.111, 0.036]), 0.012 * br * hsz, 0.0085 * br * hsz,
+          k=0.016, **hd)
+        E('zygoma', hp_([sx * 0.058, 0.066, 0.02]), np.array([0.017, 0.012, 0.034]) * hsz, R=rot_y(sx * 0.42), k=0.026, **hd)
+        E('lipPad', hp_([sx * 0.014 * mW, ym + 0.011, zS + 0.82 * mL]), np.array([0.014 * mW, 0.008, 0.022]) * hsz * pad,
+          k=0.016, bones=hb, group='muzzle')
+    E('chin', hp_([0, yb[7] + 0.006, Z[7] - 0.004]), np.array([0.016 * mW, 0.01, 0.018]) * hsz * jw, k=0.02, bones=hb, group='muzzle')
+    M0 = hp_([0, yS - 0.04, zS])
+    J['noseTip'] = hp_([0, yTip - 0.004, zS + mL + 0.002])
     J['muzzleRoot'] = M0
     J['headTop'] = hp_([0, 0.2, -0.02])
     # 目の中心（表面に乗せる前の目安）。build_body 側で表面に投影する
     for side, sx in (('L', 1), ('R', -1)):
-        J['eye.' + side] = hp_([sx * 0.046, 0.102, 0.10])
         J['ear.' + side] = hp_([sx * 0.062, 0.175, -0.025])
     J['tail'] = J['hips'] + np.array([0, -0.01, -0.105]) + fat * np.array([0, 0, -0.03])
     return prims, J
