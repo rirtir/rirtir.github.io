@@ -107,7 +107,7 @@ export const DEFAULT_STATE = Object.fromEntries(Object.values(ITEMS).map(it => [
 export const PRESETS = [
   {
     name: '狼', sub: 'オオカミ', swatch: ['#7d7f86', '#e9e6e0'], s: {
-      muzLen: 0.45, muzW: -0.1, muzH: -0.05, muzTaper: 0.2, stop: 0.2, cheek: 0.2, earType: 0, earSize: 1.15, earH: 1.1, earRound: 0.15,
+      muzLen: 0.15, muzW: -0.1, muzH: -0.05, muzTaper: 0.2, stop: -0.15, cheek: 0.2, earType: 0, earSize: 1.15, earH: 1.1, earRound: 0.15,
       furMain: '#7d7f86', furSub: '#ece9e4', furAccent: '#4b4c52', patternColor: '#3f4046', backMark: 0.55, cheekWhite: 1, muzzleCover: 0.55, bellyW: 0.6,
       irisTop: '#7a5a12', irisBot: '#f2c33a', eyeTilt: 0.3, browType: 3, hairStyle: 1, hairLen: 1.25, cheekFluff: 2, tailType: 0, neckRuff: 0.6, chestFluff: 0.7,
       noseType: 0, noseSize: 0.95, mouthCorner: 0.52, smile: 0.6, fang: 0, muscle: 0.85, bulk: 0.5, shoulderW: 0.5, chest: 0.6, pecs: 0.5, traps: 0.6, neckThick: 0.7, neckLen: -0.4, armThick: 0.4,
@@ -117,7 +117,7 @@ export const PRESETS = [
   },
   {
     name: '柴犬', sub: 'しばいぬ', swatch: ['#d38a43', '#fbf1e2'], s: {
-      muzLen: 0.0, muzW: 0.1, muzTaper: 0.1, stop: 0.4, cheek: 0.45, earType: 0, earSize: 0.85, earRound: 0.35, earCup: 0.7, earOut: 0.2,
+      muzLen: -0.15, muzW: 0.1, muzTaper: 0.1, stop: -0.05, cheek: 0.45, earType: 0, earSize: 0.85, earRound: 0.35, earCup: 0.7, earOut: 0.2,
       furMain: '#d38a43', furSub: '#fbf1e2', furAccent: '#d38a43', cheekWhite: 1, muzzleCover: 0.75, bellyW: 0.7, browType: 2, browColor: '#fbf1e2', browW: 0.9, browY: -0.1,
       irisTop: '#2a170e', irisBot: '#6b3d1f', eyeAspect: 0.85, eyeTilt: 0.05, irisSize: 0.78, pupilSize: 0.5, hairStyle: 1, hairLen: 0.6, cheekFluff: 1,
       tailType: 0, tailCurl: 1.0, tailUp: 1.0, tailFluff: 0.5, smile: 0.7, mouthCorner: 0.26, fat: 0.15, muscle: 0.25,
@@ -125,7 +125,7 @@ export const PRESETS = [
   },
   {
     name: '狐', sub: 'キツネ', swatch: ['#e07a2e', '#fff6ec'], s: {
-      muzLen: 0.55, muzW: -0.35, muzH: -0.3, muzTaper: 0.65, stop: -0.2, headW: -0.1, earType: 1, earSize: 1.2, earH: 1.15, earRound: 0.1,
+      muzLen: 0.3, muzW: -0.35, muzH: -0.3, muzTaper: 0.65, stop: -0.35, headW: -0.1, earType: 1, earSize: 1.2, earH: 1.15, earRound: 0.1,
       furMain: '#e07a2e', furSub: '#fff6ec', furAccent: '#2f2422', sockArm: 0.78, sockLeg: 0.62, earTipAmt: 0.35, earTipColor: '#2f2422', muzzleCover: 0.6, cheekWhite: 1, bellyW: 0.6,
       irisTop: '#7a3b0a', irisBot: '#f4b23c', eyeTilt: 0.4, eyeAspect: 0.6, pupilType: 1, pupilSize: 0.5, tailType: 1, tailTipAmt: 0.25, tailTipColor: '#fff6ec',
       hairStyle: 2, cheekFluff: 3, chestFluff: 0.8, muscle: 0.2, fat: -0.3, shoulderW: -0.2,
@@ -133,7 +133,7 @@ export const PRESETS = [
   },
   {
     name: '猫', sub: 'ネコ', swatch: ['#9a9590', '#f1ece6'], s: {
-      muzLen: -0.85, muzW: 0.1, muzH: -0.25, muzTaper: -0.2, padSize: 0.7, stop: 0.6, jawLen: -0.4, headSize: 0.15, cheek: 0.35, earType: 2, earSize: 1.0, earRound: 0.2,
+      muzLen: -0.8, muzW: 0.1, muzH: -0.25, muzTaper: -0.2, padSize: 0.7, stop: 0.05, jawLen: -0.4, headSize: 0.15, cheek: 0.35, earType: 2, earSize: 1.0, earRound: 0.2,
       furMain: '#9a9590', furSub: '#f1ece6', furAccent: '#f1ece6', patternColor: '#5d5853', pattern: 1, patternAmt: 0.45, sockArm: 0.82, sockLeg: 0.7,
       irisTop: '#3d7a3a', irisBot: '#d8ee7a', eyeAspect: 0.85, eyeTilt: 0.25, pupilType: 1, pupilSize: 0.35, irisSize: 0.75, noseType: 3, noseSize: 0.75, omega: 0.7, mouthCorner: 0.45,
       whiskers: 3, tailType: 2, hairStyle: 1, hairLen: 0.6, cheekFluff: 1, chestFluff: 0.3, muscle: 0.2,
@@ -141,7 +141,7 @@ export const PRESETS = [
   },
   {
     name: '虎', sub: 'トラ', swatch: ['#e58a2a', '#2a1e18'], s: {
-      muzLen: -0.45, muzW: 0.45, muzH: 0.2, padSize: 0.8, stop: 0.5, headW: 0.25, headSize: 0.1, cheek: 0.6, jaw: 0.4, earType: 3, earSize: 0.85,
+      muzLen: -0.5, muzW: 0.45, muzH: 0.2, padSize: 0.8, stop: 0.0, headW: 0.25, headSize: 0.1, cheek: 0.6, jaw: 0.4, earType: 3, earSize: 0.85,
       furMain: '#e58a2a', furSub: '#fbf3e6', furAccent: '#e58a2a', patternColor: '#241a16', pattern: 1, patternAmt: 0.55, patternScale: 1.0, cheekWhite: 1, muzzleCover: 0.7, bellyW: 0.75, earTipAmt: 0.25, earTipColor: '#241a16',
       irisTop: '#7a5a12', irisBot: '#f6d23a', eyeAspect: 0.7, eyeTilt: 0.2, noseType: 1, noseColor: '#c97a6e', whiskers: 3, mouthCorner: 0.42, fang: 0.5,
       tailType: 2, tailThick: 1.25, tailTipAmt: 0.12, tailTipColor: '#241a16', hairStyle: 4, cheekFluff: 3, cheekLen: 1.3, muscle: 0.85, shoulderW: 0.6, chest: 0.5, armThick: 0.5, neckThick: 0.5,
@@ -149,7 +149,7 @@ export const PRESETS = [
   },
   {
     name: '獅子', sub: 'ライオン', swatch: ['#d4a25c', '#7a4a24'], s: {
-      muzLen: -0.3, muzW: 0.45, muzH: 0.3, padSize: 0.7, stop: 0.4, headW: 0.2, cheek: 0.4, jaw: 0.5, earType: 3, earSize: 0.8,
+      muzLen: -0.4, muzW: 0.45, muzH: 0.3, padSize: 0.7, stop: -0.05, headW: 0.2, cheek: 0.4, jaw: 0.5, earType: 3, earSize: 0.8,
       furMain: '#d4a25c', furSub: '#f2e2c4', furAccent: '#d4a25c', muzzleCover: 0.6, bellyW: 0.5, irisTop: '#6a4a10', irisBot: '#e8b83a', eyeAspect: 0.62, eyeTilt: 0.1,
       noseType: 1, noseColor: '#a8645a', noseSize: 1.2, hairStyle: 4, hairUseFur: false, hairColor: '#7a4a24', hairLen: 1.2, mane: 1, maneLen: 1.3, cheekFluff: 0,
       tailType: 3, muscle: 0.9, shoulderW: 0.7, chest: 0.6, armThick: 0.6, legThick: 0.4, neckThick: 0.7, fang: 0.3, beard: 0.5,
@@ -157,7 +157,7 @@ export const PRESETS = [
   },
   {
     name: '熊', sub: 'クマ', swatch: ['#6b4a34', '#b88a62'], s: {
-      muzLen: -0.2, muzW: 0.5, muzH: 0.35, muzTaper: -0.4, stop: 0.9, headW: 0.35, headSize: 0.1, cheek: 0.7, jaw: 0.6, earType: 3, earSize: 0.75, earY: -0.2,
+      muzLen: -0.35, muzW: 0.5, muzH: 0.35, muzTaper: -0.4, stop: 0.2, headW: 0.35, headSize: 0.1, cheek: 0.7, jaw: 0.6, earType: 3, earSize: 0.75, earY: -0.2,
       furMain: '#6b4a34', furSub: '#b88a62', furAccent: '#6b4a34', muzzleCover: 0.95, bellyW: 0.0, irisTop: '#1e120c', irisBot: '#4a2e1c', irisSize: 0.85, eyeAspect: 0.85, eyeSize: 0.018,
       noseType: 2, noseSize: 1.3, mouthCorner: 0.12, browType: 3, hairStyle: 1, hairLen: 0.5, cheekFluff: 1, chestFluff: 0.4, tailType: 4,
       fat: 0.6, belly: 0.6, muscle: 0.55, shoulderW: 0.5, armThick: 0.7, legThick: 0.7, neckThick: 0.9, neckLen: -0.6, height: 1.06,
@@ -165,7 +165,7 @@ export const PRESETS = [
   },
   {
     name: '兎', sub: 'ウサギ', swatch: ['#f2efe9', '#c9b8ae'], s: {
-      muzLen: -0.9, muzW: -0.1, muzH: -0.3, padSize: 0.5, stop: 0.8, headSize: 0.2, cheek: 0.5, earType: 5, earSize: 1.0,
+      muzLen: -0.9, muzW: -0.1, muzH: -0.3, padSize: 0.5, stop: 0.15, headSize: 0.2, cheek: 0.5, earType: 5, earSize: 1.0,
       furMain: '#f2efe9', furSub: '#ffffff', furAccent: '#f2efe9', earInner: '#f3c6c4', irisTop: '#8a1e2e', irisBot: '#f05a6e', irisSize: 0.85, eyeAspect: 0.95, eyeTilt: -0.05,
       noseType: 4, noseColor: '#e89aa0', noseSize: 0.6, omega: 0.9, mouthCorner: 0.5, fang: 0, tailType: 5, hairStyle: 2, hairLen: 0.8, cheekFluff: 1,
       muscle: 0.15, fat: -0.2, shoulderW: -0.3, height: 0.94,
@@ -173,7 +173,7 @@ export const PRESETS = [
   },
   {
     name: '黒豹', sub: 'パンサー', swatch: ['#2a2830', '#4a4652'], s: {
-      muzLen: -0.5, muzW: 0.0, muzH: -0.1, padSize: 0.6, stop: 0.5, cheek: 0.2, earType: 2, earSize: 0.85, earRound: 0.45,
+      muzLen: -0.6, muzW: 0.0, muzH: -0.1, padSize: 0.6, stop: 0.0, cheek: 0.2, earType: 2, earSize: 0.85, earRound: 0.45,
       furMain: '#2c2a32', furSub: '#3a3842', furAccent: '#2c2a32', patternColor: '#1c1a20', pattern: 2, patternAmt: 0.35, muzzleCover: 0.3, bellyW: 0.0,
       irisTop: '#1f6a8a', irisBot: '#8ae8f0', eyeTilt: 0.35, eyeAspect: 0.6, pupilType: 1, lidColor: '#0c0a0e', noseType: 1, noseColor: '#1a181c', whiskers: 2, whiskerColor: '#8a8690',
       tailType: 2, tailLen: 1.3, hairStyle: 3, cheekFluff: 0, chestFluff: 0, muscle: 0.75, fat: -0.4, shoulderW: 0.3, waist: -0.5,
@@ -181,7 +181,7 @@ export const PRESETS = [
   },
   {
     name: 'ハスキー', sub: 'ハスキー', swatch: ['#5a6070', '#f4f5f7'], s: {
-      muzLen: 0.25, muzW: 0.0, stop: 0.3, cheek: 0.3, earType: 0, earSize: 0.95, earRound: 0.2,
+      muzLen: 0.1, muzW: 0.0, stop: -0.1, cheek: 0.3, earType: 0, earSize: 0.95, earRound: 0.2,
       furMain: '#5a6070', furSub: '#f4f5f7', furAccent: '#f4f5f7', cheekWhite: 1, muzzleCover: 0.8, bellyW: 0.9, sockArm: 0.8, sockLeg: 0.6, foreheadMark: 0.8, eyeMask: 0.0, backMark: 0,
       irisTop: '#2a6ab0', irisBot: '#bfe6ff', eyeTilt: 0.2, eyeAspect: 0.7, browType: 2, browColor: '#f4f5f7', hairStyle: 1, cheekFluff: 2, tailType: 0, tailCurl: 0.6, tailUp: 0.4, tailTipAmt: 0.2, tailTipColor: '#f4f5f7',
       chestFluff: 0.8, neckRuff: 0.6, muscle: 0.45,
@@ -189,7 +189,7 @@ export const PRESETS = [
   },
   {
     name: 'ドーベルマン', sub: 'ドーベル', swatch: ['#1f1a1c', '#b5652e'], s: {
-      muzLen: 0.6, muzW: -0.25, muzH: -0.1, muzTaper: 0.3, stop: 0.5, cheek: -0.3, earType: 1, earSize: 1.05, earH: 1.2, earW: 0.85, earRound: 0.05,
+      muzLen: 0.45, muzW: -0.25, muzH: -0.1, muzTaper: 0.3, stop: 0.0, cheek: -0.3, earType: 1, earSize: 1.05, earH: 1.2, earW: 0.85, earRound: 0.05,
       furMain: '#1f1a1c', furSub: '#b5652e', furAccent: '#b5652e', bellyW: 0.25, muzzleCover: 0.45, sockArm: 0.82, sockLeg: 0.75, browType: 2, browColor: '#b5652e', browW: 0.7,
       irisTop: '#3a1e0c', irisBot: '#b06a2a', eyeTilt: 0.3, eyeAspect: 0.62, lidColor: '#080606', hairStyle: 0, cheekFluff: 0, chestFluff: 0, neckRuff: 0, elbowTuft: 0, wristTuft: 0, ankleTuft: 0,
       tailType: 2, tailLen: 0.6, tailFluff: 0.0, muscle: 0.75, fat: -0.5, waist: -0.4, furJag: 0.1,
@@ -197,7 +197,7 @@ export const PRESETS = [
   },
   {
     name: 'ハイエナ', sub: 'ハイエナ', swatch: ['#b39a74', '#4a3a2c'], s: {
-      muzLen: 0.15, muzW: 0.35, muzH: 0.3, muzTaper: -0.2, stop: 0.6, headW: 0.1, cheek: 0.3, jaw: 0.4, earType: 3, earSize: 1.0, earH: 1.15, earRound: 0.7,
+      muzLen: 0.05, muzW: 0.35, muzH: 0.3, muzTaper: -0.2, stop: 0.05, headW: 0.1, cheek: 0.3, jaw: 0.4, earType: 3, earSize: 1.0, earH: 1.15, earRound: 0.7,
       furMain: '#b39a74', furSub: '#d8c8a8', furAccent: '#3a2e24', patternColor: '#4a3a2c', pattern: 2, patternAmt: 0.6, patternScale: 1.2, muzzleCover: 0.0, bellyW: 0.3, sockLeg: 0.75, sockArm: 0.8,
       irisTop: '#4a2e10', irisBot: '#c8902a', eyeTilt: 0.1, hairStyle: 5, hairUseFur: false, hairColor: '#3a2e24', backMane: 0.9, tailType: 3, fang: 0.6, smile: 0.6, mouthCorner: 0.1,
       shoulderW: 0.5, muscle: 0.6, legLen: -0.3, armLen: 0.2,
@@ -205,7 +205,7 @@ export const PRESETS = [
   },
   {
     name: '狸', sub: 'タヌキ', swatch: ['#8a7058', '#2a221e'], s: {
-      muzLen: -0.25, muzW: 0.2, muzH: 0.0, muzTaper: 0.3, stop: 0.5, cheek: 0.7, headW: 0.2, earType: 3, earSize: 0.9, earH: 1.2, earRound: 0.6,
+      muzLen: -0.4, muzW: 0.2, muzH: 0.0, muzTaper: 0.3, stop: 0.0, cheek: 0.7, headW: 0.2, earType: 3, earSize: 0.9, earH: 1.2, earRound: 0.6,
       furMain: '#8a7058', furSub: '#d9ccb8', furAccent: '#2a221e', patternColor: '#2a221e', eyeMask: 0.7, muzzleCover: 0.35, cheekWhite: 1, bellyW: 0.3, sockArm: 0.7, sockLeg: 0.55,
       irisTop: '#2a170e', irisBot: '#8a5a2a', eyeTilt: -0.2, eyeAspect: 0.85, irisSize: 0.75, browType: 0, noseType: 0, noseSize: 0.85, hairStyle: 1, hairLen: 0.6, cheekFluff: 2, cheekLen: 1.3,
       tailType: 0, tailThick: 1.2, tailTipAmt: 0.2, tailTipColor: '#2a221e', fat: 0.5, belly: 0.6, muscle: 0.15, height: 0.95,
@@ -213,7 +213,7 @@ export const PRESETS = [
   },
   {
     name: 'シェパード', sub: 'シェパード', swatch: ['#b77a3e', '#2a2220'], s: {
-      muzLen: 0.55, muzW: -0.1, muzTaper: 0.2, stop: 0.45, cheek: -0.1, earType: 1, earSize: 1.0, earH: 1.1, earRound: 0.1,
+      muzLen: 0.3, muzW: -0.1, muzTaper: 0.2, stop: -0.02, cheek: -0.1, earType: 1, earSize: 1.0, earH: 1.1, earRound: 0.1,
       furMain: '#c8873f', furSub: '#e2b77a', furAccent: '#c8873f', patternColor: '#2a2220', backMark: 0.75, muzzleCover: 0.3, bellyW: 0.45, cheekWhite: 0,
       irisTop: '#3a1e0c', irisBot: '#a8682a', eyeTilt: 0.25, eyeAspect: 0.66, browType: 1, hairStyle: 3, hairUseFur: false, hairColor: '#2a2220', cheekFluff: 1, chestFluff: 0.6, neckRuff: 0.5,
       tailType: 0, tailTipAmt: 0.25, tailTipColor: '#2a2220', muscle: 0.6, shoulderW: 0.3,
@@ -221,7 +221,7 @@ export const PRESETS = [
   },
   {
     name: 'ユキヒョウ', sub: 'ユキヒョウ', swatch: ['#dcdad4', '#4a4a50'], s: {
-      muzLen: -0.6, muzW: 0.1, muzH: -0.1, padSize: 0.6, stop: 0.6, cheek: 0.3, earType: 3, earSize: 0.8, earRound: 0.7,
+      muzLen: -0.65, muzW: 0.1, muzH: -0.1, padSize: 0.6, stop: 0.05, cheek: 0.3, earType: 3, earSize: 0.8, earRound: 0.7,
       furMain: '#dcdad4', furSub: '#f6f5f2', furAccent: '#dcdad4', patternColor: '#4a4a50', pattern: 2, patternAmt: 0.55, patternScale: 1.1, muzzleCover: 0.6, bellyW: 0.7, cheekWhite: 1,
       irisTop: '#3a6a6a', irisBot: '#bfe8d8', eyeTilt: 0.25, eyeAspect: 0.7, pupilType: 1, noseType: 1, noseColor: '#b8848a', whiskers: 3, tailType: 2, tailThick: 1.6, tailLen: 1.3, tailFluff: 0.5,
       hairStyle: 2, cheekFluff: 2, chestFluff: 0.6, muscle: 0.45, fat: -0.2,
@@ -229,7 +229,7 @@ export const PRESETS = [
   },
   {
     name: '白虎', sub: 'ホワイトタイガー', swatch: ['#f1efea', '#2a2a30'], s: {
-      muzLen: -0.45, muzW: 0.45, muzH: 0.2, padSize: 0.8, stop: 0.5, headW: 0.25, headSize: 0.1, cheek: 0.6, jaw: 0.4, earType: 3, earSize: 0.85,
+      muzLen: -0.5, muzW: 0.45, muzH: 0.2, padSize: 0.8, stop: 0.0, headW: 0.25, headSize: 0.1, cheek: 0.6, jaw: 0.4, earType: 3, earSize: 0.85,
       furMain: '#f1efea', furSub: '#ffffff', furAccent: '#f1efea', patternColor: '#2a2a30', pattern: 1, patternAmt: 0.5, cheekWhite: 1, muzzleCover: 0.7, bellyW: 0.75, earTipAmt: 0.25, earTipColor: '#2a2a30',
       irisTop: '#1f5a9a', irisBot: '#9fd8f8', eyeAspect: 0.7, eyeTilt: 0.2, noseType: 1, noseColor: '#d8909a', whiskers: 3, mouthCorner: 0.42, fang: 0.5,
       tailType: 2, tailThick: 1.25, tailTipAmt: 0.12, tailTipColor: '#2a2a30', hairStyle: 4, cheekFluff: 3, cheekLen: 1.3, muscle: 0.85, shoulderW: 0.6, chest: 0.5, armThick: 0.5, neckThick: 0.5,

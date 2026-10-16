@@ -488,9 +488,39 @@ def build(params=None):
     br = 1.0 + 0.45 * g('brow')
     jw = 1.0 + 0.15 * g('jaw') + 0.25 * fat
     hd = dict(bones=hb, group='head')
-    # ---- 頭の土台（ロフト）。節点: 後頭 / 後頭部 / 頭頂 / 額 / 眉骨 / ストップ / マズル中ほど / あご先 / 鼻先手前 / 鼻先
+    # ---- 頭（人間寄りの丸い頭蓋＋目の並ぶ顔の正面）。マズルは別の塊としてあとで付ける
+    Z = [-0.118, -0.08, -0.03, 0.02, 0.05, 0.068, 0.08]
+    yt = [0.082, 0.148 * crH, 0.166 * crH, 0.162 + 0.004 * fh, 0.145 + 0.006 * fh, 0.125, 0.098]
+    yb = [0.064, 0.016, -0.006 - 0.016 * (jw - 1), -0.002 - 0.016 * (jw - 1), 0.006, 0.02, 0.046]
+    wt = [0.038, 0.08, 0.091, 0.087, 0.077, 0.064, 0.043]
+    wb = [0.036, 0.066 * jw, 0.077 * ch, 0.078 * ch, 0.073 * ch, 0.063 * ch, 0.046]
+    ne = [2.2, 2.2, 2.2, 2.2, 2.3, 2.4, 2.4]
+    prims.append(Loft('skull', H, hsz, hw, Z, yt, yb, wt, wb, ne, k=0.03, bones=hb, group='head'))
+    # ---- 目の面: 眉骨の下を広く浅く平らに削る（目の絵がゆがまない）
+    sdep = 0.004 * hsz * (1.0 + 0.6 * g('socket'))
+    sthk = 0.022 * hsz
+    for side, sx in (('L', 1), ('R', -1)):
+        a = np.radians(22.0)
+        n = nrm(np.array([sx * np.sin(a) / hw, 0.04, np.cos(a)]))
+        c = hp_([sx * 0.041, 0.098, 0.066])
+        q0 = c + n * 0.1
+        for _ in range(80):
+            q0 = q0 - n * eval_union(prims, q0[None])[0]
+        Rv = nrm(np.cross([0.0, 1.0, 0.0], n))
+        Uv = np.cross(n, Rv)
+        E('socket', q0 + n * (sthk - sdep), np.array([0.03 * hsz, 0.024 * hsz, sthk]),
+          R=np.stack([Rv, Uv, n], axis=1), k=0.016, group='head', bones=hb, sub=True)
+        J['eye.' + side] = q0 - n * sdep
+        J['eyeN.' + side] = n
+    # ---- 眉骨・頬骨
+    for sx in (1, -1):
+        C('brow', hp_([sx * 0.01, 0.121, 0.08]), hp_([sx * 0.06, 0.115, 0.052]), 0.011 * br * hsz, 0.0085 * br * hsz,
+          k=0.016, **hd)
+        E('zygoma', hp_([sx * 0.056, 0.074, 0.042]), np.array([0.019, 0.014, 0.03]) * hsz, R=rot_y(sx * 0.4), k=0.026, **hd)
+
+    # ---- マズル（顔の正面、目の下から前へ出る塊。付け根に境目が見えるよう、なめらかさを控えめに）
     ml_ = g('muzLen')
-    mL = 0.118 * (1.0 + (0.42 if ml_ > 0 else 0.62) * ml_)
+    mL = 0.068 * (1.0 + (1.0 if ml_ > 0 else 0.5) * ml_)     # 顔の正面からの突き出し
     mW = 1.0 + 0.22 * g('muzW')
     mH = 1.0 + 0.2 * g('muzH')
     tap = 1.0 - 0.25 * g('muzTaper')
@@ -499,50 +529,36 @@ def build(params=None):
     st = g('stop')
     bh = g('bridge')
     dr = g('muzDrop')
-    zS = 0.07
-    Z = [-0.118, -0.075, -0.03, 0.024, 0.056, zS, zS + 0.5 * mL, zS + min(0.72 * jL, 0.84) * mL, zS + 0.9 * mL, zS + mL]
-    yS = 0.11 - 0.01 * st
-    yTip = 0.044 + 0.042 * mH - 0.018 * dr
-    yMid = yS + (yTip - yS) * 0.5 + 0.004 * bh
-    yCh = yS + (yTip - yS) * min(0.72 * jL, 0.84)
-    yt = [0.08, 0.146 * crH, 0.166 * crH, 0.156 + 0.004 * fh, 0.13 + 0.006 * fh, yS, yMid, yCh, yTip, yTip - 0.014]
-    ym = 0.046 - 0.012 * dr              # 口の線（上唇の下）の高さ
-    yb = [0.062, 0.016, -0.006 - 0.004 * (jw - 1) * 4, -0.004, -0.002, 0.0, 0.003, 0.012 - 0.006 * (jw - 1) * 4, ym - 0.004, ym + 0.004]
-    wt = [0.034, 0.07, 0.081, 0.076, 0.066, 0.043 * mW, 0.034 * mW, 0.03 * mW * tap, 0.027 * mW * tap, 0.019 * mW]
-    wb = [0.034, 0.062 * jw, 0.071 * ch, 0.07 * ch, 0.066 * ch, 0.058 * (0.5 + 0.5 * mW) * ch, 0.043 * mW * pad, 0.035 * mW * pad * tap, 0.029 * mW * tap, 0.02 * mW]
-    ne = [2.2, 2.2, 2.2, 2.3, 2.3, 2.4, 2.7, 2.8, 2.7, 2.4]
-    prims.append(Loft('skull', H, hsz, hw, Z, yt, yb, wt, wb, ne, k=0.03, bones=hb, group='head'))
-    # ---- 目の面: 眉骨の下〜頬骨の上を、広く浅く平らに削る（目の絵がゆがまない）
-    sdep = 0.0042 * hsz * (1.0 + 0.6 * g('socket'))
-    sthk = 0.022 * hsz
-    for side, sx in (('L', 1), ('R', -1)):
-        a = np.radians(30.0)
-        n = nrm(np.array([sx * np.sin(a) / hw, 0.06, np.cos(a)]))
-        c = hp_([sx * 0.045, 0.092, 0.05])
-        q0 = c + n * 0.1
-        for _ in range(80):
-            q0 = q0 - n * eval_union(prims, q0[None])[0]
-        Rv = nrm(np.cross([0.0, 1.0, 0.0], n))
-        Uv = np.cross(n, Rv)
-        E('socket', q0 + n * (sthk - sdep), np.array([0.03 * hsz, 0.024 * hsz, sthk]),
-          R=np.stack([Rv, Uv, n], axis=1), k=0.018, group='head', bones=hb, sub=True)
-        J['eye.' + side] = q0 - n * sdep
-        J['eyeN.' + side] = n
-    # ---- 眉骨（目の上の庇）・頬骨・上唇・あご先
+    zF = 0.075                       # 顔の正面
+    yTop = 0.084 + 0.004 * bh        # マズルの上面（目の下）
+    yBot = 0.04                      # 上あごの下面（口の線）
+    zTip = zF + mL
+    yTipTop = yTop - 0.004 - 0.02 * dr - 0.04 * mL
+    yTipBot = yBot - 0.006 * dr
+    yc0, yc1 = (yTop + yBot) / 2 * mH + (1 - mH) * yBot, (yTipTop + yTipBot) / 2
+    h0, h1 = (yTop - yBot) / 2 * mH, (yTipTop - yTipBot) / 2 * mH
+    mz = dict(bones=hb, group='muzzle')
+    TB('muzzle', hp_([0, yc0, zF - 0.035]), hp_([0, yc1, zTip]),
+       (0.041 * mW * hsz, h0 * hsz), (0.034 * mW * tap * hsz, max(h1, h0 * 0.82) * hsz), 0.017 * hsz,
+       up=(0, 1, 0), k=0.012 + 0.012 * max(-st, 0.0), **mz)
+    # 鼻筋: ストップを上げると額へなだらかにつながる（犬っぽく）
+    C('bridge', hp_([0, yTop + 0.012 + 0.016 * max(st, 0), zF - 0.008]), hp_([0, yTipTop - 0.004, zTip - 0.012]),
+      0.014 * (1 + 0.4 * max(st, 0)) * hsz, 0.016 * hsz, sq=(1.6 * mW, 1.0), k=0.014, **mz)
     for sx in (1, -1):
-        C('brow', hp_([sx * 0.01, 0.118, 0.062]), hp_([sx * 0.058, 0.111, 0.036]), 0.012 * br * hsz, 0.0085 * br * hsz,
-          k=0.016, **hd)
-        E('zygoma', hp_([sx * 0.058, 0.066, 0.02]), np.array([0.017, 0.012, 0.034]) * hsz, R=rot_y(sx * 0.42), k=0.026, **hd)
-        E('lipPad', hp_([sx * 0.014 * mW, ym + 0.011, zS + 0.82 * mL]), np.array([0.014 * mW, 0.008, 0.022]) * hsz * pad,
+        E('lipPad', hp_([sx * 0.016 * mW, yBot + 0.008, zF + 0.62 * mL]), np.array([0.016 * mW, 0.009, 0.3 * mL + 0.006]) * hsz * pad,
           k=0.016, bones=hb, group='muzzle')
-    E('chin', hp_([0, yb[7] + 0.006, Z[7] - 0.004]), np.array([0.016 * mW, 0.01, 0.018]) * hsz * jw, k=0.02, bones=hb, group='muzzle')
-    M0 = hp_([0, yS - 0.04, zS])
-    # 鼻: マズルの先端の表面を前から探し、少しめり込ませて置く
-    q0 = hp_([0, yTip - 0.012, zS + mL + 0.06])
-    fwd = nrm(hp_([0, yTip - 0.012, zS + mL]) - q0)
+    # 下あご
+    TB('jaw', hp_([0, yBot - 0.009, zF - 0.03]), hp_([0, yBot - 0.008, zF + 0.78 * mL * jL]),
+       (0.034 * jw * mW * hsz, 0.011 * hsz), (0.02 * jw * mW * tap * hsz, 0.009 * hsz), 0.008 * hsz,
+       up=(0, 1, 0), k=0.016, bones=hb, group='muzzle')
+    E('chin', hp_([0, yBot - 0.016, zF + 0.6 * mL * jL]), np.array([0.016 * mW, 0.009, 0.014]) * hsz * jw, k=0.016, bones=hb, group='muzzle')
+    M0 = hp_([0, (yTop + yBot) / 2, zF - 0.01])
+    # 鼻: マズルの先端の表面を前から探して置く
+    q0 = hp_([0, yTipTop - 0.007, zTip + 0.06])
+    fwd = nrm(hp_([0, yTipTop - 0.007, zTip]) - q0)
     for _ in range(60):
         q0 = q0 + fwd * eval_union(prims, q0[None])[0]
-    J['noseTip'] = q0 + fwd * 0.004 * hsz
+    J['noseTip'] = q0 + fwd * 0.003 * hsz
     J['muzzleRoot'] = M0
     J['headTop'] = hp_([0, 0.2, -0.02])
     # 目の中心（表面に乗せる前の目安）。build_body 側で表面に投影する

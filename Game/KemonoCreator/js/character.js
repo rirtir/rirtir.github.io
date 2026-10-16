@@ -332,6 +332,7 @@ export class Character {
     this.parts.push(m);
     if (matO) {
       const o = new THREE.Mesh(geo, matO);
+      if (opts.thinOutline) { o.material = matO.clone(); o.material.userData = matO.userData; }
       o.layers.set(1);
       m.add(o);
     }
@@ -426,7 +427,7 @@ export class Character {
       const d = T.clone().addScaledVector(N, lift).normalize();
       const p = this._local(bone, s.p).addScaledVector(N, (opt.layer ?? layer) * 0.0012);
       addTuft(opt.builder || B, {
-        p, d, up: N, len: len * (1 + (R() - 0.5) * 0.25 * mess), w, t: w * (opt.flat ?? 0.3),
+        p, d, up: N, len: len * (1 + (R() - 0.5) * 0.25 * mess), w, t: w * (opt.flat ?? 0.5),
         bend: N.clone().multiplyScalar(opt.curl ?? 0.1).addScaledVector(T, 0.0), sharp: opt.sharp ?? Math.max(0.55, sharp),
         c0: opt.c0 || hairC, c1: opt.c1 || (st.hairTipAmt > 0 ? hairTip : opt.c0 || hairC),
         tipAmt: opt.tipAmt ?? st.hairTipAmt, segs: opt.segs || 8, sides: 8, sink: opt.sink ?? 0.006,
@@ -497,7 +498,7 @@ export class Character {
     const cheekC = st.cheekWhite > 0.5 ? cSub : cMain;
     const ck = st.cheekFluff;
     if (ck > 0) {
-      const rows = ck === 3 ? [[0, 7, 1.25, 0.7], [-18, 6, 1.0, 0.6]] : (ck === 1 ? [[-6, 4, 0.75, 0.45]] : [[-6, 7, 1.25, 0.7]]);
+      const rows = ck === 3 ? [[0, 9, 1.2, 0.65], [-18, 8, 1.0, 0.55]] : (ck === 1 ? [[-6, 5, 0.75, 0.45]] : [[-6, 9, 1.2, 0.65], [-14, 6, 0.8, 0.45]]);
       for (const sx of [1, -1]) rows.forEach(([el0, cnt, k, lift], ri) => {
         for (let i = 0; i < cnt; i++) {
           const t = cnt > 1 ? i / (cnt - 1) : 0.5;
@@ -505,7 +506,7 @@ export class Character {
           const el = el0 + 2 - 34 * t;
           const alt = i % 2 ? 0.75 : 1.0;
           clump(hb, 'head', sph(az, el), headCb, V(sx * (0.6 + 0.35 * st.cheekSpread), -0.4 - 0.35 * t, -0.75).normalize(),
-            0.062 * k * alt * st.cheekLen, 0.03 * tw, { lift: lift + 0.2 * st.cheekSpread, curl: 0.12, flat: 0.5, sharp: 0.85, c0: cheekC, c1: cheekC, tipAmt: 0, layer: ri * 3 + (i % 2), mess: 0.4 });
+            0.06 * k * alt * st.cheekLen, 0.021 * tw, { lift: lift + 0.2 * st.cheekSpread, curl: 0.12, flat: 0.7, sharp: 0.85, c0: i % 2 ? cheekC.clone().multiplyScalar(0.93) : cheekC, c1: cheekC, tipAmt: 0, layer: ri * 3 + (i % 2), mess: 0.4 });
         }
       });
     }
@@ -549,26 +550,32 @@ export class Character {
     const FB = { neck: new GeoBuilder(), chest: new GeoBuilder(), 'upperarm.L': new GeoBuilder(), 'upperarm.R': new GeoBuilder(), 'forearm.L': new GeoBuilder(), 'forearm.R': new GeoBuilder(), 'shin.L': new GeoBuilder(), 'shin.R': new GeoBuilder() };
     const chestC = st.bellyW > 0.15 ? cSub : cMain;
     if (st.neckRuff > 0.01) {
+      // のど〜胸元: 首の前面に沿って下へ流れ、重なり合う房（2段）
       const nC = this.baseJoint('neck');
-      const n = 12;
-      for (let i = 0; i < n; i++) {
-        const az = -180 + 360 * (i / n) + 15;
-        const a = az * Math.PI / 180;
-        const dir = V(Math.sin(a), 0.25, Math.cos(a)).normalize();
-        const front = Math.cos(a) > 0.3;
-        const c0 = front ? chestC : cMain;
-        tuft(['neck'], 'neck', nC.clone().add(V(0, 0.03, 0)), dir, V(Math.sin(a) * 0.6, -0.8, Math.cos(a) * 0.6).normalize(), 0.06 * (0.6 + 0.6 * st.neckRuff), 0.04 * tw, { builder: FB.neck, c0, c1: c0, tipAmt: 0, bend: V(0, -0.1, 0), mess: 0.5, sink: 0.012 });
-      }
+      const rows = [[0.05, 8, 1.0], [0.0, 7, 0.85]];
+      rows.forEach(([dy, n, k], ri) => {
+        for (let i = 0; i < n; i++) {
+          const t = n > 1 ? i / (n - 1) : 0;
+          const sd = i % 2 ? 1 : -1;
+          const a = sd * (0.75 + 1.9 * t);
+          const c0 = Math.abs(a) < 0.9 ? chestC : cMain;
+          clump(['neck', 'chest'], 'neck', V(Math.sin(a), -0.15, Math.cos(a)).normalize(), nC.clone().add(V(0, dy, 0)),
+            V(Math.sin(a) * 0.35, -1, 0.15), 0.05 * k * (0.6 + 0.6 * st.neckRuff) * (i % 2 ? 0.8 : 1), 0.03 * tw,
+            { builder: FB.neck, c0: ri ? c0.clone().multiplyScalar(0.94) : c0, c1: c0, tipAmt: 0, lift: 0.08, curl: 0.05, flat: 0.4, layer: ri * 2 + (i % 2), mess: 0.3, sink: 0.01 });
+        }
+      });
     }
     const shirt = st.top >= 1 && st.top <= 3;
     if (st.chestFluff > 0.01 && !shirt) {
+      // のどから胸の中央へ、表面に沿って重なり落ちる毛束（V字に並べる）
       const cC = this.baseJoint('chest');
-      const pts = [[0, 0.16, 1.0], [0.035, 0.13, 0.95], [-0.035, 0.13, 0.95], [0.0, 0.09, 0.9], [0.06, 0.105, 0.8], [-0.06, 0.105, 0.8]];
-      const cnt = Math.round(2 + st.chestFluff * 4);
+      const pts = [[0, 0.21, 1.0], [0.03, 0.19, 0.9], [-0.03, 0.19, 0.9], [0.0, 0.165, 0.95], [0.05, 0.16, 0.8], [-0.05, 0.16, 0.8], [0.02, 0.135, 0.85], [-0.02, 0.135, 0.85], [0.0, 0.11, 0.8]];
+      const cnt = Math.round(3 + st.chestFluff * 6);
       for (let k = 0; k < cnt; k++) {
         const [x, y, s] = pts[k];
         const tgt = cC.clone().add(V(x, y, 0.2));
-        tuft(['chest'], 'chest', null, null, V(x * 3, -0.75, 0.55).normalize(), 0.06 * s * st.chestLen * (0.7 + 0.5 * st.chestFluff), 0.035 * tw, { target: tgt, builder: FB.chest, c0: chestC, c1: chestC, tipAmt: 0, bend: V(0, -0.3, -0.05), sink: 0.01, mess: 0.5 });
+        clump(['chest', 'neck'], 'chest', null, null, V(x * 4, -1, 0.1), 0.085 * s * st.chestLen * (0.7 + 0.5 * st.chestFluff), 0.04 * tw,
+          { target: tgt, builder: FB.chest, c0: k % 3 === 2 ? chestC.clone().multiplyScalar(0.94) : chestC, c1: chestC, tipAmt: 0, lift: 0.3, curl: 0.12, flat: 0.5, layer: k, mess: 0.4, sink: 0.008 });
       }
     }
     if (st.backMane > 0.01 && !shirt) {

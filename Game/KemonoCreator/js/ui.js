@@ -19,13 +19,13 @@ const QUICK = {
     ['黒目がち', { eyeAspect: 0.85, eyeTilt: 0.08, irisSize: 0.95, pupilSize: 0.5, eyeSize: 0.019 }],
   ] },
   muzzle: { label: 'マズルのタイプ', items: [
-    ['犬', { muzLen: 0.2, muzW: 0, muzH: 0, muzTaper: 0.1, muzDrop: 0, stop: 0.3, padSize: 0, jawLen: 0, bridge: 0 }],
-    ['狼', { muzLen: 0.5, muzW: -0.1, muzH: -0.05, muzTaper: 0.25, muzDrop: 0, stop: 0.15, padSize: -0.2, jawLen: 0.1, bridge: 0.2 }],
-    ['狐', { muzLen: 0.6, muzW: -0.4, muzH: -0.35, muzTaper: 0.7, muzDrop: 0.1, stop: -0.2, padSize: -0.4, jawLen: 0, bridge: -0.2 }],
-    ['猫', { muzLen: -0.85, muzW: 0.1, muzH: -0.25, muzTaper: -0.2, muzDrop: 0, stop: 0.6, padSize: 0.7, jawLen: -0.4, bridge: -0.3 }],
-    ['獅子・虎', { muzLen: -0.4, muzW: 0.45, muzH: 0.25, muzTaper: -0.1, muzDrop: 0.1, stop: 0.5, padSize: 0.8, jawLen: 0, bridge: 0.3 }],
-    ['熊', { muzLen: -0.2, muzW: 0.5, muzH: 0.35, muzTaper: -0.4, muzDrop: 0.15, stop: 0.9, padSize: 0.2, jawLen: 0.1, bridge: 0 }],
-    ['ドーベル', { muzLen: 0.8, muzW: -0.3, muzH: -0.1, muzTaper: 0.35, muzDrop: -0.1, stop: 0.5, padSize: -0.3, jawLen: 0.2, bridge: 0.4 }],
+    ['犬', { muzLen: 0.05, muzW: 0, muzH: 0, muzTaper: 0.1, muzDrop: 0, stop: -0.1, padSize: 0, jawLen: 0, bridge: 0 }],
+    ['狼', { muzLen: 0.2, muzW: -0.1, muzH: -0.05, muzTaper: 0.25, muzDrop: 0, stop: -0.17, padSize: -0.2, jawLen: 0.1, bridge: 0.2 }],
+    ['狐', { muzLen: 0.25, muzW: -0.4, muzH: -0.35, muzTaper: 0.7, muzDrop: 0.1, stop: -0.35, padSize: -0.4, jawLen: 0, bridge: -0.2 }],
+    ['猫', { muzLen: -0.85, muzW: 0.1, muzH: -0.25, muzTaper: -0.2, muzDrop: 0, stop: 0.05, padSize: 0.7, jawLen: -0.4, bridge: -0.3 }],
+    ['獅子・虎', { muzLen: -0.4, muzW: 0.45, muzH: 0.25, muzTaper: -0.1, muzDrop: 0.1, stop: 0.0, padSize: 0.8, jawLen: 0, bridge: 0.3 }],
+    ['熊', { muzLen: -0.2, muzW: 0.5, muzH: 0.35, muzTaper: -0.4, muzDrop: 0.15, stop: 0.2, padSize: 0.2, jawLen: 0.1, bridge: 0 }],
+    ['ドーベル', { muzLen: 0.35, muzW: -0.3, muzH: -0.1, muzTaper: 0.35, muzDrop: -0.1, stop: 0.0, padSize: -0.3, jawLen: 0.2, bridge: 0.4 }],
   ] },
 };
 const BODY_KEYS = ['muscle', 'fat', 'belly', 'bulk', 'traps', 'shoulderW', 'chest', 'pecs', 'waist', 'torsoLen', 'neckThick', 'neckLen', 'armLen', 'armThick', 'handSize', 'hipW', 'glutes', 'legLen', 'legThick', 'calf', 'footSize', 'height'];
