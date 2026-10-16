@@ -110,6 +110,17 @@ uniform float uBlink; uniform vec2 uGaze;
 uniform vec3 uMzRoot, uMzF, uMzU; uniform float uMzLen;
 uniform vec4 uMouthA, uMouthB, uMouthC; uniform vec3 uMouthCol; uniform vec4 uCav; uniform vec4 uFurS; uniform vec4 uTorso;
 
+// 毛先の形の境界: 長さ・幅・とがり方がばらつく歯を並べる（0〜1）
+float kcTooth(float u, float seed) {
+  float i = floor(u), f = fract(u);
+  float h = kc_hash(vec3(i, seed, 1.7)), h2 = kc_hash(vec3(i, seed, 5.3));
+  float pk = 0.3 + 0.35 * h2;
+  float t = f < pk ? f / pk : (1.0 - f) / (1.0 - pk);
+  return pow(t, 1.6 + 1.6 * h) * (0.4 + 0.6 * h);
+}
+float kcFurEdge(float u, float seed) {
+  return kcTooth(u, seed) + 0.45 * kcTooth(u * 2.3 + 0.37, seed + 3.0) - 0.32;
+}
 vec3 kc_hash3(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.xxy + p.yxx) * p.zyx); }
 // 毛並みの線: 表面に沿って下向きに流れる、両端のとがった短い線を散らす
 float kcFurStrokes(vec3 p, vec3 n, float scale, float dens) {
@@ -175,17 +186,17 @@ vec3 kcAlbedo(out float isPad) {
   float zc = -0.01;
   float ang = atan(p.x, p.z - zc);
   float back = uMark3.y * step(0.0, 1.0) * smoothstep(0.0, 0.06, 1.0 - vMaskA.g) * (1.0 - smoothstep(0.0, 0.02, vMaskB.x)) * (1.0 - smoothstep(0.0, 0.02, vMaskB.y));
-  float backM = back * step(abs(ang), 3.1416) * smoothstep(3.1416 - uMark3.y * 1.4 - 0.03, 3.1416 - uMark3.y * 1.4 + 0.03, abs(ang) + jag * 0.15 * (abs(fract(p.y * 18.0) - 0.5) - 0.25));
+  float backM = back * step(abs(ang), 3.1416) * smoothstep(3.1416 - uMark3.y * 1.4 - 0.03, 3.1416 - uMark3.y * 1.4 + 0.03, abs(ang) + jag * 0.22 * kcFurEdge(p.y * 16.0, 7.0));
   col = mix(col, uColPattern, max(pat, backM));
   // 腹・胸（体の前面）
-  float zig = jag * (abs(fract(p.y * 22.0 + ax * 8.0) - 0.5) - 0.25) * 0.5;
+  float zig = jag * 0.24 * kcFurEdge(p.y * 19.0 + ax * 6.0, 1.0);
   float front = uMark.x > 0.01 ? kc_aa(abs(ang) + zig - uMark.x) : 0.0;
   front *= step(0.8, p.y) * (1.0 - smoothstep(0.02, 0.1, vMaskB.x)) * (1.0 - step(0.12, vMaskB.y));
-  front *= 1.0 - step(0.35, vMaskA.g);
+  front *= 1.0 - smoothstep(0.32, 0.38, vMaskA.g);   // 頭側ののど(throat)と同じ境目で受け渡す（すき間の線が出ない）
   // 顔: マズル下側・頬・のど（目の下から後ろ下がりの斜めの境目）
   vec3 q = p - uMzRoot;
   float my = dot(q, uMzU);
-  float zz = jag * 0.006 * (abs(fract(p.z * 70.0 + ax * 40.0) - 0.5) - 0.25) * 4.0;
+  float zz = jag * 0.013 * kcFurEdge(p.z * 55.0 + ax * 32.0, 2.0);
   float muzLine = my - mix(-0.045, 0.045, uMark.y) + zz;
   float isMuz = smoothstep(0.32, 0.38, vMaskA.r);
   float isHead = smoothstep(0.32, 0.38, vMaskA.g);
@@ -194,10 +205,11 @@ vec3 kcAlbedo(out float isPad) {
   float cheek = uMark3.z * isHead * kc_aa(h) * step(-0.06, p.z - uEyeC.z + 0.12);
   float throat = isHead * (1.0 - isMuz) * kc_aa(p.y - (uMzRoot.y - 0.055) + zz) * step(-0.03, p.z) * step(0.01, uMark.x);
   float faceW = max(max(muz, cheek), throat);
-  col = mix(col, uColSub, clamp(max(front, faceW), 0.0, 1.0));
+  col = mix(col, uColSub, clamp(front + faceW, 0.0, 1.0));   // 足し合わせ（max だと受け渡しの所が半分の濃さの線になる）
   // 手先・足先
-  float sockA = clamp(1.0 - kc_aa(vMaskB.x + zig * 0.2 - uMark.z), 0.0, 1.0) * step(0.001, vMaskB.x);
-  float sockL = clamp(1.0 - kc_aa(vMaskB.y + zig * 0.2 - uMark.w), 0.0, 1.0) * step(0.001, vMaskB.y);
+  float zs = jag * 0.035 * kcFurEdge(atan(p.z, p.y) * 7.0 + p.x * 40.0, 4.0);
+  float sockA = clamp(1.0 - kc_aa(vMaskB.x - zs - uMark.z), 0.0, 1.0) * step(0.001, vMaskB.x);
+  float sockL = clamp(1.0 - kc_aa(vMaskB.y - zs - uMark.w), 0.0, 1.0) * step(0.001, vMaskB.y);
   col = mix(col, uColAccent, max(sockA, sockL));
   // 目の周りのマスク
   if (uMark3.x > 0.01) {
@@ -521,6 +533,7 @@ vec3 outgoingLight;
     float cav = mix(vMaskB.z, vMaskB.w, uCav.x) * (1.0 - 0.85 * uCav.y);
     float region = (1.0 - smoothstep(0.3, 0.5, vMaskA.g)) * (1.0 - smoothstep(0.3, 0.6, vMaskA.a)) * (1.0 - step(0.5, vMaskA.b));
     float ln = smoothstep(uCav.w, uCav.w + 0.12, cav) * region * uCav.z * 0.6;
+    ln *= 1.0 - smoothstep(uTorso.x + 0.1, uTorso.x + 0.15, vPos.y);   // 首とあごの境目には線を出さない
     // 線で描く筋肉（胸筋の下縁・腹筋）。筋肉が多いほど濃く、肉づきで薄く
     vec3 p = vPos; float ax = abs(p.x);
     float k = uCav.z * smoothstep(0.05, 0.5, uCav.x) * (1.0 - smoothstep(0.1, 0.7, uCav.y)) * region * step(0.0, p.z);
