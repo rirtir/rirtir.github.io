@@ -28,13 +28,15 @@ const QUICK = {
     ['ドーベル', { muzLen: 0.8, muzW: -0.3, muzH: -0.1, muzTaper: 0.35, muzDrop: -0.1, stop: 0.5, padSize: -0.3, jawLen: 0.2, bridge: 0.4 }],
   ] },
 };
-const BODY_KEYS = ['muscle', 'fat', 'belly', 'shoulderW', 'chest', 'pecs', 'waist', 'torsoLen', 'neckThick', 'neckLen', 'armLen', 'armThick', 'handSize', 'hipW', 'glutes', 'legLen', 'legThick', 'calf', 'footSize', 'height'];
+const BODY_KEYS = ['muscle', 'fat', 'belly', 'bulk', 'traps', 'shoulderW', 'chest', 'pecs', 'waist', 'torsoLen', 'neckThick', 'neckLen', 'armLen', 'armThick', 'handSize', 'hipW', 'glutes', 'legLen', 'legThick', 'calf', 'footSize', 'height'];
 const BODY_TYPES = [
-  ['細身', { _w: 0.55, muscle: 0.1, fat: -0.7, shoulderW: -0.3, chest: -0.4, waist: -0.4, armThick: -0.5, legThick: -0.5, neckThick: -0.4, legLen: 0.3, height: 0.98 }],
+  ['細身', { _w: 0.55, muscle: 0.1, fat: -0.7, shoulderW: -0.3, chest: -0.4, waist: -0.4, armThick: -0.5, legThick: -0.5, neckThick: -0.4, bulk: -0.6, legLen: 0.3, height: 0.98 }],
   ['標準', { _w: 0.75, muscle: 0.35 }],
-  ['筋肉質', { _w: 0.95, muscle: 1, shoulderW: 0.6, chest: 0.6, pecs: 0.5, armThick: 0.6, legThick: 0.4, neckThick: 0.6, waist: -0.3, calf: 0.4, height: 1.03 }],
-  ['ぽっちゃり', { _w: 1.05, muscle: 0.15, fat: 0.7, belly: 0.7, waist: 0.6, hipW: 0.4, armThick: 0.3, legThick: 0.4, neckThick: 0.5, glutes: 0.4 }],
-  ['巨漢', { _w: 1.2, muscle: 0.8, fat: 0.6, belly: 0.4, shoulderW: 1, chest: 1, armThick: 1, legThick: 0.9, neckThick: 1, neckLen: -0.6, handSize: 0.6, footSize: 0.5, height: 1.12 }],
+  ['筋肉質', { _w: 0.9, muscle: 0.75, shoulderW: 0.4, chest: 0.4, pecs: 0.3, armThick: 0.3, neckThick: 0.3, waist: -0.3, calf: 0.3, height: 1.02 }],
+  ['ガチムチ', { _w: 1.1, muscle: 1, bulk: 0.8, shoulderW: 0.7, chest: 0.9, pecs: 0.8, traps: 1, armThick: 0.6, legThick: 0.5, neckThick: 1, neckLen: -0.4, waist: 0.2, calf: 0.5, handSize: 0.4, height: 1.05 }],
+  ['ぽっちゃり', { _w: 1.05, muscle: 0.15, fat: 0.55, belly: 0.5, waist: 0.4, hipW: 0.3, glutes: 0.3, neckLen: -0.3 }],
+  ['肥満', { _w: 1.3, muscle: 0.1, fat: 1, belly: 1, waist: 0.8, hipW: 0.6, glutes: 0.5, neckLen: -0.7, bulk: 0.4 }],
+  ['巨漢', { _w: 1.25, muscle: 0.8, fat: 0.55, belly: 0.4, bulk: 1, shoulderW: 1, chest: 1, traps: 0.8, armThick: 0.8, legThick: 0.8, neckThick: 1, neckLen: -0.6, handSize: 0.6, footSize: 0.5, height: 1.12 }],
 ];
 const CAM_FOR = { preset: 'full', body: 'full', head: 'face', muzzle: 'face', eyes: 'eyes', mouth: 'face', ears: 'face', hair: 'face', fur: 'upper', tail: 'back', color: 'full', outfit: 'full', pose: 'full', view: 'full' };
 
@@ -237,8 +239,11 @@ export function buildUI({ chara, stage, camera, controls, renderer }) {
     }
     return row;
   }
-  function refreshOne(id) { controlsById[id] && controlsById[id](); }
-  function refresh() { for (const id of Object.keys(controlsById)) refreshOne(id); }
+  const lookBtn = $('#btn-look');
+  const paintLook = () => lookBtn.classList.toggle('on', !!ui.state.lookCam);
+  lookBtn.onclick = () => { if (!pendingUndo) pendingUndo = JSON.stringify(ui.state); ui.state.lookCam = !ui.state.lookCam; paintLook(); refreshOne('lookCam'); commit(); endEdit(); };
+  function refreshOne(id) { controlsById[id] && controlsById[id](); if (id === 'lookCam') paintLook(); }
+  function refresh() { for (const id of Object.keys(controlsById)) refreshOne(id); paintLook(); }
 
   // ---------------------------------------------------------------- ランダム
   function randomize(colorOnly) {
@@ -373,6 +378,7 @@ export function buildUI({ chara, stage, camera, controls, renderer }) {
     ui.state = { ...structuredClone(DEFAULT_STATE), ...(s || PRESETS[0].s) };
     if (!s && window.innerWidth < 760) ui.state.faceViews = false;
     commit(false);
+    paintLook();
     select('preset');
   };
   // キーボード

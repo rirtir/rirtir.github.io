@@ -134,6 +134,46 @@ class RoundCone(Prim):
         return o.a + np.stack([u, v, w], axis=1) @ o.F.T
 
 
+
+class TaperBox(Prim):
+    """先細りの角丸ボックス。a から b へ伸び、断面の半幅が (wx0,wy0) -> (wx1,wy1) と変わる。
+    マズルのように「側面と上面が平らで先が鈍い」形に使う。"""
+
+    def __init__(self, name, a, b, w0, w1, r, up=(0, 1, 0), k=0.02, bones=None, group=''):
+        self.name = name
+        self.a, self.b = np.asarray(a, float), np.asarray(b, float)
+        self.w0, self.w1 = np.asarray(w0, float), np.asarray(w1, float)
+        self.r = float(r)
+        self.F = frame_from(self.b - self.a, up)
+        self.L = float(np.linalg.norm(self.b - self.a))
+        self.k, self.bones, self.group = k, bones or {}, group
+
+    def _hw(self, t):
+        t = np.clip(t, 0.0, 1.0)[:, None]
+        return self.w0[None, :] * (1 - t) + self.w1[None, :] * t
+
+    def sdf(self, P):
+        q = (P - self.a) @ self.F
+        t = q[:, 2] / max(self.L, 1e-6)
+        hw = self._hw(t)
+        r = np.minimum(self.r, hw.min(axis=1) * 0.95)
+        dx = np.abs(q[:, 0]) - hw[:, 0] + r
+        dy = np.abs(q[:, 1]) - hw[:, 1] + r
+        dz = np.abs(q[:, 2] - self.L * 0.5) - self.L * 0.5 + r
+        m = np.stack([dx, dy, dz], axis=1)
+        out = np.linalg.norm(np.maximum(m, 0.0), axis=1) + np.minimum(m.max(axis=1), 0.0) - r
+        return out * 0.9
+
+    def map_to(self, o, P):
+        q = (P - self.a) @ self.F
+        t = q[:, 2] / max(self.L, 1e-6)
+        h0, h1 = self._hw(t), o._hw(t)
+        u = q[:, 0] * h1[:, 0] / h0[:, 0]
+        v = q[:, 1] * h1[:, 1] / h0[:, 1]
+        w = np.where(t < 0, q[:, 2], np.where(t > 1, o.L + (q[:, 2] - self.L), t * o.L))
+        return o.a + np.stack([u, v, w], axis=1) @ o.F.T
+
+
 def eval_union(prims, P, return_all=False):
     d = None
     D = [] if return_all else None
@@ -158,7 +198,7 @@ DEFAULTS = dict(
     # 体
     legLen=0.0, torsoLen=0.0, armLen=0.0, shoulderW=0.0, chest=0.0, muscle=0.0, fat=0.0,
     belly=0.0, waist=0.0, hipW=0.0, armThick=0.0, legThick=0.0, neckThick=0.0, neckLen=0.0,
-    handSize=0.0, footSize=0.0, pecs=0.0, glutes=0.0, calf=0.0, digi=0.0,
+    handSize=0.0, footSize=0.0, pecs=0.0, glutes=0.0, calf=0.0, digi=0.0, bulk=0.0, traps=0.0,
     # 頭
     headSize=0.0, headW=0.0, craniumH=0.0, cheek=0.0, jaw=0.0, stop=0.0, brow=0.0, forehead=0.0,
     # マズル
@@ -184,9 +224,13 @@ def build(params=None):
     def C(name, a, b, ra, rb, sq=(1, 1), up=(0, 1, 0), k=0.025, bones=None, group=''):
         prims.append(RoundCone(name, a, b, ra, rb, sq, up, k, bones, group))
 
+    def TB(name, a, b, w0, w1, r, up=(0, 1, 0), k=0.02, bones=None, group=''):
+        prims.append(TaperBox(name, a, b, w0, w1, r, up, k, bones, group))
+
     fat = max(g('fat'), 0.0) - 0.35 * max(-g('fat'), 0.0)
     mus = g('muscle')
     musP = max(mus, 0.0)
+    bw = 1.0 + 0.12 * g('bulk')          # 体格（骨太さ・胴の厚み）
 
     # ---------------- skeleton
     legL = 1.0 + 0.12 * g('legLen')
@@ -208,7 +252,7 @@ def build(params=None):
     J['head'] = J['neck'] + np.array([0, neckL, 0.02])
 
     for side, sx in (('L', 1.0), ('R', -1.0)):
-        sh = np.array([sx * (0.185 * shW + 0.03), J['neck'][1] - 0.05, -0.015])
+        sh = np.array([sx * (0.185 * shW + 0.03 + 0.022 * max(g('muscle'), 0.0) + 0.02 * max(g('fat'), 0.0) + 0.012 * g('bulk')), J['neck'][1] - 0.05, -0.015])
         J['clav.' + side] = np.array([sx * 0.03, J['neck'][1] - 0.03, 0.01])
         J['upperarm.' + side] = sh
         dirA = np.array([sx * np.cos(ARM_ANGLE), -np.sin(ARM_ANGLE), 0.0])
@@ -231,44 +275,51 @@ def build(params=None):
     T = lambda n: {n: 1.0}
     chestS = 1.0 + 0.12 * g('chest')
     waist = 1.0 + 0.15 * g('waist')
-    E('pelvis', J['hips'] + [0, -0.03, -0.012], np.array([0.150 * hipW, 0.112, 0.100]) + fat * np.array([0.03, 0.01, 0.03]),
+    E('pelvis', J['hips'] + [0, -0.03, -0.012], np.array([0.150 * hipW * bw, 0.112, 0.100 * bw]) + fat * np.array([0.075, 0.03, 0.07]),
       k=0.06, bones=T('hips'))
-    glS = 1.0 + 0.12 * g('glutes') + 0.12 * fat
+    glS = 1.0 + 0.12 * g('glutes') + 0.25 * fat + 0.12 * musP
     for sx in (1, -1):
-        E('glute', J['hips'] + [sx * 0.064 * hipW, -0.055, -0.068], np.array([0.074, 0.085, 0.052]) * glS,
+        E('glute', J['hips'] + [sx * 0.064 * hipW, -0.055, -0.068 - 0.01 * fat], np.array([0.074, 0.085, 0.052]) * glS,
           R=rot_x(0.2), k=0.06, bones={'hips': 0.8, 'thigh.' + ('L' if sx > 0 else 'R'): 0.2})
-    E('abdomen', J['spine'] + [0, -0.01, 0.0], np.array([0.138 * waist, 0.14 * torsoL, 0.095]) + fat * np.array([0.035, 0.0, 0.035]),
+    E('abdomen', J['spine'] + [0, -0.01, 0.0], np.array([0.138 * waist * bw + 0.008 * musP, 0.14 * torsoL, 0.095 * bw]) + fat * np.array([0.07, 0.01, 0.08]),
       k=0.07, bones=T('spine'))
-    bel = max(g('belly'), 0.0) + 0.6 * fat
-    E('belly', J['spine'] + [0, -0.03, 0.03 + 0.05 * bel], np.array([0.105, 0.105, 0.06]) * (0.55 + 0.75 * bel),
-      k=0.04, bones=T('spine'))
-    E('ribcage', J['chest'] + [0, 0.02, -0.012], np.array([0.172 * chestS * (0.92 + 0.08 * shW), 0.18 * torsoL, 0.118 * chestS]) + fat * np.array([0.02, 0.0, 0.025]),
+    bel = min(1.6, max(g('belly'), 0.0) + 0.9 * fat)
+    E('belly', J['spine'] + [0, -0.03 - 0.025 * bel, 0.02 + 0.05 * bel], np.array([0.12 + 0.07 * bel, 0.11 + 0.05 * bel, 0.07 + 0.075 * bel]) * (0.6 + 0.25 * bel),
+      k=0.1, bones=T('spine'))
+    for sx in (1, -1):   # 脇腹の肉（肉づき）
+        E('loveHandle', J['spine'] + [sx * (0.1 + 0.03 * fat), -0.04, -0.005], np.array([0.05, 0.065, 0.075]) * (0.45 + 0.9 * max(fat, 0.0)),
+          k=0.06, bones=T('spine'))
+    E('ribcage', J['chest'] + [0, 0.02, -0.012], np.array([0.172 * chestS * (0.92 + 0.08 * shW) * bw + 0.012 * musP, 0.18 * torsoL, 0.118 * chestS * bw + 0.01 * musP]) + fat * np.array([0.06, 0.01, 0.065]),
       k=0.07, bones=T('chest'))
-    pecS = 1.0 + 0.3 * musP + 0.18 * g('pecs') + 0.25 * fat
+    pecS = 1.0 + 0.75 * musP + 0.2 * g('pecs') + 0.35 * fat
     for sx in (1, -1):
-        E('pec', J['chest'] + [sx * 0.072, 0.07 - 0.01 * fat, 0.055 + 0.012 * (pecS - 1)],
-          np.array([0.082, 0.058, 0.04]) * pecS, R=rot_z(sx * 0.25) @ rot_x(0.15), k=0.05, bones=T('chest'))
+        E('pec', J['chest'] + [sx * (0.074 + 0.008 * musP), 0.07 - 0.018 * fat, 0.055 + 0.022 * (pecS - 1)],
+          np.array([0.088, 0.062, 0.042]) * pecS * np.array([1, 1, 0.92]), R=rot_z(sx * 0.2) @ rot_x(0.15 + 0.1 * fat), k=0.05, bones=T('chest'))
+        # 広背筋（背中の逆三角形）
+        E('lat', J['chest'] + [sx * 0.105 * bw, -0.035, -0.04], np.array([0.05, 0.12, 0.06]) * (0.75 + 0.55 * musP + 0.2 * fat),
+          R=rot_z(-sx * 0.25), k=0.06, bones=T('chest'))
     # 腹筋（muscle>0 で浮き出る）
-    absS = 0.6 + 0.4 * musP
+    absS = 0.75 + 0.3 * musP
     for i, yy in enumerate((0.06, 0.0, -0.06)):
         for sx in (1, -1):
-            E('abs', J['spine'] + [sx * 0.032, yy + 0.02, 0.058 + 0.016 * musP - 0.01 * (1 - musP) + 0.03 * fat],
-              np.array([0.03, 0.027, 0.03]) * absS, k=0.03, bones=T('spine'))
+            E('abs', J['spine'] + [sx * 0.032, yy + 0.02, 0.07 + 0.012 * musP - 0.016 * (1 - musP) + 0.05 * fat],
+              np.array([0.033 * absS, 0.028 * absS, 0.018 + 0.004 * musP]), k=0.03, bones=T('spine'))
     # 首・僧帽筋
-    nT = 1.0 + 0.15 * g('neckThick') + 0.15 * musP + 0.1 * fat
+    nT = 1.0 + 0.18 * g('neckThick') + 0.35 * musP + 0.45 * fat + 0.08 * g('bulk')
     C('neck', J['neck'] + [0, -0.05, -0.012], J['head'] + [0, 0.03, 0.0], 0.074 * nT, 0.064 * nT, k=0.06,
       bones={'neck': 1.0})
+    trS = 1.0 + 0.6 * musP + 0.18 * g('traps') + 0.15 * fat
     for side, sx in (('L', 1), ('R', -1)):
         sh = J['upperarm.' + side]
-        C('trap', J['neck'] + [0, 0.035, -0.04], sh + [-sx * 0.06, 0.02, -0.03], 0.05 * nT, 0.044 * (1 + 0.2 * musP),
+        C('trap', J['neck'] + [0, 0.035 + 0.02 * (trS - 1), -0.04], sh + [-sx * 0.06, 0.02 + 0.012 * (trS - 1), -0.03], 0.05 * nT * (0.85 + 0.15 * trS), 0.044 * trS,
           k=0.07, bones={'neck': 0.3, 'chest': 0.7})
-        dS = 1.0 + 0.28 * musP + 0.1 * fat
+        dS = 1.0 + 0.5 * musP + 0.15 * fat + 0.06 * g('bulk')
         dirA = nrm(J['forearm.' + side] - sh)
-        E('deltoid', sh + [sx * 0.004, 0.006, 0.0] + dirA * 0.025, np.array([0.06, 0.062, 0.075]) * dS,
+        E('deltoid', sh + [sx * (0.004 + 0.01 * musP), 0.006, 0.0] + dirA * 0.025, np.array([0.06, 0.062, 0.075]) * dS,
           R=frame_from(dirA, (0, 0, 1)), k=0.06, bones={'upperarm.' + side: 0.65, 'chest': 0.35})
 
     # ---------------- arms
-    aT = 1.0 + 0.16 * g('armThick') + 0.12 * fat
+    aT = 1.0 + 0.18 * g('armThick') + 0.5 * fat + 0.08 * g('bulk') + 0.18 * musP
     hs = 1.0 + 0.15 * g('handSize')
     for side, sx in (('L', 1), ('R', -1)):
         sh, el, wr = J['upperarm.' + side], J['forearm.' + side], J['hand.' + side]
@@ -276,14 +327,14 @@ def build(params=None):
         hb = 'hand.' + side
         C('upperarm', sh, el, 0.056 * aT, 0.045 * aT, k=0.04, bones={ua: 1.0})
         d1 = nrm(el - sh)
-        bS = 1.0 + 0.4 * musP
+        bS = 1.0 + 0.8 * musP
         E('biceps', sh + (el - sh) * 0.52 + [0, 0, 0.016], np.array([0.034 * bS * aT, 0.034 * bS * aT, 0.085]),
           R=frame_from(d1, (0, 0, 1)), k=0.03, bones={ua: 1.0})
-        E('triceps', sh + (el - sh) * 0.4 + [0, 0, -0.018], np.array([0.032 * aT * (1 + 0.25 * musP), 0.032 * aT, 0.09]),
+        E('triceps', sh + (el - sh) * 0.4 + [0, 0, -0.018], np.array([0.032 * aT * (1 + 0.6 * musP), 0.032 * aT * (1 + 0.3 * musP), 0.09]),
           R=frame_from(d1, (0, 0, 1)), k=0.03, bones={ua: 1.0})
         C('forearm', el, wr, 0.047 * aT, 0.033 * aT, k=0.04, bones={fa: 1.0})
         d2 = nrm(wr - el)
-        E('forearmM', el + (wr - el) * 0.3 + [0, 0, 0.004], np.array([0.039 * aT * (1 + 0.3 * musP), 0.036 * aT, 0.085]),
+        E('forearmM', el + (wr - el) * 0.3 + [0, 0, 0.004], np.array([0.039 * aT * (1 + 0.5 * musP), 0.036 * aT * (1 + 0.3 * musP), 0.085]),
           R=frame_from(d2, (0, 0, 1)), k=0.03, bones={fa: 0.8, ua: 0.2})
         # 手（手のひらは体側・やや下を向く）
         a = d2
@@ -316,15 +367,15 @@ def build(params=None):
         C('thumb', tm, tt, 0.0138 * hs, 0.0118 * hs, k=0.008, bones={hb: 1.0})
 
     # ---------------- legs
-    lT = 1.0 + 0.16 * g('legThick') + 0.15 * fat
+    lT = 1.0 + 0.18 * g('legThick') + 0.55 * fat + 0.08 * g('bulk') + 0.12 * musP
     fs = 1.0 + 0.15 * g('footSize')
-    cS = 1.0 + 0.2 * g('calf') + 0.25 * musP
+    cS = 1.0 + 0.25 * g('calf') + 0.45 * musP + 0.15 * fat
     for side, sx in (('L', 1), ('R', -1)):
         hp, kn, an = J['thigh.' + side], J['shin.' + side], J['foot.' + side]
         th, sh, ft = 'thigh.' + side, 'shin.' + side, 'foot.' + side
         C('thigh', hp + [0, 0.01, 0], kn, 0.09 * lT, 0.06 * lT, k=0.06, bones={th: 1.0})
         dT = nrm(kn - hp)
-        E('quad', hp + (kn - hp) * 0.45 + [sx * 0.006, 0, 0.022], np.array([0.058 * lT * (1 + 0.2 * musP), 0.055 * lT * (1 + 0.2 * musP), 0.2]),
+        E('quad', hp + (kn - hp) * 0.45 + [sx * 0.006, 0, 0.022], np.array([0.058 * lT * (1 + 0.45 * musP), 0.055 * lT * (1 + 0.4 * musP), 0.2]),
           R=frame_from(dT, (0, 0, 1)), k=0.035, bones={th: 1.0})
         E('adductor', hp + (kn - hp) * 0.25 + [-sx * 0.03, 0, -0.005], np.array([0.05, 0.05, 0.14]) * lT,
           R=frame_from(dT, (0, 0, 1)), k=0.04, bones={th: 0.8, 'hips': 0.2})
@@ -366,21 +417,24 @@ def build(params=None):
 
     hb = {'head': 1.0}
     crH = 1.0 + 0.12 * g('craniumH')
-    E('cranium', hp_([0, 0.098, -0.02]), np.array([0.088 * hw, 0.097 * crH, 0.1]) * hsz, k=0.035, bones=hb, group='head')
+    E('cranium', hp_([0, 0.094, -0.026]), np.array([0.09 * hw, 0.088 * crH, 0.098]) * hsz, k=0.035, bones=hb, group='head')
+    E('crown', hp_([0, 0.126, -0.036]), np.array([0.078 * hw, 0.046 * crH, 0.08]) * hsz, k=0.04, bones=hb, group='head')
     fh = 1.0 + 0.3 * g('forehead')
-    E('forehead', hp_([0, 0.112, 0.03]), np.array([0.075 * hw, 0.062, 0.068 * fh]) * hsz, k=0.03, bones=hb, group='head')
-    ch = 1.0 + 0.22 * g('cheek') + 0.12 * fat
+    E('forehead', hp_([0, 0.108, 0.033]), np.array([0.072 * hw, 0.054, 0.064 * fh]) * hsz, k=0.03, bones=hb, group='head')
+    ch = 1.0 + 0.22 * g('cheek') + 0.3 * fat
+    br = 0.5 + 0.5 * g('brow')
     for sx in (1, -1):
-        E('cheek', hp_([sx * 0.05, 0.048, 0.0]), np.array([0.046 * ch, 0.044 * ch, 0.052]) * hsz,
+        E('cheek', hp_([sx * 0.056, 0.044, -0.004]), np.array([0.054 * ch, 0.048 * ch, 0.058]) * hsz,
           k=0.045, bones=hb, group='head')
-        br = 0.5 + 0.5 * g('brow')
-        E('brow', hp_([sx * 0.038, 0.122, 0.07]), np.array([0.038, 0.012 + 0.008 * br, 0.026]) * hsz,
-          R=rot_z(-sx * 0.15), k=0.025, bones=hb, group='head')
-    jw = 1.0 + 0.15 * g('jaw')
-    E('throat', hp_([0, 0.018, 0.025]), np.array([0.05 * jw, 0.042, 0.056]) * hsz, k=0.04,
+        E('jowlBack', hp_([sx * 0.048, 0.032, -0.048]), np.array([0.05 * ch, 0.05, 0.05]) * hsz,
+          k=0.05, bones={'head': 0.85, 'neck': 0.15}, group='head')
+        E('brow', hp_([sx * 0.037, 0.119, 0.071]), np.array([0.04, 0.012 + 0.01 * br, 0.025]) * hsz,
+          R=rot_z(-sx * 0.12), k=0.022, bones=hb, group='head')
+    jw = 1.0 + 0.15 * g('jaw') + 0.3 * fat
+    E('throat', hp_([0, 0.014, 0.018]), np.array([0.054 * jw, 0.045, 0.058]) * hsz, k=0.04,
       bones={'head': 0.7, 'neck': 0.3}, group='head')
 
-    # マズル
+    # マズル（幅広く先が丸い）
     mL = 0.145 * (1.0 + 0.4 * g('muzLen'))
     mW = 1.0 + 0.22 * g('muzW')
     mH = 1.0 + 0.2 * g('muzH')
@@ -394,21 +448,25 @@ def build(params=None):
     X = np.array([1.0, 0, 0])
     mu = lambda ff, uu, xx=0.0: M0 + (f * ff + u * uu) * hsz + X * xx * hsz * hw
     mz = dict(bones=hb, group='muzzle')
-    C('muzzle', mu(0.0, 0.004 * mH), mu(mL * 0.84, -0.002), 0.044 * mH, 0.027 * tap * mH,
-      sq=(mW * 1.12 / mH, 1.0), up=u, k=0.035, **mz)
     st = g('stop')
     bh = 1.0 + 0.4 * g('bridge')
-    C('bridge', mu(-0.012, 0.036 * mH * bh), mu(mL * 0.9, 0.017 * mH), 0.03, 0.021 * tap,
-      sq=(mW * 1.05, 1.0), up=u, k=0.03 + 0.012 * st, **mz)
+    # 上あご（鼻筋〜上唇）: 側面と上面が平らで先が鈍い箱
+    TB('muzzle', mu(-0.02, 0.006 * mH), mu(mL * 0.93, 0.0),
+       (0.044 * mW * hsz, 0.036 * mH * hsz), (0.03 * mW * tap * hsz, 0.024 * mH * (0.9 + 0.1 * tap) * hsz), 0.016 * hsz,
+       up=u, k=0.035, **mz)
+    C('bridge', mu(-0.012, 0.03 * mH * bh), mu(mL * 0.84, 0.019 * mH), 0.026, 0.018 * tap,
+      sq=(mW * 1.25, 1.0), up=u, k=0.025 + 0.012 * st, **mz)
     E('stopFill', mu(-0.005, 0.05, 0.0), np.array([0.05 * mW, 0.04, 0.045]) * (1.0 - 0.3 * st), k=0.04, **mz)
     for sx in (1, -1):
-        E('lipPad', mu(mL * 0.8, -0.012 * mH, sx * 0.018 * mW), np.array([0.024 * mW, 0.021 * mH, 0.036]) * pad * np.array([1, 1, 0.85 + 0.15 * tap]),
+        E('lipPad', mu(mL * 0.8, -0.016 * mH, sx * 0.019 * mW), np.array([0.02 * mW, 0.013 * mH, 0.026]) * pad,
           R=rot_x(-drop), k=0.02, **mz)
-    C('jaw', mu(-0.02, -0.034 * mH), mu(mL * 0.8 * jL, -0.036 * mH), 0.036 * jw, 0.017 * jw * tap,
-      sq=(mW, 0.85), up=u, k=0.03, bones=hb, group='muzzle')
-    E('chin', mu(mL * 0.62 * jL, -0.044 * mH), np.array([0.022 * mW, 0.016, 0.028]) * jw, k=0.025, bones=hb, group='muzzle')
+    # 下あご
+    TB('jaw', mu(-0.02, -0.036 * mH), mu(mL * 0.8 * jL, -0.036 * mH),
+       (0.038 * jw * mW * hsz, 0.02 * hsz), (0.019 * jw * mW * tap * hsz, 0.011 * hsz), 0.01 * hsz,
+       up=u, k=0.03, bones=hb, group='muzzle')
+    E('chin', mu(mL * 0.66 * jL, -0.046 * mH), np.array([0.018 * mW, 0.012, 0.022]) * jw, k=0.02, bones=hb, group='muzzle')
 
-    J['noseTip'] = mu(mL * 0.9 + 0.022 * tap, 0.016 * mH)
+    J['noseTip'] = mu(mL * 0.93 + 0.004, 0.02 * mH)
     J['muzzleRoot'] = M0
     J['headTop'] = hp_([0, 0.2, -0.02])
     # 目の中心（表面に乗せる前の目安）。build_body 側で表面に投影する

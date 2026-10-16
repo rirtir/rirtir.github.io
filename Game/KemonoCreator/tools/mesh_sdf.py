@@ -22,9 +22,13 @@ def sample(prims, xs, ys, zs, chunk=400_000):
     return out.reshape(X.shape)
 
 
-def main(step=0.004):
+def main(step=0.004, params=None, out='hires.npz'):
     t0 = time.time()
-    prims, J = K.build()
+    if params is None:
+        sys.path.insert(0, os.path.dirname(__file__))
+        from build_body import BASE
+        params = dict(BASE)
+    prims, J = K.build(params)
     lo = np.array([-0.82, -0.01, -0.24])
     hi = np.array([0.82, 1.92, 0.36])
     # x はゼロを中心に左右対称なグリッドにする
@@ -65,8 +69,11 @@ def main(step=0.004):
     if np.mean(np.sum(fn * g, axis=1) > 0) < 0.5:
         faces = faces[:, ::-1]
     print('mc', verts.shape, faces.shape, time.time() - t0)
-    np.savez(os.path.join(OUT, 'hires.npz'), verts=verts.astype(np.float32), faces=faces.astype(np.int32))
+    np.savez(os.path.join(OUT, out), verts=verts.astype(np.float32), faces=faces.astype(np.int32))
 
 
 if __name__ == '__main__':
-    main(float(sys.argv[1]) if len(sys.argv) > 1 else 0.004)
+    import json
+    main(float(sys.argv[1]) if len(sys.argv) > 1 else 0.004,
+         json.loads(sys.argv[2]) if len(sys.argv) > 2 else None,
+         sys.argv[3] if len(sys.argv) > 3 else 'hires.npz')

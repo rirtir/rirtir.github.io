@@ -45,7 +45,8 @@ export function addTuft(B, o) {
     const T = tans[i];
     const A = _a.copy(o.up).addScaledVector(T, -o.up.dot(T)).normalize();
     const Bv = _b.crossVectors(T, A).normalize();
-    const prof = Math.pow(1 - s, k) * (0.72 + 0.5 * smooth(0, 0.35, s)) * (1 - 0.15 * s);
+    const bulge = 0.5 * (1 - 0.75 * sharp);
+    const prof = Math.pow(1 - s, k) * (1 - bulge * 0.5 + bulge * smooth(0, 0.35, s)) * (1 - 0.15 * s);
     const rw = o.w * prof, rt = o.t * prof;
     c.copy(o.c0).lerp(o.c1, smooth(1 - (o.tipAmt ?? 0) - 0.08, 1 - (o.tipAmt ?? 0) + 0.04, s));
     c.multiplyScalar(0.86 + 0.14 * smooth(0, 0.4, s));
@@ -96,11 +97,15 @@ export function buildEar(st, cols) {
   const c = new THREE.Color();
   const foldStart = 0.25;
   const p = new THREE.Vector3();
-  for (let i = 0; i <= nv; i++) {
+  // 根元は頭の中へ 2.4cm ほど延ばして広げる（耳が浮いて見えないように）
+  const nb = 4;
+  for (let ii = -nb; ii <= nv; ii++) {
+    const i = Math.max(ii, 0);
+    const base = ii < 0 ? -ii / nb : 0;       // 0..1（根元の延長部分）
     const v = i / nv;
     const pointy = Math.pow(1 - v, 0.85) * (1 + 0.42 * Math.sin(Math.PI * v));
     const roundP = Math.sqrt(Math.max(0, 1 - Math.pow((v - 0.38) / 0.62, 2))) / 0.79;
-    let hw = W * ((1 - r) * pointy + r * roundP);
+    let hw = W * ((1 - r) * pointy + r * roundP) * (1 + 0.32 * base);
     if (i === nv) hw = 0;
     for (let j = 0; j < ring; j++) {
       let u, front;
@@ -108,7 +113,7 @@ export function buildEar(st, cols) {
       const g = Math.sin(Math.min(v * 1.4, 1) * Math.PI / 2) * (1 - 0.55 * v);
       const zf = -cup * W * 0.9 * (1 - u * u) * g;
       const zb = zf * 0.35 - W * 0.38 * Math.sqrt(Math.max(0, 1 - u * u)) * Math.pow(1 - v, 0.5) - 0.002 * (1 - v);
-      p.set(u * hw, v * H, front ? zf : zb);
+      p.set(u * hw, v * H - base * 0.024, front ? zf * (1 - base) : zb * (1 + 0.6 * base) - 0.004 * base);
       // 先の垂れ（前下へ折れる）
       if (fold > 0 && v > foldStart) {
         const ang = fold * 2.3 * smooth(foldStart, 1.0, v) * (v - foldStart) / (1 - foldStart) * 1.6;
@@ -123,6 +128,7 @@ export function buildEar(st, cols) {
         const inner = smooth(0.92, 0.62, Math.abs(u)) * smooth(0.95, 0.72, v) * smooth(0.0, 0.08, v);
         c.lerp(cIn, inner);
       }
+      c.multiplyScalar(0.82 + 0.18 * smooth(-0.02, 0.18, v - base * 0.2));   // 根元を少し暗く
       if (st.earTipAmt > 0.001) {
         const jagv = 0.04 * Math.abs(((u * 2.5 + 10) % 1) - 0.5);
         c.lerp(cTip, smooth(1 - st.earTipAmt - 0.02, 1 - st.earTipAmt + 0.02, v + jagv));
@@ -130,7 +136,7 @@ export function buildEar(st, cols) {
       B.v(p, c);
     }
   }
-  for (let i = 0; i < nv; i++) {
+  for (let i = 0; i < nv + nb; i++) {
     for (let j = 0; j < ring; j++) {
       const a = i * ring + j, b = i * ring + (j + 1) % ring, c2 = a + ring, d = b + ring;
       B.tri(a, d, c2); B.tri(a, b, d);

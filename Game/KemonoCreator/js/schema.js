@@ -9,8 +9,8 @@ export const CATEGORIES = [
   { id: 'preset', label: 'プリセット', icon: '★', groups: [] },
   {
     id: 'body', label: '体型', icon: '体', groups: [
-      { label: '全体', items: [R('height', '身長', 0.86, 1.14, 1.0, 0.005), R('muscle', '筋肉', 0, 1, 0.35), R('fat', '肉づき', -1, 1, 0), R('belly', 'お腹', 0, 1, 0)] },
-      { label: '上半身', items: [R('shoulderW', '肩幅'), R('chest', '胸板の厚み'), R('pecs', '胸筋'), R('waist', 'ウエスト'), R('torsoLen', '胴の長さ'), R('neckThick', '首の太さ'), R('neckLen', '首の長さ')] },
+      { label: '全体', items: [R('height', '身長', 0.86, 1.14, 1.0, 0.005), R('muscle', '筋肉', 0, 1, 0.35), R('fat', '肉づき', -1, 1, 0), R('belly', 'お腹', 0, 1, 0), R('bulk', '体格（骨太さ）')] },
+      { label: '上半身', items: [R('shoulderW', '肩幅'), R('chest', '胸板の厚み'), R('pecs', '胸筋'), R('traps', '僧帽筋（肩の盛り上がり）'), R('waist', 'ウエスト'), R('torsoLen', '胴の長さ'), R('neckThick', '首の太さ'), R('neckLen', '首の長さ')] },
       { label: '腕・手', items: [R('armLen', '腕の長さ'), R('armThick', '腕の太さ'), R('handSize', '手の大きさ')] },
       { label: '下半身', items: [R('hipW', '腰幅'), R('glutes', 'お尻'), R('legLen', '脚の長さ'), R('legThick', '脚の太さ'), R('calf', 'ふくらはぎ'), R('footSize', '足の大きさ')] },
     ],
@@ -109,8 +109,9 @@ export const PRESETS = [
     name: '狼', sub: 'オオカミ', swatch: ['#7d7f86', '#e9e6e0'], s: {
       muzLen: 0.45, muzW: -0.1, muzH: -0.05, muzTaper: 0.2, stop: 0.2, cheek: 0.2, earType: 0, earSize: 1.15, earH: 1.1, earRound: 0.15,
       furMain: '#7d7f86', furSub: '#ece9e4', furAccent: '#4b4c52', patternColor: '#3f4046', backMark: 0.55, cheekWhite: 1, muzzleCover: 0.55, bellyW: 0.6,
-      irisTop: '#7a5a12', irisBot: '#f2c33a', eyeTilt: 0.3, eyeAspect: 0.66, browType: 1, hairStyle: 1, hairLen: 1.25, cheekFluff: 2, tailType: 0, neckRuff: 0.6, chestFluff: 0.7,
-      noseType: 0, mouthCorner: 0.22, fang: 0.4, muscle: 0.5, shoulderW: 0.3,
+      irisTop: '#7a5a12', irisBot: '#f2c33a', eyeTilt: 0.3, browType: 3, hairStyle: 1, hairLen: 1.25, cheekFluff: 2, tailType: 0, neckRuff: 0.6, chestFluff: 0.7,
+      noseType: 0, noseSize: 1.2, mouthCorner: 0.24, smile: 0.45, fang: 0.3, muscle: 0.85, bulk: 0.5, shoulderW: 0.5, chest: 0.6, pecs: 0.5, traps: 0.6, neckThick: 0.7, neckLen: -0.4, armThick: 0.4,
+      eyeSize: 0.0185, eyeAspect: 0.56, irisSize: 0.56, browW: 1.15, browY: -0.12, browColor: '#ece9e4', cheekLen: 1.2,
       top: 4, topColor: '#2c3e5c', trimColor: '#d9b45a', topNeck: 0.35, bottom: 2, bottomColor: '#3a3430', pantStripe: true,
     },
   },

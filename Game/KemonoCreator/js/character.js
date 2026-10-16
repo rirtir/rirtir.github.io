@@ -379,7 +379,7 @@ export class Character {
         q.multiply(new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), -0.4 * st.earBack));
       }
       m.quaternion.copy(q);
-      m.position.copy(this._local('head', s.p.addScaledVector(s.n, -0.006)));
+      m.position.copy(this._local('head', s.p.addScaledVector(s.n, -0.003)));
       m.userData.ear = sx;
       m.userData.baseQ = q.clone();
     }
@@ -453,12 +453,14 @@ export class Character {
     const cheekC = st.cheekWhite > 0.5 ? cSub : cMain;
     const ck = st.cheekFluff;
     if (ck > 0) {
-      const rows = ck === 3 ? [[-0.2, 3, 1.0], [-0.55, 3, 0.85]] : [[-0.35, ck === 1 ? 2 : 3, ck === 1 ? 0.7 : 1.0]];
-      for (const sx of [1, -1]) for (const [ey, cnt, k] of rows) for (let i = 0; i < cnt; i++) {
+      // 頬から顎の後ろへ並ぶギザギザの毛（長短を交互に）
+      const rows = ck === 3 ? [[0.0, 5, 1.0], [0.25, 3, 0.75]] : (ck === 1 ? [[0.1, 3, 0.7]] : [[0.0, 5, 1.0]]);
+      for (const sx of [1, -1]) for (const [y0, cnt, k] of rows) for (let i = 0; i < cnt; i++) {
         const t = cnt > 1 ? i / (cnt - 1) : 0.5;
-        const dir = V(sx * 0.9, ey - 0.25 * t, 0.1 - 0.45 * t).normalize();
-        const out = V(sx * (0.8 + 0.3 * st.cheekSpread), -0.35 - 0.35 * t - 0.25 * st.cheekSpread * 0, -0.55 - 0.1 * t).normalize();
-        tuft(hb, 'head', headCb, dir, out, 0.045 * k * st.cheekLen * (1 - 0.15 * t), 0.03 * tw, { c0: cheekC, c1: cheekC, tipAmt: 0, bend: V(0, -0.15, -0.2), sink: 0.012, mess: 0.4 });
+        const dir = V(sx * 0.95, -0.12 - 0.55 * t + y0, 0.08 - 0.6 * t).normalize();
+        const out = V(sx * (0.85 + 0.3 * st.cheekSpread), -0.2 - 0.55 * t + y0 * 0.5, -0.3 - 0.2 * t).normalize();
+        const alt = (i % 2 === 0) ? 1.0 : 0.72;
+        tuft(hb, 'head', headCb, dir, out, 0.042 * k * alt * st.cheekLen * (1 - 0.2 * t), 0.024 * tw, { c0: cheekC, c1: cheekC, tipAmt: 0, bend: V(0, -0.12, -0.12), sink: 0.012, mess: 0.25, flat: 0.32, sharp: Math.max(0.75, sharp) });
       }
     }
     if (st.mane > 0.01) {

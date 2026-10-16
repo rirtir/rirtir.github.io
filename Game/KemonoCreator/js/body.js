@@ -49,9 +49,11 @@ export async function loadBodyData(base) {
 export function morphWeights(meta, values) {
   const w = new Float32Array(meta.morphs.length);
   for (const [k, s] of Object.entries(meta.sliders)) {
+    // 基準メッシュはスライダー値 base の形。そこから ±1 の形へ線形に補間する
     const v = values[k] || 0;
-    if (v > 0 && s.pos !== undefined) w[s.pos] = v;
-    if (v < 0 && s.neg !== undefined) w[s.neg] = -v;
+    const base = s.base || 0;
+    if (v > base && s.pos !== undefined) w[s.pos] = (v - base) / (1 - base);
+    if (v < base && s.neg !== undefined) w[s.neg] = (base - v) / (1 + base);
   }
   return w;
 }
