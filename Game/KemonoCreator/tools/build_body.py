@@ -106,6 +106,12 @@ def relax_mesh(prims, V, F, L, iters=10, lam=0.45):
     return V
 
 
+def cavity(prims, P, n, h=0.016):
+    """くぼみ具合（0..1）: 表面から法線方向へ h 離れた点が、ほかの面に近いほど大きい"""
+    f = K.eval_union(prims, P + n * h)
+    return np.clip((h - f) / h, 0.0, 1.0)
+
+
 def softmin_weights(D, tau):
     m = D.min(axis=1, keepdims=True)
     w = np.exp(-(D - m) / tau)
@@ -220,6 +226,8 @@ def main():
     tdelta = 0.012 + 0.012 * head - 0.009 * handfoot
     N = toon_normals(prims, V, gn, tdelta)
     eyes = find_eyes(prims, J)
+    cavBase = cavity(prims, V, gn)
+    cavMus = cavBase.copy()
 
     # 保護領域
     headProt = smoothstep(0.55, 0.9, head)
@@ -325,6 +333,8 @@ def main():
                     rg = region & act
                     Vm[rg] = project(pk, Vm[rg], iters=2, scale=pscale[rg] * 0.7)
             delta = Vm - V
+            if pname == 'muscle' and sgn > 0:
+                cavMus = cavity(pk, V + delta, vertex_normals(V + delta, F))
             nk = face_normals(V + delta, F)
             flips = int((np.sum(nk * nF, axis=1) <= 0).sum())
             total_flips += flips
@@ -373,7 +383,8 @@ def main():
     add('skinIndex', skinIndex)
     add('skinWeight', skinWeight)
     maskA = np.stack([muz, head, padm, handfoot], axis=1)
-    maskB = np.stack([armT, legT, np.zeros(nV), np.zeros(nV)], axis=1)
+    maskB = np.stack([armT, legT, cavBase, cavMus], axis=1)
+    print('cavity', np.percentile(cavBase, [50, 90, 99]), np.percentile(cavMus, [50, 90, 99]))
     add('maskA', np.round(np.clip(maskA, 0, 1) * 255).astype(np.uint8))
     add('maskB', np.round(np.clip(maskB, 0, 1) * 255).astype(np.uint8))
     for m, (bi, bp, bn) in zip(meta_morphs, zip(blobs[0::3], blobs[1::3], blobs[2::3])):

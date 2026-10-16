@@ -54,6 +54,7 @@ export function makeBodyUniforms() {
     uMouthB: V4(0.0, 0.016, 1.0, 0.3),   // x: 牙の長さ y: 牙の位置 z: 鼻下の線 w: ω
     uMouthC: V4(0.0, 0.0, 0.0, 0.0),     // x: 口の開き
     uMouthCol: C('#2a1818'),
+    uCav: V4(0.35, 0, 0.6, 0.3), uTorso: V4(1.285, 1.085, 0.074, 0),
     uFurLen: { value: 0.5 }, uFurDens: { value: 1.0 }, uClothV: V4(0, 1, 0.3, 0),
   };
 }
@@ -104,7 +105,7 @@ uniform vec4 uEyeA, uEyeB, uIris, uEyeC2, uBrow;
 uniform vec3 uIrisTop, uIrisBot, uSclera, uLid, uBrowCol;
 uniform float uBlink; uniform vec2 uGaze;
 uniform vec3 uMzRoot, uMzF, uMzU; uniform float uMzLen;
-uniform vec4 uMouthA, uMouthB, uMouthC; uniform vec3 uMouthCol;
+uniform vec4 uMouthA, uMouthB, uMouthC; uniform vec3 uMouthCol; uniform vec4 uCav; uniform vec4 uTorso;
 
 // 線: |d| が幅(px)以内なら1
 float kcLine(float d, float px){ float w = max(fwidth(d), 1e-6); return 1.0 - smoothstep(px*0.5 - 0.6, px*0.5 + 0.6, abs(d)/w); }
@@ -459,6 +460,31 @@ vec3 outgoingLight;
   vec3 col = kcToon(albedo, N, V, faceSoft, jag);
 #ifdef KC_BODY
 #ifndef KC_FURHULL
+  // 筋肉の溝の線（くぼみ具合から）
+  {
+    float cav = mix(vMaskB.z, vMaskB.w, uCav.x) * (1.0 - 0.85 * uCav.y);
+    float region = (1.0 - smoothstep(0.3, 0.5, vMaskA.g)) * (1.0 - smoothstep(0.3, 0.6, vMaskA.a)) * (1.0 - step(0.5, vMaskA.b));
+    float ln = smoothstep(uCav.w, uCav.w + 0.12, cav) * region * uCav.z * 0.6;
+    // 線で描く筋肉（胸筋の下縁・腹筋）。筋肉が多いほど濃く、肉づきで薄く
+    vec3 p = vPos; float ax = abs(p.x);
+    float k = uCav.z * smoothstep(0.05, 0.5, uCav.x) * (1.0 - smoothstep(0.1, 0.7, uCav.y)) * region * step(0.0, p.z);
+    if (k > 0.001) {
+      float px = 1.3 + 0.6 * uCav.x;
+      // 胸筋の下縁（楕円の下側）
+      float ex = (ax - uTorso.z) / 0.088;
+      float pb = uTorso.x + 0.068 - 0.062 * sqrt(max(1.0 - ex * ex, 0.0)) - 0.012 * ex;
+      float pec = kcLine(p.y - pb, px) * smoothstep(0.012, 0.03, ax) * (1.0 - smoothstep(0.13, 0.155, ax));
+      // 腹筋: 中央線と横の区切り
+      float sy = uTorso.y;
+      float mid = kcLine(p.x, px * 0.8) * step(sy - 0.075, p.y) * step(p.y, uTorso.x + 0.0) * (1.0 - smoothstep(sy + 0.06, sy + 0.12, p.y) * 0.0);
+      float h1 = kcLine(p.y - (sy + 0.05 + 0.006 * ax / 0.05), px * 0.85) * (1.0 - smoothstep(0.035, 0.052, ax));
+      float h2 = kcLine(p.y - (sy - 0.012 + 0.006 * ax / 0.05), px * 0.85) * (1.0 - smoothstep(0.035, 0.05, ax));
+      float sideL = kcLine(ax - 0.062 - 0.012 * (sy - p.y) / 0.08, px * 0.85) * step(sy - 0.07, p.y) * step(p.y, sy + 0.09);
+      float abl = max(max(h1, h2), max(mid * smoothstep(0.0, 0.3, uCav.x), sideL)) * smoothstep(0.25, 0.7, uCav.x);
+      ln = max(ln, max(pec, abl) * k);
+    }
+    col = mix(col, col * uShadeMul * 0.62, clamp(ln, 0.0, 1.0));
+  }
   // パッドは少しつや
   col += isPad * pow(max(dot(N, normalize(kcL + V)), 0.0), 40.0) * 0.15;
   vec4 eye = kcEye(vPos);

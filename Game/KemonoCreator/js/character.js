@@ -74,7 +74,7 @@ vec3 kcCloth() {
 `;
 
 // パーツの作り直しが不要な項目
-const NON_PART = /^(faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
+const NON_PART = /^(muscleLine|faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
 
 export class Character {
   constructor(data, scene) {
@@ -232,6 +232,8 @@ export class Character {
     U.uMouthA.value.set(st.mouthY, st.mouthCorner, Math.max(-1, Math.min(1.5, st.smile + (ex.smile || 0))), st.mouthW);
     U.uMouthB.value.set(Math.max(st.fang, ex.fang || 0), st.fangX, st.philtrum ? 1 : 0, st.omega);
     U.uMouthC.value.set(Math.min(1, st.mouthOpen + (ex.open || 0)), st.whiskerDots ? 1 : 0, 0, 0);
+    U.uCav.value.set(st.muscle, Math.max(st.fat, 0), st.muscleLine, 0.2);
+    U.uTorso.value.set(meta.joints.chest[1], meta.joints.spine[1], 0.074, 0);
     U.uFurLen.value = st.furFringe; U.uFurDens.value = st.furDens;
     U.uClothV.value.set(st.top, st.bottom, st.topNeck, 0);
     this.furHull && (this.furHull.visible = st.furFringe > 0.001);

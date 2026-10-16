@@ -9,7 +9,7 @@ export const CATEGORIES = [
   { id: 'preset', label: 'プリセット', icon: '★', groups: [] },
   {
     id: 'body', label: '体型', icon: '体', groups: [
-      { label: '全体', items: [R('height', '身長', 0.86, 1.14, 1.0, 0.005), R('muscle', '筋肉', 0, 1, 0.35), R('fat', '肉づき', -1, 1, 0), R('belly', 'お腹', 0, 1, 0), R('bulk', '体格（骨太さ）')] },
+      { label: '全体', items: [R('height', '身長', 0.86, 1.14, 1.0, 0.005), R('muscle', '筋肉', 0, 1, 0.35), R('fat', '肉づき', -1, 1, 0), R('belly', 'お腹', 0, 1, 0), R('bulk', '体格（骨太さ）'), R('muscleLine', '筋肉の溝の線', 0, 1, 0.6)] },
       { label: '上半身', items: [R('shoulderW', '肩幅'), R('chest', '胸板の厚み'), R('pecs', '胸筋'), R('traps', '僧帽筋（肩の盛り上がり）'), R('waist', 'ウエスト'), R('torsoLen', '胴の長さ'), R('neckThick', '首の太さ'), R('neckLen', '首の長さ')] },
       { label: '腕・手', items: [R('armLen', '腕の長さ'), R('armThick', '腕の太さ'), R('handSize', '手の大きさ')] },
       { label: '下半身', items: [R('hipW', '腰幅'), R('glutes', 'お尻'), R('legLen', '脚の長さ'), R('legThick', '脚の太さ'), R('calf', 'ふくらはぎ'), R('footSize', '足の大きさ')] },
