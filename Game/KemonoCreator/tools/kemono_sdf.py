@@ -248,7 +248,8 @@ def build(params=None):
     J['spine'] = J['hips'] + np.array([0, 0.13 * torsoL, 0.005])
     J['chest'] = J['spine'] + np.array([0, 0.20 * torsoL, -0.01])
     J['neck'] = J['chest'] + np.array([0, 0.20 * torsoL, -0.005])
-    neckL = 0.085 * (1.0 + 0.35 * g('neckLen'))
+    nl = g('neckLen')
+    neckL = 0.085 * (1.0 + (0.35 if nl > 0 else 0.25) * nl)
     J['head'] = J['neck'] + np.array([0, neckL, 0.02])
 
     for side, sx in (('L', 1.0), ('R', -1.0)):
@@ -260,7 +261,7 @@ def build(params=None):
         wr = el + dirA * 0.26 * armL + np.array([0, 0, 0.015])
         J['forearm.' + side] = el
         J['hand.' + side] = wr
-        hip = np.array([sx * 0.095 * hipW, hipY, 0.0])
+        hip = np.array([sx * (0.095 * hipW + 0.03 * max(g('fat'), 0.0) + 0.012 * max(g('muscle'), 0.0) + 0.01 * max(g('legThick'), 0.0) + 0.008 * max(g('bulk'), 0.0)), hipY, 0.0])
         J['thigh.' + side] = hip
         if digi > 0:
             kn = hip + np.array([sx * 0.012, -Lt, 0.03 + 0.06 * digi])

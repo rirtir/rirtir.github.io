@@ -95,9 +95,9 @@ export class Character {
         uniforms: { uGloss: { value: 1.0 } },
         fragPars: 'uniform float uGloss;',
         colorHook: `{
-          float hl = smoothstep(0.945, 0.96, dot(N, normalize(vec3(-0.4, 0.62, 0.68))));
-          float hl2 = smoothstep(0.985, 0.992, dot(N, normalize(vec3(0.3, 0.45, 0.84))));
-          col += vec3(1.0) * (hl * 0.85 + hl2 * 0.5) * uGloss;
+          float hl = smoothstep(0.972, 0.98, dot(N, normalize(vec3(-0.38, 0.6, 0.7))));
+          float hl2 = smoothstep(0.991, 0.995, dot(N, normalize(vec3(0.32, 0.42, 0.85))));
+          col = mix(col, vec3(1.0), clamp((hl * 0.9 + hl2 * 0.6) * uGloss, 0.0, 1.0));
           col = mix(col, albedo * 1.15, 0.25);
         }`,
       }),

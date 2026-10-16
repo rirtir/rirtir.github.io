@@ -39,7 +39,7 @@ export const CATEGORIES = [
   {
     id: 'mouth', label: '鼻・口', icon: '口', groups: [
       { label: '鼻', items: [S('noseType', '鼻の形', ['犬', '猫', '熊', 'ハート', '丸'], 0), R('noseSize', '大きさ', 0.6, 1.6, 1.0), R('noseW', '横幅', 0.6, 1.6, 1.0), R('noseH', '高さ', 0.6, 1.5, 1.0), R('noseY', '上下', -0.012, 0.012, 0, 0.0005), R('noseZ', '前後', -0.012, 0.01, 0, 0.0005), C('noseColor', '鼻の色', '#2b2224'), R('noseGloss', 'つや', 0, 1.5, 1.0)] },
-      { label: '口', items: [R('mouthY', '口の高さ', -0.05, -0.018, -0.034, 0.0005), R('mouthCorner', '口の長さ', 0.0, 0.7, 0.3), R('smile', '口角', -1, 1, 0.25), R('mouthW', '線の太さ', 0.6, 3.0, 1.6), R('omega', 'ω口', 0, 1, 0.0), T('philtrum', '鼻下の線', true), R('fang', '牙', 0, 1, 0.0), R('fangX', '牙の位置', 0.006, 0.03, 0.016, 0.0005)] },
+      { label: '口', items: [R('mouthY', '口の高さ', -0.05, -0.015, -0.029, 0.0005), R('mouthCorner', '口の長さ', 0.0, 0.7, 0.3), R('smile', '口角', -1, 1, 0.4), R('mouthW', '線の太さ', 0.6, 3.0, 1.6), R('omega', 'ω口', 0, 1, 0.0), T('philtrum', '鼻下の線', true), R('fang', '牙', 0, 1, 0.0), R('fangX', '牙の位置', 0.006, 0.03, 0.016, 0.0005)] },
       { label: 'ヒゲ', items: [S('whiskers', 'ヒゲ', ['なし', '2本', '3本', '4本'], 0), R('whiskerLen', '長さ', 0.5, 1.8, 1.0), R('whiskerCurve', 'たれ具合', -1, 1, 0.3), C('whiskerColor', 'ヒゲの色', '#f6f2ea'), T('whiskerDots', 'ヒゲの点', false)] },
     ],
   },
