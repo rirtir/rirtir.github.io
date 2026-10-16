@@ -74,7 +74,7 @@ vec3 kcCloth() {
 `;
 
 // パーツの作り直しが不要な項目
-const NON_PART = /^(furStroke|lineStr|muscleLine|faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
+const NON_PART = /^(hairPhys|furStroke|lineStr|muscleLine|faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
 
 export class Character {
   constructor(data, scene) {
@@ -85,12 +85,10 @@ export class Character {
     this.mats = {
       body: makeToon('body', { bodyUniforms: this.bodyU }),
       bodyO: makeToon('body', { bodyUniforms: this.bodyU, outline: true }),
-      part: makeToon('part'),
-      partO: makeToon('part', { outline: true }),
-      hair: makeToon('hair', {
-        colorHook: `col += albedo * 0.28 * smoothstep(0.9, 0.93, dot(N, normalize(kcL + V))) ;`,
-      }),
-      hairO: makeToon('hair', { outline: true }),
+      part: makeToon('part', { sway: true }),
+      partO: makeToon('part', { outline: true, sway: true }),
+      hair: makeToon('hair', { sway: true }),
+      hairO: makeToon('hair', { outline: true, sway: true }),
       nose: makeToon('nose', {
         uniforms: { uGloss: { value: 1.0 } },
         fragPars: 'uniform float uGloss;',
@@ -421,7 +419,7 @@ export class Character {
     const B = new GeoBuilder();
     const R = rng(1234 + st.hairStyle * 17);
     const mess = st.hairMess;
-    const tuft = (bones, bone, center, dir, d, len, w, opt = {}) => {
+    const tuftRaw = (bones, bone, center, dir, d, len, w, opt = {}) => {
       const s = opt.target ? this.near(bones, opt.target) : this.pick(bones, center, dir);
       const jit = V(R() - 0.5, R() - 0.5, R() - 0.5).multiplyScalar(mess * 0.5 * (opt.mess ?? 1));
       const dd = d.clone().add(jit).normalize();
@@ -434,6 +432,7 @@ export class Character {
     };
     // 毛束: 表面に沿って流れ、先だけ持ち上がる平たい房（表面の法線を厚み方向にする）
     let layer = 0;
+    const grav = st.hairGravity ?? 0.45;
     const clump = (bones, bone, dirFromCenter, center, flowV, len, w, opt = {}) => {
       const s = opt.target ? this.near(bones, opt.target) : this.pick(bones, center, dirFromCenter);
       const N = s.n.clone();
@@ -443,14 +442,19 @@ export class Character {
       const lift = opt.lift ?? 0.3;
       const d = T.clone().addScaledVector(N, lift * 0.25).normalize();
       const tk = w * (opt.flat ?? 0.5);
+      // 重力は表面に沿う向きだけ効かせる（頭の中へ曲がり込まない）
+      const gT = V(0, -1, 0).addScaledVector(N, N.y);
       const p = this._local(bone, s.p).addScaledVector(N, (opt.layer ?? layer) * 0.0012 - tk * 0.3 - 0.0015);
       addTuft(opt.builder || B, {
         p, d, up: N, len: len * (1 + (R() - 0.5) * 0.25 * mess), w, t: w * (opt.flat ?? 0.5),
-        bend: N.clone().multiplyScalar((opt.curl ?? 0.1) + lift * 0.8), rootThin: true, sharp: opt.sharp ?? Math.max(0.55, sharp),
+        bend: N.clone().multiplyScalar((opt.curl ?? 0.1) + lift * 0.8).add(gT.multiplyScalar(opt.grav ?? grav)), rootThin: true, sharp: opt.sharp ?? Math.max(0.55, sharp),
         c0: opt.c0 || hairC, c1: opt.c1 || (st.hairTipAmt > 0 ? hairTip : opt.c0 || hairC),
         tipAmt: opt.tipAmt ?? st.hairTipAmt, segs: opt.segs || 8, sides: 8, sink: opt.sink ?? 0.006,
       });
     };
+    // 体毛も同じ毛束で作る（根元を表面に沿わせる）
+    const tuft = (bones, bone, center, dir, d, len, w, opt = {}) => clump(bones, bone, dir, center, d, len, w,
+      { ...opt, lift: opt.lift ?? 0.35, flat: opt.flat ?? 0.5, grav: opt.grav ?? grav * 0.7 });
     const HL = st.hairLen, HV = st.hairVol, flow = st.hairFlow;
     const sph = (az, el) => { const a = az * Math.PI / 180, e = el * Math.PI / 180; return V(Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)); };
     const style = st.hairStyle;
@@ -510,6 +514,29 @@ export class Character {
     } else if (style === 6) {   // 長髪
       scalp([[0, 7, 0.17, 0.048, 0.15, 150], [28, 7, 0.16, 0.048, 0.15, 130], [55, 6, 0.13, 0.046, 0.15, 100], [75, 4, 0.11, 0.044, 0.15, 60]],
         { curl: 0.1, flowFn: (az) => V(Math.sin(az * Math.PI / 180) * 0.3, -0.75, -0.65 + flow).normalize() });
+    }
+
+    // ---- 前髪（後ろ髪とは別に選べる）。額の生え際から前下へ、重力で垂れる
+    const bangs = st.bangs ?? 0;
+    if (bangs > 0) {
+      const BL = st.bangsLen ?? 1;
+      const fr = (az, el, dir, len, w, o = {}) => clump(hb, 'head', sph(az, el), headCb, dir, len * 1.35 * BL * HL, w * 1.25 * HV,
+        { lift: 0.3, curl: 0.1, grav: grav * 1.2, layer: 8 + (o.layer ?? 0), flat: 0.45, ...o });
+      const rad = (a) => a * Math.PI / 180;
+      if (bangs === 1) {          // 短い前髪
+        [-36, -18, 0, 18, 36].forEach((az, i) => fr(az, 58, V(Math.sin(rad(az)) * 0.3, -0.9, 0.4), 0.042 * (i % 2 ? 0.85 : 1), 0.034, { layer: i % 2 }));
+      } else if (bangs === 2) {   // 流した前髪（片側へ）
+        [-38, -20, -3, 14, 31, 46].forEach((az, i) => fr(az, 60 - i * 1.5, V(0.85, -0.75, 0.4), 0.07 * (1 - i * 0.07), 0.038, { layer: i, lift: 0.25 }));
+      } else if (bangs === 3) {   // 分けた前髪（真ん中で分ける）
+        for (const sx of [1, -1]) [7, 22, 38].forEach((a, i) => fr(sx * a, 61 - i * 3, V(sx * 0.5, -0.85, 0.35), 0.065 * (1 - i * 0.12), 0.038, { layer: i, lift: 0.22 }));
+      } else if (bangs === 4) {   // 跳ねた前髪（先が持ち上がる）
+        [-30, -10, 10, 30].forEach((az, i) => fr(az, 60, V(Math.sin(rad(az)) * 0.5, -0.4, 1), 0.05, 0.038, { layer: i % 2, lift: 0.7, grav: grav * 0.3, curl: 0.22 }));
+      } else if (bangs === 5) {   // 長い前髪（目にかかる）
+        [-42, -26, -10, 6, 22, 38].forEach((az, i) => fr(az, 58, V(Math.sin(rad(az)) * 0.3 + 0.1, -0.95, 0.3), 0.09 * (i % 2 ? 0.88 : 1), 0.036, { layer: i % 2, lift: 0.04, curl: 0.02, grav: grav * 1.8 }));
+      } else if (bangs === 6) {   // アホ毛（頭頂に1〜2本）
+        fr(5, 86, V(0.1, 0.4, 1), 0.07, 0.03, { lift: 0.9, grav: -0.05, curl: 0.35, flat: 0.35 });
+        fr(-12, 84, V(-0.2, 0.3, 1), 0.05, 0.026, { lift: 0.8, grav: 0.0, curl: 0.3, flat: 0.35, layer: 1 });
+      }
     }
 
     // ---- 頬毛（頬から後ろ下へ流れ、先が外へ張り出す）・たてがみ・あご
@@ -799,6 +826,7 @@ export class Character {
     if (st.turntable) this.root.rotation.y += dt * 0.45;
     this._pose(dt, t, camera);
     if (this.tailMesh) this.tail.update(t, st.idle ? st.tailSway : 0);
+    this._swayStep(dt);
     // 表情・まばたき
     const ex = this._exprMods();
     const A = this.anim;
@@ -817,6 +845,29 @@ export class Character {
     this.bodyU.uBlink.value = Math.min(1, lid + blink * (1 - lid));
     this.bodyU.uEyeB.value.z = ex.happy || 0;
     if (this.mats.nose.userData.shader) this.mats.nose.userData.shader.uniforms.uGloss.value = this._noseGloss ?? 1;
+  }
+
+  // 毛の揺れ: 頭の少し上の点にばねでついていく「おもり」を1つ動かし、そのずれを毛先に足す
+  _swayStep(dt) {
+    const st = this.state, S = this.sway || (this.sway = { p: null, v: new THREE.Vector3() });
+    const head = this.bones.head;
+    head.updateWorldMatrix(true, false);
+    const target = head.localToWorld(new THREE.Vector3(0, 0.14, -0.06));
+    if (!S.p) S.p = target.clone();
+    const k = 90, damp = 9;
+    const steps = Math.max(1, Math.ceil(dt / 0.008)), h = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      const acc = target.clone().sub(S.p).multiplyScalar(k).addScaledVector(S.v, -damp).add(new THREE.Vector3(0, -2.0, 0));
+      S.v.addScaledVector(acc, h);
+      S.p.addScaledVector(S.v, h);
+    }
+    const off = S.p.clone().sub(target);
+    off.y += 2.0 / k;          // 重力で垂れた分（静止時のずれ）は形に含めているので差し引く
+    if (off.length() > 0.06) off.setLength(0.06);
+    const q = head.getWorldQuaternion(new THREE.Quaternion()).invert();
+    off.applyQuaternion(q).multiplyScalar((st.hairPhys ?? 1) * 0.9 / Math.max(this.scale, 0.5));
+    LIGHT.uSway.value.copy(off);
+    LIGHT.uWind.value = st.idle ? (st.hairPhys ?? 1) : 0;
   }
 
   _pose(dt, t, camera) {

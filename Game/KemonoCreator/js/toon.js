@@ -25,6 +25,8 @@ export const LIGHT = {
   uFaceSoft: { value: 0.45 },
   uFurJag: { value: 0.0 },       // 影の境目を毛並み風にギザギザに
   uTime: { value: 0 },
+  uSway: { value: new THREE.Vector3() },
+  uWind: { value: 1.0 },
 };
 
 // 体専用ユニフォーム（毛色・模様・目・口）
@@ -393,7 +395,7 @@ export function makeToon(type, opts = {}) {
     if (bodyU) Object.assign(sh.uniforms, bodyU);
     if (opts.uniforms) Object.assign(sh.uniforms, opts.uniforms);
     let vs = sh.vertexShader, fs = sh.fragmentShader;
-    const defs = `#define KC_${type.toUpperCase()}\n${outline ? '#define KC_OUTLINE\n' : ''}${type === 'body' || type === 'shell' ? '#define KC_MASKS\n' : ''}${type === 'body' && (outline || opts.furHull) ? '#define KC_FURDISP\n' : ''}${opts.furHull ? '#define KC_FURHULL\n' : ''}`;
+    const defs = `#define KC_${type.toUpperCase()}\n${outline ? '#define KC_OUTLINE\n' : ''}${type === 'body' || type === 'shell' ? '#define KC_MASKS\n' : ''}${type === 'body' && (outline || opts.furHull) ? '#define KC_FURDISP\n' : ''}${opts.furHull ? '#define KC_FURHULL\n' : ''}${opts.sway ? '#define KC_SWAY\n' : ''}`;
     vs = defs + vs; fs = defs + fs;
     // ---- vertex
     vs = vs.replace('#include <common>', `#include <common>
@@ -401,6 +403,9 @@ uniform float uOutlinePx; uniform vec2 uViewport; uniform float uOutlineScale;
 varying vec3 vPos; varying vec4 vMaskA; varying vec4 vMaskB; varying vec3 vWPos; varying vec3 vWN;
 #ifdef KC_MASKS
 attribute vec4 maskA; attribute vec4 maskB;
+#endif
+#ifdef KC_SWAY
+attribute float aFlex; uniform vec3 uSway; uniform float uWind; uniform float uTime;
 #endif
 #ifdef KC_FURDISP
 uniform float uFurLen, uFurDens; uniform vec4 uClothV;
@@ -424,6 +429,14 @@ float kcFurDisp(vec3 p, vec4 mA, vec4 mB) {
   float n = kc_noise(p * vec3(30.0, 11.0, 30.0) * uFurDens + vec3(0.0, p.x * 8.0, 0.0));
   float spike = pow(clamp(n * 1.35 - 0.2, 0.0, 1.0), 2.4);
   return uFurLen * 0.016 * spike * region;
+}
+#endif`);
+    vs = vs.replace('#include <begin_vertex>', `#include <begin_vertex>
+#ifdef KC_SWAY
+{
+  float f = aFlex * aFlex;
+  vec3 w = vec3(sin(uTime * 2.3 + position.x * 41.0 + position.y * 23.0), 0.3 * sin(uTime * 1.9 + position.z * 37.0), cos(uTime * 1.7 + position.z * 31.0 + position.x * 13.0));
+  transformed += (uSway + w * 0.0018 * uWind) * f;
 }
 #endif`);
     vs = vs.replace('#include <skinning_vertex>', `#include <skinning_vertex>

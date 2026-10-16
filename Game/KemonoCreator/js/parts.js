@@ -6,9 +6,15 @@ const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a
 
 // 頂点・色・インデックスをためていく小さなビルダー
 export class GeoBuilder {
-  constructor() { this.pos = []; this.col = []; this.idx = []; }
+  constructor() { this.pos = []; this.col = []; this.idx = []; this.hint = []; this.flex = []; this.hasHint = false; }
   get n() { return this.pos.length / 3; }
-  v(p, c) { this.pos.push(p.x, p.y, p.z); this.col.push(c.r, c.g, c.b); return this.n - 1; }
+  // hint: 法線をなじませる向き（毛束なら生えている面の法線）、flex: 揺れの大きさ（根元0〜先1）
+  v(p, c, hint, flex) {
+    this.pos.push(p.x, p.y, p.z); this.col.push(c.r, c.g, c.b);
+    if (hint) { this.hint.push(hint.x, hint.y, hint.z); this.hasHint = true; } else this.hint.push(0, 0, 0);
+    this.flex.push(flex ?? 0);
+    return this.n - 1;
+  }
   tri(a, b, c) { this.idx.push(a, b, c); }
   build() {
     const g = new THREE.BufferGeometry();
@@ -16,6 +22,17 @@ export class GeoBuilder {
     g.setAttribute('color', new THREE.Float32BufferAttribute(this.col, 3));
     g.setIndex(this.idx);
     g.computeVertexNormals();
+    if (this.hasHint) {
+      // 毛束の法線を、生えている面の法線へ寄せる（細い房がテカテカ光らず、体と同じように陰影がつく）
+      const n = g.attributes.normal.array, h = this.hint;
+      for (let i = 0; i < n.length; i += 3) {
+        if (!h[i] && !h[i + 1] && !h[i + 2]) continue;
+        let x = n[i] * 0.3 + h[i] * 0.7, y = n[i + 1] * 0.3 + h[i + 1] * 0.7, z = n[i + 2] * 0.3 + h[i + 2] * 0.7;
+        const l = Math.hypot(x, y, z) || 1;
+        n[i] = x / l; n[i + 1] = y / l; n[i + 2] = z / l;
+      }
+    }
+    g.setAttribute('aFlex', new THREE.Float32BufferAttribute(this.flex, 1));
     g.computeBoundingSphere();
     return g;
   }
@@ -52,13 +69,13 @@ export function addTuft(B, o) {
     c.copy(o.c0).lerp(o.c1, smooth(1 - (o.tipAmt ?? 0) - 0.08, 1 - (o.tipAmt ?? 0) + 0.04, s));
     c.multiplyScalar(0.86 + 0.14 * smooth(0, 0.4, s));
     if (i === segs) {
-      B.v(pts[i], c);
+      B.v(pts[i], c, o.up, 1);
       continue;
     }
     for (let j = 0; j < sides; j++) {
       const th = (j / sides) * Math.PI * 2;
       _v.copy(pts[i]).addScaledVector(Bv, Math.cos(th) * rw).addScaledVector(A, Math.sin(th) * rt);
-      B.v(_v, c);
+      B.v(_v, c, o.up, s);
     }
   }
   for (let i = 0; i < segs - 1; i++) {
@@ -71,7 +88,7 @@ export function addTuft(B, o) {
   const tip = ring0 + segs * sides, last = ring0 + (segs - 1) * sides;
   for (let j = 0; j < sides; j++) B.tri(last + (j + 1) % sides, last + j, tip);
   // 根元のふた
-  const cen = B.v(pts[0], c.copy(o.c0).multiplyScalar(0.86));
+  const cen = B.v(pts[0], c.copy(o.c0).multiplyScalar(0.86), o.up, 0);
   for (let j = 0; j < sides; j++) B.tri(ring0 + j, ring0 + (j + 1) % sides, cen);
 }
 
