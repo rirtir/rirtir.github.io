@@ -221,7 +221,7 @@ export class Character {
     U.uEyeB.value.set(st.eyeUpper, st.eyeLower, ex.happy || 0, st.eyeY);
     U.uIris.value.set(st.irisSize * (ex.iris || 1), st.pupilSize, st.pupilType, st.irisY);
     U.uIrisTop.value.set(st.irisTop); U.uIrisBot.value.set(st.irisBot); U.uSclera.value.set(st.sclera); U.uLid.value.set(st.lidColor);
-    U.uEyeC2.value.set(st.lidW, st.highlight, st.lashes, 0);
+    U.uEyeC2.value.set(st.lidW, st.highlight, st.lashes, Math.min(0.95, (st.eyeLid ?? 0) + (ex.lid || 0)));
     U.uBrow.value.set(st.browType, st.browY + (ex.browY || 0), st.browAngle + (ex.browA || 0), st.browW);
     U.uBrowCol.value.set(st.browColor);
     // 口
@@ -497,15 +497,15 @@ export class Character {
     const cheekC = st.cheekWhite > 0.5 ? cSub : cMain;
     const ck = st.cheekFluff;
     if (ck > 0) {
-      const rows = ck === 3 ? [[0, 6, 1.0, 0.5], [-12, 5, 0.85, 0.45]] : (ck === 1 ? [[-4, 4, 0.7, 0.35]] : [[-4, 6, 1.0, 0.45]]);
+      const rows = ck === 3 ? [[0, 7, 1.25, 0.7], [-18, 6, 1.0, 0.6]] : (ck === 1 ? [[-6, 4, 0.75, 0.45]] : [[-6, 7, 1.25, 0.7]]);
       for (const sx of [1, -1]) rows.forEach(([el0, cnt, k, lift], ri) => {
         for (let i = 0; i < cnt; i++) {
           const t = cnt > 1 ? i / (cnt - 1) : 0.5;
-          const az = sx * (72 + 42 * t);
-          const el = el0 + 0 - 30 * t;
+          const az = sx * (68 + 50 * t);
+          const el = el0 + 2 - 34 * t;
           const alt = i % 2 ? 0.75 : 1.0;
-          clump(hb, 'head', sph(az, el), headCb, V(sx * (0.25 + 0.25 * st.cheekSpread), -0.35 - 0.3 * t, -1).normalize(),
-            0.055 * k * alt * st.cheekLen, 0.026 * tw, { lift: lift + 0.2 * st.cheekSpread, curl: 0.12, flat: 0.5, sharp: 0.85, c0: cheekC, c1: cheekC, tipAmt: 0, layer: ri * 3 + (i % 2), mess: 0.4 });
+          clump(hb, 'head', sph(az, el), headCb, V(sx * (0.6 + 0.35 * st.cheekSpread), -0.4 - 0.35 * t, -0.75).normalize(),
+            0.062 * k * alt * st.cheekLen, 0.03 * tw, { lift: lift + 0.2 * st.cheekSpread, curl: 0.12, flat: 0.5, sharp: 0.85, c0: cheekC, c1: cheekC, tipAmt: 0, layer: ri * 3 + (i % 2), mess: 0.4 });
         }
       });
     }

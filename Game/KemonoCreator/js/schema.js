@@ -29,7 +29,7 @@ export const CATEGORIES = [
   },
   {
     id: 'eyes', label: '目', icon: '目', groups: [
-      { label: '形', items: [R('eyeSize', '大きさ', 0.014, 0.032, 0.021, 0.0005), R('eyeAspect', '縦の幅', 0.35, 1.25, 0.78), R('eyeTilt', 'つり目 ↔ たれ目', -0.45, 0.55, 0.14), R('eyeUpper', '上まぶたの丸み', 0.25, 1.5, 0.7), R('eyeLower', '下まぶたの深さ', 0.1, 0.95, 0.45)] },
+      { label: '形', items: [R('eyeSize', '大きさ', 0.014, 0.032, 0.021, 0.0005), R('eyeAspect', '縦の幅', 0.35, 1.25, 0.78), R('eyeTilt', 'つり目 ↔ たれ目', -0.45, 0.55, 0.14), R('eyeUpper', '上まぶたの丸み', 0.25, 1.5, 0.7), R('eyeLower', '下まぶたの深さ', 0.1, 0.95, 0.45), R('eyeLid', '目つき（まぶたの下がり）', 0, 0.9, 0.2)] },
       { label: '位置', items: [R('eyeX', '間隔', -0.012, 0.012, 0, 0.0005), R('eyeY', '高さ', -0.014, 0.014, 0, 0.0005)] },
       { label: '瞳', items: [R('irisSize', '瞳の大きさ', 0.3, 1.0, 0.62), R('irisY', '瞳の上下', -0.4, 0.4, 0.0), S('pupilType', '瞳孔の形', ['丸', '縦長', 'なし', '横長'], 0), R('pupilSize', '瞳孔の大きさ', 0, 0.95, 0.42), C('irisTop', '瞳の色（上）', '#2d6a3a'), C('irisBot', '瞳の色（下）', '#b8e05a'), R('highlight', 'ハイライト', 0, 1.6, 1.0), C('sclera', '白目の色', '#fbfaf6')] },
       { label: 'まぶた・まつげ', items: [R('lidW', 'まぶたの線の太さ', 0.3, 2.2, 1.0), R('lashes', 'まつげ', 0, 1, 0.0), C('lidColor', '線の色', '#2a1c1a')] },
@@ -92,7 +92,7 @@ export const CATEGORIES = [
   {
     id: 'view', label: '表示・ライト', icon: '光', groups: [
       { label: '表示', items: [S('theme', '背景', ['明るいスタジオ', '星空ステージ'], 0), T('faceViews', '顔の3面プレビュー', true), T('faceViewExpr', '3面プレビューで表情を変える', true), T('turntable', '自動で回転', false)] },
-      { label: '絵づくり', items: [R('outlineW', '輪郭線の太さ', 0, 3.5, 1.6), R('lineStr', '内側の線', 0, 1, 0.8), R('anime', 'アニメ度（影の硬さ）', 0, 1, 0.75), R('shadeHue', '影の色味（暖↔寒）', -1, 1, 0.35), R('shadeDark', '影の濃さ', 0, 1, 0.45), R('rim', 'リムライト', 0, 1.5, 0.5), R('faceSoft', '顔の影をやわらかく', 0, 1, 0.45)] },
+      { label: '絵づくり', items: [R('outlineW', '輪郭線の太さ', 0, 4, 2.2), R('lineStr', '内側の線', 0, 1, 0.8), R('anime', 'アニメ度（影の硬さ）', 0, 1, 0.75), R('shadeHue', '影の色味（暖↔寒）', -1, 1, 0.35), R('shadeDark', '影の濃さ', 0, 1, 0.45), R('rim', 'リムライト', 0, 1.5, 0.5), R('faceSoft', '顔の影をやわらかく', 0, 1, 0.45)] },
       { label: 'ライト', items: [R('lightAz', 'ライトの向き', -1.5, 1.5, -0.55), R('lightEl', 'ライトの高さ', 0.1, 1.3, 0.62)] },
     ],
   },
@@ -111,7 +111,7 @@ export const PRESETS = [
       furMain: '#7d7f86', furSub: '#ece9e4', furAccent: '#4b4c52', patternColor: '#3f4046', backMark: 0.55, cheekWhite: 1, muzzleCover: 0.55, bellyW: 0.6,
       irisTop: '#7a5a12', irisBot: '#f2c33a', eyeTilt: 0.3, browType: 3, hairStyle: 1, hairLen: 1.25, cheekFluff: 2, tailType: 0, neckRuff: 0.6, chestFluff: 0.7,
       noseType: 0, noseSize: 0.95, mouthCorner: 0.52, smile: 0.6, fang: 0, muscle: 0.85, bulk: 0.5, shoulderW: 0.5, chest: 0.6, pecs: 0.5, traps: 0.6, neckThick: 0.7, neckLen: -0.4, armThick: 0.4,
-      eyeSize: 0.0185, eyeAspect: 0.56, irisSize: 0.56, browW: 1.15, browY: -0.12, browColor: '#ece9e4', cheekLen: 1.2,
+      eyeSize: 0.019, eyeAspect: 0.6, irisSize: 0.6, eyeLid: 0.5, irisY: 0.08, browW: 1.15, browY: -0.12, browColor: '#ece9e4', cheekLen: 1.2,
       top: 4, topColor: '#2c3e5c', trimColor: '#d9b45a', topNeck: 0.35, bottom: 2, bottomColor: '#3a3430', pantStripe: true,
     },
   },

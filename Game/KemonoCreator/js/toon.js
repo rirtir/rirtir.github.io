@@ -198,6 +198,8 @@ vec4 kcEye(vec3 p) {
   float asp = uEyeA.y, tilt = uEyeA.z;
   float bx = sqrt(max(1.0 - X * X, 0.0));
   float yu = asp * pow(bx, uEyeB.x) + tilt * X;
+  // 目つき: 上まぶたを下ろして、ふちを平らに（半目）
+  yu -= uEyeC2.w * asp * 0.5 * pow(bx, 0.35) * (1.0 - 0.35 * smoothstep(-1.0, 1.0, X));
   float yl = -asp * uEyeB.y * pow(bx, 0.85) + tilt * X * 0.7;
   float yc = mix(mix(yl, yu, 0.3), yu - asp * 0.45, uEyeB.z);
   yl = mix(yl, mix(yl, yu, 0.45), uEyeB.z * 0.0);
