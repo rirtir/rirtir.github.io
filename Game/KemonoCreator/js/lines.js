@@ -2,6 +2,7 @@
 // 面の向きが急に変わる所（眉骨・マズルの角・あごの線）と、奥行きが急に変わる所（毛束の重なり）に線を引く。
 // 輪郭線（反転ハル）・床・背景は layer 1 に置いて、この検出からは外す。
 import * as THREE from 'three';
+import { LIGHT } from './toon.js';
 
 export const OUTLINE_LAYER = 1;
 
@@ -13,6 +14,18 @@ export class LinePass {
     this.nd.depthTexture = new THREE.DepthTexture(4, 4);
     this.nd.depthTexture.type = THREE.UnsignedIntType;
     this.normalMat = new THREE.MeshNormalMaterial({ flatShading: true });
+    // 揺れる毛用: 同じ揺れを足した法線マテリアル（線が毛と一緒に動く）
+    this.swayMat = new THREE.MeshNormalMaterial();
+    this.swayMat.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, { uSway: LIGHT.uSway, uWind: LIGHT.uWind, uTime: LIGHT.uTime });
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aFlex; uniform vec3 uSway; uniform float uWind; uniform float uTime;')
+        .replace('#include <begin_vertex>', `#include <begin_vertex>
+{
+  float f = aFlex * aFlex;
+  vec3 w = vec3(sin(uTime * 2.3 + position.x * 41.0 + position.y * 23.0), 0.3 * sin(uTime * 1.9 + position.z * 37.0), cos(uTime * 1.7 + position.z * 31.0 + position.x * 13.0));
+  transformed += (uSway + w * 0.0018 * uWind) * f;
+}`);
+    };
     this.u = {
       tColor: { value: this.color.texture }, tN: { value: this.nd.texture }, tD: { value: this.nd.depthTexture },
       uPx: { value: new THREE.Vector2(1, 1) }, uStr: { value: 0.8 }, uWidth: { value: 1.0 },
@@ -77,14 +90,24 @@ export class LinePass {
     const mask = camera.layers.mask;
     camera.layers.disable(OUTLINE_LAYER);
     const bg = scene.background;
-    scene.overrideMaterial = this.normalMat;
+    // 揺れる毛だけ揺れ付きの法線マテリアルに差し替え、それ以外は一括で上書き
+    const swapped = [];
+    scene.traverse((o) => {
+      if (o.isMesh && o.geometry.attributes.aFlex && o.layers.test(camera.layers)) { swapped.push([o, o.material]); o.material = this.swayMat; }
+    });
+    scene.overrideMaterial = null;
+    const restoreOther = [];
+    scene.traverse((o) => {
+      if (o.isMesh && !o.geometry.attributes.aFlex && o.layers.test(camera.layers)) { restoreOther.push([o, o.material]); o.material = this.normalMat; }
+    });
     r.setRenderTarget(this.nd);
     const cc = r.getClearColor(new THREE.Color()), ca = r.getClearAlpha();
     r.setClearColor(0x808080, 1);
     r.clear();
     r.render(scene, camera);
     r.setClearColor(cc, ca);
-    scene.overrideMaterial = null;
+    for (const [o, m] of swapped) o.material = m;
+    for (const [o, m] of restoreOther) o.material = m;
     camera.layers.mask = mask;
     scene.background = bg;
     // 3) 合成

@@ -74,6 +74,9 @@ const LIGHT_PARS = /* glsl */`
 uniform float uT1, uT2, uSoft, uDeepMul, uFillStr, uRimStr, uShadowStr, uFaceSoft, uFurJag, uTime;
 uniform vec3 uShadeMul, uKeyCol, uFillDir, uFillCol, uRimCol, uOutlineMul;
 uniform vec2 uRimDir;
+#ifndef KC_RIMK
+#define KC_RIMK 1.0
+#endif
 float kcNdl = 0.5; float kcShadow = 1.0; vec3 kcL = vec3(0,0,1);
 varying vec3 vViewPosition;
 struct ToonMaterial { vec3 diffuseColor; };
@@ -95,7 +98,7 @@ vec3 kcToon(vec3 albedo, vec3 N, vec3 V, float faceSoft, float jag) {
   col += albedo * uFillCol * uFillStr * max(dot(N, uFillDir), 0.0);
   float ndv = clamp(dot(N, V), 0.0, 1.0);
   float rim = smoothstep(0.5, 0.75, pow(1.0 - ndv, 2.2)) * smoothstep(-0.1, 0.5, dot(normalize(N.xy + 1e-5), uRimDir));
-  col += uRimCol * rim * uRimStr * (0.35 + 0.65 * lit);
+  col += uRimCol * rim * uRimStr * (0.35 + 0.65 * lit) * KC_RIMK;
   return col;
 }
 `;
@@ -407,7 +410,7 @@ export function makeToon(type, opts = {}) {
     if (bodyU) Object.assign(sh.uniforms, bodyU);
     if (opts.uniforms) Object.assign(sh.uniforms, opts.uniforms);
     let vs = sh.vertexShader, fs = sh.fragmentShader;
-    const defs = `#define KC_${type.toUpperCase()}\n${outline ? '#define KC_OUTLINE\n' : ''}${type === 'body' || type === 'shell' ? '#define KC_MASKS\n' : ''}${type === 'body' && (outline || opts.furHull) ? '#define KC_FURDISP\n' : ''}${opts.furHull ? '#define KC_FURHULL\n' : ''}${opts.sway ? '#define KC_SWAY\n' : ''}`;
+    const defs = `#define KC_${type.toUpperCase()}\n${outline ? '#define KC_OUTLINE\n' : ''}${type === 'body' || type === 'shell' ? '#define KC_MASKS\n' : ''}${type === 'body' && (outline || opts.furHull) ? '#define KC_FURDISP\n' : ''}${opts.furHull ? '#define KC_FURHULL\n' : ''}${opts.sway ? '#define KC_SWAY\n' : ''}${opts.rimK !== undefined ? `#define KC_RIMK ${opts.rimK.toFixed(2)}\n` : ''}`;
     vs = defs + vs; fs = defs + fs;
     // ---- vertex
     vs = vs.replace('#include <common>', `#include <common>
@@ -574,6 +577,6 @@ vec3 outgoingLight;
   m.userData.outlineScale = { value: opts.outlineScale ?? 1.0 };
   const prev = m.onBeforeCompile;
   m.onBeforeCompile = (sh) => { sh.uniforms.uOutlineScale = m.userData.outlineScale; prev(sh); };
-  m.customProgramCacheKey = () => `kc-${type}-${outline}-${opts.key || ''}`;
+  m.customProgramCacheKey = () => `kc-${type}-${outline}-${opts.key || ''}-${opts.sway ? 1 : 0}-${opts.rimK ?? ''}`;
   return m;
 }

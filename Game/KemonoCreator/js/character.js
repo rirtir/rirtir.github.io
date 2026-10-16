@@ -85,10 +85,10 @@ export class Character {
     this.mats = {
       body: makeToon('body', { bodyUniforms: this.bodyU }),
       bodyO: makeToon('body', { bodyUniforms: this.bodyU, outline: true }),
-      part: makeToon('part', { sway: true }),
-      partO: makeToon('part', { outline: true, sway: true }),
-      hair: makeToon('hair', { sway: true }),
-      hairO: makeToon('hair', { outline: true, sway: true }),
+      part: makeToon('part', { sway: true, rimK: 0.35 }),
+      partO: makeToon('part', { outline: true, sway: true, outlineScale: 0.7 }),
+      hair: makeToon('hair', { sway: true, rimK: 0.35 }),
+      hairO: makeToon('hair', { outline: true, sway: true, outlineScale: 0.7 }),
       nose: makeToon('nose', {
         uniforms: { uGloss: { value: 1.0 } },
         fragPars: 'uniform float uGloss;',
@@ -460,14 +460,14 @@ export class Character {
       const p = this._local(bone, s.p).addScaledVector(N, (opt.layer ?? layer) * 0.0012 - tk * 0.3 - 0.0015);
       addTuft(opt.builder || B, {
         p, d, up: N, len: len * (1 + (R() - 0.5) * 0.25 * mess), w, t: w * (opt.flat ?? 0.5),
-        bend: N.clone().multiplyScalar((opt.curl ?? 0.1) + lift * 0.8).add(gT.multiplyScalar(opt.grav ?? grav)), rootThin: true, sharp: opt.sharp ?? Math.max(0.55, sharp),
+        bend: N.clone().multiplyScalar((opt.curl ?? 0.1) + lift * 0.8).add(gT.multiplyScalar(opt.grav ?? grav)), rootThin: true, sharp: opt.sharp ?? (opt.body ? st.tuftSharp : st.hairSharp),
         c0: opt.c0 || hairC, c1: opt.c1 || (st.hairTipAmt > 0 ? hairTip : opt.c0 || hairC),
         tipAmt: opt.tipAmt ?? st.hairTipAmt, segs: opt.segs || 8, sides: 8, sink: opt.sink ?? 0.006,
       });
     };
     // 体毛も同じ毛束で作る（根元を表面に沿わせる）
     const tuft = (bones, bone, center, dir, d, len, w, opt = {}) => clump(bones, bone, dir, center, d, len, w,
-      { ...opt, lift: opt.lift ?? 0.35, flat: opt.flat ?? 0.5, grav: opt.grav ?? grav * 0.7 });
+      { ...opt, body: true, lift: opt.lift ?? 0.35, flat: opt.flat ?? 0.5, grav: opt.grav ?? grav * 0.7 });
     const HL = st.hairLen, HV = st.hairVol, flow = st.hairFlow;
     const sph = (az, el) => { const a = az * Math.PI / 180, e = el * Math.PI / 180; return V(Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)); };
     const style = st.hairStyle;
@@ -564,7 +564,7 @@ export class Character {
           const el = el0 + 2 - 34 * t;
           const alt = i % 2 ? 0.75 : 1.0;
           clump(hb, 'head', sph(az, el), headCb, V(sx * (0.6 + 0.35 * st.cheekSpread), -0.4 - 0.35 * t, -0.75).normalize(),
-            0.06 * k * alt * st.cheekLen, 0.021 * tw, { lift: lift + 0.2 * st.cheekSpread, curl: 0.12, flat: 0.7, sharp: 0.85, c0: i % 2 ? cheekC.clone().multiplyScalar(0.93) : cheekC, c1: cheekC, tipAmt: 0, layer: ri * 3 + (i % 2), mess: 0.4 });
+            0.06 * k * alt * st.cheekLen, 0.021 * tw, { lift: lift + 0.2 * st.cheekSpread, curl: 0.12, flat: 0.7, body: true, c0: i % 2 ? cheekC.clone().multiplyScalar(0.93) : cheekC, c1: cheekC, tipAmt: 0, layer: ri * 3 + (i % 2), mess: 0.4 });
         }
       });
     }

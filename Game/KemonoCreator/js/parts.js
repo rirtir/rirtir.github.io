@@ -27,7 +27,7 @@ export class GeoBuilder {
       const n = g.attributes.normal.array, h = this.hint;
       for (let i = 0; i < n.length; i += 3) {
         if (!h[i] && !h[i + 1] && !h[i + 2]) continue;
-        let x = n[i] * 0.3 + h[i] * 0.7, y = n[i + 1] * 0.3 + h[i + 1] * 0.7, z = n[i + 2] * 0.3 + h[i + 2] * 0.7;
+        let x = n[i] * 0.62 + h[i] * 0.38, y = n[i + 1] * 0.62 + h[i + 1] * 0.38, z = n[i + 2] * 0.62 + h[i + 2] * 0.38;
         const l = Math.hypot(x, y, z) || 1;
         n[i] = x / l; n[i + 1] = y / l; n[i + 2] = z / l;
       }
@@ -43,13 +43,22 @@ export class GeoBuilder {
 export function addTuft(B, o) {
   const segs = o.segs || 7, sides = o.sides || 6;
   const len = o.len, sharp = o.sharp ?? 0.6;
-  const k = 0.55 + sharp * 1.0;
+  const k = 0.3 + sharp * 1.9;      // 鋭さ: 小さいと先が丸く、大きいと細く尖る
   const pts = [], tans = [];
   for (let i = 0; i <= segs; i++) {
     const s = i / segs;
     const p = o.p.clone().addScaledVector(o.d, len * s - (o.sink ?? 0.006));
     if (o.bend) p.addScaledVector(o.bend, len * s * s);
     pts.push(p);
+  }
+  // 曲げても長さが変わらないように、各区間の長さをそろえ直す（重力で「伸びる」のではなく「垂れる」）
+  {
+    const seg = len / segs;
+    for (let i = 1; i <= segs; i++) {
+      const d = pts[i].clone().sub(pts[i - 1]);
+      const l = d.length() || 1;
+      pts[i] = pts[i - 1].clone().addScaledVector(d, seg / l);
+    }
   }
   for (let i = 0; i <= segs; i++) {
     const a = pts[Math.max(0, i - 1)], b = pts[Math.min(segs, i + 1)];
