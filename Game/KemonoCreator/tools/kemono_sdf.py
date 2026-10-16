@@ -261,7 +261,7 @@ DEFAULTS = dict(
     # 体
     legLen=0.0, torsoLen=0.0, armLen=0.0, shoulderW=0.0, chest=0.0, muscle=0.0, fat=0.0,
     belly=0.0, waist=0.0, hipW=0.0, armThick=0.0, legThick=0.0, neckThick=0.0, neckLen=0.0,
-    handSize=0.0, footSize=0.0, pecs=0.0, glutes=0.0, calf=0.0, digi=0.0, bulk=0.0, traps=0.0, socket=0.0,
+    handSize=0.0, footSize=0.0, pecs=0.0, glutes=0.0, calf=0.0, digi=0.0, bulk=0.0, traps=0.0, socket=0.0, flank=0.0, glabella=0.0,
     # 頭
     headSize=0.0, headW=0.0, craniumH=0.0, cheek=0.0, jaw=0.0, stop=0.0, brow=0.0, forehead=0.0,
     # マズル
@@ -340,21 +340,24 @@ def build(params=None):
     # ---------------- torso
     T = lambda n: {n: 1.0}
     chestS = 1.0 + 0.12 * g('chest')
-    waist = 1.0 + 0.15 * g('waist')
+    waist = 1.0 + 0.25 * g('waist')
+    fl = g('flank')
     E('pelvis', J['hips'] + [0, -0.03, -0.012], np.array([0.150 * hipW * bw, 0.112, 0.100 * bw]) + fat * np.array([0.075, 0.03, 0.07]),
       k=0.06, bones=T('hips'))
     glS = 1.0 + 0.12 * g('glutes') + 0.25 * fat + 0.12 * musP
     for sx in (1, -1):
         E('glute', J['hips'] + [sx * 0.064 * hipW, -0.055, -0.068 - 0.01 * fat], np.array([0.074, 0.085, 0.052]) * glS,
           R=rot_x(0.2), k=0.06, bones={'hips': 0.8, 'thigh.' + ('L' if sx > 0 else 'R'): 0.2})
-    E('abdomen', J['spine'] + [0, -0.01, 0.0], np.array([0.138 * waist * bw + 0.008 * musP, 0.14 * torsoL, 0.095 * bw]) + fat * np.array([0.07, 0.01, 0.08]),
+    E('abdomen', J['spine'] + [0, -0.01, 0.0], np.array([0.138 * waist * bw + 0.008 * musP + 0.03 * max(fl, 0), 0.14 * torsoL, 0.095 * bw + 0.01 * max(fl, 0)]) + fat * np.array([0.07, 0.01, 0.08]),
       k=0.07, bones=T('spine'))
     bel = min(1.6, max(g('belly'), 0.0) + 0.9 * fat)
-    E('belly', J['spine'] + [0, -0.03 - 0.025 * bel, 0.02 + 0.05 * bel], np.array([0.12 + 0.07 * bel, 0.11 + 0.05 * bel, 0.07 + 0.075 * bel]) * (0.6 + 0.25 * bel),
-      k=0.1, bones=T('spine'))
+    # お腹: 前だけでなく横にも丸く広がる（ビール腹ではなく丸いお腹）
+    E('belly', J['spine'] + [0, -0.03 - 0.03 * bel, 0.012 + 0.035 * bel], np.array([0.125 + 0.1 * bel, 0.115 + 0.06 * bel, 0.075 + 0.055 * bel]) * (0.62 + 0.22 * bel),
+      k=0.12, bones=T('spine'))
     for sx in (1, -1):   # 脇腹の肉（肉づき）
-        E('loveHandle', J['spine'] + [sx * (0.1 + 0.03 * fat), -0.04, -0.005], np.array([0.05, 0.065, 0.075]) * (0.45 + 0.9 * max(fat, 0.0)),
-          k=0.06, bones=T('spine'))
+        lh = 0.45 + 0.9 * max(fat, 0.0) + 0.75 * max(fl, 0.0) - 0.15 * max(-fl, 0.0)
+        E('loveHandle', J['spine'] + [sx * (0.1 + 0.03 * fat + 0.02 * max(fl, 0)), -0.03, -0.01], np.array([0.05, 0.085, 0.08]) * lh,
+          k=0.08, bones=T('spine'))
     E('ribcage', J['chest'] + [0, 0.02, -0.012], np.array([0.172 * chestS * (0.92 + 0.08 * shW) * bw + 0.012 * musP, 0.18 * torsoL, 0.118 * chestS * bw + 0.01 * musP]) + fat * np.array([0.06, 0.01, 0.065]),
       k=0.07, bones=T('chest'))
     pecS = 1.0 + 0.75 * musP + 0.2 * g('pecs') + 0.35 * fat
@@ -514,8 +517,13 @@ def build(params=None):
         J['eyeN.' + side] = n
     # ---- 眉骨・頬骨
     for sx in (1, -1):
-        C('brow', hp_([sx * 0.01, 0.121, 0.08]), hp_([sx * 0.06, 0.115, 0.052]), 0.011 * br * hsz, 0.0085 * br * hsz,
+        # 眉骨: 目の上だけ張り出し、鼻の上（眉間）は低く
+        C('brow', hp_([sx * 0.024, 0.119, 0.074]), hp_([sx * 0.06, 0.115, 0.052]), 0.0085 * br * hsz, 0.0088 * br * hsz,
           k=0.016, **hd)
+        pass
+    gl = g('glabella')
+    E('glabella', hp_([0, 0.116, 0.074 + 0.004 * gl]), np.array([0.018, 0.01, 0.009]) * hsz * (0.75 + 0.35 * gl), k=0.018, **hd)
+    for sx in (1, -1):
         E('zygoma', hp_([sx * 0.056, 0.074, 0.042]), np.array([0.019, 0.014, 0.03]) * hsz, R=rot_y(sx * 0.4), k=0.026, **hd)
 
     # ---- マズル（顔の正面、目の下から前へ出る塊。付け根に境目が見えるよう、なめらかさを控えめに）

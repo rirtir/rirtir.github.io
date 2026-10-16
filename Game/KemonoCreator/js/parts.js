@@ -47,7 +47,8 @@ export function addTuft(B, o) {
     const Bv = _b.crossVectors(T, A).normalize();
     const bulge = 0.5 * (1 - 0.75 * sharp);
     const prof = Math.pow(1 - s, k) * (1 - bulge * 0.5 + bulge * smooth(0, 0.35, s)) * (1 - 0.15 * s);
-    const rw = o.w * prof, rt = o.t * prof;
+    const rw = o.w * prof * (o.rootThin ? 0.75 + 0.25 * smooth(0, 0.25, s) : 1);
+    const rt = o.t * prof * (o.rootThin ? 0.25 + 0.75 * smooth(0, 0.3, s) : 1);
     c.copy(o.c0).lerp(o.c1, smooth(1 - (o.tipAmt ?? 0) - 0.08, 1 - (o.tipAmt ?? 0) + 0.04, s));
     c.multiplyScalar(0.86 + 0.14 * smooth(0, 0.4, s));
     if (i === segs) {

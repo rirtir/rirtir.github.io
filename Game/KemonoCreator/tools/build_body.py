@@ -30,7 +30,7 @@ SLIDERS = [
     ('chest', True, 'body'), ('muscle', False, 'body'), ('fat', True, 'face'), ('belly', False, 'body'),
     ('waist', True, 'body'), ('hipW', True, 'body'), ('armThick', True, 'body'), ('legThick', True, 'body'),
     ('neckThick', True, 'body'), ('neckLen', True, 'body'), ('handSize', True, 'body'), ('footSize', True, 'body'),
-    ('pecs', True, 'body'), ('glutes', True, 'body'), ('calf', True, 'body'), ('bulk', True, 'body'), ('traps', True, 'body'),
+    ('pecs', True, 'body'), ('glutes', True, 'body'), ('calf', True, 'body'), ('bulk', True, 'body'), ('traps', True, 'body'), ('flank', True, 'body'), ('glabella', True, 'face'),
     ('headSize', True, 'free'), ('headW', True, 'face'), ('craniumH', True, 'face'), ('cheek', True, 'face'),
     ('jaw', True, 'face'), ('stop', True, 'face'), ('brow', True, 'face'), ('forehead', True, 'face'),
     ('muzLen', True, 'face'), ('muzW', True, 'face'), ('muzH', True, 'face'), ('muzDrop', True, 'face'),

@@ -10,13 +10,14 @@ const PALETTE = [
 const STORE = 'kemono-creator-v1';
 const QUICK = {
   eyes: { label: '目の形タイプ', items: [
-    ['ふつう', { eyeAspect: 0.78, eyeTilt: 0.14, eyeUpper: 0.7, eyeLower: 0.45, irisSize: 0.62, eyeSize: 0.021 }],
-    ['つり目', { eyeAspect: 0.6, eyeTilt: 0.42, eyeUpper: 0.55, eyeLower: 0.35, irisSize: 0.58, eyeSize: 0.022 }],
-    ['たれ目', { eyeAspect: 0.75, eyeTilt: -0.3, eyeUpper: 0.9, eyeLower: 0.4, irisSize: 0.66, eyeSize: 0.021 }],
-    ['まんまる', { eyeAspect: 1.05, eyeTilt: 0.0, eyeUpper: 1.2, eyeLower: 0.85, irisSize: 0.8, eyeSize: 0.02 }],
-    ['細目', { eyeAspect: 0.4, eyeTilt: 0.15, eyeUpper: 0.5, eyeLower: 0.25, irisSize: 0.5, eyeSize: 0.023 }],
-    ['鋭い', { eyeAspect: 0.5, eyeTilt: 0.5, eyeUpper: 0.35, eyeLower: 0.55, irisSize: 0.48, pupilType: 1, eyeSize: 0.023 }],
-    ['黒目がち', { eyeAspect: 0.85, eyeTilt: 0.08, irisSize: 0.95, pupilSize: 0.5, eyeSize: 0.019 }],
+    ['ふつう', { eyeAspect: 0.78, eyeTilt: 0.14, eyeUpper: 0.7, eyeLower: 0.45, irisSize: 0.4, eyeSize: 0.021 }],
+    ['つり目', { eyeAspect: 0.6, eyeTilt: 0.42, eyeUpper: 0.55, eyeLower: 0.35, irisSize: 0.38, eyeSize: 0.022 }],
+    ['たれ目', { eyeAspect: 0.75, eyeTilt: -0.3, eyeUpper: 0.9, eyeLower: 0.4, irisSize: 0.43, eyeSize: 0.021 }],
+    ['まんまる', { eyeAspect: 1.05, eyeTilt: 0.0, eyeUpper: 1.2, eyeLower: 0.85, irisSize: 0.52, eyeSize: 0.02 }],
+    ['細目', { eyeAspect: 0.4, eyeTilt: 0.15, eyeUpper: 0.5, eyeLower: 0.25, irisSize: 0.33, eyeSize: 0.023 }],
+    ['鋭い', { eyeAspect: 0.5, eyeTilt: 0.5, eyeUpper: 0.35, eyeLower: 0.55, irisSize: 0.31, pupilType: 1, eyeSize: 0.023 }],
+    ['縦長の瞳', { eyeAspect: 0.7, eyeTilt: 0.2, irisSize: 0.4, irisTall: 0.8, eyeSize: 0.021 }],
+    ['黒目がち', { eyeAspect: 0.85, eyeTilt: 0.08, irisSize: 0.62, pupilSize: 0.5, eyeSize: 0.019 }],
   ] },
   muzzle: { label: 'マズルのタイプ', items: [
     ['犬', { muzLen: 0.05, muzW: 0, muzH: 0, muzTaper: 0.1, muzDrop: 0, stop: -0.1, padSize: 0, jawLen: 0, bridge: 0 }],
@@ -28,14 +29,14 @@ const QUICK = {
     ['ドーベル', { muzLen: 0.35, muzW: -0.3, muzH: -0.1, muzTaper: 0.35, muzDrop: -0.1, stop: 0.0, padSize: -0.3, jawLen: 0.2, bridge: 0.4 }],
   ] },
 };
-const BODY_KEYS = ['muscle', 'fat', 'belly', 'bulk', 'traps', 'shoulderW', 'chest', 'pecs', 'waist', 'torsoLen', 'neckThick', 'neckLen', 'armLen', 'armThick', 'handSize', 'hipW', 'glutes', 'legLen', 'legThick', 'calf', 'footSize', 'height'];
+const BODY_KEYS = ['muscle', 'fat', 'belly', 'flank', 'bulk', 'traps', 'shoulderW', 'chest', 'pecs', 'waist', 'torsoLen', 'neckThick', 'neckLen', 'armLen', 'armThick', 'handSize', 'hipW', 'glutes', 'legLen', 'legThick', 'calf', 'footSize', 'height'];
 const BODY_TYPES = [
   ['細身', { _w: 0.55, muscle: 0.1, fat: -0.7, shoulderW: -0.3, chest: -0.4, waist: -0.4, armThick: -0.5, legThick: -0.5, neckThick: -0.4, bulk: -0.6, legLen: 0.3, height: 0.98 }],
   ['標準', { _w: 0.75, muscle: 0.35 }],
   ['筋肉質', { _w: 0.9, muscle: 0.75, shoulderW: 0.4, chest: 0.4, pecs: 0.3, armThick: 0.3, neckThick: 0.3, waist: -0.3, calf: 0.3, height: 1.02 }],
   ['ガチムチ', { _w: 1.1, muscle: 1, bulk: 0.8, shoulderW: 0.7, chest: 0.9, pecs: 0.8, traps: 1, armThick: 0.6, legThick: 0.5, neckThick: 1, neckLen: -0.4, waist: 0.2, calf: 0.5, handSize: 0.4, height: 1.05 }],
-  ['ぽっちゃり', { _w: 1.05, muscle: 0.15, fat: 0.55, belly: 0.5, waist: 0.4, hipW: 0.3, glutes: 0.3, neckLen: -0.3 }],
-  ['肥満', { _w: 1.3, muscle: 0.1, fat: 1, belly: 1, waist: 0.8, hipW: 0.6, glutes: 0.5, neckLen: -0.7, bulk: 0.4 }],
+  ['ぽっちゃり', { _w: 1.05, muscle: 0.15, fat: 0.55, belly: 0.5, flank: 0.6, waist: 0.4, hipW: 0.3, glutes: 0.3, neckLen: -0.3 }],
+  ['肥満', { _w: 1.3, muscle: 0.1, fat: 1, belly: 1, flank: 1, waist: 0.8, hipW: 0.6, glutes: 0.5, neckLen: -0.7, bulk: 0.4 }],
   ['巨漢', { _w: 1.25, muscle: 0.8, fat: 0.55, belly: 0.4, bulk: 1, shoulderW: 1, chest: 1, traps: 0.8, armThick: 0.8, legThick: 0.8, neckThick: 1, neckLen: -0.6, handSize: 0.6, footSize: 0.5, height: 1.12 }],
 ];
 const CAM_FOR = { preset: 'full', body: 'full', head: 'face', muzzle: 'face', eyes: 'eyes', mouth: 'face', ears: 'face', hair: 'face', fur: 'upper', tail: 'back', color: 'full', outfit: 'full', pose: 'full', view: 'full' };

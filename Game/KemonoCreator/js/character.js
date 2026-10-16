@@ -74,7 +74,7 @@ vec3 kcCloth() {
 `;
 
 // パーツの作り直しが不要な項目
-const NON_PART = /^(lineStr|muscleLine|faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
+const NON_PART = /^(furStroke|lineStr|muscleLine|faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
 
 export class Character {
   constructor(data, scene) {
@@ -157,9 +157,23 @@ export class Character {
 
   _makeShell() {
     const d = this.data, n = d.meta.vertexCount;
-    const t = 0.0065;
+    // 布の厚み: くぼみ（胸の谷間・腹筋の溝・股・腰のくびれ）ほど厚くして、体に貼り付かないようにする
+    const tv = new Float32Array(n);
+    for (let i = 0; i < n; i++) tv[i] = 0.007 + 0.02 * Math.pow(d.maskB[i * 4 + 2] / 255, 0.8);
+    const idx = d.index;
+    const acc = new Float32Array(n), cnt = new Float32Array(n);
+    for (let it = 0; it < 6; it++) {
+      acc.fill(0); cnt.fill(0);
+      for (let f = 0; f < idx.length; f += 3) {
+        const a = idx[f], b = idx[f + 1], e = idx[f + 2];
+        acc[a] += tv[b] + tv[e]; acc[b] += tv[a] + tv[e]; acc[e] += tv[a] + tv[b];
+        cnt[a] += 2; cnt[b] += 2; cnt[e] += 2;
+      }
+      for (let i = 0; i < n; i++) tv[i] = Math.max(tv[i] * 0.4 + 0.6 * acc[i] / Math.max(cnt[i], 1), 0.007);
+    }
+    this.clothThick = tv;
     const pos = new Float32Array(n * 3);
-    for (let i = 0; i < n * 3; i++) pos[i] = d.position[i] + d.normal[i] * t;
+    for (let i = 0; i < n * 3; i++) pos[i] = d.position[i] + d.normal[i] * tv[(i / 3) | 0];
     const g = new THREE.BufferGeometry();
     const src = this.body.geometry;
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -168,7 +182,7 @@ export class Character {
     g.morphAttributes.position = d.morphP.map((dp, k) => {
       const dn = d.morphN[k];
       const a = new Float32Array(n * 3);
-      for (let i = 0; i < n * 3; i++) a[i] = dp[i] + dn[i] * t;
+      for (let i = 0; i < n * 3; i++) a[i] = dp[i] + dn[i] * tv[(i / 3) | 0];
       return new THREE.BufferAttribute(a, 3);
     });
     g.morphAttributes.normal = src.morphAttributes.normal;
@@ -220,6 +234,7 @@ export class Character {
     U.uEyeA.value.set(st.eyeSize * (ex.size || 1), st.eyeAspect * (ex.aspect || 1), st.eyeTilt + (ex.tilt || 0), st.eyeX);
     U.uEyeB.value.set(st.eyeUpper, st.eyeLower, ex.happy || 0, st.eyeY);
     U.uIris.value.set(st.irisSize * (ex.iris || 1), st.pupilSize, st.pupilType, st.irisY);
+    U.uIris2.value.set(1 + (st.irisTall ?? 0), 0, 0, 0);
     U.uIrisTop.value.set(st.irisTop); U.uIrisBot.value.set(st.irisBot); U.uSclera.value.set(st.sclera); U.uLid.value.set(st.lidColor);
     U.uEyeC2.value.set(st.lidW, st.highlight, st.lashes, Math.min(0.95, (st.eyeLid ?? 0) + (ex.lid || 0)));
     U.uBrow.value.set(st.browType, st.browY + (ex.browY || 0), st.browAngle + (ex.browA || 0), st.browW);
@@ -237,13 +252,14 @@ export class Character {
     U.uMouthC.value.set(Math.min(1, st.mouthOpen + (ex.open || 0)), st.whiskerDots ? 1 : 0, 0, 0);
     U.uCav.value.set(st.muscle, Math.max(st.fat, 0), st.muscleLine, 0.2);
     U.uTorso.value.set(meta.joints.chest[1], meta.joints.spine[1], 0.074, 0);
+    U.uFurS.value.set(st.furStroke ?? 0.5, st.furStrokeScale ?? 1, st.furStrokeDens ?? 0.6, 0);
     U.uFurLen.value = st.furFringe; U.uFurDens.value = st.furDens;
     U.uClothV.value.set(st.top, st.bottom, st.topNeck, 0);
     this.furHull && (this.furHull.visible = st.furFringe > 0.001);
     // 服
     const S = this.shellU;
     S.uTop.value.set(st.top, st.topNeck, 0, 0);
-    S.uBot.value.set(st.bottom, st.belt ? 1 : 0, st.pantStripe ? 1 : 0, 0);
+    S.uBot.value.set(st.bottom, 0, st.pantStripe ? 1 : 0, 0);
     S.uTrimCol.value.set(st.trimColor);
     S.uTopCol.value.set(st.topColor); S.uBotCol.value.set(st.bottomColor); S.uBeltCol.value.set(st.beltColor);
     // 絵づくり
@@ -423,12 +439,13 @@ export class Character {
       const N = s.n.clone();
       const fl = flowV.clone().add(V(R() - 0.5, R() - 0.5, R() - 0.5).multiplyScalar(0.35 * mess * (opt.mess ?? 1)));
       const T = fl.addScaledVector(N, -fl.dot(N)).normalize();
+      // 根元は表面に沿わせ（断面が見えない）、先へ行くほど持ち上がる
       const lift = opt.lift ?? 0.3;
-      const d = T.clone().addScaledVector(N, lift).normalize();
-      const p = this._local(bone, s.p).addScaledVector(N, (opt.layer ?? layer) * 0.0012);
+      const d = T.clone().addScaledVector(N, lift * 0.25).normalize();
+      const p = this._local(bone, s.p).addScaledVector(N, (opt.layer ?? layer) * 0.0012 - 0.0025);
       addTuft(opt.builder || B, {
         p, d, up: N, len: len * (1 + (R() - 0.5) * 0.25 * mess), w, t: w * (opt.flat ?? 0.5),
-        bend: N.clone().multiplyScalar(opt.curl ?? 0.1).addScaledVector(T, 0.0), sharp: opt.sharp ?? Math.max(0.55, sharp),
+        bend: N.clone().multiplyScalar((opt.curl ?? 0.1) + lift * 0.8), rootThin: true, sharp: opt.sharp ?? Math.max(0.55, sharp),
         c0: opt.c0 || hairC, c1: opt.c1 || (st.hairTipAmt > 0 ? hairTip : opt.c0 || hairC),
         tipAmt: opt.tipAmt ?? st.hairTipAmt, segs: opt.segs || 8, sides: 8, sink: opt.sink ?? 0.006,
       });
@@ -658,6 +675,55 @@ export class Character {
       addTuft(SB, { p: front, d: V(0.25, -1, 0.35).normalize(), up: V(0, 0, 1), len: 0.13, w: 0.03, t: 0.008, bend: V(0, 0, 0.1), sharp: 0.1, c0: sc, c1: sc, segs: 6, sides: 6, sink: 0 });
       addTuft(SB, { p: front, d: V(0.45, -0.9, 0.3).normalize(), up: V(0, 0, 1), len: 0.1, w: 0.026, t: 0.008, bend: V(0, 0, 0.1), sharp: 0.1, c0: sc.clone().multiplyScalar(0.9), c1: sc, segs: 6, sides: 6, sink: 0 });
       this._addMesh('neck', SB.build(), this.mats.part, this.mats.partO);
+    }
+    if (st.belt) {
+      // ベルト: 腰の表面（服の上）に沿った帯＋バックル
+      const BB = new GeoBuilder();
+      const bc = col(st.beltColor), gold = col('#d8b45a');
+      const N = 40, Hb = 0.034, Tb = 0.006;
+      const ctr = V(0, 0.985, -0.012);
+      const ring = [];
+      for (let i = 0; i < N; i++) {
+        const a = i / N * Math.PI * 2;
+        const s = this.pick(['hips', 'spine'], ctr, V(Math.sin(a), 0, Math.cos(a)));
+        const p = s.p.clone().addScaledVector(s.n, (this.clothThick?.[s.i] ?? 0.008) + 0.004);
+        ring.push(this._local('hips', p));
+      }
+      // 高さをそろえる（腰のラインに沿った水平な帯）
+      const yAvg = ring.reduce((a, p) => a + p.y, 0) / N;
+      const cen = ring.reduce((a, p) => a.add(p), V(0, 0, 0)).multiplyScalar(1 / N);
+      const corners = [[0, 0.5, 1.0], [Tb, 0.5, 1.0], [Tb, -0.5, 0.82], [0, -0.5, 0.82]];
+      for (let i = 0; i <= N; i++) {
+        const p = ring[i % N].clone(); p.y = yAvg;
+        const out = p.clone().sub(cen).setY(0).normalize();
+        corners.forEach(([o, h, k]) => {
+          const q = p.clone().addScaledVector(out, o).add(V(0, h * Hb, 0));
+          BB.v(q, bc.clone().multiplyScalar(k * (o > 0 ? 1 : 0.6)));
+        });
+      }
+      for (let i = 0; i < N; i++) for (let j = 0; j < 4; j++) {
+        const a = i * 4 + j, b = i * 4 + (j + 1) % 4, a2 = a + 4, b2 = b + 4;
+        BB.tri(a, b, b2); BB.tri(a, b2, a2);
+      }
+      // バックル（前の中央）
+      const f = ring[0].clone(); f.y = yAvg;
+      const fo = f.clone().sub(cen).setY(0).normalize();
+      const fr = new THREE.Vector3(fo.z, 0, -fo.x);
+      const box = (cx, cy, w, h, d0, d1, colr) => {
+        const b0 = BB.n;
+        for (const [x, y, z] of [[-1, -1, 0], [1, -1, 0], [1, 1, 0], [-1, 1, 0], [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]]) {
+          const q = f.clone().addScaledVector(fr, cx + x * w / 2).add(V(0, cy + y * h / 2, 0)).addScaledVector(fo, z ? d1 : d0);
+          BB.v(q, colr.clone().multiplyScalar(z ? 1 : 0.7));
+        }
+        for (const [a, b, cc, dd] of [[4, 5, 6, 7], [1, 0, 3, 2], [0, 1, 5, 4], [2, 3, 7, 6], [1, 2, 6, 5], [3, 0, 4, 7]]) { BB.tri(b0 + a, b0 + b, b0 + cc); BB.tri(b0 + a, b0 + cc, b0 + dd); }
+      };
+      const bw = 0.052, bh = Hb * 1.25, fw = 0.008;
+      box(0, bh / 2 - fw / 2, bw, fw, Tb * 0.5, Tb + 0.006, gold);
+      box(0, -bh / 2 + fw / 2, bw, fw, Tb * 0.5, Tb + 0.006, gold);
+      box(-bw / 2 + fw / 2, 0, fw, bh, Tb * 0.5, Tb + 0.006, gold);
+      box(bw / 2 - fw / 2, 0, fw, bh, Tb * 0.5, Tb + 0.006, gold);
+      box(0, 0, 0.004, bh * 0.8, Tb * 0.5, Tb + 0.008, gold);
+      this._addMesh('hips', BB.build(), this.mats.hair, this.mats.hairO);
     }
     if (st.bracelet) {
       for (const side of ['L', 'R']) {

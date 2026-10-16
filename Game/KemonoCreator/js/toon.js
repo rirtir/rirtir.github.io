@@ -43,6 +43,7 @@ export function makeBodyUniforms() {
     uEyeA: V4(0.021, 0.8, 0.12, 0.0),  // x: 半幅 y: 縦横比 z: つり/たれ w: 左右位置
     uEyeB: V4(0.7, 0.45, 0.0, 0.0),   // x: 上まぶたの丸み y: 下まぶた z: (未使用) w: 上下位置
     uIris: V4(0.62, 0.42, 0.0, 0.0),  // x: 瞳の大きさ y: 瞳孔 z: 瞳孔の形 w: 瞳の上下
+    uIris2: V4(1.0, 0, 0, 0),
     uIrisTop: C('#2d6a3a'), uIrisBot: C('#b8e05a'), uSclera: C('#fbfaf6'), uLid: C('#2a1c1a'),
     uEyeC2: V4(1.0, 1.0, 0.0, 0.0),   // x: まぶた線の太さ y: ハイライト z: まつげ w: 白目の暗さ
     uBlink: { value: 0 }, uGaze: { value: new THREE.Vector2(0, 0) },
@@ -54,7 +55,7 @@ export function makeBodyUniforms() {
     uMouthB: V4(0.0, 0.016, 1.0, 0.3),   // x: 牙の長さ y: 牙の位置 z: 鼻下の線 w: ω
     uMouthC: V4(0.0, 0.0, 0.0, 0.0),     // x: 口の開き
     uMouthCol: C('#2a1818'),
-    uCav: V4(0.35, 0, 0.6, 0.3), uTorso: V4(1.285, 1.085, 0.074, 0),
+    uFurS: V4(0.5, 1.0, 0.6, 0), uCav: V4(0.35, 0, 0.6, 0.3), uTorso: V4(1.285, 1.085, 0.074, 0),
     uFurLen: { value: 0.5 }, uFurDens: { value: 1.0 }, uClothV: V4(0, 1, 0.3, 0),
   };
 }
@@ -101,12 +102,44 @@ const BODY_PARS = /* glsl */`
 uniform vec3 uColMain, uColSub, uColAccent, uColPad, uColPattern;
 uniform vec4 uMark, uMark2, uMark3;
 uniform vec3 uEyeC, uEyeR, uEyeU, uEyeN;
-uniform vec4 uEyeA, uEyeB, uIris, uEyeC2, uBrow;
+uniform vec4 uEyeA, uEyeB, uIris, uEyeC2, uBrow, uIris2;
 uniform vec3 uIrisTop, uIrisBot, uSclera, uLid, uBrowCol;
 uniform float uBlink; uniform vec2 uGaze;
 uniform vec3 uMzRoot, uMzF, uMzU; uniform float uMzLen;
-uniform vec4 uMouthA, uMouthB, uMouthC; uniform vec3 uMouthCol; uniform vec4 uCav; uniform vec4 uTorso;
+uniform vec4 uMouthA, uMouthB, uMouthC; uniform vec3 uMouthCol; uniform vec4 uCav; uniform vec4 uFurS; uniform vec4 uTorso;
 
+vec3 kc_hash3(vec3 p){ p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.xxy + p.yxx) * p.zyx); }
+// 毛並みの線: 表面に沿って下向きに流れる、両端のとがった短い線を散らす
+float kcFurStrokes(vec3 p, vec3 n, float scale, float dens) {
+  vec3 q = p * scale;
+  vec3 i0 = floor(q - 0.5);
+  vec3 g = vec3(0.0, -1.0, 0.0);
+  vec3 down = g - n * dot(g, n);
+  float dl = length(down);
+  down = dl > 0.15 ? down / dl : normalize(cross(n, vec3(1.0, 0.0, 0.0)));
+  vec3 side = cross(n, down);
+  float m = 0.0;
+  for (int k = 0; k < 8; k++) {
+    vec3 cid = i0 + vec3(float(k & 1), float((k >> 1) & 1), float((k >> 2) & 1));
+    vec3 h = kc_hash3(cid);
+    if (h.y > dens) continue;
+    vec3 d = q - (cid + h);
+    if (abs(dot(d, n)) > 0.55) continue;
+    d -= n * dot(d, n);
+    vec3 dir = normalize(down + side * (h.x - 0.5) * 0.9);
+    float along = dot(d, dir);
+    float L = 0.32 + 0.2 * h.z;
+    if (abs(along) > L) continue;
+    float tt = along / L;
+    float across = length(d - dir * along) ;
+    // 少し曲げる
+    across = abs(dot(d - dir * along, side) - 0.08 * tt * tt);
+    float w = 0.055 * (1.0 - tt * tt);
+    float fw = fwidth(across) + 1e-4;
+    m = max(m, 1.0 - smoothstep(w - fw, w + fw, across));
+  }
+  return m;
+}
 // 線: |d| が幅(px)以内なら1
 float kcLine(float d, float px){ float w = max(fwidth(d), 1e-6); return 1.0 - smoothstep(px*0.5 - 0.6, px*0.5 + 0.6, abs(d)/w); }
 
@@ -214,7 +247,7 @@ vec4 kcEye(vec3 p) {
     // 瞳
     float r = uIris.x;
     vec2 c = vec2(uGaze.x * (mir ? -1.0 : 1.0) * 0.25, uGaze.y * 0.15 + uIris.w + mix(0.0, -0.2, uBlink));
-    vec2 dv = vec2(X - c.x, (Y - c.y) / 1.1);
+    vec2 dv = vec2((X - c.x) * uIris2.x, (Y - c.y) / 1.1);
     float rr = length(dv);
     float iris = kc_aa(rr - r);
     vec3 ic = mix(uIrisBot, uIrisTop, smoothstep(-r * 0.7, r * 0.9, dv.y));
@@ -462,6 +495,14 @@ vec3 outgoingLight;
   vec3 col = kcToon(albedo, N, V, faceSoft, jag);
 #ifdef KC_BODY
 #ifndef KC_FURHULL
+  if (uFurS.x > 0.001) {
+    vec3 gn = normalize(cross(dFdx(vPos), dFdy(vPos)));
+    float region = (1.0 - smoothstep(0.3, 0.6, vMaskA.a)) * (1.0 - step(0.5, vMaskA.b)) * (1.0 - 0.7 * smoothstep(0.3, 0.6, vMaskA.r));
+    float fs = kcFurStrokes(vPos, gn, 60.0 * uFurS.y, uFurS.z) * region;
+    float ndlF = dot(N, kcL) * 0.5 + 0.5;
+    float inShade = 1.0 - smoothstep(uT1 - 0.06, uT1 + 0.12, ndlF);
+    col = mix(col, col * uShadeMul * 0.72, fs * uFurS.x * (0.45 + 0.55 * inShade));
+  }
   // 筋肉の溝の線（くぼみ具合から）
   {
     float cav = mix(vMaskB.z, vMaskB.w, uCav.x) * (1.0 - 0.85 * uCav.y);

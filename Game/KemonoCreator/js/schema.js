@@ -10,14 +10,14 @@ export const CATEGORIES = [
   {
     id: 'body', label: '体型', icon: '体', groups: [
       { label: '全体', items: [R('height', '身長', 0.86, 1.14, 1.0, 0.005), R('muscle', '筋肉', 0, 1, 0.35), R('fat', '肉づき', -1, 1, 0), R('belly', 'お腹', 0, 1, 0), R('bulk', '体格（骨太さ）'), R('muscleLine', '筋肉の溝の線', 0, 1, 0.6)] },
-      { label: '上半身', items: [R('shoulderW', '肩幅'), R('chest', '胸板の厚み'), R('pecs', '胸筋'), R('traps', '僧帽筋（肩の盛り上がり）'), R('waist', 'ウエスト'), R('torsoLen', '胴の長さ'), R('neckThick', '首の太さ'), R('neckLen', '首の長さ')] },
+      { label: '上半身', items: [R('shoulderW', '肩幅'), R('chest', '胸板の厚み'), R('pecs', '胸筋'), R('traps', '僧帽筋（肩の盛り上がり）'), R('waist', 'ウエスト'), R('flank', '脇腹の肉（くびれ）'), R('torsoLen', '胴の長さ'), R('neckThick', '首の太さ'), R('neckLen', '首の長さ')] },
       { label: '腕・手', items: [R('armLen', '腕の長さ'), R('armThick', '腕の太さ'), R('handSize', '手の大きさ')] },
       { label: '下半身', items: [R('hipW', '腰幅'), R('glutes', 'お尻'), R('legLen', '脚の長さ'), R('legThick', '脚の太さ'), R('calf', 'ふくらはぎ'), R('footSize', '足の大きさ')] },
     ],
   },
   {
     id: 'head', label: '頭・顔', icon: '顔', groups: [
-      { label: '頭の形', items: [R('headSize', '頭の大きさ'), R('headW', '頭の幅'), R('craniumH', '頭頂の高さ'), R('forehead', 'おでこ'), R('brow', '眉骨')] },
+      { label: '頭の形', items: [R('headSize', '頭の大きさ'), R('headW', '頭の幅'), R('craniumH', '頭頂の高さ'), R('forehead', 'おでこ'), R('brow', '眉骨（目の上）'), R('glabella', '眉間の高さ')] },
       { label: '輪郭', items: [R('cheek', '頬のふくらみ'), R('jaw', 'あご・のど'), R('stop', '額とマズルの段差')] },
     ],
   },
@@ -31,7 +31,7 @@ export const CATEGORIES = [
     id: 'eyes', label: '目', icon: '目', groups: [
       { label: '形', items: [R('eyeSize', '大きさ', 0.014, 0.032, 0.021, 0.0005), R('eyeAspect', '縦の幅', 0.35, 1.25, 0.78), R('eyeTilt', 'つり目 ↔ たれ目', -0.45, 0.55, 0.14), R('eyeUpper', '上まぶたの丸み', 0.25, 1.5, 0.7), R('eyeLower', '下まぶたの深さ', 0.1, 0.95, 0.45), R('eyeLid', '目つき（まぶたの下がり）', 0, 0.9, 0.2)] },
       { label: '位置', items: [R('eyeX', '間隔', -0.012, 0.012, 0, 0.0005), R('eyeY', '高さ', -0.014, 0.014, 0, 0.0005)] },
-      { label: '瞳', items: [R('irisSize', '瞳の大きさ', 0.3, 1.0, 0.62), R('irisY', '瞳の上下', -0.4, 0.4, 0.0), S('pupilType', '瞳孔の形', ['丸', '縦長', 'なし', '横長'], 0), R('pupilSize', '瞳孔の大きさ', 0, 0.95, 0.42), C('irisTop', '瞳の色（上）', '#2d6a3a'), C('irisBot', '瞳の色（下）', '#b8e05a'), R('highlight', 'ハイライト', 0, 1.6, 1.0), C('sclera', '白目の色', '#fbfaf6')] },
+      { label: '瞳', items: [R('irisSize', '瞳の大きさ', 0.2, 1.0, 0.34), R('irisTall', '瞳の縦長さ', 0, 1.2, 0), R('irisY', '瞳の上下', -0.4, 0.4, 0.0), S('pupilType', '瞳孔の形', ['丸', '縦長', 'なし', '横長'], 0), R('pupilSize', '瞳孔の大きさ', 0, 0.95, 0.42), C('irisTop', '瞳の色（上）', '#2d6a3a'), C('irisBot', '瞳の色（下）', '#b8e05a'), R('highlight', 'ハイライト', 0, 1.6, 1.0), C('sclera', '白目の色', '#fbfaf6')] },
       { label: 'まぶた・まつげ', items: [R('lidW', 'まぶたの線の太さ', 0.3, 2.2, 1.0), R('lashes', 'まつげ', 0, 1, 0.0), C('lidColor', '線の色', '#2a1c1a')] },
       { label: '眉', items: [S('browType', '眉の種類', ['なし', '線', '麻呂眉', '太眉'], 1), R('browY', '眉の高さ', -0.5, 0.6, 0), R('browAngle', '眉の角度', -0.6, 0.6, 0.1), R('browW', '眉の太さ', 0.4, 1.8, 1.0), C('browColor', '眉の色', '#3a2a22')] },
     ],
@@ -60,7 +60,7 @@ export const CATEGORIES = [
   {
     id: 'fur', label: '体毛', icon: '毛', groups: [
       { label: '毛の房', items: [R('chestFluff', '胸毛', 0, 1, 0.5), R('chestLen', '胸毛の長さ', 0.5, 1.8, 1.0), R('neckRuff', '首まわりの毛', 0, 1, 0.3), R('shoulderFluff', '肩の毛', 0, 1, 0), R('backMane', '背中の毛', 0, 1, 0), R('elbowTuft', 'ひじの毛', 0, 1, 0.4), R('wristTuft', '手首の毛', 0, 1, 0.3), R('ankleTuft', 'かかとの毛', 0, 1, 0.3)] },
-      { label: '毛並み', items: [R('furFringe', '輪郭の毛のふさふさ', 0, 1, 0.3), R('furDens', '輪郭の毛の細かさ', 0.6, 1.8, 1.0), R('tuftSharp', '房の鋭さ', 0, 1, 0.6), R('tuftWide', '房の太さ', 0.6, 1.6, 1.0), R('furJag', '影の毛並み表現', 0, 1, 0.35), R('jag', '模様の境目のギザギザ', 0, 1, 0.5)] },
+      { label: '毛並み', items: [R('furStroke', '毛並みの線', 0, 1, 0.55), R('furStrokeScale', '毛並みの線の細かさ', 0.6, 1.8, 1.0), R('furStrokeDens', '毛並みの線の量', 0.1, 1, 0.6), R('furFringe', '輪郭の毛のふさふさ', 0, 1, 0.45), R('furDens', '輪郭の毛の細かさ', 0.6, 1.8, 1.0), R('tuftSharp', '房の鋭さ', 0, 1, 0.6), R('tuftWide', '房の太さ', 0.6, 1.6, 1.0), R('furJag', '影の毛並み表現', 0, 1, 0.35), R('jag', '模様の境目のギザギザ', 0, 1, 0.5)] },
     ],
   },
   {
@@ -111,7 +111,7 @@ export const PRESETS = [
       furMain: '#7d7f86', furSub: '#ece9e4', furAccent: '#4b4c52', patternColor: '#3f4046', backMark: 0.55, cheekWhite: 1, muzzleCover: 0.55, bellyW: 0.6,
       irisTop: '#7a5a12', irisBot: '#f2c33a', eyeTilt: 0.3, browType: 3, hairStyle: 1, hairLen: 1.25, cheekFluff: 2, tailType: 0, neckRuff: 0.6, chestFluff: 0.7,
       noseType: 0, noseSize: 0.95, mouthCorner: 0.52, smile: 0.6, fang: 0, muscle: 0.85, bulk: 0.5, shoulderW: 0.5, chest: 0.6, pecs: 0.5, traps: 0.6, neckThick: 0.7, neckLen: -0.4, armThick: 0.4,
-      eyeSize: 0.019, eyeAspect: 0.6, irisSize: 0.6, eyeLid: 0.5, irisY: 0.08, browW: 1.15, browY: -0.12, browColor: '#ece9e4', cheekLen: 1.2,
+      eyeSize: 0.019, eyeAspect: 0.6, irisSize: 0.37, eyeLid: 0.5, irisY: 0.08, browW: 1.15, browY: -0.12, browColor: '#ece9e4', cheekLen: 1.2,
       top: 4, topColor: '#2c3e5c', trimColor: '#d9b45a', topNeck: 0.35, bottom: 2, bottomColor: '#3a3430', pantStripe: true,
     },
   },
@@ -119,7 +119,7 @@ export const PRESETS = [
     name: '柴犬', sub: 'しばいぬ', swatch: ['#d38a43', '#fbf1e2'], s: {
       muzLen: -0.15, muzW: 0.1, muzTaper: 0.1, stop: -0.05, cheek: 0.45, earType: 0, earSize: 0.85, earRound: 0.35, earCup: 0.7, earOut: 0.2,
       furMain: '#d38a43', furSub: '#fbf1e2', furAccent: '#d38a43', cheekWhite: 1, muzzleCover: 0.75, bellyW: 0.7, browType: 2, browColor: '#fbf1e2', browW: 0.9, browY: -0.1,
-      irisTop: '#2a170e', irisBot: '#6b3d1f', eyeAspect: 0.85, eyeTilt: 0.05, irisSize: 0.78, pupilSize: 0.5, hairStyle: 1, hairLen: 0.6, cheekFluff: 1,
+      irisTop: '#2a170e', irisBot: '#6b3d1f', eyeAspect: 0.85, eyeTilt: 0.05, irisSize: 0.48, pupilSize: 0.5, hairStyle: 1, hairLen: 0.6, cheekFluff: 1,
       tailType: 0, tailCurl: 1.0, tailUp: 1.0, tailFluff: 0.5, smile: 0.7, mouthCorner: 0.26, fat: 0.15, muscle: 0.25,
     },
   },
@@ -135,7 +135,7 @@ export const PRESETS = [
     name: '猫', sub: 'ネコ', swatch: ['#9a9590', '#f1ece6'], s: {
       muzLen: -0.8, muzW: 0.1, muzH: -0.25, muzTaper: -0.2, padSize: 0.7, stop: 0.05, jawLen: -0.4, headSize: 0.15, cheek: 0.35, earType: 2, earSize: 1.0, earRound: 0.2,
       furMain: '#9a9590', furSub: '#f1ece6', furAccent: '#f1ece6', patternColor: '#5d5853', pattern: 1, patternAmt: 0.45, sockArm: 0.82, sockLeg: 0.7,
-      irisTop: '#3d7a3a', irisBot: '#d8ee7a', eyeAspect: 0.85, eyeTilt: 0.25, pupilType: 1, pupilSize: 0.35, irisSize: 0.75, noseType: 3, noseSize: 0.75, omega: 0.7, mouthCorner: 0.45,
+      irisTop: '#3d7a3a', irisBot: '#d8ee7a', eyeAspect: 0.85, eyeTilt: 0.25, pupilType: 1, pupilSize: 0.35, irisSize: 0.46, noseType: 3, noseSize: 0.75, omega: 0.7, mouthCorner: 0.45,
       whiskers: 3, tailType: 2, hairStyle: 1, hairLen: 0.6, cheekFluff: 1, chestFluff: 0.3, muscle: 0.2,
     },
   },
@@ -158,7 +158,7 @@ export const PRESETS = [
   {
     name: '熊', sub: 'クマ', swatch: ['#6b4a34', '#b88a62'], s: {
       muzLen: -0.35, muzW: 0.5, muzH: 0.35, muzTaper: -0.4, stop: 0.2, headW: 0.35, headSize: 0.1, cheek: 0.7, jaw: 0.6, earType: 3, earSize: 0.75, earY: -0.2,
-      furMain: '#6b4a34', furSub: '#b88a62', furAccent: '#6b4a34', muzzleCover: 0.95, bellyW: 0.0, irisTop: '#1e120c', irisBot: '#4a2e1c', irisSize: 0.85, eyeAspect: 0.85, eyeSize: 0.018,
+      furMain: '#6b4a34', furSub: '#b88a62', furAccent: '#6b4a34', muzzleCover: 0.95, bellyW: 0.0, irisTop: '#1e120c', irisBot: '#4a2e1c', irisSize: 0.53, eyeAspect: 0.85, eyeSize: 0.018,
       noseType: 2, noseSize: 1.3, mouthCorner: 0.12, browType: 3, hairStyle: 1, hairLen: 0.5, cheekFluff: 1, chestFluff: 0.4, tailType: 4,
       fat: 0.6, belly: 0.6, muscle: 0.55, shoulderW: 0.5, armThick: 0.7, legThick: 0.7, neckThick: 0.9, neckLen: -0.6, height: 1.06,
     },
@@ -166,7 +166,7 @@ export const PRESETS = [
   {
     name: '兎', sub: 'ウサギ', swatch: ['#f2efe9', '#c9b8ae'], s: {
       muzLen: -0.9, muzW: -0.1, muzH: -0.3, padSize: 0.5, stop: 0.15, headSize: 0.2, cheek: 0.5, earType: 5, earSize: 1.0,
-      furMain: '#f2efe9', furSub: '#ffffff', furAccent: '#f2efe9', earInner: '#f3c6c4', irisTop: '#8a1e2e', irisBot: '#f05a6e', irisSize: 0.85, eyeAspect: 0.95, eyeTilt: -0.05,
+      furMain: '#f2efe9', furSub: '#ffffff', furAccent: '#f2efe9', earInner: '#f3c6c4', irisTop: '#8a1e2e', irisBot: '#f05a6e', irisSize: 0.53, eyeAspect: 0.95, eyeTilt: -0.05,
       noseType: 4, noseColor: '#e89aa0', noseSize: 0.6, omega: 0.9, mouthCorner: 0.5, fang: 0, tailType: 5, hairStyle: 2, hairLen: 0.8, cheekFluff: 1,
       muscle: 0.15, fat: -0.2, shoulderW: -0.3, height: 0.94,
     },
@@ -207,7 +207,7 @@ export const PRESETS = [
     name: '狸', sub: 'タヌキ', swatch: ['#8a7058', '#2a221e'], s: {
       muzLen: -0.4, muzW: 0.2, muzH: 0.0, muzTaper: 0.3, stop: 0.0, cheek: 0.7, headW: 0.2, earType: 3, earSize: 0.9, earH: 1.2, earRound: 0.6,
       furMain: '#8a7058', furSub: '#d9ccb8', furAccent: '#2a221e', patternColor: '#2a221e', eyeMask: 0.7, muzzleCover: 0.35, cheekWhite: 1, bellyW: 0.3, sockArm: 0.7, sockLeg: 0.55,
-      irisTop: '#2a170e', irisBot: '#8a5a2a', eyeTilt: -0.2, eyeAspect: 0.85, irisSize: 0.75, browType: 0, noseType: 0, noseSize: 0.85, hairStyle: 1, hairLen: 0.6, cheekFluff: 2, cheekLen: 1.3,
+      irisTop: '#2a170e', irisBot: '#8a5a2a', eyeTilt: -0.2, eyeAspect: 0.85, irisSize: 0.46, browType: 0, noseType: 0, noseSize: 0.85, hairStyle: 1, hairLen: 0.6, cheekFluff: 2, cheekLen: 1.3,
       tailType: 0, tailThick: 1.2, tailTipAmt: 0.2, tailTipColor: '#2a221e', fat: 0.5, belly: 0.6, muscle: 0.15, height: 0.95,
     },
   },
