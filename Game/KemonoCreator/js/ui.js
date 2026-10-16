@@ -39,7 +39,7 @@ const BODY_TYPES = [
   ['肥満', { _w: 1.3, muscle: 0.1, fat: 1, belly: 1, flank: 1, waist: 0.8, hipW: 0.6, glutes: 0.5, neckLen: -0.7, bulk: 0.4 }],
   ['巨漢', { _w: 1.25, muscle: 0.8, fat: 0.55, belly: 0.4, bulk: 1, shoulderW: 1, chest: 1, traps: 0.8, armThick: 0.8, legThick: 0.8, neckThick: 1, neckLen: -0.6, handSize: 0.6, footSize: 0.5, height: 1.12 }],
 ];
-const CAM_FOR = { preset: 'full', body: 'full', head: 'face', muzzle: 'face', eyes: 'eyes', mouth: 'face', ears: 'face', hair: 'face', fur: 'upper', tail: 'back', color: 'full', outfit: 'full', pose: 'full', view: 'full' };
+const CAM_FOR = { paint: 'face', preset: 'full', body: 'full', head: 'face', muzzle: 'face', eyes: 'eyes', mouth: 'face', ears: 'face', hair: 'face', fur: 'upper', tail: 'back', color: 'full', outfit: 'full', pose: 'full', view: 'full' };
 
 // 見た目の一覧で選ぶ項目と、撮る範囲
 const THUMBS = {

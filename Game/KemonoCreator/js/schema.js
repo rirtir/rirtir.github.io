@@ -78,6 +78,13 @@ export const CATEGORIES = [
     ],
   },
   {
+    id: 'paint', label: '顔の模様', icon: '彩', groups: [
+      { label: '模様（いくつでも重ねられます）', items: [T('decCheek', '頬の縞（虎）', false), R('decCheekW', '頬の縞の太さ', 0.4, 1.6, 1.0), T('decForehead', '額の縞', false), T('decTear', '目の下の線', false), C('decColor', '模様の色', '#2a2020')] },
+      { label: 'チーク', items: [R('blush', 'チークの濃さ', 0, 1, 0), R('blushSize', 'チークの大きさ', 0.6, 1.5, 1.0), T('blushHatch', '斜線を入れる', false), C('blushColor', 'チークの色', '#ff8a8a')] },
+      { label: 'ほくろ・傷', items: [T('decMole', 'ほくろ', false), R('moleX', 'ほくろの左右', -1.5, 2.5, 0.8), R('moleY', 'ほくろの上下', -4, 1.5, -1.4), R('moleSize', 'ほくろの大きさ', 0.5, 2, 1), C('moleColor', 'ほくろの色', '#2a1c1a'), T('decScar', '目の傷', false), C('scarColor', '傷の色', '#f0e6dc')] },
+    ],
+  },
+  {
     id: 'outfit', label: '服', icon: '服', groups: [
       { label: '上', items: [S('top', '上の服', ['なし', 'タンクトップ', 'Tシャツ', '長袖', 'ジャケット（前開き）'], 0), C('topColor', '色', '#3d5a80'), R('topNeck', '襟ぐり・前の開き', 0, 1, 0.3), C('trimColor', '縁取りの色', '#d9b45a')] },
       { label: '下', items: [S('bottom', '下の服', ['ショートパンツ', 'ハーフパンツ', 'ロングパンツ'], 1), C('bottomColor', '色', '#2e3440'), T('belt', 'ベルト', true), C('beltColor', 'ベルトの色', '#7a5230'), T('pantStripe', '横のライン（縁取りの色）', false)] },

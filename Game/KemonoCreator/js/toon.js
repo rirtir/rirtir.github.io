@@ -57,6 +57,10 @@ export function makeBodyUniforms() {
     uMouthB: V4(0.0, 0.016, 1.0, 0.3),   // x: 牙の長さ y: 牙の位置 z: 鼻下の線 w: ω
     uMouthC: V4(0.0, 0.0, 0.0, 0.0),     // x: 口の開き
     uMouthCol: C('#2a1818'),
+    uDec1: V4(0, 0, 0, 0),   // x: 頬の縞 y: 額の縞 z: 目の下の線 w: 傷
+    uDec2: V4(0, 0.8, -1.4, 1),   // x: ほくろ y,z: 位置（目の単位） w: 大きさ
+    uDec3: V4(0, 0, 1, 0),   // x: チーク y: 斜線 z: 大きさ
+    uDecCol: C('#2a2020'), uMoleCol: C('#2a1c1a'), uBlushCol: C('#ff8a8a'), uScarCol: C('#f0e6dc'),
     uFurS: V4(0.5, 1.0, 0.6, 0), uCav: V4(0.35, 0, 0.6, 0.3), uTorso: V4(1.285, 1.085, 0.074, 0),
     uFurLen: { value: 0.5 }, uFurDens: { value: 1.0 }, uClothV: V4(0, 1, 0.3, 0),
   };
@@ -111,7 +115,7 @@ uniform vec4 uEyeA, uEyeB, uIris, uEyeC2, uBrow, uIris2;
 uniform vec3 uIrisTop, uIrisBot, uSclera, uLid, uBrowCol;
 uniform float uBlink; uniform vec2 uGaze;
 uniform vec3 uMzRoot, uMzF, uMzU; uniform float uMzLen;
-uniform vec4 uMouthA, uMouthB, uMouthC; uniform vec3 uMouthCol; uniform vec4 uCav; uniform vec4 uFurS; uniform vec4 uTorso;
+uniform vec4 uMouthA, uMouthB, uMouthC; uniform vec3 uMouthCol; uniform vec4 uCav; uniform vec4 uFurS; uniform vec4 uDec1, uDec2, uDec3; uniform vec3 uDecCol, uMoleCol, uBlushCol, uScarCol; uniform vec4 uTorso;
 
 // 毛先の形の境界: 長さ・幅・とがり方がばらつく歯を並べる（0〜1）
 float kcTooth(float u, float seed) {
@@ -229,6 +233,79 @@ vec3 kcAlbedo(out float isPad) {
     float r = abs(p.x) * 2.2 + max(-(p.y - uEyeC.y - 0.03), 0.0) * 1.2 - (p.y - uEyeC.y - 0.02) * 0.4;
     float m = step(r, 0.02 + 0.04 * uMark3.w) * step(uEyeC.y + 0.0, p.y) * step(0.0, p.z) * vMaskA.g;
     col = mix(col, uColSub, m);
+  }
+  // ---- 顔の模様（重ね掛けできる）。目の位置を基準にした座標で描く
+  if (vMaskA.g > 0.3 && (dot(uDec1, vec4(1.0)) + uDec2.x + uDec3.x) > 0.001) {
+    bool left = p.x >= 0.0;
+    vec3 pe = vec3(abs(p.x), p.y, p.z);
+    vec3 de = pe - uEyeC;
+    float W = uEyeA.x;
+    float X = (dot(de, uEyeR) - uEyeA.w) / W, Y = (dot(de, uEyeU) - uEyeB.w) / W;
+    float faceSide = step(-0.6 * W, dot(de, uEyeN) + 2.0 * W);
+    float m = 0.0;
+    // 頬の縞（虎）: 後ろが太く、口元へ向かって尖る
+    if (uDec1.x > 0.01) {
+      for (int k = 0; k < 3; k++) {
+        float x0 = 1.2 + 0.25 * float(k), len = 3.0 - 0.5 * float(k);
+        float tt = (X - x0) / len;
+        if (tt < 0.0 || tt > 1.0) continue;
+        float yk = -0.95 - 1.0 * float(k) + 0.35 * (X - x0);
+        float hw = 0.34 * uDec1.x * pow(tt, 0.6) * (1.0 - smoothstep(0.85, 1.0, tt));
+        m = max(m, kc_aa(abs(Y - yk) - hw));
+      }
+    }
+    // 目の下の線（涙のような線）
+    if (uDec1.z > 0.01) {
+      float yy = -Y - 0.35;
+      if (yy > 0.0 && yy < 3.0) {
+        float xl = -0.85 - 0.2 * yy - 0.03 * yy * yy;
+        float hw = 0.22 * uDec1.z * (1.0 - yy / 3.0);
+        m = max(m, kc_aa(abs(X - xl) - hw));
+      }
+    }
+    col = mix(col, uDecCol, m * faceSide);
+    // 額の縞: 上が太く下へ尖る
+    if (uDec1.y > 0.01) {
+      float fm = 0.0;
+      float baseY = uEyeC.y + 0.03;
+      for (int i = -2; i <= 2; i++) {
+        float xi = float(i) * 0.017, len = 0.04 - 0.009 * abs(float(i));
+        float ytop = baseY + 0.06 - 0.008 * abs(float(i));
+        float tt = (ytop - p.y) / len;
+        if (tt < 0.0 || tt > 1.0) continue;
+        float hw = 0.0055 * uDec1.y * (1.0 - tt);
+        fm = max(fm, kc_aa(abs(p.x - xi) - hw));
+      }
+      col = mix(col, uDecCol, fm * step(0.0, p.z) * smoothstep(0.35, 0.5, vMaskA.g));
+    }
+    // チーク（頬の赤み）と斜線
+    if (uDec3.x > 0.01) {
+      vec2 q = vec2((X - 0.55) / (1.35 * uDec3.z), (Y + 1.75) / (0.6 * uDec3.z));
+      float e = 1.0 - smoothstep(0.55, 1.0, length(q));
+      col = mix(col, col * 0.55 + uBlushCol * 0.6, e * uDec3.x * 0.7 * faceSide);
+      if (uDec3.y > 0.5) {
+        float hs = abs(fract((X * 0.9 + Y * 0.45) * 1.6) - 0.5);
+        float hl = kc_aa(hs - 0.06) * (1.0 - smoothstep(0.35, 0.75, length(q)));
+        col = mix(col, uBlushCol * 0.75, hl * uDec3.x * faceSide);
+      }
+    }
+    // 傷（左目の上から頬へ）
+    if (uDec1.w > 0.01 && left) {
+      vec2 a = vec2(0.45, 2.2), b = vec2(-0.35, -2.0);
+      vec2 pq = vec2(X, Y) - a, ab = b - a;
+      float h = clamp(dot(pq, ab) / dot(ab, ab), 0.0, 1.0);
+      float dl = length(pq - ab * h);
+      float sm = kc_aa(dl - 0.12 * uDec1.w * (0.4 + 0.6 * sin(h * 3.1416)));
+      // 縫い目
+      vec2 nrm2 = normalize(vec2(-ab.y, ab.x));
+      float st = abs(fract(h * 5.0) - 0.5);
+      float stitch = kc_aa(st - 0.04) * kc_aa(abs(dot(pq - ab * h, nrm2)) - 0.32) * step(0.1, h) * step(h, 0.9);
+      col = mix(col, uScarCol, max(sm, stitch * 0.9) * faceSide);
+    }
+    // ほくろ
+    if (uDec2.x > 0.5 && left) {
+      col = mix(col, uMoleCol, kc_aa(length(vec2(X - uDec2.y, Y - uDec2.z)) - 0.13 * uDec2.w) * faceSide);
+    }
   }
   isPad = smoothstep(0.45, 0.6, vMaskA.b);
   col = mix(col, uColPad, isPad);

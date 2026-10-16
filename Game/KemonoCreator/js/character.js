@@ -74,7 +74,7 @@ vec3 kcCloth() {
 `;
 
 // パーツの作り直しが不要な項目
-const NON_PART = /^(ex[A-Z]|hairPhys|furStroke|lineStr|muscleLine|faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
+const NON_PART = /^(dec[A-Z]|mole|blush|scar|ex[A-Z]|hairPhys|furStroke|lineStr|muscleLine|faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
 
 export class Character {
   constructor(data, scene) {
@@ -250,6 +250,11 @@ export class Character {
     U.uMouthC.value.set(Math.min(1, st.mouthOpen + (ex.open || 0)), st.whiskerDots ? 1 : 0, 0, 0);
     U.uCav.value.set(st.muscle, Math.max(st.fat, 0), st.muscleLine, 0.2);
     U.uTorso.value.set(meta.joints.chest[1], meta.joints.spine[1], 0.074, 0);
+    U.uDec1.value.set(st.decCheek ? st.decCheekW ?? 1 : 0, st.decForehead ? 1 : 0, st.decTear ? 1 : 0, st.decScar ? 1 : 0);
+    U.uDec2.value.set(st.decMole ? 1 : 0, st.moleX ?? 0.8, st.moleY ?? -1.4, st.moleSize ?? 1);
+    U.uDec3.value.set(st.blush ?? 0, st.blushHatch ? 1 : 0, st.blushSize ?? 1, 0);
+    U.uDecCol.value.set(st.decColor ?? '#2a2020'); U.uMoleCol.value.set(st.moleColor ?? '#2a1c1a');
+    U.uBlushCol.value.set(st.blushColor ?? '#ff8a8a'); U.uScarCol.value.set(st.scarColor ?? '#f0e6dc');
     U.uFurS.value.set(st.furStroke ?? 0.5, st.furStrokeScale ?? 1, st.furStrokeDens ?? 0.6, 0);
     U.uFurLen.value = st.furFringe; U.uFurDens.value = st.furDens;
     U.uClothV.value.set(st.top, st.bottom, st.topNeck, 0);
