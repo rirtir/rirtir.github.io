@@ -74,7 +74,7 @@ vec3 kcCloth() {
 `;
 
 // パーツの作り直しが不要な項目
-const NON_PART = /^(hairPhys|furStroke|lineStr|muscleLine|faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
+const NON_PART = /^(ex[A-Z]|hairPhys|furStroke|lineStr|muscleLine|faceViewExpr|eye|iris|pupil|highlight|sclera|lid|lashes|brow|mouth|smile|omega|philtrum|fang|pattern|backMark|foreheadMark|jag|furJag|furFringe|furDens|topColor|trimColor|topNeck|pantStripe|bottom|belt|pose|idle|lookCam|expr|blink|theme|faceViews|turntable|outlineW|anime|shade|rim|faceSoft|light|padColor|muzzleCover|height|whiskerDots)/;
 
 export class Character {
   constructor(data, scene) {
@@ -273,8 +273,21 @@ export class Character {
     this._noseGloss = st.noseGloss;
   }
 
+  // 表情 = プリセット表情 ＋ 手動の調整スライダー
   _exprMods() {
-    const e = this.state.expr;
+    const st = this.state;
+    const m = { ...this._exprPreset(st.expr) };
+    const add = (k, v) => { if (v) m[k] = (m[k] || 0) + v; };
+    add('smile', st.exSmile); add('open', st.exOpen); add('browY', st.exBrowY); add('browA', st.exBrowA);
+    add('lidDown', st.exLid); add('tilt', st.exTilt); add('fang', st.exFang);
+    if (st.exHappy) { m.happy = 1; m.lidDown = Math.max(m.lidDown || 0, st.exHappy); }   // 弧を描いて閉じる目
+    if (st.exEye) m.aspect = (m.aspect || 1) * (1 + st.exEye * 0.35);
+    if (st.exIris) m.iris = (m.iris || 1) * (1 - st.exIris * 0.35);
+    if (m.lidDown) m.lidDown = Math.min(0.95, Math.max(0, m.lidDown));
+    return m;
+  }
+
+  _exprPreset(e) {
     switch (e) {
       case 1: return { smile: 0.7, open: 0.25, happy: 0, aspect: 0.92 };
       case 2: return { smile: 0.9, open: 0.35, happy: 1, closed: 1 };
