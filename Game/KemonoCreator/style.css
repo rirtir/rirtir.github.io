@@ -70,6 +70,13 @@ body.panel-hidden #panel { transform: translateX(calc(100% + 20px)); opacity: 0;
 .chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .chip { padding: 5px 10px; border-radius: 14px; border: 1px solid var(--line); background: var(--glass2); font-size: 12.5px; }
 .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.thumb { display: flex; flex-direction: column; align-items: stretch; padding: 3px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--glass2); }
+.thumb img { width: 100%; aspect-ratio: 1; border-radius: 7px; background: linear-gradient(#e8eaee, #c3c8d0); display: block; object-fit: cover; }
+.thumb img:not([src]) { animation: thpulse 1.2s ease-in-out infinite; }
+@keyframes thpulse { 50% { opacity: .55; } }
+.thumb-lb { font-size: 10.5px; padding: 3px 0 1px; text-align: center; line-height: 1.2; }
+.thumb.on { border-color: var(--ink); background: #fff; box-shadow: 0 0 0 1.5px var(--ink) inset; }
 .ctl-toggle { display: flex; align-items: center; justify-content: space-between; }
 .ctl-toggle .ctl-lb { margin: 0; }
 .tog { width: 56px; height: 26px; border-radius: 13px; border: 1px solid var(--line); background: rgba(60, 70, 90, .12); font-size: 11px; font-weight: 700; color: var(--ink2); }

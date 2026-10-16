@@ -21,7 +21,58 @@ window.__chara = chara;
 window.__THREE = THREE;
 window.__stage = stage;
 
-const ui = buildUI({ chara, stage, camera, controls, renderer });
+// ---- 見た目の一覧（サムネイル）: 1フレームに1枚ずつ、その選択肢を当てた姿を小さく撮る
+const THUMB = 160;
+const thumbRT = new THREE.WebGLRenderTarget(THUMB, THUMB, { samples: 4 });
+thumbRT.texture.colorSpace = THREE.SRGBColorSpace;
+const thumbCam = new THREE.PerspectiveCamera(24, 1, 0.05, 30);
+thumbCam.layers.enable(1);
+const thumbQueue = [];
+const thumbBuf = new Uint8Array(THUMB * THUMB * 4);
+const thumbCanvas = document.createElement('canvas');
+thumbCanvas.width = thumbCanvas.height = THUMB;
+function requestThumb(state, framing) {
+  return new Promise((resolve) => thumbQueue.push({ state, framing, resolve }));
+}
+function processThumb(t) {
+  const job = thumbQueue.shift();
+  if (!job) return;
+  const orig = chara.state;
+  chara.apply(job.state);
+  chara.update(0, t, null);
+  const s = chara.scale, yaw = chara.root.rotation.y;
+  const hc = chara.headCenterWorld();
+  const fr = job.framing;
+  let tgt, dist, az;
+  if (fr === 'face') { tgt = hc.clone().add(new THREE.Vector3(0, -0.01, 0.02)); dist = 0.85 * s; az = 0.55; }
+  else if (fr === 'eye') { tgt = hc.clone().add(new THREE.Vector3(0.0, -0.02 * s, 0.09 * s)); dist = 0.36 * s; az = 0.3; }
+  else if (fr === 'back') { tgt = new THREE.Vector3(0, 0.72 * s, -0.22 * s); dist = 2.5 * s; az = Math.PI - 1.35; }
+  else if (fr === 'upper') { tgt = new THREE.Vector3(0, 1.32 * s, 0); dist = 1.9 * s; az = 0.35; }
+  else { tgt = new THREE.Vector3(0, 0.92 * s, 0); dist = 4.3 * s; az = 0.3; }
+  const a = yaw + az;
+  thumbCam.position.set(tgt.x + Math.sin(a) * dist, tgt.y + 0.04 * dist, tgt.z + Math.cos(a) * dist);
+  thumbCam.lookAt(tgt);
+  stage.updateLight(tgt);
+  const vp = LIGHT.uViewport.value.clone();
+  LIGHT.uViewport.value.set(THUMB * 2.2, THUMB * 2.2);
+  LIGHT.uHeadC.value.copy(hc);
+  renderer.setRenderTarget(thumbRT);
+  renderer.clear();
+  renderer.render(stage.bgScene, stage.bgCam);
+  renderer.render(scene, thumbCam);
+  renderer.readRenderTargetPixels(thumbRT, 0, 0, THUMB, THUMB, thumbBuf);
+  renderer.setRenderTarget(null);
+  LIGHT.uViewport.value.copy(vp);
+  const ctx = thumbCanvas.getContext('2d');
+  const img = ctx.createImageData(THUMB, THUMB);
+  for (let y = 0; y < THUMB; y++) img.data.set(thumbBuf.subarray((THUMB - 1 - y) * THUMB * 4, (THUMB - y) * THUMB * 4), y * THUMB * 4);
+  ctx.putImageData(img, 0, 0);
+  job.resolve(thumbCanvas.toDataURL('image/jpeg', 0.85));
+  chara.apply(orig);
+  chara.update(0, t, camera);
+}
+
+const ui = buildUI({ chara, stage, camera, controls, renderer, requestThumb });
 window.__ui = ui;
 ui.load();
 loading.classList.add('done');
@@ -41,6 +92,7 @@ function loop() {
   const t = clock.getElapsed();
   LIGHT.uTime.value = t;
   stage.bgU.uTime.value = t;
+  if (thumbQueue.length) processThumb(t);
   ui.updateCamera(dt);
   controls.update();
   chara.update(dt, t, camera);

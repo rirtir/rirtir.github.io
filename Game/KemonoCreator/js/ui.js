@@ -41,7 +41,14 @@ const BODY_TYPES = [
 ];
 const CAM_FOR = { preset: 'full', body: 'full', head: 'face', muzzle: 'face', eyes: 'eyes', mouth: 'face', ears: 'face', hair: 'face', fur: 'upper', tail: 'back', color: 'full', outfit: 'full', pose: 'full', view: 'full' };
 
-export function buildUI({ chara, stage, camera, controls, renderer }) {
+// 見た目の一覧で選ぶ項目と、撮る範囲
+const THUMBS = {
+  hairStyle: 'face', bangs: 'face', earType: 'face', noseType: 'eye', cheekFluff: 'face', pupilType: 'eye', browType: 'eye',
+  whiskers: 'face', tailType: 'back', pattern: 'upper', top: 'upper', bottom: 'full', pose: 'full', expr: 'face',
+};
+const thumbCache = new Map();
+
+export function buildUI({ chara, stage, camera, controls, renderer, requestThumb }) {
   const $ = (s) => document.querySelector(s);
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
   const rail = $('#rail'), panel = $('#panel-body'), title = $('#panel-title');
@@ -196,6 +203,30 @@ export function buildUI({ chara, stage, camera, controls, renderer }) {
       wrap.append(inp, val);
       row.appendChild(wrap);
       controlsById[it.id] = () => { inp.value = ui.state[it.id]; paint(); };
+    } else if (it.type === 'select' && THUMBS[it.id] && requestThumb) {
+      const grid = el('div', 'thumbs');
+      const base = { ...ui.state };
+      const keyBase = JSON.stringify({ ...base, [it.id]: null, idle: false, blink: false });
+      it.options.forEach((o, i) => {
+        const b = el('button', 'thumb');
+        const im = el('img'); im.alt = o;
+        const lb = el('span', 'thumb-lb', o);
+        b.append(im, lb);
+        b.onclick = () => { begin(); ui.state[it.id] = i; paintC(); commit(); endEdit(); };
+        grid.appendChild(b);
+        const key = it.id + ':' + i + ':' + keyBase;
+        const hit = thumbCache.get(key);
+        if (hit) im.src = hit;
+        else requestThumb({ ...base, [it.id]: i, idle: false, blink: false, lookCam: false, turntable: false }, THUMBS[it.id]).then((url) => {
+          thumbCache.set(key, url);
+          if (thumbCache.size > 400) thumbCache.delete(thumbCache.keys().next().value);
+          im.src = url;
+        });
+      });
+      const paintC = () => [...grid.children].forEach((b, i) => b.classList.toggle('on', ui.state[it.id] === i));
+      paintC();
+      row.appendChild(grid);
+      controlsById[it.id] = paintC;
     } else if (it.type === 'select') {
       const chips = el('div', 'chips');
       it.options.forEach((o, i) => {
