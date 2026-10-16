@@ -550,20 +550,17 @@ export class Character {
     const FB = { neck: new GeoBuilder(), chest: new GeoBuilder(), 'upperarm.L': new GeoBuilder(), 'upperarm.R': new GeoBuilder(), 'forearm.L': new GeoBuilder(), 'forearm.R': new GeoBuilder(), 'shin.L': new GeoBuilder(), 'shin.R': new GeoBuilder() };
     const chestC = st.bellyW > 0.15 ? cSub : cMain;
     if (st.neckRuff > 0.01) {
-      // のど〜胸元: 首の前面に沿って下へ流れ、重なり合う房（2段）
-      const nC = this.baseJoint('neck');
-      const rows = [[0.05, 8, 1.0], [0.0, 7, 0.85]];
-      rows.forEach(([dy, n, k], ri) => {
-        for (let i = 0; i < n; i++) {
-          const t = n > 1 ? i / (n - 1) : 0;
-          const sd = i % 2 ? 1 : -1;
-          const a = sd * (0.75 + 1.9 * t);
-          const c0 = Math.abs(a) < 0.9 ? chestC : cMain;
-          clump(['neck', 'chest'], 'neck', V(Math.sin(a), -0.15, Math.cos(a)).normalize(), nC.clone().add(V(0, dy, 0)),
-            V(Math.sin(a) * 0.35, -1, 0.15), 0.05 * k * (0.6 + 0.6 * st.neckRuff) * (i % 2 ? 0.8 : 1), 0.03 * tw,
-            { builder: FB.neck, c0: ri ? c0.clone().multiplyScalar(0.94) : c0, c1: c0, tipAmt: 0, lift: 0.08, curl: 0.05, flat: 0.4, layer: ri * 2 + (i % 2), mess: 0.3, sink: 0.01 });
-        }
-      });
+      // 首の横〜後ろ: 頬毛の下から続いて、うなじへ流れる房
+      const hC = this.baseJoint('head');
+      const n = 9;
+      for (let i = 0; i < n; i++) {
+        const t = i / (n - 1);
+        const a = (i % 2 ? 1 : -1) * (1.45 + 1.4 * t);
+        if (Math.abs(a) > Math.PI) continue;
+        clump(['neck', 'head'], 'neck', V(Math.sin(a), -0.2, Math.cos(a)).normalize(), hC.clone().add(V(0, -0.005, -0.01)),
+          V(Math.sin(a) * 0.3, -1, Math.cos(a) * 0.3 - 0.4), 0.06 * (0.6 + 0.6 * st.neckRuff) * (i % 4 < 2 ? 1 : 0.8), 0.028 * tw,
+          { builder: FB.neck, c0: i % 4 < 2 ? cMain : cMain.clone().multiplyScalar(0.93), c1: cMain, tipAmt: 0, lift: 0.35, curl: 0.1, flat: 0.5, layer: i, mess: 0.3, sink: 0.01 });
+      }
     }
     const shirt = st.top >= 1 && st.top <= 3;
     if (st.chestFluff > 0.01 && !shirt) {
