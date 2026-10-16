@@ -210,7 +210,7 @@ export class Character {
     const sliders = this.data.meta.sliders;
     const bodyKeys = Object.keys(sliders);
     if (!prev || bodyKeys.some(k => prev[k] !== st[k])) this.dirty.body = true;
-    if (!prev || Object.keys(st).some(k => prev[k] !== st[k] && !NON_PART.test(k))) this.dirty.parts = true;
+    if (!prev || Object.keys(st).some(k => prev[k] !== st[k] && (!NON_PART.test(k) || (st.browType === 4 && /^(ex|expr|brow|eye)/.test(k))))) this.dirty.parts = true;
     this._applyUniforms();
   }
 
@@ -235,7 +235,7 @@ export class Character {
     U.uIris2.value.set(1 + (st.irisTall ?? 0), 0, 0, 0);
     U.uIrisTop.value.set(st.irisTop); U.uIrisBot.value.set(st.irisBot); U.uSclera.value.set(st.sclera); U.uLid.value.set(st.lidColor);
     U.uEyeC2.value.set(st.lidW, st.highlight, st.lashes, Math.min(0.95, (st.eyeLid ?? 0) + (ex.lid || 0)));
-    U.uBrow.value.set(st.browType, st.browY + (ex.browY || 0), st.browAngle + (ex.browA || 0), st.browW);
+    U.uBrow.value.set(st.browType === 4 ? 0 : st.browType, st.browY + (ex.browY || 0), st.browAngle + (ex.browA || 0), st.browW);
     U.uBrowCol.value.set(st.browColor);
     // 口
     const J = meta.joints;
@@ -474,11 +474,12 @@ export class Character {
     const backFlow = (az, down = 0.25) => V(Math.sin(az * Math.PI / 180) * 0.35, -down, -1 + flow * 1.2).normalize();
     const hairC2 = hairC.clone().multiplyScalar(0.9);
     // 頭皮を覆う毛束の並び（後ろの列から先に置き、前の列ほど上に重ねる）
+    const fine = st.fineHair ?? 0.4;
     const scalp = (rows, opt = {}) => {
       rows.forEach(([el, n, len, w, lift, azMax], ri) => {
         layer = ri;
         // 低い列は顔の横（こめかみ）を避けて後ろ半分だけ
-        const azMin = el < 25 ? 95 : (el < 45 ? 70 : 0);
+        const azMin = el < 0 ? 115 : (el < 25 ? 95 : (el < 45 ? 70 : 0));
         const list = [];
         if (azMin > 0) {
           const half = Math.max(1, Math.ceil(n / 2));
@@ -491,14 +492,20 @@ export class Character {
           clump(hb, 'head', sph(az, el), headCb, opt.flowFn ? opt.flowFn(az, el) : backFlow(az), len * HL * alt, w * HV, {
             lift, curl: opt.curl ?? 0.15, c0: ri % 2 ? hairC2 : hairC,
           });
+          if (R() < fine) {
+            const az2 = az + (R() - 0.5) * 22, el2 = el + 4 + R() * 6;
+            clump(hb, 'head', sph(az2, el2), headCb, opt.flowFn ? opt.flowFn(az2, el2) : backFlow(az2), len * HL * (0.9 + 0.4 * R()), w * HV * 0.32, {
+              lift: lift + 0.15, curl: (opt.curl ?? 0.15) + 0.1, flat: 0.55, sharp: 1, layer: ri + 0.5, c0: hairC.clone().multiplyScalar(0.96),
+            });
+          }
         }
       });
       layer = 0;
     };
     if (style === 1) {          // 短髪（後ろへ流れる）
       scalp([
-        [8, 7, 0.06, 0.042, 0.45, 150], [30, 7, 0.065, 0.042, 0.4, 135], [52, 6, 0.065, 0.042, 0.35, 105],
-        [70, 5, 0.06, 0.04, 0.32, 70], [82, 3, 0.055, 0.04, 0.3, 40],
+        [-12, 5, 0.055, 0.044, 0.35, 168], [8, 9, 0.06, 0.042, 0.42, 165], [30, 9, 0.065, 0.042, 0.4, 150], [52, 7, 0.065, 0.042, 0.35, 120],
+        [70, 6, 0.06, 0.04, 0.32, 80], [82, 3, 0.055, 0.04, 0.3, 40],
       ]);
     } else if (style === 2) {   // 前髪
       scalp([[10, 7, 0.07, 0.044, 0.4, 150], [35, 7, 0.07, 0.044, 0.35, 135], [62, 5, 0.065, 0.042, 0.3, 95]]);
@@ -580,10 +587,77 @@ export class Character {
         tuft(hb, 'head', headCb, d, out, (0.09 + 0.03 * r) * st.maneLen * (0.6 + 0.4 * st.mane), 0.055 * tw * (0.7 + 0.3 * st.mane), { c0: maneC, c1: maneC, bend: V(0, -0.3, -0.25), mess: 0.8, sink: 0.015 });
       }
     }
-    if (st.beard > 0.01) {
-      for (const sx of [-1, 0, 1]) {
-        const tgt = this.baseJoint('muzzleRoot').add(V(sx * 0.02, -0.06, 0.05));
-        tuft(hb, 'head', null, null, V(sx * 0.2, -1, 0.35).normalize(), 0.05 * (0.6 + st.beard), 0.025 * tw, { target: tgt, c0: hairC, c1: hairC, bend: V(0, -0.1, -0.2), sink: 0.01 });
+    // ---- エラの毛（マズルの付け根の横、ヒゲの生える辺り）
+    const jowl = st.jowl ?? 0;
+    if (jowl > 0) {
+      const mr = this.baseJoint('muzzleRoot'), nt = this.baseJoint('noseTip');
+      const jc = jowl === 1 ? 3 : (jowl === 2 ? 5 : 7);
+      const jcol = st.cheekWhite > 0.5 || st.muzzleCover > 0.3 ? cSub : cMain;
+      for (const sx of [1, -1]) for (let i = 0; i < jc; i++) {
+        const t = jc > 1 ? i / (jc - 1) : 0.5;
+        const tgt = mr.clone().add(V(sx * (0.052 + 0.006 * t), -0.008 - 0.034 * t, (nt.z - mr.z) * 0.12 - 0.028 * t));
+        clump(hb, 'head', null, null, V(sx * 0.9, -0.45 - 0.35 * t, -0.25), (0.034 + 0.012 * (jowl - 1)) * (st.jowlLen ?? 1) * (i % 2 ? 0.75 : 1), 0.02 * tw,
+          { target: tgt, c0: i % 2 ? jcol.clone().multiplyScalar(0.94) : jcol, c1: jcol, tipAmt: 0, lift: 0.5, curl: 0.12, flat: 0.55, body: true, layer: i % 2, mess: 0.4 });
+      }
+    }
+    // ---- ヒゲ（あご・口・もみあげ）
+    const bs = st.beardStyle ?? 0;
+    if (bs > 0) {
+      const bC = st.beardUseHair === false ? col(st.beardColor) : hairC;
+      const BL = st.beardLen ?? 1;
+      const mr = this.baseJoint('muzzleRoot'), nt = this.baseJoint('noseTip');
+      const mzL = nt.z - mr.z;
+      const chin = (n, len) => {
+        for (let i = 0; i < n; i++) {
+          const t = n > 1 ? i / (n - 1) - 0.5 : 0;
+          const tgt = mr.clone().add(V(t * 0.035, -0.052, mzL * 0.45));
+          clump(hb, 'head', null, null, V(t * 0.6, -1, 0.25), len * BL * (i % 2 ? 0.8 : 1), 0.022 * tw,
+            { target: tgt, c0: i % 2 ? bC.clone().multiplyScalar(0.92) : bC, c1: bC, tipAmt: 0, lift: 0.2, curl: 0.05, flat: 0.5, layer: i % 2, grav: grav * 0.8 });
+        }
+      };
+      const mustache = () => {
+        for (const sx of [1, -1]) for (let i = 0; i < 3; i++) {
+          const tgt = nt.clone().add(V(sx * (0.014 + 0.007 * i), -0.02, -0.016 - 0.006 * i));
+          clump(hb, 'head', null, null, V(sx * 1, -0.35, -0.15), 0.05 * BL * (1 - i * 0.18), 0.014 * tw,
+            { target: tgt, c0: bC, c1: bC, tipAmt: 0, lift: 0.7, curl: 0.1, flat: 0.6, sharp: 0.9, layer: 2 + i, grav: grav * 0.6 });
+        }
+      };
+      const sideburn = () => {
+        for (const sx of [1, -1]) for (let i = 0; i < 3; i++) {
+          const az = sx * (80 + i * 8), el = 18 - i * 16;
+          clump(hb, 'head', sph(az, el), headCb, V(sx * 0.2, -1, 0.15), 0.045 * BL, 0.026 * tw,
+            { c0: bC, c1: bC, tipAmt: 0, lift: 0.25, curl: 0.06, flat: 0.5, layer: i });
+        }
+      };
+      if (bs === 1) chin(3, 0.04);                       // あごひげ（少し）
+      else if (bs === 2) chin(5, 0.065);                 // あごひげ（長め）
+      else if (bs === 3) mustache();                     // 口ひげ
+      else if (bs === 4) { mustache(); chin(4, 0.05); }  // 口ひげ＋あご
+      else if (bs === 5) sideburn();                     // もみあげ
+      else if (bs === 6) { sideburn(); chin(5, 0.06); mustache(); }  // フル
+    }
+    // ---- 立体の眉（毛束を眉の位置に並べる）
+    if (st.browType === 4) {
+      const U = this.bodyU;
+      const W = U.uEyeA.value.x, asp = U.uEyeA.value.y;
+      const ex = this._exprMods();
+      const by = asp + 0.55 + st.browY + (ex.browY || 0);
+      const ba = st.browAngle + (ex.browA || 0);
+      const bc2 = col(st.browColor);
+      for (const side of ['L', 'R']) {
+        const sx = side === 'L' ? 1 : -1;
+        const c0e = U.uEyeC.value.clone(), Rv = U.uEyeR.value.clone(), Uv = U.uEyeU.value.clone();
+        const n = 8;
+        for (let i = 0; i < n; i++) {
+          const X = -0.95 + 2.0 * (i / (n - 1));
+          const rx = X * Math.cos(ba) - 0.0 * Math.sin(ba), ry = X * Math.sin(ba) * 0.6 - 0.1 * X * X;
+          const p = c0e.clone().addScaledVector(Rv, (rx + 0.05) * W + st.eyeX).addScaledVector(Uv, (by + ry) * W + st.eyeY);
+          p.x *= sx;
+          const flowV = Rv.clone().multiplyScalar(1).addScaledVector(Uv, 0.25 - 0.5 * (i / (n - 1)));
+          flowV.x *= sx;
+          clump(hb, 'head', null, null, flowV, W * (0.8 + 0.4 * Math.sin(Math.PI * i / (n - 1))), W * 0.6 * st.browW,
+            { target: p, c0: bc2, c1: bc2, tipAmt: 0, lift: 0.08, curl: 0.0, flat: 0.55, sharp: 0.7, layer: i * 0.3, grav: 0.03, mess: 0.1 });
+        }
       }
     }
     if (B.n) this._addMesh('head', B.build(), this.mats.hair, this.mats.hairO);

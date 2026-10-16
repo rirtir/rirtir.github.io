@@ -122,6 +122,12 @@ body.night .brand-en { color: #b8b4d8; }
 
 body.ui-hidden #top, body.ui-hidden #rail, body.ui-hidden #panel, body.ui-hidden #cam-bar, body.ui-hidden #hint { display: none; }
 
+#expr-bar { position: fixed; right: calc(var(--panel-w) + 28px); bottom: 16px; display: flex; gap: 4px; padding: 4px; background: var(--glass); border: 1px solid var(--line); border-radius: 20px; backdrop-filter: blur(8px); z-index: 4; }
+body.panel-hidden #expr-bar { right: 16px; }
+.ex-btn { width: 32px; height: 30px; border-radius: 15px; border: 0; background: transparent; font-size: 17px; line-height: 1; padding: 0; filter: grayscale(.35); }
+.ex-btn.on { background: var(--ink); filter: none; }
+body.ui-hidden #expr-bar { display: none; }
+
 /* ダイアログ */
 dialog { border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; width: min(520px, 92vw); background: #fbfbfd; color: var(--ink); }
 dialog::backdrop { background: rgba(30, 34, 44, .35); }
@@ -150,6 +156,7 @@ dialog textarea { width: 100%; font: 12px ui-monospace, monospace; border-radius
   #panel { left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; height: 44vh; }
   #rail { left: 8px; right: 8px; top: auto; bottom: calc(44vh + 14px); width: auto; height: 58px; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 0; }
   .rail-btn { min-width: 60px; }
+  #expr-bar { right: 8px; bottom: auto; top: 90px; flex-direction: column; }
   #cam-bar { bottom: auto; top: 54px; left: 50%; transform: translateX(-50%); }
   body.panel-hidden #cam-bar { transform: translateX(-50%); }
   .cam-btn { white-space: nowrap; padding: 0 10px; height: 28px; font-size: 12px; }

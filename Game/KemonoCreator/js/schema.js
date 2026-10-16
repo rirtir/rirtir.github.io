@@ -33,7 +33,7 @@ export const CATEGORIES = [
       { label: '位置', items: [R('eyeX', '間隔', -0.012, 0.012, 0, 0.0005), R('eyeY', '高さ', -0.014, 0.014, 0, 0.0005)] },
       { label: '瞳', items: [R('irisSize', '瞳の大きさ', 0.2, 1.0, 0.34), R('irisTall', '瞳の縦長さ', 0, 1.2, 0), R('irisY', '瞳の上下', -0.4, 0.4, 0.0), S('pupilType', '瞳孔の形', ['丸', '縦長', 'なし', '横長'], 0), R('pupilSize', '瞳孔の大きさ', 0, 0.95, 0.42), C('irisTop', '瞳の色（上）', '#2d6a3a'), C('irisBot', '瞳の色（下）', '#b8e05a'), R('highlight', 'ハイライト', 0, 1.6, 1.0), C('sclera', '白目の色', '#fbfaf6')] },
       { label: 'まぶた・まつげ', items: [R('lidW', 'まぶたの線の太さ', 0.3, 2.2, 1.0), R('lashes', 'まつげ', 0, 1, 0.0), C('lidColor', '線の色', '#2a1c1a')] },
-      { label: '眉', items: [S('browType', '眉の種類', ['なし', '線', '麻呂眉', '太眉'], 1), R('browY', '眉の高さ', -0.5, 0.6, 0), R('browAngle', '眉の角度', -0.6, 0.6, 0.1), R('browW', '眉の太さ', 0.4, 1.8, 1.0), C('browColor', '眉の色', '#3a2a22')] },
+      { label: '眉', items: [S('browType', '眉の種類', ['なし', '線', '麻呂眉', '太眉', '毛の眉（立体）'], 4), R('browY', '眉の高さ', -0.5, 0.6, 0), R('browAngle', '眉の角度', -0.6, 0.6, 0.1), R('browW', '眉の太さ', 0.4, 1.8, 1.0), C('browColor', '眉の色', '#3a2a22')] },
     ],
   },
   {
@@ -52,9 +52,10 @@ export const CATEGORIES = [
   },
   {
     id: 'hair', label: '髪・たてがみ', icon: '髪', groups: [
-      { label: '頭の毛', items: [S('hairStyle', '後ろ髪・頭頂', ['なし', '短髪', '前寄りの短髪', 'オールバック', 'ワイルド', 'モヒカン', '長髪'], 1), S('bangs', '前髪', ['なし', '短い前髪', '流した前髪', '分けた前髪', '跳ねた前髪', '長い前髪', 'アホ毛'], 0), R('bangsLen', '前髪の長さ', 0.5, 1.6, 1.0), R('hairLen', '長さ', 0.4, 1.8, 1.0), R('hairVol', 'ボリューム', 0.5, 1.6, 1.0), R('hairSharp', '毛先の鋭さ', 0, 1, 0.6), R('hairMess', 'ランダムさ', 0, 1, 0.35), R('hairFlow', '流れ（前↔後）', -1, 1, 0), R('hairGravity', '毛の重さ（垂れ具合）', 0, 1.2, 0.45), R('hairPhys', '毛の揺れ', 0, 2, 1)] },
+      { label: '頭の毛', items: [S('hairStyle', '後ろ髪・頭頂', ['なし', '短髪', '前寄りの短髪', 'オールバック', 'ワイルド', 'モヒカン', '長髪'], 1), S('bangs', '前髪', ['なし', '短い前髪', '流した前髪', '分けた前髪', '跳ねた前髪', '長い前髪', 'アホ毛'], 0), R('bangsLen', '前髪の長さ', 0.5, 1.6, 1.0), R('hairLen', '長さ', 0.4, 1.8, 1.0), R('hairVol', 'ボリューム', 0.5, 1.6, 1.0), R('hairSharp', '毛先の鋭さ', 0, 1, 0.6), R('hairMess', 'ランダムさ', 0, 1, 0.35), R('hairFlow', '流れ（前↔後）', -1, 1, 0), R('fineHair', '細い毛の量', 0, 1, 0.4), R('hairGravity', '毛の重さ（垂れ具合）', 0, 1.2, 0.45), R('hairPhys', '毛の揺れ', 0, 2, 1)] },
       { label: '色', items: [T('hairUseFur', '毛色と同じ', true), C('hairColor', '髪の色', '#8b5a34'), R('hairTipAmt', '毛先の色の範囲', 0, 0.8, 0.0), C('hairTipColor', '毛先の色', '#f4e6d4')] },
-      { label: '顔まわり', items: [S('cheekFluff', '頬毛', ['なし', '小', '大', '二段'], 2), R('cheekLen', '頬毛の長さ', 0.5, 1.8, 1.0), R('cheekSpread', '頬毛の広がり', -1, 1, 0), R('mane', 'たてがみ', 0, 1, 0), R('maneLen', 'たてがみの長さ', 0.5, 1.8, 1.0), R('beard', 'あごの毛', 0, 1, 0)] },
+      { label: '顔まわり', items: [S('cheekFluff', '頬毛', ['なし', '小', '大', '二段'], 2), R('cheekLen', '頬毛の長さ', 0.5, 1.8, 1.0), R('cheekSpread', '頬毛の広がり', -1, 1, 0), R('mane', 'たてがみ', 0, 1, 0), R('maneLen', 'たてがみの長さ', 0.5, 1.8, 1.0)] },
+      { label: 'エラ・ヒゲ', items: [S('jowl', 'エラの毛', ['なし', '少し', 'ふさふさ', 'たっぷり'], 1), R('jowlLen', 'エラの毛の長さ', 0.5, 1.8, 1.0), S('beardStyle', 'ヒゲ', ['なし', 'あごひげ', '長いあごひげ', '口ひげ', '口ひげ＋あご', 'もみあげ', 'フル'], 0), R('beardLen', 'ヒゲの長さ', 0.5, 1.8, 1.0), T('beardUseHair', 'ヒゲを髪と同じ色に', true), C('beardColor', 'ヒゲの色', '#5a4a3a')] },
     ],
   },
   {
@@ -110,7 +111,7 @@ export const PRESETS = [
     name: '狼', sub: 'オオカミ', swatch: ['#7d7f86', '#e9e6e0'], s: {
       muzLen: 0.15, muzW: -0.1, muzH: -0.05, muzTaper: 0.2, stop: -0.15, cheek: 0.2, earType: 0, earSize: 1.15, earH: 1.1, earRound: 0.15,
       furMain: '#7d7f86', furSub: '#ece9e4', furAccent: '#4b4c52', patternColor: '#3f4046', backMark: 0.55, cheekWhite: 1, muzzleCover: 0.55, bellyW: 0.6,
-      irisTop: '#7a5a12', irisBot: '#f2c33a', eyeTilt: 0.3, browType: 3, hairStyle: 1, hairLen: 1.25, cheekFluff: 2, tailType: 0, neckRuff: 0.6, chestFluff: 0.7,
+      irisTop: '#7a5a12', irisBot: '#f2c33a', eyeTilt: 0.3, browType: 4, jowl: 2, hairStyle: 1, hairLen: 1.25, cheekFluff: 2, tailType: 0, neckRuff: 0.6, chestFluff: 0.7,
       noseType: 0, noseSize: 0.95, mouthCorner: 0.52, smile: 0.6, fang: 0, muscle: 0.85, bulk: 0.5, shoulderW: 0.5, chest: 0.6, pecs: 0.5, traps: 0.6, neckThick: 0.7, neckLen: -0.4, armThick: 0.4,
       eyeSize: 0.019, eyeAspect: 0.6, irisSize: 0.37, eyeLid: 0.5, irisY: 0.08, browW: 1.15, browY: -0.12, browColor: '#ece9e4', cheekLen: 1.2,
       top: 4, topColor: '#2c3e5c', trimColor: '#d9b45a', topNeck: 0.35, bottom: 2, bottomColor: '#3a3430', pantStripe: true,
@@ -153,14 +154,14 @@ export const PRESETS = [
       muzLen: -0.4, muzW: 0.45, muzH: 0.3, padSize: 0.7, stop: -0.05, headW: 0.2, cheek: 0.4, jaw: 0.5, earType: 3, earSize: 0.8,
       furMain: '#d4a25c', furSub: '#f2e2c4', furAccent: '#d4a25c', muzzleCover: 0.6, bellyW: 0.5, irisTop: '#6a4a10', irisBot: '#e8b83a', eyeAspect: 0.62, eyeTilt: 0.1,
       noseType: 1, noseColor: '#a8645a', noseSize: 1.2, hairStyle: 4, hairUseFur: false, hairColor: '#7a4a24', hairLen: 1.2, mane: 1, maneLen: 1.3, cheekFluff: 0,
-      tailType: 3, muscle: 0.9, shoulderW: 0.7, chest: 0.6, armThick: 0.6, legThick: 0.4, neckThick: 0.7, fang: 0.3, beard: 0.5,
+      tailType: 3, muscle: 0.9, shoulderW: 0.7, chest: 0.6, armThick: 0.6, legThick: 0.4, neckThick: 0.7, fang: 0.3, beardStyle: 2,
     },
   },
   {
     name: '熊', sub: 'クマ', swatch: ['#6b4a34', '#b88a62'], s: {
       muzLen: -0.35, muzW: 0.5, muzH: 0.35, muzTaper: -0.4, stop: 0.2, headW: 0.35, headSize: 0.1, cheek: 0.7, jaw: 0.6, earType: 3, earSize: 0.75, earY: -0.2,
       furMain: '#6b4a34', furSub: '#b88a62', furAccent: '#6b4a34', muzzleCover: 0.95, bellyW: 0.0, irisTop: '#1e120c', irisBot: '#4a2e1c', irisSize: 0.53, eyeAspect: 0.85, eyeSize: 0.018,
-      noseType: 2, noseSize: 1.3, mouthCorner: 0.12, browType: 3, hairStyle: 1, hairLen: 0.5, cheekFluff: 1, chestFluff: 0.4, tailType: 4,
+      noseType: 2, noseSize: 1.3, mouthCorner: 0.12, browType: 4, hairStyle: 1, hairLen: 0.5, cheekFluff: 1, chestFluff: 0.4, tailType: 4,
       fat: 0.6, belly: 0.6, muscle: 0.55, shoulderW: 0.5, armThick: 0.7, legThick: 0.7, neckThick: 0.9, neckLen: -0.6, height: 1.06,
     },
   },

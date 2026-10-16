@@ -43,7 +43,7 @@ const CAM_FOR = { preset: 'full', body: 'full', head: 'face', muzzle: 'face', ey
 
 // 見た目の一覧で選ぶ項目と、撮る範囲
 const THUMBS = {
-  hairStyle: 'face', bangs: 'face', earType: 'face', noseType: 'eye', cheekFluff: 'face', pupilType: 'eye', browType: 'eye',
+  hairStyle: 'face', bangs: 'face', jowl: 'face', beardStyle: 'face', earType: 'face', noseType: 'eye', cheekFluff: 'face', pupilType: 'eye', browType: 'eye',
   whiskers: 'face', tailType: 'back', pattern: 'upper', top: 'upper', bottom: 'full', pose: 'full', expr: 'face',
 };
 const thumbCache = new Map();
@@ -271,11 +271,14 @@ export function buildUI({ chara, stage, camera, controls, renderer, requestThumb
     }
     return row;
   }
+  const exBtns = [...document.querySelectorAll('.ex-btn')];
+  const paintEx = () => exBtns.forEach((b) => b.classList.toggle('on', +b.dataset.ex === ui.state.expr));
+  exBtns.forEach((b) => b.onclick = () => { if (!pendingUndo) pendingUndo = JSON.stringify(ui.state); ui.state.expr = +b.dataset.ex; paintEx(); refreshOne('expr'); commit(); endEdit(); });
   const lookBtn = $('#btn-look');
   const paintLook = () => lookBtn.classList.toggle('on', !!ui.state.lookCam);
   lookBtn.onclick = () => { if (!pendingUndo) pendingUndo = JSON.stringify(ui.state); ui.state.lookCam = !ui.state.lookCam; paintLook(); refreshOne('lookCam'); commit(); endEdit(); };
-  function refreshOne(id) { controlsById[id] && controlsById[id](); if (id === 'lookCam') paintLook(); }
-  function refresh() { for (const id of Object.keys(controlsById)) refreshOne(id); paintLook(); }
+  function refreshOne(id) { controlsById[id] && controlsById[id](); if (id === 'lookCam') paintLook(); if (id === 'expr') paintEx(); }
+  function refresh() { for (const id of Object.keys(controlsById)) refreshOne(id); paintLook(); paintEx(); }
 
   // ---------------------------------------------------------------- ランダム
   function randomize(colorOnly) {
@@ -411,6 +414,7 @@ export function buildUI({ chara, stage, camera, controls, renderer, requestThumb
     if (!s && window.innerWidth < 760) ui.state.faceViews = false;
     commit(false);
     paintLook();
+    paintEx();
     select('preset');
   };
   // キーボード
