@@ -6,6 +6,7 @@ import { hash2, nodeAt, groundDetail, arenaScenery, shoreScenery, nodeFootprint 
 import { createLighting, MAX_PT, PT_HALF } from './lighting.js';
 import { hourOf, skyAt, curtain2D, plateDisplay } from './sky.js';
 import * as Ground from './ground.js';
+import { getPlayerLight, getEquipStats } from './activities.js';
 
 const P = BALANCE.player;
 
@@ -286,9 +287,16 @@ function createAssets() {
   return a;
 }
 
-async function loadSheet(assets, key, def, base) {
+// 生成されたアセット版(index.html の meta)を URL に付ける。版が無ければ従来どおり
+function withRevision(u, rev) {
+  if (!rev || u.searchParams.has('v')) return u;
+  u.searchParams.set('v', rev);
+  return u;
+}
+
+async function loadSheet(assets, key, def, base, rev) {
   try {
-    const atlasUrl = new URL(def.atlas, base), imgUrl = new URL(def.image, base);
+    const atlasUrl = withRevision(new URL(def.atlas, base), rev), imgUrl = withRevision(new URL(def.image, base), rev);
     const [atlas, img] = await Promise.all([
       fetch(atlasUrl).then((r) => { if (!r.ok) throw new Error(`${atlasUrl.pathname} ${r.status}`); return r.json(); }),
       loadImage(imgUrl.href),
@@ -299,7 +307,7 @@ async function loadSheet(assets, key, def, base) {
       const decl = def[kind];
       if (!decl) return;
       try {
-        const im = await loadImage(new URL(typeof decl === 'string' ? decl : decl.image, base).href);
+        const im = await loadImage(withRevision(new URL(typeof decl === 'string' ? decl : decl.image, base), rev).href);
         if (im.naturalWidth !== img.naturalWidth || im.naturalHeight !== img.naturalHeight) throw new Error('元画像と寸法が違います');
         layers[kind] = im;
       } catch (err) {
@@ -335,20 +343,35 @@ async function loadSheet(assets, key, def, base) {
 }
 
 // manifest.json を基準にURLを解決する。manifestが無い場合は契約どおりの既定パスを試す
-export async function loadAssets(url = 'assets/manifest.json') {
-  const base = new URL(url, document.baseURI);
+// index.html が meta で版(revision)を持つとき、そのページ既定のmanifest(assets/manifest.json)に限って全アセットへ同じ版を付ける。
+// 別のmanifest(iframe・tests・明示URL)には付けない。第2引数 { revision } で明示することもできる
+export async function loadAssets(url = 'assets/manifest.json', opts = {}) {
+  let base = new URL(url, document.baseURI);
+  let rev = opts.revision || '';
+  if (!rev && base.href === new URL('assets/manifest.json', document.baseURI).href) {
+    // meta mosslight-runtime-base があるページは、不変スナップショット(runtime/<版>/)内のアセットを読む。版はパスが持つのでクエリは付けない
+    const rt = document.querySelector('meta[name="mosslight-runtime-base"]');
+    if (rt && rt.content) {
+      base = new URL('assets/manifest.json', new URL(rt.content, document.baseURI));
+    } else {
+      const meta = document.querySelector('meta[name="mosslight-asset-revision"]');
+      rev = (meta && meta.content) || '';
+    }
+  }
   let manifest = null;
   try {
-    const res = await fetch(base);
+    const res = await fetch(withRevision(new URL(base), rev));
     if (res.ok) manifest = await res.json();
   } catch (e) { /* 既定パスで続行 */ }
   const assets = createAssets();
   assets.manifestLoaded = !!manifest;
+  assets.revision = rev;
+  assets.assetURL = (relative) => withRevision(new URL(relative, base), rev).href;
   const defs = manifest && manifest.sheets ? manifest.sheets : DEFAULT_SHEETS;
   // 多数の色・法線・高さ画像を一斉に取得して通信バッファを使い切らない。
   const entries = Object.entries(defs);
   for (let i = 0; i < entries.length; i += 6) {
-    await Promise.all(entries.slice(i, i + 6).map(([key, def]) => loadSheet(assets, key, def, base)));
+    await Promise.all(entries.slice(i, i + 6).map(([key, def]) => loadSheet(assets, key, def, base, rev)));
   }
   // 原画を差し替えたシートを既存のアセット名へ接続する。UIとゲームの参照名を維持する。
   for (const [key, def] of Object.entries(defs)) {
@@ -393,15 +416,28 @@ export function createRenderer(canvas, assets) {
   const normalCv = newCanvas(8, 8), nctx = normalCv.getContext('2d', { alpha: false });
   const heightCv = newCanvas(8, 8), hctx = heightCv.getContext('2d', { alpha: false });
   let layered = false;
-  const MAX_GL_W = 960, MAX_GL_H = 540;
+  // 自動倍率が目指す native 画素の予算(長辺と面積)。GL の可否ではなく、倍率を上げて画素数を抑えるための目安
+  const AUTO_NATIVE_LONG = 960, AUTO_NATIVE_AREA = 960 * 540;
   const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+  // 負荷が高い時の省負荷段階。法線・太陽・投影影は保ち、局所光の ray 段数 → 灯数 → 局所光の影 の順に減らす(値は上限。coarse の基準値より増やさない)
+  const BASE_STEPS = coarse ? 6 : 8, BASE_LIGHTS = coarse ? 4 : 8, BASE_PT = coarse ? 2 : MAX_PT;
+  const DEGRADE = [
+    { steps: BASE_STEPS, lights: BASE_LIGHTS, pt: BASE_PT },
+    { steps: 5, lights: 5, pt: 2 },
+    { steps: 3, lights: 3, pt: 1 },
+    { steps: 2, lights: 2, pt: 1 },
+  ];
+  const SLOW_MS = 6; // 60 frame の中央値。3 窓続けて超えたら省負荷を1段進める。法線照明を途中で無効にしない
   const LS = {
     mode: 'auto', active: '2d', debug: 'off', reason: 'init', lights: 0, culled: 0, steps: 0, w: 0, h: 0, device: { w: 0, h: 0 },
     ms: { scene: 0, upload: 0, gl: 0, copy: 0 }, glErrors: 0, errorCount: 0, contextLost: false, sunStrength: 0, moonStrength: 0,
-    hour: 0, sunDir: [0, 0, 0], sky: null, shadow: { kind: 'none', strength: 0, vec: [0, 0], casters: 0, drawn: 0, skipped: 0, w: 0, h: 0, ms: 0, scale: 1, uploadBytes: 0, projected: false },
+    hour: 0, sunDir: [0, 0, 0], sky: null, shadow: { kind: 'none', strength: 0, vec: [0, 0], casters: 0, drawn: 0, skipped: 0, culled: 0, w: 0, h: 0, ms: 0, scale: 1, uploadBytes: 0, projected: false },
+    scale: { setting: 'auto', value: 1, dpr: 1, native: { w: 0, h: 0 }, budgetLong: AUTO_NATIVE_LONG, budgetArea: AUTO_NATIVE_AREA, raised: 0 },
+    hardware: null,
+    degrade: { level: 0, max: DEGRADE.length - 1, steps: BASE_STEPS, lights: BASE_LIGHTS, pointShadows: BASE_PT, medianMs: 0, history: [], floorRuns: 0 },
     slow: false, slowRuns: 0, samples: [],
   };
-  let lighting = null, lightingTried = false, occBuf = null;
+  let lighting = null, lightingTried = false, occBuf = null, degradeNative = -1;
   const lightCv = newCanvas(8, 8), lctx = lightCv.getContext('2d');
   const glowCv = newCanvas(8, 8), gctx = glowCv.getContext('2d');
   const vigCv = newCanvas(8, 8);
@@ -418,25 +454,47 @@ export function createRenderer(canvas, assets) {
   const TOG = { ...DEFAULT_TOGGLES };
   // 影バッファ(太陽/月 と 局所光1灯)。desktop は native 解像度、coarse(タッチ)は半解像度。canvas は alpha なし(0=遮る物なし)
   const SHADOW_SCALE = coarse ? 0.5 : 1;
-  const MAX_CASTERS = 192;
+  const MAX_CASTERS = 512;        // 密な森の境界でも可視の影を残す上限(超えたら画面中心に近い順)
+  const MAX_RECORDED = 640;       // 記録する物の上限。選別前の一時リストで、これも超えた分だけ skipped に数える
+  const SHADOW_MAX_H = 64;        // height 画像の R=255 が表す高さ(px)。lighting.js のシェーダと同じ
   const shCv = newCanvas(8, 8), shCtx = shCv.getContext('2d', { alpha: false });
   const shpCv = newCanvas(8, 8), shpCtx = shpCv.getContext('2d', { alpha: false });
   // 遮る物の記録: sortList の描画中に drawFrame が height 画像の切り出しを積む。要素は使い回し(フレームごとに確保しない)
   const casters = [];
   let capOn = false, capFoot = 0, capN = 0;
-  const SH = { casters: 0, drawn: 0, skipped: 0, w: 0, h: 0, bytes: 0, ms: 0, kind: 'none', point: false, vec: [0, 0], strength: 0 };
-  const VS = { sky: null, hour: 0, clock: 0, mapId: 'surface', ground: { chunks: 0, baked: 0, bakeMs: 0, lastBakeMs: 0, pending: 0, fallback: 0, failed: false, scatter: 0, debug: 0 } };
-  const GR = { cache: null, tex: null, texKey: '', failed: false, debug: 0, sig: new Map(), provider: null, scatterProvider: null, bakedThisFrame: 0 };
+  const SH = { casters: 0, drawn: 0, skipped: 0, culled: 0, w: 0, h: 0, bytes: 0, ms: 0, kind: 'none', point: false, vec: [0, 0], strength: 0 };
+  const VS = {
+    sky: null, hour: 0, clock: 0, mapId: 'surface',
+    ground: {
+      chunks: 0, baked: 0, bakeMs: 0, lastBakeMs: 0, pending: 0, fallback: 0, failed: false, scatter: 0, debug: 0,
+      visible: 0, ring: 0, cacheMax: 0, cacheBytes: 0, evicted: 0, rebaked: 0, sigRebaked: 0, syncBaked: 0, lastFrameBaked: 0,
+    },
+    // 主人公の被覆(今のフレーム): canopies=主人公より後に描かれ実alphaが重なった樹冠の数 / pieces=記録した描画片 / hidden,heroPx=樹冠で隠れた画素数と主人公の不透明画素数
+    // boss=ボスで隠れたか / drawn=半透明輪郭を描いたか / drawnFrames=描いた累計 / masks=alphaマスクを作った数 / readFail=alpha読み出し失敗
+    heroOcclusion: { canopies: 0, pieces: 0, hidden: 0, heroPx: 0, boss: false, drawn: false, drawnFrames: 0, masks: 0, readFail: 0, ring2d: false, ring2dFrames: 0 },
+  };
+  const GR = { cache: null, tex: null, texKey: '', failed: false, debug: 0, sig: new Map(), provider: null, scatterProvider: null, bakedThisFrame: 0, everBaked: new Set() };
   const MATERIAL_OF_TERRAIN = TERRAIN_INFO.map((i) => Ground.materialIndex(i.tile));
 
   /* ---------- サイズ・倍率 ---------- */
+  // 自動: 見える広さ(20×11 タイル)から決めた整数倍率を基準に、native の長辺 AUTO_NATIVE_LONG・面積 AUTO_NATIVE_AREA を満たす最低の整数倍率まで上げる
+  // (1264×828・DPR1 → 基準 1 → 2倍、1440×900 → 2倍)。縦向き・DPR は devW/devH(物理画素)で同じに扱う。手動の 2/3/4 などはそのまま使う(GL の可否は倍率ではなく実ハードで決める)
   function computeScale() {
     const long = Math.max(R.devW, R.devH), short = Math.min(R.devW, R.devH);
-    let s = R.scaleSetting === 'auto' ? Math.floor(Math.min(long / (TILE * 20), short / (TILE * 11))) : Number(R.scaleSetting);
+    let s, raised = 0;
+    if (R.scaleSetting === 'auto') {
+      s = Math.max(1, Math.floor(Math.min(long / (TILE * 20), short / (TILE * 11))));
+      const base = s;
+      while (s < 8 && (Math.ceil(long / s) > AUTO_NATIVE_LONG || Math.ceil(R.devW / s) * Math.ceil(R.devH / s) > AUTO_NATIVE_AREA)) s++;
+      raised = s - base;
+    } else s = Number(R.scaleSetting);
     if (!(s >= 1)) s = 1;
     R.scale = Math.min(8, Math.floor(s));
     R.viewW = R.devW / R.scale;
     R.viewH = R.devH / R.scale;
+    const sc = LS.scale;
+    sc.setting = R.scaleSetting; sc.value = R.scale; sc.dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1; sc.raised = raised;
+    sc.native.w = Math.ceil(R.devW / R.scale); sc.native.h = Math.ceil(R.devH / R.scale);
   }
 
   function resize() {
@@ -486,21 +544,24 @@ export function createRenderer(canvas, assets) {
   }
   function blit(fr, x, y) { drawFrame(fr, 0, 0, fr.w, fr.h, x, y); }
 
+  // 実際に描いた切り出し(depth>=2 の樹冠だけ・揺れの上下分割・フェードの上下分割なども、描いた範囲だけ)を積む。
+  // 画面の外へ出る物も含めて MAX_RECORDED まで記録し、間引きは影バッファを作る時に「影が画面に届く物 → 画面中心に近い順」で行う(描画順は変えない)
   function recordCaster(fr, sx, sy, sw, sh, dx, dy) {
-    if (capN >= MAX_CASTERS) { SH.skipped++; return; }
-    const c = casters[capN] || (casters[capN] = { fr: null, sx: 0, sy: 0, sw: 0, sh: 0, dx: 0, dy: 0, foot: 0 });
+    if (capN >= MAX_RECORDED) { SH.skipped++; return; }
+    const c = casters[capN] || (casters[capN] = { fr: null, sx: 0, sy: 0, sw: 0, sh: 0, dx: 0, dy: 0, foot: 0, score: 0 });
     c.fr = fr; c.sx = sx; c.sy = sy; c.sw = sw; c.sh = sh; c.dx = dx; c.dy = dy; c.foot = capFoot;
     capN++;
   }
 
-  // 影を落とす物か。地面の小物・作物・落ちている物・屋根/床は落とさない(接地影の対象と同じ区分)。足元の y(影を傾ける軸)を返す。落とさないなら null
+  // 影を落とす物か。地面の小物・作物・落ちている物・屋根/床は落とさない(接地影の対象と同じ区分)。足元の y(局所光の向きと、2D の接地影の基準)を返す。落とさないなら null
+  // 太陽・月の影の位置は足元ではなく height 画像の実際の高さから決める。border_pine は全 depth が対象(depth>=2 は描いた樹冠の範囲だけが影になる)
   function casterFoot(it) {
     if (it.kind === 3 || it.kind === 4 || it.kind === 5) return it.y;
     if (it.kind === 1) return STRUCTURES[it.ref.type].layer === 'floor' ? null : it.ref.y * TILE + 28;
     if (it.kind !== 0) return null;
     const n = it.ref, def = NODES[n.type];
     if (def.decor && !n.sprite) return null;
-    if (n.type === 'border_pine' || n.type === 'branch' || n.type === 'pebble' || n.type === 'grass') return null;
+    if (n.type === 'branch' || n.type === 'pebble' || n.type === 'grass') return null;
     if (n.sprite === 'flowers' || n.sprite === 'blueflowers') return null;
     return nodeFootprint(n).y;
   }
@@ -712,13 +773,17 @@ export function createRenderer(canvas, assets) {
     return h;
   }
 
-  function bakeGroundChunk(map, cx, cy, key, sig) {
+  // stale: 同じ key が既にあるが地形の署名が変わった(採掘・リセット)ための焼き直し。それ以外で焼いた事のある key をまた焼く時は、容量不足で捨てられた後の再焼成として数える
+  function bakeGroundChunk(map, cx, cy, key, sig, stale) {
     try {
       const t = performance.now();
       const res = Ground.bakeChunk(groundSpec(map), cx, cy);
       const canvases = Ground.toCanvases(res, newCanvas);
       const ms = performance.now() - t;
-      VS.ground.lastBakeMs = ms; VS.ground.bakeMs += ms; VS.ground.baked++; VS.ground.scatter = res.stats.scatter;
+      const G = VS.ground;
+      G.lastBakeMs = ms; G.bakeMs += ms; G.baked++; G.scatter = res.stats.scatter;
+      if (stale) G.sigRebaked++; else if (GR.everBaked.has(key)) G.rebaked++;
+      GR.everBaked.add(key);
       return GR.cache.set(key, { canvases, sig, stats: res.stats });
     } catch (err) {
       GR.failed = true; VS.ground.failed = true;
@@ -727,24 +792,22 @@ export function createRenderer(canvas, assets) {
     }
   }
 
-  // 焼く予算が尽きたチャンクの暫定表示: 材質ごとの下地タイルだけ(縁・散らしなし)
-  function drawGroundFallback(map, cx, cy, tx0, ty0, tx1, ty1) {
-    const cs = Ground.CHUNK_TILES;
-    for (let ty = Math.max(ty0 - 1, cy * cs); ty <= Math.min(ty1 + 1, cy * cs + cs - 1); ty++) {
-      for (let tx = Math.max(tx0 - 1, cx * cs); tx <= Math.min(tx1 + 1, cx * cs + cs - 1); tx++) {
-        const name = Ground.MATERIALS[tileMatAt(map, tx, ty)];
-        if (isWaterTile(name)) continue;
-        blit(assets.get('tiles', name + terrainVariant(name, tx, ty)), tx * TILE, ty * TILE);
-      }
-    }
+  // 見えているチャンクと先読みの外周がすべて入る LRU の容量を確保する。足りない時は新しい LRU へ今の中身を古い順に移す(捨てない)。
+  // 容量は縮めない(画面を戻した時に焼き直さない)。見えている物は毎フレーム get で最新になるので、先読みが追い出すのは古い物だけ
+  function ensureGroundCache(need) {
+    const cache = GR.cache;
+    if (cache && cache.max >= need) return cache;
+    const next = Ground.createChunkCache(need, () => { VS.ground.evicted++; });
+    if (cache) for (const k of cache.keys()) next.set(k, cache.get(k));
+    GR.cache = next;
+    return next;
   }
 
   function drawGroundChunks(map, tx0, ty0, tx1, ty1) {
     const tex = groundTextures();
     if (!tex) return false;
-    const cache = GR.cache || (GR.cache = Ground.createChunkCache(24));
     const G = VS.ground, t0 = performance.now(), cs = Ground.CHUNK_TILES;
-    G.fallback = 0;
+    G.fallback = 0; // 暫定の四角い地形への置換は廃止した(見えているチャンクは必ず同じ有機マスクで焼く)
     // 1. 水の下地(アニメーション)。水そのもの、または8近傍に水のあるタイル。陸の材質はこの上に透明を残して重ねる
     const waterFrame = Math.floor(R.t * 2.2) & 3;
     const wAt = (x, y) => { const nm = Ground.MATERIALS[tileMatAt(map, x, y)]; return isWaterTile(nm) ? nm : null; };
@@ -765,36 +828,44 @@ export function createRenderer(canvas, assets) {
     const cxa = Math.max(0, Math.floor((tx0 - 1) / cs)), cxb = Math.min(Math.ceil(map.w / cs) - 1, Math.floor((tx1 + 1) / cs));
     const cya = Math.max(0, Math.floor((ty0 - 1) / cs)), cyb = Math.min(Math.ceil(map.h / cs) - 1, Math.floor((ty1 + 1) / cs));
     let baked = 0;
+    const mcx = Math.ceil(map.w / cs), mcy = Math.ceil(map.h / cs);
+    // 先読みする外周(見える範囲の周り1チャンク)まで含めた枚数 + 余裕 8 枚(斜め移動・マップ切替の直後)。最低でも従来の 24
+    const visible = Math.max(0, cxb - cxa + 1) * Math.max(0, cyb - cya + 1);
+    const ring = Math.min(mcx, cxb - cxa + 3) * Math.min(mcy, cyb - cya + 3);
+    const cache = ensureGroundCache(Math.max(24, ring + 8));
     const keyOf = (cx, cy) => `${map.id}:${cx},${cy}:${GR.debug}:${TOG.groundScatter ? 1 : 0}`;
     for (let cy = cya; cy <= cyb; cy++) {
       for (let cx = cxa; cx <= cxb; cx++) {
         const key = keyOf(cx, cy), sig = chunkSig(map, cx, cy);
         let e = cache.get(key);
-        if (e && e.sig !== sig) e = null;
+        const stale = !!e && e.sig !== sig;
+        if (stale) e = null;
         if (!e) {
-          // 見えているのに未焼きのチャンクは、その場で焼く(材質が後から変わって見えないように)。通常は先読みが済んでいて 0〜2枚。
-          // 12枚を超える異常な時だけ、暫定の下地タイルで埋める
-          if (baked >= 12) { G.fallback++; drawGroundFallback(map, cx, cy, tx0, ty0, tx1, ty1); continue; }
-          e = bakeGroundChunk(map, cx, cy, key, sig);
+          // 見えているのに未焼きのチャンクは、枚数に関係なくその場で同じ有機マスクで焼く(材質・境界が後から変わって見えないように)。
+          // 初回(起動・拡大縮小・テレポート直後)だけ重く、通常は先読みが済んでいて 0〜2枚
+          e = bakeGroundChunk(map, cx, cy, key, sig, stale);
           if (!e) return false;
-          baked++;
+          baked++; G.syncBaked++;
         }
         const X = cx * Ground.CHUNK_PX, Y = cy * Ground.CHUNK_PX;
         ctx.drawImage(e.canvases.color, X, Y);
         if (layered) { nctx.drawImage(e.canvases.normal, X, Y); hctx.drawImage(e.canvases.height, X, Y); }
       }
     }
-    // 3. 先読み: 今のフレームで焼かなかった時だけ、見えている範囲の周りのチャンクを1つ
+    // 3. 先読み: 今のフレームで焼かなかった時だけ、見えている範囲の周りのチャンクを1つ。容量は外周ぶん確保済みなので、見えている物は追い出さない
+    let pre = 0;
     if (!baked && performance.now() - t0 < 4) {
       outer: for (let cy = cya - 1; cy <= cyb + 1; cy++) for (let cx = cxa - 1; cx <= cxb + 1; cx++) {
-        if (cx < 0 || cy < 0 || cx >= Math.ceil(map.w / cs) || cy >= Math.ceil(map.h / cs)) continue;
+        if (cx < 0 || cy < 0 || cx >= mcx || cy >= mcy) continue;
         const key = keyOf(cx, cy);
         if (cache.get(key)) continue;
-        bakeGroundChunk(map, cx, cy, key, chunkSig(map, cx, cy));
+        bakeGroundChunk(map, cx, cy, key, chunkSig(map, cx, cy), false);
+        pre = 1;
         break outer;
       }
     }
-    G.chunks = cache.size;
+    G.chunks = cache.size; G.visible = visible; G.ring = ring; G.cacheMax = cache.max; G.cacheBytes = cache.size * Ground.CHUNK_BYTES;
+    G.lastFrameBaked = baked + pre;
     return true;
   }
 
@@ -1013,22 +1084,148 @@ export function createRenderer(canvas, assets) {
     return v;
   }
 
-  function drawTreeSprite(fr, x, y, alpha) {
+  function drawTreeSprite(fr, x, y, alpha, ref) {
     const split = Math.max(0, fr.py - 16);
     if (alpha < 0.99) {
       drawFrame(fr, 0, split, fr.w, fr.h - split, x, y + split);
       ctx.globalAlpha = alpha;
       drawFrame(fr, 0, 0, fr.w, split, x, y);
       ctx.globalAlpha = 1;
-    } else blit(fr, x, y);
+      if (occOn) { recordOcc(ref, fr, x, y, split, fr.h - split, 1); recordOcc(ref, fr, x, y, 0, split, alpha); }
+    } else {
+      blit(fr, x, y);
+      if (occOn) recordOcc(ref, fr, x, y, 0, fr.h, 1);
+    }
   }
 
-  function collectScene(state, map, tx0, ty0, tx1, ty1) {
+  /* ---------- 主人公が樹冠に埋もれた時の位置保持 ---------- */
+  // 主人公(kind 3)を描いた後に描かれた生きた樹冠の「実際に描いた切り出し」だけを積む(真後ろの木・枯れ/切株は積まない)。要素は使い回す。
+  // 判定は主人公コマと樹冠コマの alpha マスク(frame ごとに1回だけ読み出して WeakMap に保持)の重なりで行い、毎フレームの getImageData はしない。
+  const OC = VS.heroOcclusion;
+  const OCC_ALPHA = 128, OCC_ON = 0.15, OCC_OFF = 0.08, OCC_MIN_PX = 10;
+  const occPool = [], aMask = new WeakMap();
+  let occOn = false, occN = 0, occScratch = null, occT = new Float32Array(0), occHeld = false;
+
+  function recordOcc(ref, fr, x, y, sy, sh, a) {
+    if (sh <= 0 || a <= 0) return;
+    const o = occPool[occN] || (occPool[occN] = { ref: null, fr: null, x: 0, y: 0, sy: 0, sh: 0, a: 1 });
+    o.ref = ref; o.fr = fr; o.x = x; o.y = y; o.sy = sy; o.sh = sh; o.a = a;
+    occN++;
+  }
+
+  // frame(変種=反転/half/tint を含む。描いたものと同じ frame を渡す) の alpha>=OCC_ALPHA を 1/0 で保持。読めなければ null
+  function alphaMask(fr) {
+    let m = aMask.get(fr);
+    if (m !== undefined) return m;
+    m = null;
+    try {
+      if (!occScratch) { const cv = newCanvas(1, 1); occScratch = { cv, g: cv.getContext('2d', { willReadFrequently: true }) }; }
+      const { cv, g } = occScratch;
+      if (cv.width !== fr.w || cv.height !== fr.h) { cv.width = fr.w; cv.height = fr.h; } else g.clearRect(0, 0, fr.w, fr.h);
+      g.drawImage(fr.img, fr.x, fr.y, fr.w, fr.h, 0, 0, fr.w, fr.h);
+      const d = g.getImageData(0, 0, fr.w, fr.h).data, bits = new Uint8Array(fr.w * fr.h);
+      let count = 0;
+      for (let i = 0, k = 0; k < bits.length; i += 4, k++) if (d[i + 3] >= OCC_ALPHA) { bits[k] = 1; count++; }
+      m = { w: fr.w, h: fr.h, bits, count };
+      OC.masks++;
+    } catch (err) { OC.readFail++; }
+    aMask.set(fr, m);
+    return m;
+  }
+
+  // 2D fallback 用: 照明後に重ねる「輪郭線だけ」。主人公コマの不透明alpha(alphaMask)から4近傍1pxの外側リングを作り、内側は完全透過のまま。
+  // frame ごとに1回だけ生成して WeakMap に保持(毎フレームの canvas 生成/getImageData なし)。画像は(+1,+1)ずらして置くので、描画時は-1で戻す
+  const ringCache = new WeakMap();
+  function heroRing(fr) {
+    let r = ringCache.get(fr);
+    if (r !== undefined) return r;
+    r = null;
+    const m = alphaMask(fr);
+    if (m && m.count) {
+      const w = m.w + 2, h = m.h + 2, cv = newCanvas(w, h), g = cv.getContext('2d'), id = g.createImageData(w, h), d = id.data;
+      const on = (x, y) => x >= 0 && y >= 0 && x < m.w && y < m.h && m.bits[y * m.w + x] === 1;
+      for (let y = -1; y <= m.h; y++) for (let x = -1; x <= m.w; x++) {
+        if (on(x, y) || !(on(x - 1, y) || on(x + 1, y) || on(x, y - 1) || on(x, y + 1))) continue;
+        const i = ((y + 1) * w + x + 1) * 4;
+        d[i] = 255; d[i + 1] = 233; d[i + 2] = 168; d[i + 3] = 255;
+      }
+      g.putImageData(id, 0, 0);
+      r = cv;
+    }
+    ringCache.set(fr, r);
+    return r;
+  }
+  // 照明後(暗幕・vignette の後)に呼ぶ。本人の色は再描画せず、輪郭だけを UI として淡い金色で出す。world→screen の S/cam 変換は保存して復帰
+  function drawHeroRing2d(p, S, camX, camY) {
+    const fr = assets.get('actors', heroFrameName(p)), ring = heroRing(fr);
+    if (!ring) return false;
+    ctx.save();
+    ctx.setTransform(S, 0, 0, S, -camX * S, -camY * S);
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha = .68;
+    ctx.drawImage(ring, Math.round(p.x) - fr.px - 1, Math.round(p.y) - fr.py - 1);
+    ctx.restore();
+    return true;
+  }
+
+  // 主人公の不透明画素ごとに、後から描かれた樹冠の透過率(1-alpha)を掛け、残りの見え方が OCC_VIS 未満の画素を「隠れた」と数える。
+  // 薄くなった樹冠1枚(木fadeの0.35)では隠れず、複数の重なりや幹・濃い樹冠では隠れる。出入りの境にヒステリシス(ON 15% / OFF 8%)を置く
+  const OCC_VIS = 0.55;
+  function heroCanopyOccluded(p) {
+    OC.canopies = 0; OC.pieces = occN; OC.hidden = 0; OC.heroPx = 0;
+    if (!occN) return false;
+    const hf = assets.get('actors', heroFrameName(p)), hm = alphaMask(hf);
+    if (!hm || !hm.count) return false;
+    OC.heroPx = hm.count;
+    const hx = Math.round(p.x) - hf.px, hy = Math.round(p.y) - hf.py;
+    let t = null, lastRef = null;
+    for (let i = 0; i < occN; i++) {
+      const o = occPool[i], fr = o.fr;
+      const x0 = Math.max(hx, o.x), x1 = Math.min(hx + hf.w, o.x + fr.w);
+      const y0 = Math.max(hy, o.y + o.sy), y1 = Math.min(hy + hf.h, o.y + o.sy + o.sh);
+      if (x0 >= x1 || y0 >= y1) continue;
+      const cm = alphaMask(fr);
+      if (!cm) continue;
+      let hit = 0;
+      for (let y = y0; y < y1; y++) {
+        const hr = (y - hy) * hf.w - hx, cr = (y - o.y) * fr.w - o.x;
+        for (let x = x0; x < x1; x++) {
+          const hi = hr + x;
+          if (!hm.bits[hi] || !cm.bits[cr + x]) continue;
+          if (!t) { if (occT.length < hf.w * hf.h) occT = new Float32Array(hf.w * hf.h); t = occT; t.fill(1, 0, hf.w * hf.h); }
+          const before = t[hi];
+          t[hi] = before * (1 - o.a);
+          if (before >= OCC_VIS && t[hi] < OCC_VIS) OC.hidden++;
+          hit++;
+        }
+      }
+      if (hit && o.ref !== lastRef) { OC.canopies++; lastRef = o.ref; }
+    }
+    const ratio = OC.hidden / hm.count;
+    return OC.hidden >= OCC_MIN_PX && ratio >= (occHeld ? OCC_OFF : OCC_ON);
+  }
+
+  // shadowVec: 今の太陽/月の影(高さ1pxあたりの画面上の変位)。無ければ null。画面外の物の影が画面端で途中から現れないよう、
+  // 影が最大(高さ64px × |vec|)届く分だけ集める範囲を広げる(横は最大7タイル、上下は影が来る側だけ。無制限には広げない)
+  function sceneMargins(shadowVec) {
+    const m = sceneMargin;
+    m.x = 2; m.top = 1; m.bottom = 4;
+    if (!shadowVec) return m;
+    const vx = shadowVec[0], vy = shadowVec[1];
+    m.x = Math.max(2, Math.min(7, Math.ceil((Math.abs(vx) * SHADOW_MAX_H + 48) / TILE)));
+    if (vy > 0) m.top = Math.max(1, Math.min(7, Math.ceil((vy * SHADOW_MAX_H + 16) / TILE)));
+    else if (vy < 0) m.bottom = Math.max(4, Math.min(8, Math.ceil((-vy * SHADOW_MAX_H + 48) / TILE)));
+    return m;
+  }
+  const sceneMargin = { x: 2, top: 1, bottom: 4 };
+
+  function collectScene(state, map, tx0, ty0, tx1, ty1, shadowVec) {
     sortList.length = 0;
     const p = state.player;
     const sidx = state.structIndex[map.id];
-    for (let ty = ty0 - 1; ty <= ty1 + 4; ty++) {
-      for (let tx = tx0 - 2; tx <= tx1 + 2; tx++) {
+    const mg = sceneMargins(shadowVec);
+    for (let ty = ty0 - mg.top; ty <= ty1 + mg.bottom; ty++) {
+      for (let tx = tx0 - mg.x; tx <= tx1 + mg.x; tx++) {
         if (tx < 0 || ty < 0 || tx >= map.w || ty >= map.h) continue;
         const ni = map.nodeAt[ty * map.w + tx];
         if (ni >= 0) { const n = map.nodes[ni]; sortList.push({ y: nodeFootprint(n, !nodeAliveR(state, n)).y, kind: 0, ref: n }); }
@@ -1049,7 +1246,7 @@ export function createRenderer(canvas, assets) {
     for (const s of arenaScenery(map)) {
       if (!s.tall) continue;
       const sx = s.x / TILE, sy = s.y / TILE;
-      if (sx >= tx0 - 3 && sx <= tx1 + 3 && sy >= ty0 - 2 && sy <= ty1 + 5) sortList.push({ y: s.y, kind: 8, ref: s });
+      if (sx >= tx0 - Math.max(3, mg.x) && sx <= tx1 + Math.max(3, mg.x) && sy >= ty0 - Math.max(2, mg.top) && sy <= ty1 + Math.max(5, mg.bottom)) sortList.push({ y: s.y, kind: 8, ref: s });
     }
     sortList.push({ y: p.y + 0.01, kind: 3, ref: p });
     sortList.sort((a, b) => a.y - b.y);
@@ -1066,7 +1263,14 @@ export function createRenderer(canvas, assets) {
         const n = it.ref, def = NODES[n.type];
         if (def.decor && !n.sprite) continue;
         if (!nodeAliveR(state, n) && n.type !== 'tree') continue;
-        if (n.type === 'border_pine') continue;
+        if (n.type === 'border_pine') {
+          // 幹が見える depth 0/1 は木と同じ接地影(GL では接触の遮蔽に縮む)。depth>=2 は幹を描かない樹冠だけなので、GL では投影影(影バッファ)に任せ、
+          // 2D 照明の時だけ樹冠の真下に楕円を置く
+          const depth = n.meta && n.meta.canopy ? Math.max(0, n.meta.depth | 0) : 0;
+          if (depth <= 1) drawShadow(n.px + 3, n.py + 1, 19, 6);
+          else if (!layered) drawShadow(n.px, n.py - 1, 17, 5);
+          continue;
+        }
         if (n.type === 'branch' || n.type === 'pebble') { drawShadow(n.px, n.py, 4, 1); continue; }
         if (n.type === 'grass') { drawShadow(n.px, n.py, 5, 1); continue; }
         if (n.sprite === 'flowers' || n.sprite === 'blueflowers') { drawShadow(n.px, n.py, 3, 1); continue; }
@@ -1100,6 +1304,19 @@ export function createRenderer(canvas, assets) {
 
   // noGlow: 暗幕を抜くだけで、加算の色光は足さない(闘技場の照明用。白飛びさせない)
   // src: {x,y,h} 物理的な光源の足元(world px)と足元からの高さ(px)。あれば局所光の地面影を持てる灯になる(無い灯は height ray だけ)
+  // 灯の色: '#rrggbb' / '#rgb' / [r,g,b] を [r,g,b](0..255)へ。読めない時は fallback
+  function lightRGB(c, fallback) {
+    if (Array.isArray(c) && c.length >= 3 && c.every(Number.isFinite)) return [c[0], c[1], c[2]].map((v) => Math.max(0, Math.min(255, Math.round(v))));
+    if (typeof c === 'string') {
+      const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c.trim());
+      if (m) {
+        const h = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1];
+        return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+      }
+    }
+    return fallback;
+  }
+
   function addLight(x, y, r, color, flicker, power, id, noGlow, src) {
     lights.push({ x, y, r, color, flicker: flicker || 0, power: power == null ? 1 : power, id: id || 0, noGlow: !!noGlow, src: src || null });
   }
@@ -1146,7 +1363,11 @@ export function createRenderer(canvas, assets) {
         // 奥の列は樹冠だけ描く。地面に接しない幹が宙に浮かないようにする
         const split = Math.max(1, fr.py - 16);
         drawFrame(fr, 0, 0, fr.w, split, bx, by);
-      } else blit(fr, bx, by);
+        if (occOn) recordOcc(n, fr, bx, by, 0, split, 1);
+      } else {
+        blit(fr, bx, by);
+        if (occOn) recordOcc(n, fr, bx, by, 0, fr.h, 1);
+      }
       return;
     }
     const mods = alive ? nodeSpriteMods(def, n) : {};
@@ -1164,7 +1385,7 @@ export function createRenderer(canvas, assets) {
       const dx = p.x - n.px, dy = n.py - p.y;
       const behind = dy > 2 && dy < 86 && Math.abs(dx) < 34;
       const a = fadeOf(n, behind ? 0.35 : 1, dt);
-      drawTreeSprite(fr, x, y, a);
+      drawTreeSprite(fr, x, y, a, n);
       return;
     }
     if (def.sway && alive && !R.calm) {
@@ -1407,13 +1628,81 @@ export function createRenderer(canvas, assets) {
 
   function drawCrop(crop) {
     const def = CROPS[crop.kind];
+    if (!def) return;
     const stage = Math.min(3, Math.floor(crop.growth / def.stageTime));
-    // 専用の作物フレームがあれば着色しない。無い間だけ共通のcropNを使い、小麦は色味で区別する
-    const own = `crop_${crop.kind === 'wheat' ? 'wheat' : 'potato'}${stage}`;
+    // 絵は CROPS[kind].sprite の接頭辞 + 段階。実在する別名(crop_potato / crop_wheat)を使う新作物は def.tint でだけ色を変える(未指定なら着色しない)
+    const own = `${def.sprite || 'crop'}${stage}`;
+    const tint = Array.isArray(def.tint) ? [def.tint[0], def.tint[1] * (stage === 0 ? 0.5 : 1)] : null;
     const fr = assets.has('props', own)
-      ? prop(own)
-      : prop(`crop${stage}`, crop.kind === 'wheat' ? { tint: ['#d7aa4b', stage >= 2 ? 0.55 : 0.15] } : undefined);
+      ? prop(own, tint ? { tint } : undefined)
+      : prop(`crop${stage}`, tint ? { tint } : undefined); // 接頭辞が実在しない時だけ共通のcropN
     blit(fr, crop.x * TILE + 16 - fr.px, crop.y * TILE + 28 - fr.py);
+  }
+
+  // 釣り。位置は world 座標(狙った水マスの中心を整数pxへ丸める)で固定し、カメラ移動で画面基準に泳がない。
+  // 浮き・水面リング・竿と糸は color だけに描く(normal/height へは触れない=点光源の影の遮蔽物にならない)。夜は光が無ければそのまま暗い。
+  function fishingOf(state, map) {
+    const f = state.fishing;
+    return f && f.layer === map.id && Number.isFinite(f.cx) && Number.isFinite(f.cy) ? f : null;
+  }
+  function pxLine(x0, y0, x1, y1, col) {
+    ctx.fillStyle = col;
+    let dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), e = dx + dy;
+    const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    for (let n = 0; n < 400; n++) {
+      ctx.fillRect(x0, y0, 1, 1);
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * e;
+      if (e2 >= dy) { e += dy; x0 += sx; }
+      if (e2 <= dx) { e += dx; y0 += sy; }
+    }
+  }
+  function drawFishing(state, map) {
+    const f = fishingOf(state, map);
+    if (!f) return;
+    const p = state.player, bite = f.phase === 'bite';
+    const t = R.calm ? 0 : R.t;
+    const bx = Math.round((f.cx + 0.5) * TILE), by = Math.round((f.cy + 0.5) * TILE);
+    ctx.save();
+    // 水面リング: 位相をずらした2本の楕円(1px点)。biteでは速く、濃く
+    const speed = bite ? 2.4 : 0.7;
+    for (let k = 0; k < 2; k++) {
+      const ph = (t * speed + k * 0.5) % 1, rx = 3 + Math.round(ph * (bite ? 10 : 8)), ry = Math.max(1, Math.round(rx * 0.45));
+      ctx.globalAlpha = (1 - ph) * (bite ? 0.85 : 0.5);
+      ctx.fillStyle = '#d7efee';
+      for (let a = 0; a < 20; a++) {
+        const th = (a / 20) * Math.PI * 2;
+        ctx.fillRect(bx + Math.round(Math.cos(th) * rx), by + 1 + Math.round(Math.sin(th) * ry), 1, 1);
+      }
+    }
+    ctx.globalAlpha = 1;
+    // 浮き: 待機は ±1px のゆっくりした上下、biteは2px沈んで細かく震える
+    const bob = bite ? 2 + (Math.sin(t * 40) > 0 ? 1 : 0) : Math.round(Math.sin(t * 2.2 + f.id) * 1);
+    const oy = by + bob;
+    ctx.fillStyle = '#16231f'; ctx.fillRect(bx - 2, oy - 5, 4, 1); ctx.fillRect(bx - 2, oy - 4, 1, 4); ctx.fillRect(bx + 1, oy - 4, 1, 4);
+    ctx.fillStyle = '#e0473d'; ctx.fillRect(bx - 1, oy - 4, 2, 2);
+    ctx.fillStyle = '#f2eedd'; ctx.fillRect(bx - 1, oy - 2, 2, 2);
+    ctx.fillStyle = '#9fd6d2'; ctx.fillRect(bx - 3, oy, 6, 1);
+    // 竿と糸: 竿先は向いている方向の手の先。糸は浮きへ少したるませる
+    const hx = Math.round(p.x), hy = Math.round(p.y);
+    const fx = Number.isFinite(p.fx) ? p.fx : 0, fy = Number.isFinite(p.fy) ? p.fy : 1;
+    const gx = hx + Math.round(fx * 5), gy = hy - 14;
+    const tx = hx + Math.round(fx * 15), ty = hy - 26 + Math.round(fy * 4);
+    pxLine(gx, gy, tx, ty, '#6b4a2b');
+    const mx = Math.round((tx + bx) / 2), my = Math.round((ty + oy - 4) / 2) + Math.min(6, Math.round(Math.hypot(bx - tx, oy - ty) / 10));
+    ctx.globalAlpha = 0.9;
+    pxLine(tx, ty, mx, my, '#ece5c8');
+    pxLine(mx, my, bx, oy - 5, '#ece5c8');
+    ctx.restore();
+  }
+  // 「！」は暗幕の上(overlay)に world 座標で重ねる。bite の間だけ。浮きの真上で2px弾む
+  function drawFishingAlert(state, map) {
+    const f = fishingOf(state, map);
+    if (!f || f.phase !== 'bite') return;
+    const x = Math.round((f.cx + 0.5) * TILE), y = Math.round((f.cy + 0.5) * TILE) - 22 - (R.calm ? 0 : Math.round(Math.abs(Math.sin(R.t * 14)) * 2));
+    ctx.fillStyle = '#1b1511'; ctx.fillRect(x - 4, y - 7, 8, 15);
+    ctx.fillStyle = '#ffe27a'; ctx.fillRect(x - 3, y - 6, 6, 13);
+    ctx.fillStyle = '#c0281e'; ctx.fillRect(x - 1, y - 4, 2, 6); ctx.fillRect(x - 1, y + 3, 2, 2);
   }
 
   function drawDeathBag(bag) {
@@ -1812,22 +2101,35 @@ export function createRenderer(canvas, assets) {
   }
 
   /* ---------- GL照明(lighting.js) ---------- */
-  // 使うかどうかをframeの最初に決める。使えない理由は LS.reason に残す
+  // 使うかどうかをframeの最初に決める。使えない理由は LS.reason に残す。
+  // 解像度の固定しきい値では 2D にしない。native が実ハードの制約(createLighting の limits: 最大テクスチャ・viewport・描画バッファ)に収まれば GL を使う。
+  // 2D へ戻るのは、明示の 2d・GL 非対応(unsupported)・context lost・実ハードの制約超過(texture-limit)だけ
   function pickLighting(nw, nh) {
     LS.w = nw; LS.h = nh; LS.device.w = R.devW; LS.device.h = R.devH;
+    if (degradeNative !== nw * nh) { degradeNative = nw * nh; resetDegrade(); }
     if (LS.mode === '2d') { LS.reason = 'mode-2d'; return false; }
-    // 縦画面も同じ画素予算で扱う。390x844は720x450とほぼ同じ負荷。
-    if (Math.max(nw, nh) > MAX_GL_W || nw * nh > MAX_GL_W * MAX_GL_H) { LS.reason = 'resolution'; return false; }
-    if (LS.slow && LS.mode === 'auto') { LS.reason = 'slow'; return false; }
     if (!lighting && !lightingTried) {
       lightingTried = true;
-      lighting = createLighting({ maxLights: coarse ? 4 : 8, steps: coarse ? 6 : 8 });
+      lighting = createLighting({ maxLights: BASE_LIGHTS, steps: BASE_STEPS });
     }
     if (!lighting) { LS.reason = 'unsupported'; return false; }
     LS.contextLost = lighting.isLost();
     if (LS.contextLost) { LS.reason = 'context-lost'; return false; }
+    LS.hardware = lighting.stats.limits ? { ...lighting.stats.limits } : null;
+    if (!lighting.fits(nw, nh)) { LS.reason = 'texture-limit'; return false; }
     LS.reason = 'gl';
     return true;
+  }
+
+  // 省負荷段階を基準へ戻す(native の画素数が変わった・モードを変えた時)。段階は段数・灯数・局所光の影だけで、法線・太陽・投影影は下げない
+  function applyDegrade(level) {
+    const d = LS.degrade, lv = Math.max(0, Math.min(DEGRADE.length - 1, level)), cfg = DEGRADE[lv];
+    d.level = lv; d.steps = Math.min(BASE_STEPS, cfg.steps); d.lights = Math.min(BASE_LIGHTS, cfg.lights); d.pointShadows = Math.min(BASE_PT, cfg.pt);
+  }
+  function resetDegrade() {
+    LS.slow = false; LS.slowRuns = 0; LS.samples.length = 0;
+    LS.degrade.floorRuns = 0; LS.degrade.medianMs = 0; LS.degrade.history.length = 0;
+    applyDegrade(0);
   }
 
   // 遮蔽テクスチャ: R=固体(洞窟壁・崖・壁・閉じた扉) G=屋内(プレイヤーが家の中にいる間だけ、その家の床)。画面の4タイル外まで
@@ -1850,8 +2152,104 @@ export function createRenderer(canvas, assets) {
     return { x0, y0, w, h, data: occBuf };
   }
 
-  // 投影影バッファ: 記録した遮る物の height 画像を、足元の行を軸に影の向きへ傾けて 'lighten' で重ねる(R=遮る物の高さ/64、0=無し)。
-  // 画素 (u,v) の高さ h = 足元y − 画素y。影は (X + vx·h, 足元y + vy·h) に落ちる。vec は native px/高さ1px
+  /* ---------- 影の投影(太陽・月・局所光で共通) ---------- */
+  // height 画像の実際の高さ h(R/255·64 px)から影を作る。画面の画素 p(中心)の高さ h は、地面の (p.x, p.y + h) の真上にある
+  // (シェーダの受ける側 g = p + (0,hr) と同じ)。影は ground + v·h に h を書く。表示上の行差(足元y − 画素y)は使わない。
+  // 結果は切り出しの左上基準の小さな画像(R=高さ, alpha=書いた所)で、カメラや絶対位置に依存しない。位置は整数 native px へ置くだけなので世界に固定される。
+  // 影の向きは画面の向き v を 1/PROJ_Q に丸めて(最大誤差 0.5/PROJ_Q × 64px)キャッシュし、同じ物・同じ向きでは作り直さない。
+  // 穴: 高さが違う隣の画素(上と右)へ線分でつなぎ、飛び飛びの画素にしない。透明(alpha<PROJ_ALPHA)と高さ 0 は影にしない
+  const PROJ_Q = 64, PROJ_ALPHA = 128, PROJ_MAX_ENTRIES = 700, PROJ_MAX_BYTES = 64 * 1024 * 1024;
+  const hRead = new WeakMap();    // frame(変種を含む) → {w,h,data,maxH} | null。height 画像の読み出しは frame ごとに1回だけ
+  const frameIds = new WeakMap();
+  let frameIdN = 0;
+  const projCache = new Map();    // key → {cv,ox,oy,w,h,bytes}(LRU)。cv=null は影なし
+  const EMPTY_PROJ = { cv: null, ox: 0, oy: 0, w: 0, h: 0, bytes: 0 };
+  const PJ = { entries: 0, bytes: 0, hits: 0, misses: 0, frameMisses: 0, readFail: 0, ms: 0 };
+
+  function readHeight(fr) {
+    let r = hRead.get(fr);
+    if (r !== undefined) return r;
+    r = null;
+    try {
+      const cv = newCanvas(fr.w, fr.h), g = cv.getContext('2d', { willReadFrequently: true });
+      g.drawImage(fr.himg, fr.x, fr.y, fr.w, fr.h, 0, 0, fr.w, fr.h);
+      const data = g.getImageData(0, 0, fr.w, fr.h).data;
+      let maxR = 0;
+      for (let i = 0; i < data.length; i += 4) if (data[i + 3] >= PROJ_ALPHA && data[i] > maxR) maxR = data[i];
+      r = { w: fr.w, h: fr.h, data, maxH: maxR * (SHADOW_MAX_H / 255) };
+    } catch (err) { PJ.readFail++; }
+    hRead.set(fr, r);
+    return r;
+  }
+
+  // q: 向きを丸める刻み(1/q)。太陽・月は細かく、動く物と灯の相対位置で毎フレーム変わる局所光は粗く(キャッシュを汚さない)
+  function projectShadow(fr, sx, sy, sw, sh, vx, vy, q = PROJ_Q) {
+    const qx = Math.round(vx * q), qy = Math.round(vy * q);
+    let id = frameIds.get(fr);
+    if (!id) { id = ++frameIdN; frameIds.set(fr, id); }
+    const key = `${id}|${sx},${sy},${sw},${sh}|${qx},${qy}|${q}`;
+    let p = projCache.get(key);
+    if (p !== undefined) { projCache.delete(key); projCache.set(key, p); PJ.hits++; return p; }
+    PJ.misses++; PJ.frameMisses++;
+    const t0 = performance.now();
+    p = EMPTY_PROJ;
+    const rd = readHeight(fr);
+    if (rd) {
+      const kx = qx / q, ky = 1 + qy / q, W = rd.w, data = rd.data, S = SHADOW_MAX_H / 255;
+      const u1 = Math.min(sw, rd.w - sx), v1 = Math.min(sh, rd.h - sy);
+      const ex = kx * rd.maxH, ey = ky * rd.maxH;
+      const ox = Math.floor(Math.min(0, ex)) - 1, oy = Math.floor(Math.min(0, ey)) - 1;
+      const bw = Math.ceil(sw + Math.max(0, ex)) + 2 - ox, bh = Math.ceil(sh + Math.max(0, ey)) + 2 - oy;
+      const buf = new Uint8ClampedArray(bw * bh * 4);
+      let any = false;
+      const put = (X, Y, r) => {
+        const ix = Math.floor(X) - ox, iy = Math.floor(Y) - oy;
+        if (ix < 0 || iy < 0 || ix >= bw || iy >= bh) return;
+        const o = (iy * bw + ix) * 4;
+        if (buf[o] < r) buf[o] = r;
+        buf[o + 3] = 255; any = true;
+      };
+      // 画素 (u,v) の影の位置(切り出しの左上基準)。高さ 0 や透明なら -1
+      const rOf = (u, v) => {
+        if (u < 0 || v < 0 || u >= u1 || v >= v1) return -1;
+        const i = ((sy + v) * W + sx + u) * 4;
+        return data[i + 3] < PROJ_ALPHA ? -1 : data[i];
+      };
+      const seg = (X0, Y0, r0, X1, Y1, r1) => {
+        const n = Math.min(8, Math.ceil(Math.max(Math.abs(X1 - X0), Math.abs(Y1 - Y0))));
+        for (let s = 1; s < n; s++) { const t = s / n; put(X0 + (X1 - X0) * t, Y0 + (Y1 - Y0) * t, r0 + (r1 - r0) * t); }
+      };
+      for (let v = 0; v < v1; v++) {
+        for (let u = 0; u < u1; u++) {
+          const r = rOf(u, v);
+          if (r <= 0) continue;
+          const h = r * S, X = u + 0.5 + kx * h, Y = v + 0.5 + ky * h;
+          put(X, Y, r);
+          const ru = rOf(u, v - 1), rr = rOf(u + 1, v);
+          if (ru > 0) { const hu = ru * S; seg(X, Y, r, u + 0.5 + kx * hu, v - 0.5 + ky * hu, ru); }
+          if (rr > 0) { const hr = rr * S; seg(X, Y, r, u + 1.5 + kx * hr, v + 0.5 + ky * hr, rr); }
+        }
+      }
+      if (any) {
+        const cv = newCanvas(bw, bh);
+        cv.getContext('2d').putImageData(new ImageData(buf, bw, bh), 0, 0);
+        p = { cv, ox, oy, w: bw, h: bh, bytes: bw * bh * 4 };
+      }
+    }
+    projCache.set(key, p);
+    PJ.entries = projCache.size; PJ.bytes += p.bytes;
+    while (projCache.size > 1 && (projCache.size > PROJ_MAX_ENTRIES || PJ.bytes > PROJ_MAX_BYTES)) {
+      const first = projCache.keys().next().value;
+      PJ.bytes -= projCache.get(first).bytes; projCache.delete(first);
+    }
+    PJ.entries = projCache.size;
+    PJ.ms += performance.now() - t0;
+    return p;
+  }
+
+  // 太陽・月の投影影バッファ: 記録した遮る物の実 height から projectShadow で作った影を 'lighten' で重ねる(R=遮る物の高さ/64、0=無し)。vec は native px/高さ1px。
+  // 影が画面に届かない物は除き(culled)、MAX_CASTERS を超える時だけ画面中心に近い順に残す(超えて捨てた数が skipped)。描画の深度順は変えない(lighten は順序に依らない)
+  const castSel = [];
   function buildShadowBuffer(nw, nh, camX, camY, vec) {
     const t0 = performance.now(), k = SHADOW_SCALE;
     const w = Math.max(2, Math.ceil(nw * k)), h = Math.max(2, Math.ceil(nh * k));
@@ -1862,15 +2260,33 @@ export function createRenderer(canvas, assets) {
     shCtx.fillRect(0, 0, w, h);
     shCtx.globalCompositeOperation = 'lighten';
     shCtx.imageSmoothingEnabled = false;
-    const vx = vec[0], vy = Math.abs(vec[1]) < 0.02 ? (vec[1] < 0 ? -0.02 : 0.02) : vec[1];
-    let drawn = 0;
+    const vx = vec[0], vy = vec[1];
+    PJ.frameMisses = 0;
+    castSel.length = 0;
+    SH.culled = 0;
+    // 影が届きうる範囲(frame 全体の最大高さで見積もる)が画面に重なる物だけ
     for (let i = 0; i < capN; i++) {
-      const c = casters[i];
-      const sxs = c.dx - camX, fy = c.foot - camY, b = c.dy - c.foot;
-      // 影の長さは高さ64pxで最大 2.5×64=160px。それより外の物は影も画面に届かない
-      if (sxs > nw + 160 || sxs + c.sw < -160 || fy < -200 || fy > nh + 200) { SH.skipped++; continue; }
-      shCtx.setTransform(k, 0, -vx * k, -vy * k, k * (sxs - vx * b), k * (fy - vy * b));
-      shCtx.drawImage(c.fr.himg, c.fr.x + c.sx, c.fr.y + c.sy, c.sw, c.sh, 0, 0, c.sw, c.sh);
+      const c = casters[i], rd = readHeight(c.fr);
+      if (!rd || rd.maxH <= 0) { SH.culled++; continue; }
+      const ex = vx * rd.maxH, ey = (1 + vy) * rd.maxH;
+      const X0 = Math.round(c.dx) - camX + Math.min(0, ex) - 1, X1 = Math.round(c.dx) - camX + c.sw + Math.max(0, ex) + 1;
+      const Y0 = Math.round(c.dy) - camY + Math.min(0, ey) - 1, Y1 = Math.round(c.dy) - camY + c.sh + Math.max(0, ey) + 1;
+      if (X1 < 0 || X0 > nw || Y1 < 0 || Y0 > nh) { SH.culled++; continue; }
+      const mx = (X0 + X1) / 2 - nw / 2, my = (Y0 + Y1) / 2 - nh / 2;
+      c.score = mx * mx + my * my;
+      castSel.push(i);
+    }
+    if (castSel.length > MAX_CASTERS) {
+      castSel.sort((a, b) => casters[a].score - casters[b].score);
+      SH.skipped += castSel.length - MAX_CASTERS;
+      castSel.length = MAX_CASTERS;
+    }
+    let drawn = 0;
+    for (const i of castSel) {
+      const c = casters[i], p = projectShadow(c.fr, c.sx, c.sy, c.sw, c.sh, vx, vy);
+      if (!p.cv) continue;
+      const X = Math.round(c.dx) - camX + p.ox, Y = Math.round(c.dy) - camY + p.oy;
+      if (k === 1) shCtx.drawImage(p.cv, X, Y); else shCtx.drawImage(p.cv, X * k, Y * k, p.w * k, p.h * k);
       drawn++;
     }
     shCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1880,9 +2296,10 @@ export function createRenderer(canvas, assets) {
   }
 
   // 局所光(たいまつ・焚き火・腰の灯)の地面影アトラス。灯ごとに足元を中心とする 2·PT_HALF px 四方のセルを横に並べる(上限 MAX_PT 灯、coarse は2灯)。
-  // 遮る物の height 画像を、その物の足元が光源の足元から遠ざかる向きへ傾けて 'lighten' で描く(v = (足元−光源の足元)/光源の高さ、長さは1.6まで)。
+  // 遮る物の実 height から、太陽と同じ projectShadow で、その物の足元が光源の足元から遠ざかる向きへ投影して 'lighten' で描く
+  // (v = (足元−光源の足元)/光源の高さ、長さは1.6まで。物ごとに1つの v)。
   // 灯自身の物(足元が10px以内)は落とさない。1灯あたりの描画は PT_MAX_DRAW 件まで、灯の半径+影の最大長の外の物は描かない。canvas は使い回し
-  const PT_MAX_DRAW = 64, PT_STRENGTH = 0.8;
+  const PT_MAX_DRAW = 64, PT_STRENGTH = 0.8, PT_PROJ_Q = 24;
   const ptCand = [], ptEntries = [];
   const PT = { lights: 0, drawn: 0, skipped: 0, w: 0, h: 0, ms: 0, bytes: 0 };
   function buildPointShadows(nw, nh, camX, camY) {
@@ -1897,7 +2314,7 @@ export function createRenderer(canvas, assets) {
       ptCand.push(L);
     }
     ptCand.sort((a, b) => a.ptKey - b.ptKey);
-    const n = Math.min(ptCand.length, coarse ? 2 : MAX_PT);
+    const n = Math.min(ptCand.length, LS.degrade.pointShadows);
     PT.lights = n; PT.drawn = 0; PT.skipped = ptCand.length - n;
     if (!n) { PT.w = 0; PT.h = 0; PT.ms = 0; PT.bytes = 0; return null; }
     const w = cell * MAX_PT;
@@ -1924,10 +2341,10 @@ export function createRenderer(canvas, assets) {
         let vx = dx / lampH, vy = dy / lampH;
         const vl = Math.hypot(vx, vy);
         if (vl > 1.6) { vx *= 1.6 / vl; vy *= 1.6 / vl; }
-        if (Math.abs(vy) < 0.05) vy = vy < 0 ? -0.05 : 0.05;
-        const b = c.dy - c.foot;
-        shpCtx.setTransform(s, 0, -vx * s, -vy * s, s * (sxs - ox - vx * b) + j * cell, s * (fy - oy - vy * b));
-        shpCtx.drawImage(c.fr.himg, c.fr.x + c.sx, c.fr.y + c.sy, c.sw, c.sh, 0, 0, c.sw, c.sh);
+        const pr = projectShadow(c.fr, c.sx, c.sy, c.sw, c.sh, vx, vy, PT_PROJ_Q);
+        if (!pr.cv) continue;
+        const X = Math.round(c.dx) - camX + pr.ox - ox, Y = Math.round(c.dy) - camY + pr.oy - oy;
+        shpCtx.drawImage(pr.cv, Math.round(X * s) + j * cell, Math.round(Y * s), pr.w * s, pr.h * s);
         drawn++;
       }
       shpCtx.restore();
@@ -1942,7 +2359,7 @@ export function createRenderer(canvas, assets) {
 
   // 明るさ・太陽/月・空はすべて sky.js の skyAt() の値(linear)。GL へ毎フレーム渡す。skyModel=false の時だけ旧式(昼の量から)
   function lightParams(map, amb, warm, camX, camY, sky) {
-    const base = { camX, camY, t: R.t, calm: R.calm, tile: TILE, lights, debug: LS.debug, steps: coarse ? 6 : 8, gain: TOG.legacyGain };
+    const base = { camX, camY, t: R.t, calm: R.calm, tile: TILE, lights, debug: LS.debug, steps: LS.degrade.steps, maxLights: LS.degrade.lights, gain: TOG.legacyGain };
     if (!TOG.skyModel) {
       const D = BALANCE.day, under = map.id === 'underground';
       const day = under ? 0 : smooth((amb - D.nightLight) / (1 - D.nightLight));
@@ -1961,8 +2378,10 @@ export function createRenderer(canvas, assets) {
     };
     const sh = sky.shadow;
     if (TOG.projectedShadows && sh.caster !== 'none' && sh.strength > 0.001 && !sky.underground) {
+      // 影バッファは向きを 1/PROJ_Q に丸めて作るので、シェーダの受ける側にも同じ丸めた向きを渡す(受ける側と書く側の座標をそろえる)
+      const qv = [Math.round(sh.vec[0] * PROJ_Q) / PROJ_Q, Math.round(sh.vec[1] * PROJ_Q) / PROJ_Q];
       params.shadow = {
-        canvas: buildShadowBuffer(colorCv.width, colorCv.height, camX, camY, sh.vec), vec: sh.vec, strength: sh.strength,
+        canvas: buildShadowBuffer(colorCv.width, colorCv.height, camX, camY, qv), vec: qv, strength: sh.strength,
         kind: sh.caster === 'moon' ? 'moon' : 'sun', th: coarse ? 3 : 1.5,
       };
       SH.kind = params.shadow.kind; SH.vec = sh.vec; SH.strength = sh.strength;
@@ -1996,13 +2415,25 @@ export function createRenderer(canvas, assets) {
     LS.shadow.uploadBytes = st.shadowBytes; LS.shadow.projected = st.shadowKind !== 'none';
     LS.glErrors = LS.errorCount = st.errorCount;
     LS.ms.upload = st.ms.upload; LS.ms.gl = Math.max(0, t1 - t0 - st.ms.upload); LS.ms.copy = t2 - t1;
-    // 性能: 60frameの中央値が6ms(upload+gl+copy)を超える窓が3回続いたら、autoでは2Dへ戻す
+    // 性能: 60frameの中央値(upload+gl+copy)が SLOW_MS を超える窓が3回続いたら、autoでは省負荷を1段進める
+    // (局所光の ray 段数 → 灯数 → 局所光の影。法線・太陽・投影影は保つ)。実際の段階は LS.degrade に残す。
+    // 最下段でも法線・太陽・投影影と最低1灯の局所影を保つ。動作中に別の見た目へ切り替えない。
     LS.samples.push(LS.ms.upload + LS.ms.gl + LS.ms.copy);
     if (LS.samples.length >= 60) {
       LS.samples.sort((a, b) => a - b);
-      LS.slowRuns = LS.samples[30] > 6 ? LS.slowRuns + 1 : 0;
+      const med = LS.samples[30], d = LS.degrade;
+      d.medianMs = med;
       LS.samples.length = 0;
-      if (LS.slowRuns >= 3 && LS.mode === 'auto') LS.slow = true;
+      if (LS.mode === 'auto') {
+        if (d.level < DEGRADE.length - 1) {
+          LS.slowRuns = med > SLOW_MS ? LS.slowRuns + 1 : 0;
+          if (LS.slowRuns >= 3) {
+            LS.slowRuns = 0; applyDegrade(d.level + 1);
+            d.history.push({ frame: R.rendered, level: d.level, medianMs: +med.toFixed(2), steps: d.steps, lights: d.lights, pointShadows: d.pointShadows });
+            if (d.history.length > 8) d.history.shift();
+          }
+        }
+      }
     }
     return true;
   }
@@ -2020,7 +2451,8 @@ export function createRenderer(canvas, assets) {
       skyColor: [sky.sky[0], sky.sky[1], sky.sky[2]], plateDisplay: plateDisplay(sky), lightScale: params.lightScale == null ? 1 : params.lightScale,
     };
     LS.shadow.kind = SH.kind; LS.shadow.strength = SH.strength; LS.shadow.vec = [SH.vec[0], SH.vec[1]];
-    LS.shadow.casters = SH.casters; LS.shadow.drawn = SH.drawn; LS.shadow.skipped = SH.skipped;
+    // skipped: 影が画面に届くのに上限(MAX_CASTERS / MAX_RECORDED)で捨てた数。0 でなければ影が欠ける。culled: 影が画面に届かない・height が無い物(正常)
+    LS.shadow.casters = SH.casters; LS.shadow.drawn = SH.drawn; LS.shadow.skipped = SH.skipped; LS.shadow.culled = SH.culled;
     LS.shadow.w = SH.w; LS.shadow.h = SH.h; LS.shadow.ms = SH.ms; LS.shadow.scale = SHADOW_SCALE;
     // 局所光の地面影の実測(CPU: アトラスを描く時間。GPU は lighting の ms.gl に含まれ、別には測れない)。数値は毎フレームの実測で、固定の目安ではない
     LS.shadow.point = { lights: PT.lights, drawn: PT.drawn, skipped: PT.skipped, w: PT.w, h: PT.h, ms: PT.ms, bytes: PT.bytes, casterCap: MAX_CASTERS, drawCap: PT_MAX_DRAW };
@@ -2028,7 +2460,7 @@ export function createRenderer(canvas, assets) {
 
   function setLightingMode(m) {
     if (m !== 'auto' && m !== 'gl' && m !== '2d') return LS.mode;
-    LS.mode = m; LS.slow = false; LS.slowRuns = 0; LS.samples.length = 0;
+    LS.mode = m; resetDegrade();
     return m;
   }
   function setLightingDebug(d) {
@@ -2040,9 +2472,19 @@ export function createRenderer(canvas, assets) {
     return {
       ...pub, ms: { ...LS.ms }, device: { ...LS.device }, native: { w: LS.w, h: LS.h },
       sky: LS.sky ? { ...LS.sky } : null, shadow: { ...LS.shadow }, sunDir: LS.sunDir.slice(),
+      // 倍率の決まり方(auto の基準からどれだけ上げたか)・実ハードの制約・省負荷の実際の段階(slow は 2D へ戻る極端な場合の旗)
+      scale: { ...LS.scale, native: { ...LS.scale.native } },
+      hardware: LS.hardware ? { ...LS.hardware } : null,
+      degrade: { ...LS.degrade, history: LS.degrade.history.map((h) => ({ ...h })), slow: LS.slow },
     };
   }
-  function getVisualStats() { return { toggles: { ...TOG }, lighting: getLightingStats(), ground: { ...VS.ground } }; }
+  function getVisualStats() {
+    return {
+      toggles: { ...TOG }, lighting: getLightingStats(), ground: { ...VS.ground }, heroOcclusion: { ...VS.heroOcclusion },
+      // 影の投影キャッシュ: entries/bytes は今の保持量、hits/misses は累計、frameMisses は今のフレームで新たに作った数
+      shadowProjection: { ...PJ, cap: { entries: PROJ_MAX_ENTRIES, bytes: PROJ_MAX_BYTES } },
+    };
+  }
   function setVisualToggle(k, v) { if (k in TOG) TOG[k] = v; return TOG[k]; }
 
   /* ---------- カメラ ---------- */
@@ -2069,6 +2511,7 @@ export function createRenderer(canvas, assets) {
   function drawOverlays(state, view) {
     ctx.setTransform(R.scale, 0, 0, R.scale, -R.drawCamX * R.scale, -R.drawCamY * R.scale);
     if (state.preview) drawPreview(state);
+    drawFishingAlert(state, state.world.maps[state.player.map]);
     if (state.focus && !view.hideFocus) drawFocusMarker(state.focus);
     drawParticles(false);
   }
@@ -2132,10 +2575,13 @@ export function createRenderer(canvas, assets) {
     drawDeco(map, tx0, ty0, tx1, ty1);
     drawTelegraphs(state, map);
 
-    collectScene(state, map, tx0, ty0, tx1, ty1);
+    // 影が画面に届く範囲の物まで集める(影の向きがある時だけ。昼は太陽、夜は月)
+    const shVec = useGL && TOG.projectedShadows && TOG.skyModel && !sky.underground && sky.shadow.strength > 0.001 ? sky.shadow.vec : null;
+    collectScene(state, map, tx0, ty0, tx1, ty1, shVec);
     drawShadows(state, map);
     const focusRef = state.focus ? state.focus.ref : null;
-    capN = 0; SH.skipped = 0;
+    capN = 0; SH.skipped = 0; SH.culled = 0;
+    occN = 0; occOn = false;
     const capture = useGL && TOG.projectedShadows && TOG.skyModel;
     for (const it of sortList) {
       if (capture) {
@@ -2145,7 +2591,7 @@ export function createRenderer(canvas, assets) {
       if (it.kind === 0) drawNode(state, it.ref, dt, focusRef, 1);
       else if (it.kind === 1) drawStructure(state, it.ref, focusRef);
       else if (it.kind === 2) drawGroundItem(state, it.ref, focusRef);
-      else if (it.kind === 3) drawHero(state, focusRef);
+      else if (it.kind === 3) { drawHero(state, focusRef); occOn = true; }
       else if (it.kind === 4) drawEnemy(state, it.ref);
       else if (it.kind === 5) drawResident(state, it.ref, focusRef);
       else if (it.kind === 6) drawCrop(it.ref);
@@ -2153,15 +2599,22 @@ export function createRenderer(canvas, assets) {
       else if (it.kind === 8) drawSceneryItem(it.ref);
     }
     capOn = false;
-    // 大きなボスに隠れた時だけ、半透明の輪郭でプレイヤーの位置を保つ。
-    const occluded = (state.enemies || []).some(e => e.boss && e.map === p.map && e.hp > 0 &&
+    occOn = false;
+    // 大きなボス、または主人公より後に描かれた樹冠(実alphaの重なり)に隠れた時だけ、半透明の輪郭でプレイヤーの位置を保つ。
+    const bossOcc = (state.enemies || []).some(e => e.boss && e.map === p.map && e.hp > 0 &&
       p.y < e.y && p.y > e.y - 108 && Math.abs(p.x-e.x) < 48);
+    const canopyOcc = heroCanopyOccluded(p);
+    occHeld = canopyOcc;
+    const occluded = bossOcc || canopyOcc;
+    OC.boss = bossOcc; OC.drawn = occluded;
+    if (occluded) OC.drawnFrames++;
     if (occluded) {
       const fr = assets.get('actors', heroFrameName(p), { outline: '#ffe9a8' });
       ctx.save(); ctx.globalAlpha = .68;
       blit(fr, Math.round(p.x)-fr.px, Math.round(p.y)-fr.py);
       ctx.restore();
     }
+    drawFishing(state, map);
     drawProjectiles(state, map);
     drawRoofs(state, map, dt);
     layered = false;
@@ -2174,16 +2627,20 @@ export function createRenderer(canvas, assets) {
     // 空: GL の明るさ・太陽・月・影、2D の暗幕、プレイヤーの光の要否、すべてこの1回の skyAt から(arenaLift は地下の下限だけ上げる)
     VS.sky = sky; VS.hour = sky.hour; VS.clock = state.time.clock; VS.mapId = map.id;
     const { amb, warm } = sky;
-    // プレイヤー自身の光。地上の夜は半径1.6タイル・power 0.35 の手提げ灯だけ(旧 nightRadius 2 の大きな光は廃止)。地下は従来の caveRadius
-    const D = BALANCE.day;
-    let pr = 0, ppw = 0.8;
-    if (map.id === 'underground') pr = D.caveRadius;
-    else if (hipOn) { pr = 1.6; ppw = 0.35; }
-    for (const b of p.buffs) if (b.id === 'light' && b.until > state.time.clock && map.id === 'underground') pr += b.v;
-    if (pr > 0) {
-      // 手提げ灯は見える腰の灯と同じ位置から出す。それ以外(地下の常時光など)は主人公の中心
-      const lx = hipOn ? hip.x : p.x, ly = hipOn ? hip.y : p.y - 14;
-      addLight(lx, ly, pr, [255, 224, 170], 0, ppw, 99, false, hipOn ? { x: lx, y: ly + hip.h, h: hip.h } : null);
+    // プレイヤー自身の光は getPlayerLight(state) が決める(無装備の地上 0 / 地下の救済 1.5・0.3 / 装備の灯 lantern 4・crystal 6。buff の light 加算もここに含まれる)。
+    // 地下の無条件 caveRadius と、renderer 側の light buff 加算は廃止。装備の灯は腰の灯が見えない人物(visible:false)でも発光する。
+    // handLight は従来どおり「暗い間に見える腰の灯が点く」小さな光(1.6・0.35)。装備の灯がそれ以上なら装備側が勝ち、二重に重ねない
+    const pl = getPlayerLight(state);
+    const eqLight = getEquipStats(state).light;
+    const equipped = !!eqLight && pl.radius >= eqLight.radius;
+    let pr = pl.radius, ppw = pl.intensity, pcol = lightRGB(pl.color, [255, 224, 170]), pfl = pl.flicker || 0;
+    if (hipOn && pr < 1.6) { pr = 1.6; ppw = 0.35; pcol = [255, 224, 170]; pfl = 0; }
+    if (pr > 0 && ppw > 0) {
+      // 見える腰の灯があればその位置(描いた灯と同じ点)、無ければ人物中心。腰の灯が見えない人物の装備灯も、足元を基準にした src で地面に影を落とす
+      const atHip = hip.visible && (hipOn || (equipped && !hip.legacy));
+      const lx = atHip ? hip.x : Math.round(p.x), ly = atHip ? hip.y : Math.round(p.y) - 14;
+      const src = atHip ? { x: lx, y: ly + hip.h, h: hip.h } : (equipped || map.id !== 'underground' ? { x: Math.round(p.x), y: Math.round(p.y), h: 14 } : null);
+      addLight(lx, ly, pr, pcol, pfl, ppw, 99, false, src);
     }
     // 闘技場の安定した照明: 近づくと滑らかに明るくなり、離れると洞窟の暗さへ戻る。ボスが生きている間は離れても保つ
     const arena = arenaState(state, map);
@@ -2210,7 +2667,11 @@ export function createRenderer(canvas, assets) {
       // GL を使わなかった/失敗した時も同じ sky の値を統計に出す(2D でも 19時の sunStrength=0・23時の暗さを検証できる)
       if (!useGL) { SH.kind = 'none'; SH.strength = 0; SH.casters = 0; SH.drawn = 0; recordSkyStats(sky, TOG.skyModel ? { sunStrength: sky.sun.up ? sky.sun.vis : 0, moonStrength: sky.moon.up ? sky.moon.vis : 0, sunDir: sky.sun.dir } : {}); }
       lightPass(map, amb, warm, sky);
+      // 暗幕が輪郭まで暗くして主人公が消えないよう、被覆時だけ照明後に輪郭線を出す(GL成功時は従来の半透明hero+輪郭のみ)
+      OC.ring2d = occluded && drawHeroRing2d(p, S, camX, camY);
+      if (OC.ring2d) OC.ring2dFrames++;
     }
+    if (glDone) OC.ring2d = false;
     ctx.setTransform(S, 0, 0, S, -camX * S, -camY * S);
     drawFlies(map);
     drawParticles(true);

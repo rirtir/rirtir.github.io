@@ -1,7 +1,8 @@
 // 畑・住居・住人・炉の灯・生活目標。simulationのサービスは引数 api で受け取り、循環importを防ぐ。
 //   api: { countItem, addItem, removeItem, spawnGround, nodeAlive, onSleep? }
-import { BALANCE, TILE, TERRAIN as T, CROPS, NPCS, STRUCTURES, LIGHTS, ITEMS, GROWTH_LIGHTS } from './data.js';
+import { BALANCE, TILE, TERRAIN as T, CROPS, NPCS, STRUCTURES, LIGHTS, ITEMS, GROWTH_LIGHTS, EXTRA_GOALS, JOURNAL } from './data.js';
 import { getTile, nodeAt } from './world.js';
+import { recordSeen, journalCount, requestsDone } from './activities.js';
 import {
   objectAt, floorAt, farmAt, cropAt, addFarmRecord, removeFarmRecord, addCropRecord, removeCropRecord,
 } from './layers.js';
@@ -101,6 +102,7 @@ export function harvest(state, crop, api) {
   if (crop.map !== state.player.map || !near(state, crop.x, crop.y, P.reach + 16)) return { ok: false, reason: '畑に近づこう' };
   const def = CROPS[crop.kind];
   deliver(state, def.harvest, crop.map, c.x, c.y, api);
+  recordSeen(state, 'crop', crop.kind, def.harvest[0].n); // 図鑑は収穫物の実数(バッグに入らず足元へ落ちた分も1回だけ数える)
   removeCropRecord(state, crop);
   state.progress.stats.harvested = (state.progress.stats.harvested || 0) + 1;
   let replanted = false;
@@ -344,12 +346,17 @@ function produce(state, id, def, record) {
     const total = Object.values(record.basket).reduce((a, b) => a + b, 0);
     if (total >= def.cap) return;
     const r = safeRadius(state);
-    const crop = state.crops.find((c) => cropRipe(c) && Math.hypot(c.x - camp.x, c.y - camp.y) < r);
+    const crop = state.crops.find((c) => {
+      if (!cropRipe(c) || Math.hypot(c.x - camp.x, c.y - camp.y) >= r) return false;
+      const cd = CROPS[c.kind];
+      const yieldCount = cd.harvest.reduce((sum, drop) => sum + Math.max(0, drop.n - (drop.item === cd.seed ? 1 : 0)), 0);
+      return total + yieldCount <= def.cap;
+    });
     if (!crop) return;
     const cdef = CROPS[crop.kind];
     for (const drop of cdef.harvest) {
       const n = drop.n - (drop.item === cdef.seed ? 1 : 0);
-      record.basket[drop.item] = Math.min(def.cap, (record.basket[drop.item] || 0) + Math.max(0, n));
+      record.basket[drop.item] = (record.basket[drop.item] || 0) + Math.max(0, n);
     }
     crop.growth = 0; crop.lastClock = now(state);
     state.rev++;
@@ -372,7 +379,13 @@ export function collectResident(state, id, api) {
     if (!(count > 0) || !ITEMS[item]) continue;
     const left = api.addItem(state, item, count);
     record.basket[item] = left;
-    if (count - left > 0) got.push(`${ITEMS[item].name}×${count - left}`);
+    if (count - left > 0) {
+      got.push(`${ITEMS[item].name}×${count - left}`);
+      // 籠から実際に受け取れた数量だけ図鑑へ(作物・料理)。受け取れなかった残りは籠に残り、二重には数えない
+      const kind = Object.keys(CROPS).find((k) => CROPS[k].harvest[0].item === item);
+      if (kind) recordSeen(state, 'crop', kind, count - left);
+      if (JOURNAL.dish[item]) recordSeen(state, 'dish', item, count - left);
+    }
   }
   if (got.length) notice(state, `${res.name}から ${got.join('、')} を受け取った`, 'good');
   else notice(state, res.active ? '「暮らしの支度を続けています。しばらくしたらまた来てね」' : '「家が整うまで、ここで待っています」');
@@ -407,6 +420,25 @@ export function restoreForge(state, api) {
 /* ------------------------------------------------------------------ 生活目標 */
 const hasItem = (state, id) => state.player.equip.weapon === id || state.player.equip.armor === id || state.player.bag.some((s) => s && s.id === id);
 
+const BASE_GOAL_IDS = ['houses', 'lanterns', 'farms', 'foods', 'residents', 'roads', 'iron', 'rematch'];
+
+// 持ち物・装備・箱のいずれかにある種類数(同じ種類は1)
+function ownedKinds(state, ids) {
+  const p = state.player;
+  const has = (id) => Object.values(p.equip).includes(id) || p.bag.some((s) => s && s.id === id)
+    || Object.values(state.containers).some((box) => Array.isArray(box) && box.some((s) => s && s.id === id));
+  return ids.filter(has).length;
+}
+
+function extraGoalValue(state, metric) {
+  if (!metric) return 0;
+  if (metric.kind === 'journalCount') return journalCount(state, metric.journal);
+  if (metric.kind === 'requestsDone') return requestsDone(state);
+  if (metric.kind === 'decorPlaced') return state.structures.reduce((n, s) => n + (metric.types.includes(s.type) ? 1 : 0), 0);
+  if (metric.kind === 'ownedAny') return ownedKinds(state, metric.items);
+  return 0;
+}
+
 export function lifeGoals(state) {
   const structs = state.structures, stats = state.progress.stats;
   const count = (type) => structs.reduce((n, s) => n + (s.type === type ? 1 : 0), 0);
@@ -424,6 +456,8 @@ export function lifeGoals(state) {
     },
     { id: 'rematch', text: '両方のボスを再び鎮める', value: (stats.rematchVine ? 1 : 0) + (stats.rematchAsh ? 1 : 0), target: 2 },
   ];
+  // 追加の生活目標(配列駆動)。metric.kind: journalCount / requestsDone / decorPlaced / ownedAny
+  for (const e of EXTRA_GOALS) goals.push({ id: e.id, text: e.text, value: extraGoalValue(state, e.metric), target: e.target });
   for (const g of goals) {
     g.done = !!state.progress.goals[g.id] || g.value >= g.target;
     if (state.progress.goals[g.id]) g.value = g.target;
@@ -432,7 +466,7 @@ export function lifeGoals(state) {
   return goals;
 }
 
-// 達成は一度きりで保存される(家が壊れても取り消さない)。全8項目で「苔灯の噴水」を贈る
+// 達成は一度きりで保存される(家が壊れても取り消さない)。「苔灯の噴水」は従来どおり最初の8項目すべてで贈る(追加6件は含めない=旧セーブの意味を保つ)
 export function updateGoals(state, api) {
   const goals = lifeGoals(state);
   for (const g of goals) {
@@ -443,7 +477,7 @@ export function updateGoals(state, api) {
       state.rev++;
     }
   }
-  if (!state.progress.fountain && goals.every((g) => g.done)) {
+  if (!state.progress.fountain && goals.filter((g) => BASE_GOAL_IDS.includes(g.id)).every((g) => g.done)) {
     state.progress.fountain = true;
     const left = api.addItem(state, 'moss_fountain', 1);
     if (left > 0) api.spawnGround(state, state.player.map, state.player.x, state.player.y, 'moss_fountain', left);

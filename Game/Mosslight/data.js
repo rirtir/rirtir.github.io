@@ -1,5 +1,26 @@
 // 苔灯の境 / MOSSLIGHT — 全データ（純粋なデータと小さな参照関数のみ。他モジュールをimportしない）
 
+import {
+  CONTENT_ITEMS, CONTENT_RECIPES, CONTENT_STATIONS, CONTENT_NODES, CONTENT_MIRROR_NODES, CONTENT_STRUCTURES, CONTENT_CROPS,
+  FISH, FISH_REGIONS, FISH_TIME_RANGES, ROD_STATS, BAIT_STATS, REQUESTS, JOURNAL, EXTRA_GOALS, SPAWN_RULES, SPAWN_POLICY,
+  DECOR_TYPES, EQUIP_STAT_KEYS, BUFF_KINDS, CONTENT_VERSION,
+} from './content_data.js';
+
+// 拡張定義の再export(消費者は data.js だけを見ればよい)
+export {
+  CONTENT_ITEMS, CONTENT_RECIPES, CONTENT_STATIONS, CONTENT_NODES, CONTENT_STRUCTURES, CONTENT_CROPS,
+  FISH, FISH_REGIONS, FISH_TIME_RANGES, ROD_STATS, BAIT_STATS, REQUESTS, JOURNAL, EXTRA_GOALS, SPAWN_RULES, SPAWN_POLICY,
+  DECOR_TYPES, EQUIP_STAT_KEYS, BUFF_KINDS, CONTENT_VERSION,
+};
+
+// 既存の表へ新定義を合流させる。IDが重なったら起動時にthrow(既存IDは決して上書きしない)
+function mergeUnique(target, source, label) {
+  for (const [id, def] of Object.entries(source)) {
+    if (Object.hasOwn(target, id)) throw new Error(`content: ${label} ${id} が既存と重複`);
+    target[id] = def;
+  }
+}
+
 export const TILE = 32;
 
 /* ------------------------------------------------------------------ 数値 */
@@ -124,7 +145,7 @@ export const ITEMS = Object.fromEntries([
   I('baked_potato', '焼き芋', 'food', 'food', 'ほくほくの焼き芋。', { eat: { satiety: 22, hp: 10 } }),
   I('wheat_bread', '灯麦パン', 'bread', 'food', '素朴で腹持ちのよいパン。', { eat: { satiety: 30, hp: 12 } }),
   I('forest_stew', '森のシチュー', 'stew', 'food', '体が温まる。しばらく足が軽くなる。', { eat: { satiety: 45, hp: 25, buff: { id: 'speed', v: 0.10, time: 180 } } }),
-  I('moss_pie', '光苔のパイ', 'salad', 'food', '暗がりで光が少し遠くまで届く。', { eat: { satiety: 35, hp: 15, buff: { id: 'light', v: 2, time: 300 } } }),
+  I('moss_pie', '光苔のパイ', 'salad', 'food', '携帯灯の照射範囲と、洞窟での視界が広がる。', { eat: { satiety: 35, hp: 15, buff: { id: 'light', v: 2, time: 300 } } }),
   I('potion', '回復薬', 'heart', 'food', '傷にしみる、よく効く薬。', { eat: { satiety: 0, hp: 45 } }),
   // 道具（段階として所持扱い。バッグ枠は使わない）
   I('axe_stone', '石の斧', 'axe', 'tool', '木を伐る。', { tool: 'axe', tier: 1 }),
@@ -165,6 +186,9 @@ export const ITEMS = Object.fromEntries([
   I('moss_wick', '苔の灯芯', 'relic', 'key', '母樹から授かった灯芯。', { key: true }),
   I('ancient_wick', '古の灯芯', 'relic', 'key', '古い灯台に捧げる灯芯。', { key: true }),
 ]);
+
+// 拡張アイテム(stackは装備なら1、それ以外は既定。定義側のstackがあればそれを優先)
+mergeUnique(ITEMS, Object.fromEntries(CONTENT_ITEMS.map((it) => [it.id, { stack: it.equip ? 1 : BALANCE.items.stack, ...it }])), 'item');
 
 export function getItem(id) { return ITEMS[id] || null; }
 
@@ -224,6 +248,16 @@ export const RECIPES = [
   R('moss_pie', 1, 'pot', { wheat: 2, glowmoss: 2, berry: 2 }),
   R('potion', 1, 'pot', { slime_jelly: 2, berry: 2 }),
 ];
+
+mergeUnique(STATIONS, CONTENT_STATIONS, 'station');
+{
+  const have = new Set(RECIPES.map((r) => r.id));
+  for (const r of CONTENT_RECIPES) {
+    if (have.has(r.id)) throw new Error(`content: recipe ${r.id} が既存と重複`);
+    have.add(r.id);
+    RECIPES.push(r);
+  }
+}
 
 export const RECIPE_BY_ID = Object.fromEntries(RECIPES.map((r) => [r.id, r]));
 export function getRecipe(id) { return RECIPE_BY_ID[id] || null; }
@@ -340,6 +374,8 @@ export const NODES = {
   },
 };
 
+mergeUnique(NODES, CONTENT_NODES, 'node');
+
 /* ------------------------------------------------------------------ 足元の共通アンカー(描画・当たり・クリックで共有) */
 // ノード/構造物のスプライトは pivot(=ノードの px,py)を地面の足元として描く。当たりとクリックの基準も同じ足元に置く。
 // FOOTPRINTS[スプライト名]: pivot から「根元の中心」への変位 dx,dy(反転しない向きで +x=右)。反転(mirror)した物は dx の符号を反転する。
@@ -357,6 +393,7 @@ export const MIRROR_NODE_TYPES = new Set([
   'tree', 'rock', 'copper_deposit', 'iron_outcrop', 'berry', 'grass', 'mushroom', 'glowmoss', 'branch', 'pebble', 'clay', 'moss_potato', 'border_pine',
 ]);
 export const MIRROR_SPRITES = new Set(['oak', 'oak2', 'pine', 'amber_tree', 'rock', 'bush', 'berry', 'fern', 'flower', 'flowers', 'log', 'stump', 'barrel', 'mushroom']);
+for (const t of CONTENT_MIRROR_NODES) MIRROR_NODE_TYPES.add(t);
 export function baseSprite(name) { return String(name || '').replace(/_v\d+$/, ''); }
 export function nodeMirrored(node) {
   if (!node || !node.flip || (node.meta && node.meta.noMirror)) return false;
@@ -409,14 +446,18 @@ export const STRUCTURES = {
   },
 };
 
+mergeUnique(STRUCTURES, CONTENT_STRUCTURES, 'structure');
+
 // 作物の成長を早める灯り(4タイル以内)
 export const GROWTH_LIGHTS = ['candlestick', 'lantern_stone', 'torch'];
 
 /* ------------------------------------------------------------------ 作物・敵・ボス・NPC・灯 */
+// sprite: props の接頭辞(`${sprite}${段階}`)。lightBonus: 灯りの近くの成長加速(BALANCE.crops.lightBoost=1.25 と同じ値)
 export const CROPS = {
-  moss_potato: { name: '苔芋', seed: 'moss_potato', stages: 3, stageTime: 60, harvest: [{ item: 'moss_potato', n: 3 }] },
-  wheat: { name: '灯麦', seed: 'wheat_seed', stages: 3, stageTime: 80, harvest: [{ item: 'wheat', n: 3 }, { item: 'wheat_seed', n: 2 }] },
+  moss_potato: { name: '苔芋', seed: 'moss_potato', stages: 3, stageTime: 60, sprite: 'crop_potato', lightBonus: 0.25, harvest: [{ item: 'moss_potato', n: 3 }] },
+  wheat: { name: '灯麦', seed: 'wheat_seed', stages: 3, stageTime: 80, sprite: 'crop_wheat', lightBonus: 0.25, harvest: [{ item: 'wheat', n: 3 }, { item: 'wheat_seed', n: 2 }] },
 };
+mergeUnique(CROPS, CONTENT_CROPS, 'crop');
 
 export const ENEMIES = {
   slime: {
@@ -545,6 +586,7 @@ export const ICON_NAMES = [
   'workbench', 'furnace', 'chest', 'bed', 'house', 'well', 'fence', 'gate', 'wall', 'floor', 'path', 'bridge', 'carpet',
   'flowers', 'beacon', 'bread', 'stew', 'salad', 'fish', 'fishing_rod', 'water', 'coin', 'heart', 'food', 'map', 'journal',
   'hammer', 'bag', 'boots',
+  'fish_minnow', 'fish_goby', 'fish_carp', 'fish_trout', 'fish_catfish', 'fish_eel', 'fish_bream', 'fish_pike',
 ];
 
 /* ------------------------------------------------------------------ 検証 */
@@ -556,11 +598,13 @@ export function validateData() {
     if (!icons.has(it.icon)) errors.push(`item ${id}: 未知のアイコン ${it.icon}`);
     if (it.place && !STRUCTURES[it.place]) errors.push(`item ${id}: 未知の構造物 ${it.place}`);
   }
-  if (RECIPES.length !== 40) errors.push(`レシピ数が40ではない: ${RECIPES.length}`);
   const seen = new Set();
   for (const r of RECIPES) {
     if (seen.has(r.id)) errors.push(`recipe ${r.id}: 重複`);
     seen.add(r.id);
+    if (!(Number.isInteger(r.n) && r.n > 0)) errors.push(`recipe ${r.id}: 出力数が不正`);
+    if (!r.stations.includes(r.station)) errors.push(`recipe ${r.id}: stations に station がない`);
+    if (r.inputs[r.out]) errors.push(`recipe ${r.id}: 出力を材料にしている`);
     if (!ITEMS[r.out]) errors.push(`recipe ${r.id}: 出力アイテムなし`);
     if (ITEMS[r.out] && ITEMS[r.out].key) errors.push(`recipe ${r.id}: 鍵アイテムは制作不可`);
     for (const s of r.stations) if (!STATIONS[s]) errors.push(`recipe ${r.id}: 未知の設備 ${s}`);
@@ -595,5 +639,214 @@ export function validateData() {
     for (const p of [].concat(n.produce || [])) if (!ITEMS[p.item]) errors.push(`npc ${id}: 未知の生産物 ${p.item}`);
   }
   for (const k of ['crystal_moss', 'moss_wick', 'ancient_wick']) if (!ITEMS[k] || !ITEMS[k].key) errors.push(`鍵アイテム ${k} が不正`);
+  validateContent(errors);
   return { ok: errors.length === 0, errors };
+}
+
+// 旧データが必ず残っているべきID(旧63items/40recipes/2crops/3灯)
+const LEGACY_ITEM_COUNT = 63;
+const LEGACY_RECIPE_COUNT = 40;
+const LEGACY_CROPS = ['moss_potato', 'wheat'];
+const LEGACY_LIGHTS = ['forge', 'moss', 'ancient'];
+
+// 拡張の意味検査: 到達数・参照・重複・取得源/用途の閉包・魚/依頼/目標/配置規則
+function validateContent(errors) {
+  const itemIds = Object.keys(ITEMS);
+  if (itemIds.length < 120) errors.push(`アイテム数が120未満: ${itemIds.length}`);
+  if (RECIPES.length < 100) errors.push(`レシピ数が100未満: ${RECIPES.length}`);
+  if (itemIds.slice(0, LEGACY_ITEM_COUNT).join() !== 'branch,stone,fiber,cloth,resin,wood,clay,copper_ore,iron_ore,copper_bar,iron_bar,glowmoss,moss_oil,slime_jelly,fur,wing,shell,berry,mushroom,moss_potato,wheat,wheat_seed,sapling,roast_mushroom,baked_potato,wheat_bread,forest_stew,moss_pie,potion,axe_stone,axe_copper,axe_iron,pick_stone,pick_copper,pick_iron,hoe_stone,sword_stone,sword_copper,sword_iron,tunic_fiber,armor_copper,armor_iron,boots_feather,charm_shell,torch,workbench,furnace,pot,wall_wood,door_wood,floor_wood,path_stone,fence_wood,bed,chest_wood,table,chair,candlestick,lantern_stone,moss_fountain,crystal_moss,moss_wick,ancient_wick') {
+    errors.push('旧アイテム63個の並び・IDが変わっている');
+  }
+  if (RECIPES.slice(0, LEGACY_RECIPE_COUNT).map((r) => r.id).join() !== 'axe_stone,pick_stone,sword_stone,cloth,torch,workbench,hoe_stone,furnace,pot,wall_wood,door_wood,floor_wood,path_stone,fence_wood,bed,chest_wood,table,chair,candlestick,lantern_stone,tunic_fiber,axe_copper,pick_copper,sword_copper,armor_copper,axe_iron,pick_iron,sword_iron,armor_iron,boots_feather,charm_shell,copper_bar,iron_bar,moss_oil,roast_mushroom,baked_potato,wheat_bread,forest_stew,moss_pie,potion') {
+    errors.push('旧レシピ40件の並び・IDが変わっている');
+  }
+  for (const k of LEGACY_CROPS) if (!CROPS[k]) errors.push(`旧作物 ${k} がない`);
+  for (const k of LEGACY_LIGHTS) if (!LIGHTS[k]) errors.push(`旧灯 ${k} がない`);
+  if (Object.keys(LIGHTS).length !== 3) errors.push('灯が3つではない');
+
+  // アイテム: 装備・道具・効果の形
+  for (const [id, it] of Object.entries(ITEMS)) {
+    if (!CATEGORIES[it.cat]) errors.push(`item ${id}: 未知のカテゴリ ${it.cat}`);
+    if (it.equip) {
+      if (!['weapon', 'armor', 'trinket'].includes(it.equip)) errors.push(`item ${id}: 未知の装備欄 ${it.equip}`);
+      if (it.cat !== it.equip) errors.push(`item ${id}: カテゴリと装備欄が違う`);
+      if (it.stack !== 1) errors.push(`item ${id}: 装備はstack 1`);
+      const body = it[it.equip];
+      if (!body || typeof body !== 'object') errors.push(`item ${id}: ${it.equip} の本体がない`);
+      else {
+        if (it.equip === 'weapon' && !(body.dmg > 0)) errors.push(`item ${id}: weapon.dmg が不正`);
+        if (it.equip === 'armor' && !(body.def >= 0)) errors.push(`item ${id}: armor.def が不正`);
+        for (const [k, v] of Object.entries(body)) {
+          if (it.equip !== 'weapon' && !EQUIP_STAT_KEYS.includes(k)) errors.push(`item ${id}: 未知の効果 ${k}`);
+          if (k === 'light') {
+            const l = v || {};
+            if (!(l.radius > 0) || typeof l.color !== 'string' || !(l.intensity > 0) || !(l.flicker >= 0)) errors.push(`item ${id}: light の形が不正`);
+          }
+        }
+      }
+    }
+    if (it.tool && !(Number.isInteger(it.tier) && it.tier >= 1 && it.tier <= 3)) errors.push(`item ${id}: 道具の段階は1〜3`);
+    if (it.rod && !ROD_STATS[it.rod]) errors.push(`item ${id}: 未知の竿の段階 ${it.rod}`);
+    if (it.bait && !BAIT_STATS[it.bait]) errors.push(`item ${id}: 未知の餌 ${it.bait}`);
+    if (it.plant && !(CROPS[it.plant] && CROPS[it.plant].seed === id)) errors.push(`item ${id}: plant ${it.plant} の作物と種が一致しない`);
+    if (it.eat) {
+      const e = it.eat;
+      if (!(e.satiety >= 0) || !(e.hp >= 0)) errors.push(`item ${id}: eat の値が不正`);
+      if (e.buff && (!BUFF_KINDS.includes(e.buff.id) || typeof e.buff.v !== 'number' || !(e.buff.time > 0))) errors.push(`item ${id}: buff が不正`);
+    }
+  }
+
+  // 設備: レシピの設備に、手・固定設備・設置できる構造物のいずれかの入手経路がある
+  const stationMakers = new Map();
+  for (const [sid, s] of Object.entries(STRUCTURES)) for (const p of s.provides || []) stationMakers.set(p, [...(stationMakers.get(p) || []), sid]);
+  for (const sid of Object.keys(STATIONS)) {
+    if (sid !== 'hand' && !stationMakers.has(sid)) errors.push(`station ${sid}: 提供する構造物がない`);
+  }
+  for (const [sid, s] of Object.entries(STRUCTURES)) {
+    if (s.item && ITEMS[s.item] && ITEMS[s.item].place !== sid) errors.push(`structure ${sid}: item ${s.item} の place が一致しない`);
+    if (s.use === 'craft' && !(s.provides && s.provides[0] && STATIONS[s.provides[0]])) errors.push(`structure ${sid}: provides[0] が設備でない`);
+    if (s.layer && s.layer !== 'floor') errors.push(`structure ${sid}: layer は floor のみ`);
+  }
+  for (const [id, it] of Object.entries(ITEMS)) if (it.place && STRUCTURES[it.place] && STRUCTURES[it.place].item !== id && !it.reward) errors.push(`item ${id}: 構造物の item と一致しない`);
+
+  // 同じ出力・同じ入力の完全重複レシピ
+  const sig = new Map();
+  for (const r of RECIPES) {
+    const key = `${r.out}|${r.station}|${Object.entries(r.inputs).sort().join(';')}`;
+    if (sig.has(key)) errors.push(`recipe ${r.id}: ${sig.get(key)} と完全に同じ`);
+    sig.set(key, r.id);
+  }
+
+  // 作物
+  if (Object.keys(CROPS).length !== 8) errors.push(`作物が8種ではない: ${Object.keys(CROPS).length}`);
+  for (const [id, c] of Object.entries(CROPS)) {
+    if (typeof c.sprite !== 'string' || !c.sprite) errors.push(`crop ${id}: sprite がない`);
+    if (!(c.lightBonus >= 0)) errors.push(`crop ${id}: lightBonus がない`);
+    if (!(Number.isInteger(c.stages) && c.stages >= 1) || !(c.stageTime > 0)) errors.push(`crop ${id}: 成長段階/時間が不正`);
+    if (!c.harvest.length || c.harvest.some((h) => !(h.n > 0))) errors.push(`crop ${id}: 収穫量が不正`);
+    const back = c.harvest.filter((h) => h.item === c.seed).reduce((a, h) => a + h.n, 0);
+    if (back < 2) errors.push(`crop ${id}: 収穫で種が2個以上戻らず循環しない`);
+  }
+
+  // 魚
+  const fishIds = Object.keys(FISH);
+  if (fishIds.length !== 8) errors.push(`魚が8種ではない: ${fishIds.length}`);
+  for (const [id, f] of Object.entries(FISH)) {
+    if (!ITEMS[f.item]) errors.push(`fish ${id}: 未知のitem ${f.item}`);
+    if (!f.regions.length || f.regions.some((r) => !FISH_REGIONS[r] || FISH_REGIONS[r].unused)) errors.push(`fish ${id}: 使えない region`);
+    if (!f.regions.includes('shore')) errors.push(`fish ${id}: shore を含まず水辺から釣れない`);
+    if (!f.time.length || f.time.some((t) => !FISH_TIME_RANGES[t])) errors.push(`fish ${id}: 未知の時間帯`);
+    if (!ROD_STATS[f.minRod]) errors.push(`fish ${id}: minRod が不正`);
+    if (f.bait && !(ITEMS[f.bait] && ITEMS[f.bait].bait)) errors.push(`fish ${id}: 餌 ${f.bait} が餌アイテムでない`);
+    if (!(f.weight > 0) || !(f.sizeMin > 0) || !(f.sizeMax >= f.sizeMin)) errors.push(`fish ${id}: 重み/大きさが不正`);
+  }
+  for (const region of ['shore', 'deep']) {
+    for (const t of Object.keys(FISH_TIME_RANGES)) {
+      if (!Object.values(FISH).some((f) => f.regions.includes(region) && f.time.includes(t) && f.minRod === 1 && !f.bait)) {
+        errors.push(`魚の抽選表が空: ${region}/${t} (竿1・餌なし)`);
+      }
+    }
+  }
+  const tods = new Set();
+  for (const ranges of Object.values(FISH_TIME_RANGES)) for (const [a, b] of ranges) for (let x = a; x < b; x++) tods.add(x);
+  if (tods.size !== 600) errors.push('魚の時間帯が0〜600を過不足なく覆っていない');
+  const rodItems = new Set(Object.values(ITEMS).filter((it) => it.rod).map((it) => it.rod));
+  for (const m of Object.values(FISH)) if (![...rodItems].some((r) => r >= m.minRod)) errors.push(`fish: 竿が足りない minRod ${m.minRod}`);
+
+  // 依頼
+  const reqIds = Object.keys(REQUESTS);
+  if (reqIds.length < 12 || reqIds.length > 18) errors.push(`依頼数が12〜18ではない: ${reqIds.length}`);
+  const perNpc = {};
+  for (const [id, r] of Object.entries(REQUESTS)) {
+    if (!NPCS[r.npc] || r.npc === 'arriveDelay') errors.push(`request ${id}: 未知のnpc ${r.npc}`);
+    perNpc[r.npc] = (perNpc[r.npc] || 0) + 1;
+    if (!['start', 'furnace', 'moss', 'seal'].includes(r.stage)) errors.push(`request ${id}: 未知のstage ${r.stage}`);
+    if (!r.text) errors.push(`request ${id}: 本文がない`);
+    for (const [k, n] of Object.entries(r.needs)) if (!ITEMS[k] || ITEMS[k].key || !(n > 0)) errors.push(`request ${id}: needs が不正 ${k}`);
+    const rw = (r.reward && r.reward.items) || {};
+    if (!Object.keys(rw).length) errors.push(`request ${id}: 報酬がない`);
+    for (const [k, n] of Object.entries(rw)) if (!ITEMS[k] || !(n > 0)) errors.push(`request ${id}: 報酬が不正 ${k}`);
+  }
+  for (const n of Object.keys(perNpc)) if (perNpc[n] < 4) errors.push(`npc ${n}: 依頼が少ない`);
+
+  // 配置規則
+  const ruleIds = new Set();
+  for (const r of SPAWN_RULES) {
+    if (ruleIds.has(r.id)) errors.push(`spawn ${r.id}: 重複`);
+    ruleIds.add(r.id);
+    if (!NODES[r.node]) errors.push(`spawn ${r.id}: 未知のnode ${r.node}`);
+    if (!['surface', 'underground'].includes(r.layer)) errors.push(`spawn ${r.id}: 未知のlayer ${r.layer}`);
+    if (!r.biome.length || r.biome.some((b) => !TERRAIN_INFO.some((t) => t.id === b))) errors.push(`spawn ${r.id}: 未知のbiome`);
+    if (r.near && !['water', 'rock'].includes(r.near)) errors.push(`spawn ${r.id}: 未知のnear ${r.near}`);
+    if (!(r.count > 0) || !(r.minGap >= 1)) errors.push(`spawn ${r.id}: count/minGap が不正`);
+  }
+
+  // 目標・図鑑
+  for (const g of EXTRA_GOALS) {
+    if (!g.id || !g.text || !(g.target > 0) || !g.metric) errors.push(`goal ${g.id}: 形が不正`);
+    if (g.metric && g.metric.kind === 'journalCount' && !JOURNAL[g.metric.journal]) errors.push(`goal ${g.id}: 未知の図鑑 ${g.metric.journal}`);
+    if (g.metric && g.metric.kind === 'ownedAny') for (const it of g.metric.items) if (!ITEMS[it]) errors.push(`goal ${g.id}: 未知のitem ${it}`);
+  }
+  if (EXTRA_GOALS.length !== 6) errors.push('追加の生活目標が6件ではない');
+  for (const t of DECOR_TYPES) if (!STRUCTURES[t]) errors.push(`DECOR_TYPES: 未知の構造物 ${t}`);
+  const journalGoal = { fish: Object.keys(FISH).length, crop: Object.keys(CROPS).length };
+  for (const [kind, n] of Object.entries(journalGoal)) if (Object.keys(JOURNAL[kind]).length !== n) errors.push(`図鑑 ${kind} の数が定義と合わない`);
+  for (const [kind, entries] of Object.entries(JOURNAL)) for (const [id, e] of Object.entries(entries)) if (!ITEMS[e.item]) errors.push(`図鑑 ${kind}.${id}: 未知のitem`);
+  for (const id of Object.keys(JOURNAL.forage)) if (!NODES[id]) errors.push(`図鑑 forage.${id}: 未知のnode`);
+  for (const id of Object.keys(JOURNAL.dish)) if (!(ITEMS[id] && ITEMS[id].eat)) errors.push(`図鑑 dish.${id}: 食べられるitemでない`);
+
+  // 調理可能な食べ物: eat付きで、いずれかのレシピの出力(生食不可の食品は数えない)
+  const cooked = new Set(RECIPES.filter((r) => ITEMS[r.out] && ITEMS[r.out].eat).map((r) => r.out));
+  if (cooked.size < 26) errors.push(`eat付きの調理可能な料理が26未満: ${cooked.size}`);
+
+  // 取得源と用途の閉包(新アイテム全件)と、素材から作れるかの到達性(全アイテム)
+  const sources = new Set(), uses = new Set();
+  const addDrops = (list) => { for (const d of list || []) sources.add(d.item); };
+  for (const n of Object.values(NODES)) addDrops(n.drops);
+  for (const e of Object.values(ENEMIES)) addDrops(e.drop);
+  for (const b of Object.values(BOSSES)) if (b.reward) { addDrops(b.reward); addDrops(b.rematch); }
+  for (const n of Object.values(NPCS)) if (n && typeof n === 'object') for (const p of [].concat(n.produce || [])) sources.add(p.item);
+  for (const c of Object.values(CROPS)) addDrops(c.harvest);
+  for (const f of Object.values(FISH)) sources.add(f.item);
+  for (const r of RECIPES) sources.add(r.out);
+  for (const r of Object.values(REQUESTS)) for (const k of Object.keys(r.reward.items)) sources.add(k);
+  for (const r of RECIPES) for (const k of Object.keys(r.inputs)) uses.add(k);
+  for (const c of Object.values(CROPS)) uses.add(c.seed);
+  for (const r of Object.values(REQUESTS)) for (const k of Object.keys(r.needs)) uses.add(k);
+  for (const f of Object.values(FISH)) if (f.bait) uses.add(f.bait);
+  for (const o of LIGHTS.forge.offer) uses.add(o.item);
+  for (const c of CONTENT_ITEMS) {
+    const it = ITEMS[c.id];
+    if (it.key) continue;
+    if (!sources.has(c.id)) errors.push(`item ${c.id}: 入手源がない`);
+    const used = uses.has(c.id) || it.eat || it.equip || it.place || it.tool || it.rod;
+    if (!used) errors.push(`item ${c.id}: 用途がない`);
+  }
+  // 到達性: 素材ノード・敵・畑・釣り・レシピを繰り返し当てはめて、全アイテムが手に入ることを確かめる(道具の要否は問わない)
+  const have = new Set();
+  const grab = (list) => { for (const d of list || []) have.add(d.item); };
+  for (const n of Object.values(NODES)) grab(n.drops);
+  for (const e of Object.values(ENEMIES)) grab(e.drop);
+  for (const b of Object.values(BOSSES)) if (b.reward) grab(b.reward);
+  for (const n of Object.values(NPCS)) if (n && typeof n === 'object') for (const p of [].concat(n.produce || [])) have.add(p.item);
+  const stationOk = (r) => r.stations.some((s) => {
+    if (s === 'hand') return true;
+    const makers = stationMakers.get(s) || [];
+    return makers.some((sid) => !STRUCTURES[sid].item || have.has(STRUCTURES[sid].item));
+  });
+  for (let changed = true; changed;) {
+    changed = false;
+    const add = (id) => { if (!have.has(id)) { have.add(id); changed = true; } };
+    for (const r of RECIPES) if (!have.has(r.out) && stationOk(r) && Object.keys(r.inputs).every((k) => have.has(k))) add(r.out);
+    for (const c of Object.values(CROPS)) if (have.has(c.seed)) for (const h of c.harvest) add(h.item);
+    for (const f of Object.values(FISH)) {
+      const rodOk = Object.entries(ITEMS).some(([id, it]) => it.rod >= f.minRod && have.has(id));
+      if (rodOk && (!f.bait || have.has(f.bait))) add(f.item);
+    }
+  }
+  // 鍵アイテムと、生活目標の報酬(reward)は制作・採集の対象外
+  for (const id of itemIds) if (!ITEMS[id].key && !ITEMS[id].reward && !have.has(id)) errors.push(`item ${id}: 素材から到達できない`);
+  for (const r of RECIPES) if (!Object.keys(r.inputs).every((k) => have.has(k))) errors.push(`recipe ${r.id}: 材料に到達できない`);
+  // 救済ルート: 灯皿の油(moss_oil)を作るレシピが2本以上ある
+  if (RECIPES.filter((r) => r.out === 'moss_oil').length < 3) errors.push('moss_oil の救済レシピが足りない');
 }

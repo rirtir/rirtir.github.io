@@ -330,6 +330,59 @@ function moveNode(m, node, tx, ty) {
   m.nodeAt[ty * m.w + tx] = node.id;
 }
 
+/* ------------------------------------------------------------------ 後から補充する資源ノード(content) */
+// 旧生成のRNGと配列には一切触れない。生成直後のノード数を baseNodeCount に覚え、補充分は末尾へ足す。
+// 同じ world を別のセーブで作り直すときは resetContentNodes で末尾を切り戻す(ノードidは配列の添字)
+export function addContentNode(m, type, tx, ty) {
+  if (m.baseNodeCount == null) m.baseNodeCount = m.nodes.length;
+  return addNode(m, type, tx, ty, {});
+}
+
+export function resetContentNodes(world) {
+  for (const m of Object.values(world.maps)) {
+    if (m.baseNodeCount == null || m.nodes.length <= m.baseNodeCount) continue;
+    for (let k = m.nodes.length - 1; k >= m.baseNodeCount; k--) {
+      const n = m.nodes[k], i = n.ty * m.w + n.tx;
+      if (m.nodeAt[i] === n.id) m.nodeAt[i] = -1;
+    }
+    m.nodes.length = m.baseNodeCount;
+    m.contentRev = (m.contentRev || 0) + 1;
+  }
+}
+
+// addNode が通る条件(世界生成だけで決まる部分)を、置く前に問い合わせる
+export function contentSpotOk(m, type, tx, ty) {
+  if (!inBounds(m, tx, ty)) return false;
+  const i = ty * m.w + tx, def = NODES[type];
+  if (!def || m.nodeAt[i] >= 0 || m.protect[i] || m.reserved[i]) return false;
+  if (!NODE_TERRAIN.has(m.terrain[i])) return false;
+  const margin = m.id === 'surface' ? 3 : 1;
+  if (tx < margin || ty < margin || tx >= m.w - margin || ty >= m.h - margin) return false;
+  if (def.solid && solidNeighbor(m, tx, ty)) return false;
+  return true;
+}
+
+// スポーン地点から歩いて届く(隣接8マスのどれかが届く)マスの表。地下は掘る前の地形(baseTerrain)で作るので採掘状態に左右されない
+export function contentReach(m) {
+  if (m.contentReachMask) return m.contentReachMask;
+  const terrain = m.baseTerrain || m.terrain;
+  const mask = new Uint8Array(m.w * m.h);
+  for (let i = 0; i < mask.length; i++) {
+    if (TERRAIN_INFO[terrain[i]].solid) continue;
+    const ni = m.nodeAt[i];
+    if (ni >= 0 && ni < (m.baseNodeCount ?? m.nodes.length) && solidRadius(m.nodes[ni]) > 0) continue;
+    mask[i] = 1;
+  }
+  const sp = m.landmarks.spawn;
+  const vis = bfs(m, mask, sp.x, sp.y);
+  const out = new Uint8Array(m.w * m.h);
+  for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) if (touches(m, vis, x, y)) out[y * m.w + x] = 1;
+  m.contentReachMask = out;
+  return out;
+}
+
+export function isWaterTile(map, x, y) { return !!TERRAIN_INFO[getTile(map, x, y)].water; }
+
 function countWithin(m, type, cx, cy, r) {
   let n = 0;
   for (const nd of m.nodes) {
@@ -1228,6 +1281,7 @@ export function createWorld(seed = BALANCE.seed) {
 export function canPlace(state, type, map, x, y) {
   const def = STRUCTURES[type];
   if (!def) return { ok: false, reason: '置けないもの' };
+  if (state.structures.length >= BALANCE.save.maxStructures) return { ok: false, reason: '建築物の上限です。不要なものを取り壊すと、また置けます' };
   if (!inBounds(map, x, y)) return { ok: false, reason: 'ここには置けない' };
   const i = y * map.w + x;
   if (map.protect[i]) return { ok: false, reason: '遺跡と闘技場では建築できない' };

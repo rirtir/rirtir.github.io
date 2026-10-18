@@ -7,7 +7,35 @@
   <meta name="theme-color" content="#10140f">
   <title>苔灯の境 / MOSSLIGHT</title>
   <link rel="stylesheet" href="../../css/common-style.css">
-  <link rel="stylesheet" href="style.css">
+  <!-- mosslight-runtime:begin (update_runtime_versions.py が生成。手で編集しない) -->
+  <meta name="mosslight-asset-revision" content="7cbed24d330af897">
+  <meta name="mosslight-runtime-base" content="runtime/7cbed24d330af897/">
+  <script type="importmap">
+    {
+      "imports": {
+        "./activities.js": "./runtime/7cbed24d330af897/activities.js",
+        "./audio.js": "./runtime/7cbed24d330af897/audio.js",
+        "./combat.js": "./runtime/7cbed24d330af897/combat.js",
+        "./content_data.js": "./runtime/7cbed24d330af897/content_data.js",
+        "./data.js": "./runtime/7cbed24d330af897/data.js",
+        "./ground.js": "./runtime/7cbed24d330af897/ground.js",
+        "./layers.js": "./runtime/7cbed24d330af897/layers.js",
+        "./lighting.js": "./runtime/7cbed24d330af897/lighting.js",
+        "./main.js": "./runtime/7cbed24d330af897/main.js",
+        "./progression.js": "./runtime/7cbed24d330af897/progression.js",
+        "./renderer.js": "./runtime/7cbed24d330af897/renderer.js",
+        "./save.js": "./runtime/7cbed24d330af897/save.js",
+        "./session.js": "./runtime/7cbed24d330af897/session.js",
+        "./settlement.js": "./runtime/7cbed24d330af897/settlement.js",
+        "./simulation.js": "./runtime/7cbed24d330af897/simulation.js",
+        "./sky.js": "./runtime/7cbed24d330af897/sky.js",
+        "./ui.js": "./runtime/7cbed24d330af897/ui.js",
+        "./world.js": "./runtime/7cbed24d330af897/world.js"
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="runtime/7cbed24d330af897/style.css">
+  <!-- mosslight-runtime:end -->
 </head>
 <body>
   <div id="app">
@@ -18,6 +46,6 @@
   <noscript>
     <p class="noscript">「苔灯の境 / MOSSLIGHT」の動作にはJavaScriptが必要です。ブラウザの設定でJavaScriptを有効にしてください。</p>
   </noscript>
-  <script type="module" src="main.js"></script>
+  <script type="module">import './main.js';</script>
 </body>
 </html>

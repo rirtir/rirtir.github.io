@@ -6,8 +6,10 @@
 //
 // 光の式(sky.js と同じ): out = albedo·gain·(sky·(0.7+0.3·Nz) + sun·max(0,N·Ls)·S_sun + moon·max(0,N·Lm)·S_moon + local) + spec + albedo·emis·1.5
 //   sun/moon の向きは毎フレーム u.sunDir/u.moonDir で受け取る(固定の太陽は旧 render() 呼び出しで u.sunDir が無い時だけ)。
-//   影: u.shadow があれば、物の height を足元の行で傾けて描いた「影バッファ」から求める(S = 1 − strength·smoothstep(th, 2.7th, Hc − hr))。
-//       無い時(旧呼び出し)は従来どおり太陽方向の height ray。局所光は u.ptShadow の最大 MAX_PT 灯が足元中心の影アトラス(光源から遠ざかる向きへ傾けた遮る物の高さ)を持ち、他は height ray と壁遮蔽。
+//   影: u.shadow があれば、物の height 画像の実際の高さ h から投影した「影バッファ」から求める(S = 1 − strength·smoothstep(th, 2.7th, Hc − hr))。
+//       バッファは「画面の画素 p・高さ h」の地面位置 (p.x, p.y + h) から v·h だけずらした位置に h を書いたもの(受ける側の g = p + (0,hr) と同じ座標系。texel 中心基準)。
+//       無い時(旧呼び出し)は従来どおり太陽方向の height ray。局所光は u.ptShadow の最大 MAX_PT 灯が足元中心の影アトラス(光源から遠ざかる向きへずらした遮る物の高さ)を持ち、影枠のない灯は壁遮蔽のみ(地面では疎な height ray を使わない。物の表面と旧式の灯は height ray)。
+//   制約: createLighting の戻り値の limits / fits(w,h) が実ハードの最大テクスチャ・viewport・描画バッファを返す。呼び出し側は固定の解像度ではなくこれで GL の可否を決める。
 
 const MAX_LIGHTS = 8;
 export const MAX_PT = 3;      // 影を持てる局所光の数(アトラスのセル数)
@@ -107,11 +109,12 @@ float lightRay(vec2 gs, vec4 lp, float hPx, bool phys, ivec2 res) {
 }
 
 // 影バッファの参照。受ける面の地面位置 g = p + (0,hr) から、高さ hr の面で見た影の位置へ v·hr だけずらして読む。
+// g は画素中心(ip+0.5)なので、そのまま q/uRes が texel 中心。影バッファは遮る物の画素(中心 p, 高さ h)を (p.x, p.y+h)+v·h へ書いている。
 // 遮る物の高さ Hc が受ける面の高さ hr より十分高い時だけ影(自分の幹・樹冠は自分の影で暗くならない)
 float casterAt(sampler2D tex, vec2 g, vec2 v, float hr) {
   vec2 q = g + v * hr;
   if (q.x < 0.0 || q.y < 0.0 || q.x >= uRes.x || q.y >= uRes.y) return 0.0;
-  float hc = texture(tex, (q + 0.5) / uRes).r * 64.0;
+  float hc = texture(tex, q / uRes).r * 64.0;
   return smoothstep(uShadowTh, uShadowTh * 2.7, hc - hr);
 }
 
@@ -206,9 +209,11 @@ void main() {
     float vis = lightVis(gs + uCam, lp.xy + uCam);
     if (vis <= 0.0) continue;
     int slot = uPtSlot[i];
-    // 地面の物理光は投影影を使う。疎なheight rayを重ねると、細い支柱の影が
-    // サンプル間隔ごとの離れた四角へ複製される。高い受光面と未投影の灯はrayを保つ。
-    if (slot < 0 || !phys || hPx > 8.0) vis *= lightRay(gs, lp, hPx, phys, res);
+    // 地面(高さ8px以下)で受ける物理光は height ray を使わない。最大8点の疎なrayは、細い支柱や看板の影を
+    // サンプル間隔ごとの離れた四角へ複製する。影アトラスのない灯(枠3つ超)も同じなので、slot の有無に関わらず
+    // 地面では ray を使わず、影のある灯は投影影、ない灯は影なし(タイル遮蔽 lightVis のみ)にする。
+    // 高い受光面(物の表面)と旧式の灯(physical=false)は従来どおり ray で自己遮蔽を保つ。
+    if (!phys || hPx > 8.0) vis *= lightRay(gs, lp, hPx, phys, res);
     if (slot >= 0) {
       vec4 P = uPtS[slot];
       vec2 vg = (g - P.xy) / max(P.z, 1.0);
@@ -251,7 +256,19 @@ export function createLighting(opts = {}) {
     glErrors: 0, errorCount: 0, lastError: 0, contextLost: false, sunStrength: 0, moonStrength: 0,
     heightShadow: false, roughness: false, // shader が実際にコンパイル・リンクできた時だけ true
     projectedShadow: false, sunDir: [0, 0, 0], shadowKind: 'none', shadowW: 0, shadowH: 0, shadowBytes: 0, ptShadow: false, ptShadows: 0,
+    maxLights: maxLights, limits: null,
   };
+  // 実ハードの制約。build() が context から読む。drawing は描画バッファが要求より小さく切られた時の実寸(それ以上は使えない)
+  const limits = { maxTextureSize: 0, maxViewport: [0, 0], maxRenderbuffer: 0, drawing: null, max: [0, 0] };
+  function readLimits() {
+    const tex = gl.getParameter(gl.MAX_TEXTURE_SIZE) | 0, vp = gl.getParameter(gl.MAX_VIEWPORT_DIMS), rb = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) | 0;
+    limits.maxTextureSize = tex; limits.maxViewport = [vp ? vp[0] | 0 : tex, vp ? vp[1] | 0 : tex]; limits.maxRenderbuffer = rb;
+    const mw = Math.min(tex, limits.maxViewport[0]), mh = Math.min(tex, limits.maxViewport[1]);
+    limits.max = limits.drawing ? [Math.min(mw, limits.drawing[0]), Math.min(mh, limits.drawing[1])] : [mw, mh];
+    stats.limits = { maxTextureSize: tex, maxViewport: limits.maxViewport.slice(), maxRenderbuffer: rb, drawing: limits.drawing && limits.drawing.slice(), max: limits.max.slice() };
+  }
+  // w×h の native 解像度を color/normal/height/影バッファ・出力 canvas として扱えるか
+  function fits(w, h) { return !!limits.max[0] && w <= limits.max[0] && h <= limits.max[1]; }
   let prog = null, loc = null, vao = null, texs = null, occTex = null, W = 0, H = 0;
   let shTex = [null, null], shSize = [[0, 0], [0, 0]], zeroTex = null;
   let lost = false, ready = false, frame = 0;
@@ -316,6 +333,7 @@ export function createLighting(opts = {}) {
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
       gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
       gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      readLimits();
       ready = true;
       stats.heightShadow = true; stats.roughness = true; stats.projectedShadow = true;
     } catch (err) {
@@ -354,6 +372,7 @@ export function createLighting(opts = {}) {
   // u.ptShadow.entries[j].light と同じ灯を packed 後の番号へ対応させ、ptSlot[番号] = j にする(切り捨てられた灯は影なし)。影を持つ灯の数を返す
   function packLights(lights, u, usePt) {
     const cand = [], tile = u.tile || TILE, gain = u.lightGain == null ? LIGHT_GAIN : u.lightGain;
+    const cap = Math.max(1, Math.min(maxLights, u.maxLights | 0 || maxLights)); // 負荷が高い時に呼び出し側が灯数だけ減らせる
     for (const L of lights || []) {
       if (!(L.power > 0)) continue;
       const fl = u.calm ? 1 : 1 + (Math.sin(u.t * 9 + L.id * 1.7) * 0.03 + Math.sin(u.t * 23 + L.id) * 0.02) * L.flicker;
@@ -366,8 +385,13 @@ export function createLighting(opts = {}) {
       const col = [lin(L.color[0]) * k, lin(L.color[1]) * k, lin(L.color[2]) * k];
       cand.push({ L, x, y, r, phys: !!s, z: s ? Math.max(1, s.h) : 14 + r * 0.12, col, score: (col[0] * 0.3 + col[1] * 0.6 + col[2] * 0.1) * r * r });
     }
-    cand.sort((a, b) => b.score - a.score);
-    const n = Math.min(maxLights, cand.length);
+    // 地面影を作った近傍の灯は照明枠にも残す。寄与だけで別に切ると、
+    // 省負荷の2灯枠で遠い大半径の灯が松明を押し出し、影も消えてしまう。
+    const shadowLights = usePt && u.ptShadow ? u.ptShadow.entries.slice(0, MAX_PT).map(e => e.light) : [];
+    const shadowRank = c => { const rank = shadowLights.indexOf(c.L); return rank < 0 ? MAX_PT : rank; };
+    cand.sort((a, b) => shadowRank(a) - shadowRank(b) || b.score - a.score);
+    const n = Math.min(cap, cand.length);
+    stats.maxLights = cap;
     ptSlot.fill(-1);
     const entries = usePt ? u.ptShadow.entries : null;
     let pts = 0;
@@ -391,6 +415,7 @@ export function createLighting(opts = {}) {
 
   // color/normal/height は同寸のcanvas。occ={x0,y0,w,h,data(RG8)}。成功時はGL canvas、使えない時はnull
   // u: {camX,camY,t,calm,steps,lights,debug,skyColor,sunColor,sunStrength, sunDir?,moonDir?,moonColor?,lightScale?,gain?,lightGain?,
+  //   maxLights?: 今回の灯数の上限(createLighting の maxLights 以下。負荷を下げる時に使う)
   //   lights[i].src={x,y,h}(足元 world px と足元からの高さ)があれば physical: 拡散・遮蔽・height ray・影が同じ足元/実高さを使う。無ければ旧式(L.x,L.y の画面上の光、z=14+0.12r)
 //     shadow?:{canvas,vec,strength,kind,th}, ptShadow?:{canvas,cell,th,entries:[{light,x,y,h,strength}]}}
   //   ptShadow: canvas は entries[j] のセルを x=j·cell に横並べしたアトラス(1セル=2·PT_HALF native px を cell texel で)。x,y は灯の足元(native px)、h は光源の実高さ
@@ -398,7 +423,17 @@ export function createLighting(opts = {}) {
     if (lost || !ready || gl.isContextLost()) return null;
     const t0 = performance.now();
     const w = color.width, h = color.height;
-    if (w !== W || h !== H) resize(w, h);
+    if (!fits(w, h)) return null;
+    if (w !== W || h !== H) {
+      resize(w, h);
+      // 描画バッファが要求より小さく切られた(ブラウザの canvas 上限)。実寸を記録し、以後 fits() が false を返す
+      if (gl.drawingBufferWidth < w || gl.drawingBufferHeight < h) {
+        limits.drawing = [gl.drawingBufferWidth, gl.drawingBufferHeight];
+        readLimits();
+        freeSizeResources();
+        return null;
+      }
+    }
     const sources = [color, normal, height];
     for (let i = 0; i < 3; i++) {
       gl.activeTexture(gl.TEXTURE0 + i);
@@ -503,5 +538,5 @@ export function createLighting(opts = {}) {
   }
 
   if (!build()) { dispose(); return null; }
-  return { render, resize, dispose, stats, isLost: () => lost || !ready, canvas };
+  return { render, resize, dispose, stats, fits, limits, isLost: () => lost || !ready, canvas };
 }

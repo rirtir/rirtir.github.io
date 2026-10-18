@@ -1,8 +1,9 @@
-// セーブデータの検証・正規化・ビット列(base64)変換。依存: data.js のみ。
+// セーブデータの検証・正規化・ビット列(base64)変換。依存: data.js と activities.js(依頼・図鑑・釣り記録の検証のみ)。
 // validateSave は原データを書き換えず、throwせず、{ok, save, errors, warnings, droppedItems} を返す。
 //   errors   : 読み込めない理由(1つでもあれば ok:false)
 //   warnings : 正規化して読み込める問題(未知idの除去、範囲への丸めなど)
-import { BALANCE, TILE, ITEMS, STRUCTURES, CROPS, layerOf } from './data.js';
+import { BALANCE, TILE, ITEMS, STRUCTURES, CROPS, layerOf, EXTRA_GOALS } from './data.js';
+import { validateContentProgress } from './activities.js'; // 依頼・図鑑・釣りの検証(activitiesはdata/world/layersだけに依存。循環しない)
 
 export const SAVE_VERSION = 1;
 export const SAVE_FORMAT = 'mosslight-save';
@@ -10,7 +11,7 @@ export const MIGRATIONS = {}; // MIGRATIONS[v](save) → v+1
 
 const FORBID = new Set(['__proto__', 'constructor', 'prototype']);
 const MAPS = ['surface', 'underground'];
-export const GOAL_IDS = ['houses', 'lanterns', 'farms', 'foods', 'residents', 'roads', 'iron', 'rematch'];
+export const GOAL_IDS = ['houses', 'lanterns', 'farms', 'foods', 'residents', 'roads', 'iron', 'rematch', ...EXTRA_GOALS.map((g) => g.id)];
 const NPC_IDS = ['cook', 'farmer', 'builder'];
 const MAX_NODES_VISITED = 2_000_000;
 
@@ -116,7 +117,7 @@ function normItems(c, list, path, { onlyMaterial = false, max = 400 } = {}) {
     if (onlyMaterial && ITEMS[s.id].cat !== 'material') { c.warn(`${path} に素材以外が含まれていたので取り除きました`); continue; }
     if (!Number.isFinite(s.n) || s.n < 1) { c.warn(`${path} の不正な個数を取り除きました`); continue; }
     const n = Math.floor(s.n);
-    out.push({ id: s.id, n: Math.min(n, BALANCE.death.bagCap) });
+    out.push({ id: s.id, n: Math.min(n, onlyMaterial ? Number.MAX_SAFE_INTEGER : BALANCE.death.bagCap) });
   }
   return out;
 }
@@ -171,7 +172,7 @@ function validatePlayer(c, raw) {
     for (const id of raw.hotbar.slice(0, BALANCE.items.hotbarSlots)) {
       if (id === null || id === undefined) { pl.hotbar.push(null); continue; }
       if (!knownItem(id)) { if (typeof id === 'string') c.drop(id); pl.hotbar.push(null); continue; }
-      pl.hotbar.push(ITEMS[id].eat || ITEMS[id].place ? id : null);
+      pl.hotbar.push(ITEMS[id].eat || ITEMS[id].place || ITEMS[id].rod ? id : null);
     }
   }
   pl.spawn = null;
@@ -336,7 +337,8 @@ function validateWorld(c, raw, structures) {
         if (!map || typeof g.n !== 'number' || typeof g.x !== 'number' || typeof g.y !== 'number') { c.warn('不正な落下物を取り除きました'); continue; }
         if (!Number.isFinite(g.n) || g.n < 1) { c.warn('不正な個数の落下物を取り除きました'); continue; }
         const [gw, gh] = mapSize(map);
-        w.groundItems.push({ map, item: g.item, n: Math.max(1, Math.min(BALANCE.items.stack * BALANCE.items.bagSlots, Math.floor(g.n))), x: Math.max(0, Math.min(gw * TILE, g.x)), y: Math.max(0, Math.min(gh * TILE, g.y)) });
+        // 地面の束はバッグの容量より大きくなる。読込で数量を切り捨てない。
+        w.groundItems.push({ map, item: g.item, n: Math.max(1, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(g.n))), x: Math.max(0, Math.min(gw * TILE, g.x)), y: Math.max(0, Math.min(gh * TILE, g.y)) });
       }
     }
   }
@@ -349,7 +351,7 @@ function validateWorld(c, raw, structures) {
       if (map && items.length) {
         const [bw, bh] = mapSize(map);
         const merged = [];
-        for (const s of items) { const h = merged.find((x) => x.id === s.id); if (h) h.n = Math.min(BALANCE.death.bagCap, h.n + s.n); else merged.push(s); }
+        for (const s of items) { const h = merged.find((x) => x.id === s.id); if (h) h.n = Math.min(Number.MAX_SAFE_INTEGER, h.n + s.n); else merged.push(s); }
         w.deathBag = { map, x: c.num(b.x, 'deathBag.x', 0, bw * TILE, 0), y: c.num(b.y, 'deathBag.y', 0, bh * TILE, 0), items: merged };
       }
     }
@@ -362,8 +364,12 @@ function validateProgress(c, raw) {
     lights: { forge: false, moss: false, ancient: false }, crystalsPlaced: 0, bosses: { vine: false, ash: false },
     braziers: [false, false, false], npcs: {}, goals: {}, cleared: false, seen: {}, hints: {}, built: {},
     stats: { gathered: 0, crafted: 0, foods: {} }, fountain: false,
+    requests: {}, journal: { fish: {}, forage: {}, dish: {}, crop: {} }, fishing: { casts: 0, catches: 0 }, // 旧saveに無ければ空の既定値
   };
   if (!isObj(raw)) { c.err('progress（進行状況）の構造が壊れています'); return pr; }
+  const extra = validateContentProgress({ requests: raw.requests, journal: raw.journal, fishing: raw.fishing });
+  pr.requests = extra.value.requests; pr.journal = extra.value.journal; pr.fishing = extra.value.fishing;
+  if (extra.problems) c.warn('依頼・図鑑・釣りの記録の不正な項目を取り除きました');
   if (raw.lights !== undefined && !isObj(raw.lights)) c.err('progress.lights の形式が不正です');
   const lt = isObj(raw.lights) ? raw.lights : {};
   for (const id of ['forge', 'moss', 'ancient']) pr.lights[id] = c.bool(lt[id], `progress.lights.${id}`);
@@ -405,7 +411,7 @@ function validateProgress(c, raw) {
   if (isObj(raw.built)) for (const k of Object.keys(raw.built)) if (knownStruct(k) && raw.built[k]) pr.built[k] = 1;
   if (raw.stats !== undefined && !isObj(raw.stats)) c.err('progress.stats の形式が不正です');
   const st = isObj(raw.stats) ? raw.stats : {};
-  for (const k of ['gathered', 'crafted', 'kills', 'planted', 'tilled', 'harvested', 'deaths']) {
+  for (const k of ['gathered', 'crafted', 'kills', 'planted', 'tilled', 'harvested', 'deaths', 'fished']) {
     if (st[k] !== undefined) pr.stats[k] = c.num(st[k], `progress.stats.${k}`, 0, 1e9, 0, true);
   }
   pr.stats.gathered = pr.stats.gathered || 0; pr.stats.crafted = pr.stats.crafted || 0;

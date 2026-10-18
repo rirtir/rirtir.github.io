@@ -268,6 +268,19 @@ function testLighting(check, skip) {
     const groundWithPole = physShade(L16, 0, 88, 80, clearPt, thinH);
     check('physical: 投影影のない地面へrayの複製影を重ねない', Math.abs(cleanGround - groundWithPole) <= 2,
       `平面=${cleanGround} 支柱あり=${groundWithPole}`);
+    // 省負荷の2灯枠でも、地面影を作った近傍の松明を遠い大半径灯が押し出さない。
+    {
+      const cv = color => mkCanvas(96, 96, color);
+      const lamp = (id,x,y,r) => ({id,x,y,r,power:1,color:[255,255,255],flicker:0,src:{x,y,h:24}});
+      const near = lamp(1,48,48,1), farA = lamp(2,8,8,5), farB = lamp(3,88,88,5);
+      lighting.render(cv('#808080'),cv('#808000'),cv('#00c880'),null,{
+        camX:0,camY:0,t:0,calm:true,tile:32,steps:2,maxLights:2,
+        skyColor:[0,0,0],sunStrength:0,sunColor:[0,0,0],lights:[near,farA,farB],
+        ptShadow:{canvas:cv('#000000'),cell:96,th:1.5,entries:[{light:near,x:48,y:48,h:24,strength:.8}]}
+      });
+      check('省負荷: 2灯枠でも近傍松明とその地面影を残す',lighting.stats.lights===2 && lighting.stats.ptShadows===1,
+        `灯=${lighting.stats.lights} 地面影=${lighting.stats.ptShadows}`);
+    }
   } finally {
     lighting.dispose();
   }

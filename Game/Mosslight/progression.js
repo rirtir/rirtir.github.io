@@ -4,6 +4,7 @@ import { BALANCE, TILE, LIGHTS, ITEMS, NODES, BOSSES, WALL, CAVE_LAYOUT } from '
 import { openWallTile, nodeAt } from './world.js';
 import { restoreForge, lifeGoals } from './settlement.js';
 import { spawnBoss, bossEntity, resetBoss } from './combat.js';
+import { defaultContentProgress } from './activities.js';
 
 const P = BALANCE.player;
 let svc = null;
@@ -17,6 +18,7 @@ export function defaultProgress() {
     lights: { forge: false, moss: false, ancient: false }, crystalsPlaced: 0,
     bosses: { vine: false, ash: false }, braziers: [false, false, false], npcs: {}, goals: {}, cleared: false,
     seen: {}, hints: {}, built: {}, stats: { gathered: 0, crafted: 0, foods: {} }, fountain: false,
+    ...defaultContentProgress(), // requests / journal / fishing
   };
 }
 

@@ -304,7 +304,7 @@ export function createReviewFixture(scene = 'house') {
 
 function checkGoalInvariants(t, state, label) {
   const goals = sim.getLifeGoals(state);
-  t.eq(goals.map((g) => g.id), ['houses', 'lanterns', 'farms', 'foods', 'residents', 'roads', 'iron', 'rematch'], `${label}: eight life goals in order`);
+  t.eq(goals.slice(0, 8).map((g) => g.id), ['houses', 'lanterns', 'farms', 'foods', 'residents', 'roads', 'iron', 'rematch'], `${label}: original eight life goals retain their order`);
   t.ok(goals.every((g) => g.value >= 0 && g.value <= g.target && g.done === (g.value >= g.target)), `${label}: goal.done matches value>=target`, J(goals));
   t.eq(sim.getJournal(state).goals, goals, `${label}: journal goals equal getLifeGoals`);
   const jl = sim.getJournal(state).lights;
@@ -315,12 +315,14 @@ function checkGoalInvariants(t, state, label) {
 async function sBaseline(t) {
   const v = validateData();
   t.ok(v.ok, 'validateData() has no errors', v.errors.join('; '));
-  t.eq(RECIPES.length, 40, 'recipe table has the 40 recipes of DESIGN 3.3');
+  t.eq(RECIPES.slice(0, 40).map(r => r.id), ['axe_stone','pick_stone','sword_stone','cloth','torch','workbench','hoe_stone','furnace','pot','wall_wood','door_wood','floor_wood','path_stone','fence_wood','bed','chest_wood','table','chair','candlestick','lantern_stone','tunic_fiber','axe_copper','pick_copper','sword_copper','armor_copper','axe_iron','pick_iron','sword_iron','armor_iron','boots_feather','charm_shell','copper_bar','iron_bar','moss_oil','roast_mushroom','baked_potato','wheat_bread','forest_stew','moss_pie','potion'], 'original 40 recipe IDs retain their order');
   const { world, state } = fresh();
   t.ok(world.report && world.report.ok, 'generated world passes its reachability report', 'report.ok=' + (world.report && world.report.ok));
   t.eq([world.surface.w, world.surface.h, world.underground.w, world.underground.h], [128, 128, 96, 96], 'map sizes');
   const w2 = createWorld();
-  t.ok(world.surface.terrain.every((x, i) => x === w2.surface.terrain[i]) && world.underground.terrain.every((x, i) => x === w2.underground.terrain[i]) && world.surface.nodes.length === w2.surface.nodes.length, 'same seed generates the same world');
+  sim.createState(w2); // Content nodes are installed during state initialization, on both worlds.
+  const nodeSignature = m => m.nodes.map(n => [n.key, n.type, n.tx, n.ty]);
+  t.ok(world.surface.terrain.every((x, i) => x === w2.surface.terrain[i]) && world.underground.terrain.every((x, i) => x === w2.underground.terrain[i]) && J(nodeSignature(world.surface)) === J(nodeSignature(w2.surface)) && J(nodeSignature(world.underground)) === J(nodeSignature(w2.underground)), 'same seed generates identical terrain and initialized node identities/positions');
   const u = world.underground;
   let copper = 0, iron = 0;
   for (let i = 0; i < u.wallKind.length; i++) { if (u.wallKind[i] === WALL.COPPER) copper++; if (u.wallKind[i] === WALL.IRON) iron++; }
@@ -332,7 +334,7 @@ async function sBaseline(t) {
   t.ok(fire && fire.type === 'campfire', 'campfire stands at camp');
   const chest = state.structures.find((s) => s.type === 'chest_wood');
   t.ok(chest && state.containers[chest.id].some((s) => s && s.id === 'wheat_seed' && s.n === 3), 'starter chest holds 3 wheat seeds');
-  t.eq(sim.getLifeGoals(state).map((g) => g.value), [0, 0, 0, 0, 0, 0, 0, 0], 'no life goal progress at start');
+  t.eq(sim.getLifeGoals(state).slice(0, 8).map((g) => g.value), [0, 0, 0, 0, 0, 0, 0, 0], 'no original life goal progress at start');
   checkGoalInvariants(t, state, 'start');
 }
 
@@ -1301,7 +1303,7 @@ async function sCampaign(t) {
     tick(state, 12);
     s.eq(Object.values(state.progress.npcs).filter((n) => n.joined).length, 3, 'all three residents moved in');
     checkGoalInvariants(s, state, 'all goals');
-    s.ok(sim.getLifeGoals(state).every((g) => g.done), 'all eight goals done', J(sim.getLifeGoals(state)));
+    s.ok(sim.getLifeGoals(state).slice(0, 8).every((g) => g.done), 'all original eight goals done independently of optional new goals', J(sim.getLifeGoals(state)));
     s.eq([sim.countItem(state, 'moss_fountain'), state.progress.fountain], [1, true], 'the fountain is granted exactly once');
     tick(state, 5);
     s.eq(sim.countItem(state, 'moss_fountain'), 1, 'no second fountain later');

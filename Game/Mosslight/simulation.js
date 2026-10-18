@@ -12,10 +12,10 @@
 //   rotatePressed  回転(R)
 //   slot           0..7 ホットバー番号キー(なければ-1/undefined)  wheel: -1/0/1
 import {
-  BALANCE, TILE, TERRAIN_INFO, ITEMS, RECIPE_BY_ID, STATIONS, NODES, STRUCTURES, CAMP_LAYOUT, CROPS, WALL, WALL_NODE, footEllipse,
+  BALANCE, TILE, TERRAIN_INFO, ITEMS, RECIPE_BY_ID, STATIONS, NODES, STRUCTURES, CAMP_LAYOUT, CROPS, WALL, WALL_NODE, footEllipse, JOURNAL,
 } from './data.js';
 import {
-  getTile, nodeAt, solidRadius, nodeFootprint, canPlace, findWalkableNear, mulberry32, openWallTile, resetWorldTerrain, isBuildTerrain,
+  getTile, nodeAt, solidRadius, nodeFootprint, canPlace, findWalkableNear, mulberry32, openWallTile, resetWorldTerrain, isBuildTerrain, isWaterTile,
 } from './world.js';
 import {
   createIndexes, objectAt, floorAt, structureAt, farmAt, addStructureRecord, removeStructureRecord,
@@ -24,6 +24,7 @@ import {
 import * as settlement from './settlement.js';
 import * as combat from './combat.js';
 import * as progression from './progression.js';
+import * as activities from './activities.js';
 import { validateSave as validateSaveData, migrateSave, encodeBits, decodeBits, SAVE_VERSION, SAVE_FORMAT, summarizeSave } from './save.js';
 
 const P = BALANCE.player;
@@ -33,6 +34,10 @@ const EMPTY = Object.freeze({});
 
 export { structureAt, objectAt, floorAt, migrateSave, summarizeSave };
 export { damageEnemy } from './combat.js';
+export {
+  startCast, updateFishing, cancelFishing, deliverRequest, requestStatus, getRequests, recordSeen, getJournalEntries,
+  getEquipStats, getPlayerLight, fishTable, fishRegion, fishTimeSlot, bagFits,
+} from './activities.js';
 
 export const TOOL_ITEMS = {
   axe: ['', 'axe_stone', 'axe_copper', 'axe_iron'],
@@ -40,7 +45,14 @@ export const TOOL_ITEMS = {
   hoe: ['', 'hoe_stone'],
 };
 const TOOL_JP = { axe: '斧', pick: 'ツルハシ', hoe: '鍬' };
-const PLANT_MODES = { plant_wheat: 'wheat', plant_potato: 'moss_potato' };
+// 植付モード 'plant_<作物kind>'(旧名 plant_potato は moss_potato)。CROPS にある作物だけ
+const PLANT_ALIAS = { plant_potato: 'moss_potato' };
+export function plantKind(type) {
+  if (typeof type !== 'string' || !type.startsWith('plant_')) return null;
+  if (PLANT_ALIAS[type]) return PLANT_ALIAS[type];
+  const kind = type.slice(6);
+  return Object.hasOwn(CROPS, kind) ? kind : null;
+}
 
 /* ------------------------------------------------------------------ 補助 */
 function emit(state, ...events) {
@@ -87,6 +99,7 @@ function newPlayer(world) {
 
 export function createState(world, save = null) {
   resetWorldTerrain(world);
+  activities.prepareContentWorld(world); // 前の状態で補充したノードを外す(同じworldを別セーブで作り直せるように)
   const camp = world.surface.landmarks.camp;
   const state = {
     world, rev: 1,
@@ -94,7 +107,7 @@ export function createState(world, save = null) {
     time: { clock: BALANCE.startClock, day: 1 },
     playTime: 0,
     player: newPlayer(world),
-    nodes: new Map(), depleted: new Set(), hitNodes: new Set(), wallHp: new Map(),
+    nodes: new Map(), depleted: new Set(), hitNodes: new Set(), wallHp: new Map(), pendingNodeSave: {}, fishing: null,
     structures: [], doors: [], structRev: 0, houseRev: -1, nextStructId: 1,
     ...createIndexes(),
     containers: {}, groundItems: [], nextItemId: 1,
@@ -125,6 +138,7 @@ export function createState(world, save = null) {
   }
   progression.syncGates(state);
   settlement.evaluateHouses(state);
+  activities.augmentContentNodes(state, state.pendingNodeSave); // 最後に。畑・構造物・家に重なる候補は置かず、保存済みの状態を適用する
   if (loaded) settlement.stepSettlement(state, 0, API);
   revealAround(state);
   return state;
@@ -208,7 +222,7 @@ export function canFit(state, id, n = 1) {
 
 function autoHotbar(state, id) {
   const def = ITEMS[id];
-  if (!def || !(def.eat || def.place)) return;
+  if (!def || !(def.eat || def.place || def.rod)) return;
   const hb = state.player.hotbar;
   if (hb.includes(id)) return;
   const i = hb.indexOf(null);
@@ -309,7 +323,7 @@ export function assignHotbar(state, index, itemId) {
   if (index < 0 || index >= p.hotbar.length) return false;
   if (itemId) {
     const def = ITEMS[itemId];
-    if (!def || !(def.eat || def.place)) { msg(state, 'ホットバーには食べ物と設置物を入れられる', 'warn'); return false; }
+    if (!def || !(def.eat || def.place || def.rod)) { msg(state, 'ホットバーには食べ物・設置物・釣り竿を入れられる', 'warn'); return false; }
     for (let i = 0; i < p.hotbar.length; i++) if (p.hotbar[i] === itemId) p.hotbar[i] = null;
   }
   p.hotbar[index] = itemId || null;
@@ -396,36 +410,49 @@ export function recipeStatus(state, recipe, stations = nearbyStations(state)) {
   };
 }
 
+// 制作できるかの読み取り専用判定。craft と UI が同じ条件を使う（msg/events/state は変えない）。
+// code: recipe / station / owned / material / capacity
+export function craftCheck(state, idOrRecipe, times = 1, stations = nearbyStations(state)) {
+  const r = typeof idOrRecipe === 'string' ? RECIPE_BY_ID[idOrRecipe] : idOrRecipe;
+  if (!r) return { ok: false, code: 'recipe', reason: 'レシピがない' };
+  const out = ITEMS[r.out];
+  if (out.tool) times = 1;
+  times = Math.max(1, Math.min(99, times | 0));
+  const bad = (code, reason) => ({ ok: false, code, reason, times });
+  const st = recipeStatus(state, r, stations);
+  if (!st.atStation) return bad('station', `${r.stations.map((s) => STATIONS[s].name).join('か')}の近くで作ろう`);
+  if (st.owned) return bad('owned', 'すでに持っている');
+  for (const [item, need] of Object.entries(r.inputs)) {
+    if (st.have[item] < need * times) return bad('material', `${ITEMS[item].name}が足りない`);
+  }
+  const total = r.n * times;
+  if (!out.tool) {
+    // removeItem と同じ順（末尾のスロットから）で材料を消費した後のバッグで収納できるか確かめる
+    const reserved = state.player.bag.map((s) => (s ? { ...s } : null));
+    for (const [item, need] of Object.entries(r.inputs)) {
+      let left = need * times;
+      for (let i = reserved.length - 1; i >= 0 && left > 0; i--) {
+        const s = reserved[i];
+        if (!s || s.id !== item) continue;
+        const t = Math.min(s.n, left);
+        s.n -= t; left -= t;
+        if (s.n <= 0) reserved[i] = null;
+      }
+    }
+    if (!canFit({ player: { bag: reserved } }, r.out, total)) return bad('capacity', 'バッグがいっぱい');
+  }
+  return { ok: true, code: 'ok', times, total };
+}
+
 export function craft(state, id, times = 1) {
   const r = RECIPE_BY_ID[id];
   const p = state.player;
   if (!r) return { ok: false, reason: 'レシピがない' };
   const out = ITEMS[r.out];
-  if (out.tool) times = 1;
-  times = Math.max(1, Math.min(99, times | 0));
-  const stations = nearbyStations(state);
-  const st = recipeStatus(state, r, stations);
-  const fail = (reason) => { msg(state, reason, 'warn'); return { ok: false, reason }; };
-  if (!st.atStation) return fail(`${r.stations.map((s) => STATIONS[s].name).join('か')}の近くで作ろう`);
-  if (st.owned) return fail('すでに持っている');
-  for (const [item, need] of Object.entries(r.inputs)) {
-    if (st.have[item] < need * times) return fail(`${ITEMS[item].name}が足りない`);
-  }
-  const total = r.n * times;
-  if (!out.tool) {
-    const reserved = p.bag.map(s => s ? { ...s } : null);
-    for (const [item, need] of Object.entries(r.inputs)) {
-      let remaining = need * times;
-      for (let i = 0; i < reserved.length && remaining > 0; i++) {
-        const slot = reserved[i];
-        if (!slot || slot.id !== item) continue;
-        const used = Math.min(slot.n, remaining);
-        remaining -= used; slot.n -= used;
-        if (slot.n === 0) reserved[i] = null;
-      }
-    }
-    if (!canFit({ player: { bag: reserved } }, r.out, total)) return fail('バッグがいっぱい');
-  }
+  const chk = craftCheck(state, r, times);
+  if (!chk.ok) { msg(state, chk.reason, 'warn'); return { ok: false, reason: chk.reason }; }
+  times = chk.times;
+  const total = chk.total;
   for (const [item, need] of Object.entries(r.inputs)) removeItem(state, item, need * times);
   if (out.tool) {
     p.tools[out.tool] = Math.max(p.tools[out.tool], out.tier);
@@ -439,6 +466,7 @@ export function craft(state, id, times = 1) {
     }
   }
   if (out.cat === 'food' && r.station !== 'hand') state.progress.stats.foods[r.out] = 1;
+  if (!out.tool) activities.recordSeen(state, 'dish', r.out, total); // 図鑑は実際に作れた数量で
   state.progress.stats.crafted += total;
   emit(state, { type: 'craft', id: r.out, n: total });
   msg(state, out.tool ? `${out.name}を作った（自動で使われる）` : `${out.name}${total > 1 ? ` ×${total}` : ''}を作った`, 'good');
@@ -492,7 +520,8 @@ export function selectBuild(state, type = null, rot = 0) {
   if (!type) { p.buildMode = null; p.sel = -1; state.preview = null; return { ok: true }; }
   let problem = null;
   if (type === 'farm') { if (!(p.tools.hoe > 0)) problem = '作業台で石の鍬を作ろう'; }
-  else if (PLANT_MODES[type]) { if (countItem(state, CROPS[PLANT_MODES[type]].seed) < 1) problem = `${ITEMS[CROPS[PLANT_MODES[type]].seed].name}が必要`; }
+  else if (plantKind(type)) { const seed = CROPS[plantKind(type)].seed; if (countItem(state, seed) < 1) problem = `${ITEMS[seed].name}が必要`; }
+  else if (type.startsWith('plant_')) problem = '植えられないもの';
   else if (type !== 'demolish') {
     const def = STRUCTURES[type];
     if (!def || !def.item) problem = '置けないもの';
@@ -508,7 +537,7 @@ export function selectBuild(state, type = null, rot = 0) {
 export function canBuild(state, type, x, y) {
   const p = state.player;
   if (type === 'farm') return settlement.canTill(state, x, y);
-  if (PLANT_MODES[type]) return settlement.canPlant(state, PLANT_MODES[type], x, y, API);
+  if (plantKind(type)) return settlement.canPlant(state, plantKind(type), x, y, API);
   if (type === 'demolish') {
     if (!objectAt(state, p.map, x, y) && !floorAt(state, p.map, x, y) && !farmAt(state, p.map, x, y)) return { ok: false, reason: 'ここには何もない' };
     if (Math.hypot(p.x - (x * TILE + 16), p.y - (y * TILE + 16)) > P.buildRange) return { ok: false, reason: '遠すぎる' };
@@ -554,7 +583,7 @@ export function bossRematch(state, id) {
   return r;
 }
 export function getHouseStatus(state) { return settlement.houseStatus(state); }
-export function getLifeGoals(state) { return settlement.lifeGoals(state); }
+export function getLifeGoals(state) { return settlement.lifeGoals(state); } // 既存8件+追加6件(配列駆動)。形は {id,text,value,target,done}
 export function getJournal(state) { return progression.getJournal(state); }
 export function getObjective(state) { return progression.getObjective(state); }
 export function collectDeathBag(state) { return combat.collectDeathBag(state); }
@@ -564,8 +593,39 @@ export function inSafeZone(state, x, y, extra = 0) { return settlement.inSafeZon
 export function spawnGround(state, mapId, x, y, item, n, opts = EMPTY) {
   const r = state.rng;
   const a = r() * Math.PI * 2, sp = 36 + r() * 46;
+  const vz = 150 + r() * 70;
+  // 同じ採集点の小分けドロップを束ねる。上限到達時も数量を捨てない。
+  const piles = state.groundItems;
+  const near = piles.find(g => g.map === mapId && g.item === item && Math.hypot(g.x - x, g.y - y) < TILE * 1.5);
+  if (near && Number.isSafeInteger(near.n + n)) {
+    near.n += n;
+    near.age = Math.min(near.age, -(opts.delay || 0));
+    return;
+  }
+  if (piles.length >= BALANCE.save.maxGround) {
+    // 同じ素材の山を1組統合して新しい採集点を残す。座標の近い組を優先する。
+    const groups = new Map();
+    let pair = null, best = Infinity;
+    for (let i = 0; i < piles.length; i++) {
+      const g = piles[i], key = `${g.map}:${g.item}`;
+      const previous = groups.get(key) || [];
+      for (const j of previous) {
+        const other = piles[j];
+        if (!Number.isSafeInteger(other.n + g.n)) continue;
+        const distance = (g.x - other.x) ** 2 + (g.y - other.y) ** 2;
+        if (distance < best) { best = distance; pair = [j, i]; }
+      }
+      previous.push(i); groups.set(key, previous);
+    }
+    if (pair) {
+      const [keep, remove] = pair;
+      piles[keep].n += piles[remove].n;
+      piles[keep].age = Math.min(piles[keep].age, piles[remove].age);
+      piles.splice(remove, 1);
+    }
+  }
   state.groundItems.push({
-    id: state.nextItemId++, map: mapId, item, n, x, y: y + 2, z: 2, vz: 150 + r() * 70,
+    id: state.nextItemId++, map: mapId, item, n, x, y: y + 2, z: 2, vz,
     vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.7, age: -(opts.delay || 0), bounced: false,
   });
 }
@@ -664,8 +724,11 @@ export function toolProblem(p, def) {
 function harvestNode(state, node, def) {
   const r = state.rng;
   const mapId = node.key.slice(0, node.key.indexOf(':'));
+  const mainItem = JOURNAL.forage[node.type] ? JOURNAL.forage[node.type].item : null;
+  let gotMain = 0;
   for (const d of def.drops || []) {
     if (d.chance != null && r() > d.chance) continue;
+    if (d.item === mainItem) gotMain += d.n;
     const parts = Math.min(d.n, 3);
     let left = d.n;
     for (let k = 0; k < parts; k++) {
@@ -679,6 +742,7 @@ function harvestNode(state, node, def) {
   ns.respawnAt = def.regen == null ? Infinity : state.time.clock + def.regen;
   state.depleted.add(node);
   state.progress.stats.gathered += 1;
+  if (gotMain > 0) activities.recordSeen(state, 'forage', node.type, gotMain); // 実際に落とした数量(確率で外れた分は含めない)。拾い直しでは二重計上しない
   emit(state, { type: 'deplete', x: node.px, y: node.py, node: node.type, chip: def.chip });
   state.rev++;
 }
@@ -785,7 +849,9 @@ function collect(state, map, tx0, ty0, tx1, ty1) {
     }
   }
   for (const e of state.enemies) {
-    out.push({ kind: 'enemy', ref: e, x: e.x, y: e.y, prio: 4, rect: [e.x - e.radius, e.y - 40, e.x + e.radius, e.y + 6] });
+    if (e.map !== map.id || e.hp <= 0) continue;
+    const attackable = Math.hypot(e.x - state.player.x, e.y - state.player.y) <= P.reach;
+    out.push({ kind: 'enemy', ref: e, x: e.x, y: e.y, prio: attackable ? -1 : 4, rect: [e.x - e.radius, e.y - 40, e.x + e.radius, e.y + 6] });
   }
   return out;
 }
@@ -799,7 +865,10 @@ function describe(state, c, viaMouse) {
     const chk = canReplantTree(state, c.ref);
     f.verb = '苗を植える'; f.name = '切り株'; f.ok = chk.ok; f.reason = chk.reason || '';
   }
-  else if (c.kind === 'ground') { f.verb = '拾う'; f.name = ITEMS[c.ref.item].name; }
+  else if (c.kind === 'ground') {
+    f.verb = '拾う'; f.name = ITEMS[c.ref.item].name;
+    if (!canFit(state, c.ref.item, 1)) { f.ok = false; f.reason = 'バッグがいっぱいです'; }
+  }
   else if (c.kind === 'bag') { f.verb = '回収する'; f.name = '資源袋'; }
   else if (c.kind === 'npc') { f.verb = '話す'; f.name = c.ref.name; }
   else if (c.kind === 'structure') { const def = STRUCTURES[c.ref.type]; f.verb = def.verb || '使う'; f.name = def.name; }
@@ -841,6 +910,7 @@ function updateFocus(state, input) {
   const tx = Math.floor(p.x / TILE), ty = Math.floor(p.y / TILE);
   let best = null, bestScore = Infinity;
   for (const c of collect(state, map, tx - 3, ty - 3, tx + 3, ty + 3)) {
+    if (c.kind === 'ground' && !canFit(state, c.ref.item, 1)) continue;
     const dx = c.x - p.x, dy = c.y - p.y, d = Math.hypot(dx, dy);
     if (d > P.reach) continue;
     if (d > 24) {
@@ -1017,6 +1087,28 @@ function updateAction(state, dt, input) {
   if (input.actPressed || input.act) tryAct(state, input);
 }
 
+/* ------------------------------------------------------------------ 釣りの入力 */
+// ホットバーで竿を選び、水のマスを狙って actPressed で投げる。マウス無しのときは向いている方向の最も近い水(4タイル以内)。
+// 投げる試行を行ったステップは、同じ入力を通常の行動(拾う・振る)へ回さない。戻り値: 試行したか
+function updateFishingStart(state, input) {
+  const p = state.player;
+  if (!input.actPressed || p.action || p.roll || state.fishing || p.useCd > 0 || placingType(state)) return false;
+  const id = p.sel >= 0 ? p.hotbar[p.sel] : null;
+  if (!id || !ITEMS[id].rod || countItem(state, id) < 1) return false;
+  const map = curMap(state);
+  let cell = null;
+  if (input.aim && input.aimActive) cell = { x: Math.floor(input.aim.x / TILE), y: Math.floor(input.aim.y / TILE) };
+  else {
+    for (let d = 1; d <= 4 && !cell; d++) {
+      const x = Math.floor((p.x + p.fx * d * TILE) / TILE), y = Math.floor((p.y + p.fy * d * TILE) / TILE);
+      if (isWaterTile(map, x, y)) cell = { x, y };
+    }
+  }
+  if (!cell || !isWaterTile(map, cell.x, cell.y)) return false; // 水を狙っていなければ通常の行動
+  activities.startCast(state, cell);
+  return true;
+}
+
 /* ------------------------------------------------------------------ 設置・建築モードの入力 */
 function targetTile(state, input) {
   const p = state.player;
@@ -1026,7 +1118,7 @@ function targetTile(state, input) {
 
 function performBuild(state, type, tx, ty, rot) {
   if (type === 'farm') return till(state, tx, ty);
-  if (PLANT_MODES[type]) return plant(state, PLANT_MODES[type], tx, ty);
+  if (plantKind(type)) return plant(state, plantKind(type), tx, ty);
   if (type === 'demolish') return remove(state, tx, ty);
   return place(state, type, tx, ty, rot);
 }
@@ -1144,12 +1236,6 @@ export function moveEntity(state, map, e, dx, dy, r) {
   resolveCollisions(state, map, e, r);
 }
 
-function buffValue(state, id) {
-  let v = 0;
-  for (const b of state.player.buffs) if (b.id === id && b.until > state.time.clock) v += b.v;
-  return v;
-}
-
 function updateMovement(state, dt, input) {
   const p = state.player, map = curMap(state);
   let mx = input.moveX || 0, my = input.moveY || 0;
@@ -1185,8 +1271,7 @@ function updateMovement(state, dt, input) {
   const floor = floorAt(state, p.map, tx, ty);
   if (floor && STRUCTURES[floor.type].speed) speed *= STRUCTURES[floor.type].speed;
   if (p.satiety <= 0) speed *= P.hungerMul;
-  const tr = p.equip.trinket ? ITEMS[p.equip.trinket].trinket : null;
-  speed *= 1 + (tr && tr.speed ? tr.speed : 0) + buffValue(state, 'speed');
+  speed *= 1 + activities.getEquipStats(state).speed; // 装備中の防具・装飾と期限内のbuffだけ(持つだけでは効かない)
   if (p.action) speed *= P.actionMove;
 
   const moving = len > 0.01;
@@ -1216,8 +1301,14 @@ function updateMovement(state, dt, input) {
 /* ------------------------------------------------------------------ 満腹・回復 */
 function updateSurvival(state, dt) {
   const p = state.player, H = BALANCE.hunger;
-  p.hungerT += dt;
+  const stats = activities.getEquipStats(state);
+  p.hungerT += dt * stats.satietyRate;
   while (p.hungerT >= H.interval) { p.hungerT -= H.interval; p.satiety = Math.max(0, p.satiety - 1); state.rev++; }
+  if (stats.regen > 0 && p.hp < P.hpMax) {
+    // 護符・buffの回復は10秒あたりのHP。端数は貯めて1ずつ反映する
+    p.regenAcc = (p.regenAcc || 0) + stats.regen * dt / 10;
+    while (p.regenAcc >= 1 && p.hp < P.hpMax) { p.regenAcc -= 1; p.hp = Math.min(P.hpMax, p.hp + 1); state.rev++; }
+  } else p.regenAcc = 0;
   if (p.hp < P.hpMax) {
     const every = p.satiety >= 60 ? 2 : p.satiety >= 30 ? 6 : 0;
     if (every) {
@@ -1271,7 +1362,13 @@ function updateHints(state) {
   if (!pr.hints.craft && (Object.keys(pr.seen).length >= 2 || pr.stats.gathered > 0) && !p.tools.axe) {
     hint(state, 'craft', 'C で制作画面。枝3・石2・繊維2で石の斧が作れます');
   }
-  if (p.map === 'underground') hint(state, 'cave', '洞窟は暗い。たいまつや灯籠を持ち、敵の予兆（光る範囲）を見て Shift で回避しよう');
+  if (p.map === 'underground') {
+    hint(state, 'cave', '洞窟は暗い。たいまつや灯籠を持ち、敵の予兆（光る範囲）を見て Shift で回避しよう');
+    if (!activities.getEquipStats(state).light) {
+      const owned = ['lantern', 'crystal_lantern'].some((id) => countItem(state, id) > 0);
+      hint(state, 'cave_light', owned ? '携帯灯を持っている。装備すると、暗い洞窟でも遠くまで照らせる' : '携帯灯（木1・樹脂2・繊維2・石1）を作って装飾に装備すると、洞窟の視界が広がる');
+    }
+  }
   if (countItem(state, 'sapling') > 0) hint(state, 'sapling', '苗を持って切り株を調べると、苗を植えて木の再生を早められます');
 }
 
@@ -1308,6 +1405,7 @@ const API = {
 };
 combat.bindCombat(API);
 progression.bindProgression(API);
+activities.bindActivities(API);
 
 /* ------------------------------------------------------------------ メインステップ */
 export function step(state, dt, input = EMPTY) {
@@ -1322,7 +1420,9 @@ export function step(state, dt, input = EMPTY) {
   updateMovement(state, dt, input);
   updateFocus(state, input);
   updatePlacement(state, input, dt);
-  updateAction(state, dt, input);
+  const cast = updateFishingStart(state, input);
+  updateAction(state, dt, cast ? { ...input, actPressed: false, act: false } : input);
+  activities.updateFishing(state, dt, input); // 投げた同じステップのactPressedは取消に使わない(fresh)
   updateGroundItems(state, dt);
   updateNodes(state, dt);
   updateSurvival(state, dt);
@@ -1343,6 +1443,8 @@ export function serialize(state) {
     if (v.respawnAt == null) continue;
     nodes[k] = isFinite(v.respawnAt) ? { respawnAt: v.respawnAt } : { perm: true };
   }
+  // まだ対応するノードが無い(旧世界の重なり・撤去前の建物など)保存済みの状態も落とさず書き戻す
+  for (const [k, v] of Object.entries(state.pendingNodeSave || {})) if (!(k in nodes)) nodes[k] = v.perm ? { perm: true } : { respawnAt: v.respawnAt };
   const clone = (v) => JSON.parse(JSON.stringify(v));
   const bag = state.deathBag;
   return {
@@ -1453,7 +1555,7 @@ function applySave(state, save) {
     const m = world.maps[mapId];
     const [tx, ty] = rest.split(',').map(Number);
     const node = m && nodeAt(m, tx, ty);
-    if (!node) continue;
+    if (!node) { state.pendingNodeSave[k] = { perm: !!v.perm, respawnAt: v.perm ? null : v.respawnAt }; continue; } // 補充ノード用に保持
     state.nodes.set(k, { hp: NODES[node.type].hp || 1, respawnAt: v.perm ? Infinity : v.respawnAt, hitT: 0 });
     state.depleted.add(node);
   }

@@ -41,12 +41,14 @@ body {
 
 #game {
   position: absolute; inset: 0; width: 100%; height: 100%;
+  z-index: 0;
   display: block; margin: 0; padding: 0; border: 0;
   image-rendering: pixelated; image-rendering: crisp-edges;
   touch-action: none; outline: none; background: #0b100d; cursor: default;
 }
 #game:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: -2px; }
-#ui-root { position: absolute; inset: 0; pointer-events: none; }
+/* 移動中のcanvas再描画でも、HUDとその変形レイヤーをゲーム面より上に保つ。 */
+#ui-root { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
 
 .boot {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -570,20 +572,74 @@ li.bad > .mark { color: var(--danger); }
   border: var(--bw) solid transparent; border-image: var(--frame) 6 fill / var(--bw) / 0 stretch;
   image-rendering: pixelated; image-rendering: crisp-edges;
 }
-.dialog, .objective, .hint, .target-label, .build-label, .ending-panel, .joy-base { --frame: url("assets/ui/panel.png"); }
-.btn, .mbtn, .tab, .title-menu .tbtn, #app .tbtn-r, .dialog .x { --frame: url("assets/ui/button.png"); }
-.hslot { --frame: url("assets/ui/hotbar.png"); }
-.joy-knob { --frame: url("assets/ui/selected.png"); }
+.dialog, .objective, .hint, .target-label, .build-label, .ending-panel, .joy-base { --frame: url("assets/ui/panel.png?v=7df50fe21b4f"); }
+.btn, .mbtn, .tab, .title-menu .tbtn, #app .tbtn-r, .dialog .x { --frame: url("assets/ui/button.png?v=7df50fe21b4f"); }
+.hslot { --frame: url("assets/ui/hotbar.png?v=7df50fe21b4f"); }
+.joy-knob { --frame: url("assets/ui/selected.png?v=7df50fe21b4f"); }
 .btn:hover:not(:disabled), .btn.primary, .seg .btn[aria-pressed="true"], .tab[aria-selected="true"], .mbtn:hover,
-.title-menu .tbtn:hover:not(:disabled), .title-menu .tbtn:focus-visible, .hslot.sel, #app .tbtn-r.act, #app .tbtn-r.down { --frame: url("assets/ui/selected.png"); }
-.btn:disabled, .title-menu .tbtn:disabled { --frame: url("assets/ui/disabled.png"); }
+.title-menu .tbtn:hover:not(:disabled), .title-menu .tbtn:focus-visible, .hslot.sel, #app .tbtn-r.act, #app .tbtn-r.down { --frame: url("assets/ui/selected.png?v=7df50fe21b4f"); }
+.btn:disabled, .title-menu .tbtn:disabled { --frame: url("assets/ui/disabled.png?v=7df50fe21b4f"); }
 .dialog .x { border: var(--bw) solid transparent; border-image: var(--frame) 6 fill / var(--bw) / 0 stretch; image-rendering: pixelated; }
-.dialog .x:hover { --frame: url("assets/ui/selected.png"); }
+.dialog .x:hover { --frame: url("assets/ui/selected.png?v=7df50fe21b4f"); }
 .hslot.sel { z-index: 1; }
-.hslot:hover { --frame: url("assets/ui/selected.png"); }
+.hslot:hover { --frame: url("assets/ui/selected.png?v=7df50fe21b4f"); }
+.fish-hud, .req { --frame: url("assets/ui/panel.png?v=7df50fe21b4f"); border: var(--bw) solid transparent; border-image: var(--frame) 6 fill / var(--bw) / 0 stretch; image-rendering: pixelated; image-rendering: crisp-edges; }
+.cat-chips .btn[aria-pressed="true"], .craft-filter .btn[aria-pressed="true"] { --frame: url("assets/ui/selected.png?v=7df50fe21b4f"); }
 #app .tbtn-r { padding: 0; display: flex; align-items: center; justify-content: center; }
 .mbtn, .dialog .x { padding: 0; }
 @media (hover: none) and (pointer: coarse) {
-  #app .hslot:not(.sel):hover { --frame: url("assets/ui/hotbar.png"); }
-  #app .mbtn:hover { --frame: url("assets/ui/button.png"); }
+  #app .hslot:not(.sel):hover { --frame: url("assets/ui/hotbar.png?v=7df50fe21b4f"); }
+  #app .mbtn:hover { --frame: url("assets/ui/button.png?v=7df50fe21b4f"); }
+}
+
+/* ================================================================ 内容拡張: 釣りHUD・制作の絞り込み・図鑑・依頼 */
+.fish-hud { display: flex; align-items: center; gap: calc(8px * var(--u)); max-width: min(92vw, calc(420px * var(--u))); padding: 0 calc(4px * var(--u)); text-align: left; }
+.fish-hud[hidden] { display: none; }
+.fish-hud .fmark { font-size: 1.6em; line-height: 1; color: var(--gold-hi); min-width: 1.2em; text-align: center; }
+.fish-hud .fbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fish-hud .ftitle { color: var(--gold-hi); }
+.fish-hud .fsub { color: var(--paper); font-size: 0.92em; }
+.fish-hud .fbar { height: calc(5px * var(--u)); background: #0a0f0c; border: 1px solid #34503f; }
+.fish-hud .fbar[hidden] { display: none; }
+.fish-hud .fbar i { display: block; height: 100%; width: 100%; background: var(--gold); }
+.fish-hud .fbtn { pointer-events: auto; white-space: nowrap; }
+.fish-hud .fbtn[hidden] { display: none; }
+.fish-hud[data-phase="bite"] { --frame: url("assets/ui/selected.png?v=7df50fe21b4f"); }
+.fish-hud[data-phase="bite"] .fmark { font-size: 2.6em; color: #fff3d6; text-shadow: 0 0 6px #f2b950; animation: fish-pulse 0.4s steps(2) infinite; }
+.fish-hud[data-phase="bite"] .ftitle { font-size: 1.15em; color: #fff3d6; }
+@keyframes fish-pulse { 50% { transform: translateY(-3px); } }
+#app.calm .fish-hud .fmark, #app.calm .fish-hud[data-phase="bite"] .fmark { animation: none; }
+@media (prefers-reduced-motion: reduce) { .fish-hud .fmark { animation: none !important; } }
+#app.touch .hud-bc .fish-hud { max-width: min(58vw, 380px); }
+#app.touch .fish-hud .fbtn { min-width: 64px; }
+@media (orientation: portrait) {
+  /* 縦持ち: 下は十字スティックと行動ボタンで埋まるので、釣りの案内は上のヒントの下へ */
+  #app.touch .hud-bc .fish-hud { position: fixed; left: 50%; top: calc(150px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); width: min(88vw, 420px); max-width: none; }
+}
+
+.equip-row .lbl { width: auto; min-width: 3.2em; }
+.fx { margin: 2px 0; padding: 0; list-style: none; color: var(--moss-hi); font-size: 0.92em; }
+.fx li::before { content: "・"; }
+.sub { color: var(--muted); font-size: 0.8em; white-space: nowrap; }
+.search {
+  flex: 1 1 8em; min-width: 0; padding: 2px 6px; background: #0b1210; color: var(--paper); border: 1px solid #2e463a;
+  font: inherit; -webkit-user-select: text; user-select: text;
+}
+.search:focus-visible { outline: 2px solid var(--gold); outline-offset: 0; }
+.craft-filter { display: flex; gap: calc(4px * var(--u)); align-items: center; flex-wrap: wrap; }
+.cat-chips { display: flex; flex-wrap: wrap; gap: 2px; }
+.recipe-list { max-height: min(calc(300px * var(--u)), 42vh); }
+#app.touch .search { min-height: 44px; font-size: 16px; }
+.craft-left { min-width: 0; }
+.req { display: flex; flex-direction: column; gap: calc(4px * var(--u)); margin: calc(4px * var(--u)) 0; padding: 0 calc(2px * var(--u)); }
+.req.done { opacity: 0.65; }
+.req.locked { opacity: 0.55; }
+.req .rq-text { color: var(--paper); }
+.rq-reward { display: flex; flex-wrap: wrap; gap: calc(4px * var(--u)); align-items: center; }
+.rq-reward .lbl { color: var(--muted); font-size: 0.9em; }
+.rq-act { display: flex; flex-wrap: wrap; gap: calc(6px * var(--u)); align-items: center; }
+.req-box { display: flex; flex-direction: column; }
+@media (max-width: 460px) {
+  .craft-left { width: 100%; }
+  .craft-right { min-width: 0; width: 100%; }
 }

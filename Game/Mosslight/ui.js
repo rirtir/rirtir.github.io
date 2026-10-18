@@ -5,7 +5,7 @@
 //   assets.iconInfo(name)           アイコンのスプライトシート情報
 //   getState()                      現在のstate
 //   recipeStatus(recipe), nearbyStations(), getObjective()
-//   craft(id,n), eat(id), useHotbar(i), swapBag(a,b), equipFromBag(slot), unequip(name)
+//   craft(id,n), craftCheck(recipe,n,stations), eat(id), useHotbar(i), swapBag(a,b), equipFromBag(slot), unequip(name)
 //   assignHotbar(i,id), dropItem(slot), transfer(containerId, from, slot)
 //   worldToScreen(x,y), focusCanvas(), setScale(v), onSettings(settings), audioAvailable(), sfx(name)
 //   selectBuild(type,rot)→{ok,reason?}, getBuildState()→{type,rot,active}, getHouseStatus()
@@ -13,7 +13,10 @@
 //   hasSave(), getSaveInfo(), saveNow(), exportSave(), importSave(), restoreBackup(), inGame()
 //   startNew(), requestNew(), continueGame(), toTitle()
 //   input.{move,act,actPress,dodge,cancel,remove,rotate,confirm,demolish}   仮想スティック/ボタン
-import { BALANCE, ITEMS, RECIPES, STATIONS, CATEGORIES, LIGHTS, BOSSES, NPCS, STRUCTURES, CROPS, TILE, TERRAIN, RUIN_TEMPLATE } from './data.js';
+import { BALANCE, ITEMS, RECIPES, RECIPE_BY_ID, STATIONS, CATEGORIES, LIGHTS, BOSSES, NPCS, NODES, STRUCTURES, CROPS, FISH, JOURNAL, DECOR_TYPES, REQUESTS, TILE, TERRAIN, RUIN_TEMPLATE } from './data.js';
+// 追加(釣り・依頼・図鑑・装備)に使う api: cancelFishing(reason), canCast(), getRequests(npcId)→[info], requestStatus(id)→info, deliverRequest(id)→{ok,reason?},
+//   getJournalEntries()→{fish|forage|dish|crop:[{id,name,item,seen,n,max}]}, getEquipStats(), getPlayerLight()
+//   info = {id,npc,stage,stageOpen,done,needs:[{id,need,have}],reward:[{id,n}],text,present,fits,canDeliver,reason}
 
 const SETTINGS_KEY = 'mosslight.settings';
 
@@ -41,7 +44,73 @@ const STATION_TABS = [
   { id: 'workbench', name: '作業台' },
   { id: 'furnace', name: '精錬炉' },
   { id: 'pot', name: '鍋・焚き火' },
+  { id: 'loom', name: '織機' },
+  { id: 'kiln', name: '窯' },
+  { id: 'smoker', name: '燻製器' },
 ];
+// 制作の絞り込み(出力アイテムの種類で分ける)
+const CRAFT_FILTERS = [
+  { id: 'all', name: 'すべて', test: () => true },
+  { id: 'cook', name: '料理', test: (d) => d.cat === 'food' },
+  { id: 'material', name: '素材', test: (d) => d.cat === 'material' },
+  { id: 'gear', name: '道具・装備', test: (d) => ['tool', 'weapon', 'armor', 'trinket'].includes(d.cat) },
+  { id: 'place', name: '設置', test: (d) => d.cat === 'placeable' },
+  { id: 'seed', name: '種', test: (d) => d.cat === 'seed' },
+];
+const fmtSec = (s) => {
+  s = Math.round(s);
+  const m = Math.floor(s / 60);
+  return m ? `${m}分${s % 60 ? `${s % 60}秒` : ''}` : `${s}秒`;
+};
+const pct = (v) => `${Math.round(Math.abs(v) * 100)}%`;
+const BUFF_LINE = {
+  speed: (v) => `移動速度 +${pct(v)}`,
+  light: (v) => `光の半径 +${v}`,
+  def: (v) => `被ダメージ −${v}`,
+  regen: (v) => `10秒ごとに体力 +${v}`,
+  fishBite: (v) => `釣りの待ち時間 ${v < 0 ? '−' : '+'}${pct(v)}`,
+  fishWindow: (v) => `釣りの合わせ猶予 +${v}秒`,
+  satietyRate: (v) => `空腹の進み ${v < 0 ? '−' : '+'}${pct(v)}`,
+};
+// アイテムの効果を、プレイヤー向けの短い文にする
+function effectLines(def) {
+  const out = [];
+  if (!def) return out;
+  if (def.eat) {
+    const bits = [];
+    if (def.eat.satiety) bits.push(`満腹 +${def.eat.satiety}`);
+    if (def.eat.hp) bits.push(`体力 +${def.eat.hp}`);
+    if (bits.length) out.push(bits.join('　'));
+    const b = def.eat.buff;
+    if (b && BUFF_LINE[b.id]) out.push(`${BUFF_LINE[b.id](b.v)}（${fmtSec(b.time)}）`);
+  }
+  const e = def.armor || def.trinket;
+  if (e) {
+    if (e.def) out.push(`被ダメージ −${e.def}`);
+    if (e.speed) out.push(`移動速度 +${pct(e.speed)}`);
+    if (e.light) out.push(`光の半径 ${e.light.radius}（装備すると、地上の夜も地下も照らす）`);
+    if (e.fishBite && e.fishBite < 1) out.push(`釣りの待ち時間 −${pct(1 - e.fishBite)}`);
+    if (e.fishWindow) out.push(`釣りの合わせ猶予 +${e.fishWindow}秒`);
+    if (e.satietyRate && e.satietyRate < 1) out.push(`空腹の進み −${pct(1 - e.satietyRate)}`);
+    if (e.regen) out.push(`10秒ごとに体力 +${e.regen}`);
+  }
+  if (def.rod) out.push(def.rod >= 2 ? '釣り竿（上級：合わせの猶予が長く、大物に耐える）' : '釣り竿（水辺で使う）');
+  if (def.bait) out.push(def.bait === 'glow' ? '釣り餌（夕方・夜に効く。光る魚を呼ぶ）' : '釣り餌（待ち時間が短くなる）');
+  return out;
+}
+const TIME_NAMES = { morning: '朝', day: '昼', dusk: '夕', night: '夜' };
+const REGION_NAMES = { shore: '岸辺', deep: '沖' };
+const STAGE_TEXT = { start: '', furnace: '炉の灯を戻すと受けられる', moss: '苔の灯を戻すと受けられる', seal: '封印を開くと受けられる' };
+const cropGrowSec = (c) => c.stages * c.stageTime;
+// 種の入手先(データから導く): ノードのドロップ・依頼の報酬・収穫物からの種分け
+function seedSources(seedId) {
+  const out = [];
+  const nodes = Object.values(NODES).filter((n) => (n.drops || []).some((dr) => dr.item === seedId)).map((n) => n.name);
+  if (nodes.length) out.push(`${nodes.join('・')}を採ると、ときどき手に入る`);
+  if (Object.values(REQUESTS).some((r) => r.reward && r.reward.items && r.reward.items[seedId])) out.push('住人の依頼のお礼');
+  if (RECIPES.some((r) => r.out === seedId && r.station === 'hand')) out.push('収穫物から手で種分けできる');
+  return out;
+}
 
 /* ---- 設定は、必要な型だけを受け取る ---- */
 const DEFAULT_SETTINGS = { scale: 'auto', large: false, calm: false, hints: true, touch: 'auto', master: 0.65, music: 0.45, sfx: 0.7 };
@@ -164,10 +233,95 @@ export function createUI(root, api) {
     mkMenuBtn('制作', 'C', 'hammer', 'craft'),
     mkMenuBtn('建築', 'B', 'house', 'build'),
     mkMenuBtn('マップ', 'M', 'map', 'map'),
-    mkMenuBtn('日誌', 'J', 'journal', 'journal'),
+    mkMenuBtn('日誌・図鑑', 'J', 'journal', 'journal'),
     mkMenuBtn('メニュー', 'Esc', null, 'menu'));
 
   const hintEl = h('div', { class: 'hint', role: 'status' });
+  // 釣りの進行表示(待機・食いつき)。浮き本体の描画はrendererの担当で、ここは画面下の案内だけ
+  const fishMark = h('div', { class: 'fmark', 'aria-hidden': 'true' });
+  const fishTitle = h('div', { class: 'ftitle' });
+  const fishSub = h('div', { class: 'fsub' });
+  const fishFill = h('i');
+  const fishBar = h('div', { class: 'fbar', hidden: true }, fishFill);
+  const fishBtn = h('button', {
+    class: 'btn fbtn', type: 'button', tabindex: '-1',
+    onpointerdown: (e) => e.preventDefault(),
+    onclick: () => {
+      const f = api.getState().fishing;
+      if (f && f.phase === 'bite') api.input.actPress(); else api.cancelFishing('ui');
+      api.focusCanvas();
+    },
+  });
+  const fishBox = h('div', { class: 'fish-hud', hidden: true, 'aria-live': 'assertive' }, fishMark, h('div', { class: 'fbody' }, fishTitle, fishSub, fishBar), fishBtn);
+  let fishKey = '';
+  const biteLeft = (f) => {
+    const w = f.window || 0.8;
+    const el = f.t - (f.biteStart ?? f.biteAt);
+    return Math.max(0, Math.min(1, 1 - el / w));
+  };
+  function refreshFishing(state, paused) {
+    const f = state.fishing;
+    const selId = state.player.sel >= 0 ? state.player.hotbar[state.player.sel] : null;
+    const rod = selId && ITEMS[selId] && ITEMS[selId].rod ? ITEMS[selId] : null;
+    let phase = 'none';
+    if (!paused && f) phase = f.phase === 'bite' ? 'bite' : 'wait';
+    else if (!paused && rod && api.canCast() && !state.preview) phase = 'idle';
+    if (phase === 'none') { if (!fishBox.hidden) fishBox.hidden = true; fishKey = ''; app.classList.remove('fishing'); return; }
+    const touch = app.classList.contains('touch');
+    const actName = touch ? '「行動」ボタン' : 'E / Space / クリック';
+    if (phase === 'bite') fishFill.style.width = `${(biteLeft(f) * 100).toFixed(0)}%`;
+    const secs = phase === 'wait' ? Math.floor(f.t || 0) : 0;
+    const key = `${phase}|${touch}|${phase === 'wait' ? secs : ''}|${phase === 'idle' ? `${countOf(state, 'bait_worm')},${countOf(state, 'bait_glow')}` : ''}`;
+    fishBox.hidden = false;
+    app.classList.toggle('fishing', phase !== 'idle');
+    if (key === fishKey) return;
+    fishKey = key;
+    fishBox.dataset.phase = phase;
+    fishBar.hidden = phase !== 'bite';
+    fishBtn.hidden = phase === 'idle';
+    if (phase === 'idle') {
+      fishMark.textContent = '〜';
+      fishTitle.textContent = `${rod.name}を構えている`;
+      const worm = countOf(state, 'bait_worm'), glow = countOf(state, 'bait_glow');
+      fishSub.textContent = `水面（4マス以内）に向けて${touch ? '「行動」ボタン' : ' E・クリック '}で糸を垂らす。持っている餌：虫餌 ${worm}／光る餌 ${glow}`;
+    } else if (phase === 'wait') {
+      fishMark.textContent = '〜';
+      fishTitle.textContent = '浮きを見守っている…';
+      fishSub.textContent = `魚が食いつくまで待とう（${secs}秒）。動くと糸を上げてしまう。`;
+      fishBtn.textContent = '糸を上げる';
+    } else {
+      fishMark.textContent = '！';
+      fishTitle.textContent = '食いついた！';
+      fishSub.textContent = `いま ${actName} を押して合わせる`;
+      fishBtn.textContent = '合わせる！';
+    }
+  }
+
+  // 釣り上げた魚は、図鑑の数が増えたことで知らせる(魚の種類・大きさ・初記録)
+  let lastFishN = null, lastCatchEv = null, lastWatch = 0;
+  function watchCatch(state) {
+    const now = performance.now();
+    if (now - lastWatch < 200) return;
+    lastWatch = now;
+    const jf = (state.progress.journal && state.progress.journal.fish) || {};
+    const cur = {};
+    for (const [id, v] of Object.entries(jf)) cur[id] = { n: Number(v && v.n) || 0, max: Number(v && v.max) || 0 };
+    if (lastFishN) {
+      for (const [id, v] of Object.entries(cur)) {
+        const p = lastFishN[id] || { n: 0, max: 0 };
+        if (v.n <= p.n || !FISH[id]) continue;
+        const ev = lastCatchEv && now - lastCatchEv.t < 4000 ? lastCatchEv : null;
+        const size = ev && ev.size ? ev.size : (v.max > p.max ? v.max : 0);
+        const tags = [];
+        if (p.n === 0) tags.push('図鑑に登録');
+        else if (v.max > p.max) tags.push('最大記録');
+        toast(`${FISH[id].name}を釣った！${size ? `（${size}cm）` : ''}${tags.length ? `　${tags.join('・')}` : ''}`, 'good', { icon: FISH[id].item });
+        lastCatchEv = null;
+      }
+    }
+    lastFishN = cur;
+  }
+
   const slotEls = [];
   const hotbar = h('div', { class: 'hotbar', role: 'toolbar', 'aria-label': 'ホットバー' });
   for (let i = 0; i < BALANCE.items.hotbarSlots; i++) {
@@ -186,7 +340,7 @@ export function createUI(root, api) {
     h('div', { class: 'hud-tl' }, hpBar, foodBar, clock),
     bossBar,
     h('div', { class: 'hud-tr' }, h('div', { class: 'clock-row' }, objective), menuBtns),
-    h('div', { class: 'hud-bc' }, hintEl, hotbar),
+    h('div', { class: 'hud-bc' }, hintEl, fishBox, hotbar),
     toastBox);
 
   // 建築中の案内と操作ボタン(タッチにも使う)
@@ -289,13 +443,19 @@ export function createUI(root, api) {
     objNeed.replaceChildren(...o.items.map((x) => h('span', { class: x.have >= x.need ? 'ok' : 'lack' }, `${itemName(x.id)} ${Math.min(x.have, 99)}/${x.need}`)));
   }
 
-  const BUILD_NAMES = { farm: '畑を耕す', plant_wheat: '灯麦の種を植える', plant_potato: '苔芋を植える', demolish: '取り壊し' };
+  const BUILD_NAMES = { farm: '畑を耕す', demolish: '取り壊し', ...Object.fromEntries(Object.entries(CROPS).map(([k, c]) => [`plant_${k}`, `${c.name}を植える`])) };
   function refreshBuildBar(state, paused) {
     const bs = api.getBuildState();
     const on = !paused && !titleEl && bs.active;
     buildBar.hidden = !on;
     app.classList.toggle('building', on);
-    if (!on) { last.build = ''; return; }
+    if (!on) {
+      last.build = '';
+      if (!bs.active && hintContext === 'build') {
+        clearTimeout(hintTimer); hintEl.classList.remove('show'); hintContext = null;
+      }
+      return;
+    }
     const pv = state.preview;
     const name = BUILD_NAMES[bs.type] || (STRUCTURES[bs.type] ? STRUCTURES[bs.type].name : '建築');
     const ok = !pv || pv.ok !== false;
@@ -345,6 +505,8 @@ export function createUI(root, api) {
     app.classList.toggle('boss-fight', !bossBar.hidden);
 
     refreshBuildBar(state, paused);
+    refreshFishing(state, paused);
+    watchCatch(state);
 
     const f = state.focus;
     if (!f || paused || state.preview) { label.hidden = true; return; }
@@ -412,7 +574,9 @@ export function createUI(root, api) {
     if (!app.classList.contains('touch')) return text;
     return TOUCH_TEXT.reduce((t, [re, to]) => t.replace(re, to), text);
   }
-  function showHint(text) {
+  let hintContext = null;
+  function showHint(text, context = null) {
+    hintContext = context;
     hintEl.textContent = forInput(text);
     hintEl.classList.add('show');
     clearTimeout(hintTimer);
@@ -458,6 +622,7 @@ export function createUI(root, api) {
       else if (ev.type === 'bossStart') toast(`${BOSSES[ev.id] ? BOSSES[ev.id].name : 'ボス'}が目を覚ました`, 'warn');
       else if (ev.type === 'bossDead') toast(`${BOSSES[ev.id] ? BOSSES[ev.id].name : 'ボス'}を鎮めた`, 'good');
       else if (ev.type === 'death') toast('倒れた。素材は資源袋に残っている（マップで場所を確認できる）', 'warn');
+      else if (ev.type === 'catch' || ev.type === 'fishCatch') lastCatchEv = { size: Number(ev.size ?? ev.cm) || 0, t: performance.now() };
     }
   }
 
@@ -479,6 +644,7 @@ export function createUI(root, api) {
   function open(name, payload) {
     const builder = DIALOGS[name];
     if (!builder || ending || layer || (titleEl && name !== 'settings' && name !== 'controls')) return;
+    api.cancelFishing('modal');           // 画面を開く前に釣りをやめる(何も消費しない)
     if (current) close(false);
     joyReset();
     const d = builder(payload || {});
@@ -521,6 +687,7 @@ export function createUI(root, api) {
     if (layer) finishLayer(layer.cancelValue);
     return new Promise((resolve) => {
       const prevFocus = document.activeElement;
+      api.cancelFishing('modal');
       joyReset();
       const cancel = actions.find((a) => a.cancel);
       const btns = actions.map((a) => h('button', {
@@ -606,7 +773,7 @@ export function createUI(root, api) {
       grid.append(b);
     }
 
-    const EQUIP = [['weapon', '武器'], ['armor', '防具'], ['trinket', '装飾']];
+    const EQUIP = [['weapon', '武器'], ['armor', '防具'], ['trinket', '装飾（灯・護符）']];
 
     const d = {
       title: 'バッグ',
@@ -644,10 +811,20 @@ export function createUI(root, api) {
           return h('div', { class: 'equip-row' }, btn, h('span', { class: 'lbl', text: jp }), h('span', { class: 'val', text: id ? ITEMS[id].name : '—' }));
         }));
         const wdmg = p.equip.weapon ? ITEMS[p.equip.weapon].weapon.dmg : 2;
-        let def = 0;
-        if (p.equip.armor) def += ITEMS[p.equip.armor].armor.def;
-        if (p.equip.trinket && ITEMS[p.equip.trinket].trinket.def) def += ITEMS[p.equip.trinket].trinket.def;
-        statBox.replaceChildren(h('div', { class: 'stat' }, h('span', { text: '攻撃力' }), h('span', { text: String(wdmg) })), h('div', { class: 'stat' }, h('span', { text: '被ダメージ軽減' }), h('span', { text: `−${def}` })));
+        const es = api.getEquipStats() || {};
+        const def = Number(es.def) || 0;
+        const stat = (a, b) => h('div', { class: 'stat' }, h('span', { text: a }), h('span', { text: b }));
+        const rows = [stat('攻撃力', String(wdmg)), stat('被ダメージ軽減', `−${def}`)];
+        if (es.speed) rows.push(stat('移動速度', `+${pct(es.speed)}`));
+        if (es.light && es.light.radius) rows.push(stat('携帯の光', `半径 ${es.light.radius}`));
+        if (es.fishBite && es.fishBite < 1) rows.push(stat('釣りの待ち時間', `−${pct(1 - es.fishBite)}`));
+        if (es.fishWindow) rows.push(stat('釣りの合わせ猶予', `+${es.fishWindow}秒`));
+        if (es.satietyRate && es.satietyRate < 1) rows.push(stat('空腹の進み', `−${pct(1 - es.satietyRate)}`));
+        if (es.regen) rows.push(stat('体力の自然回復', `10秒で +${es.regen}`));
+        // 携帯灯は持っているだけでは灯らない。装飾スロットに装備して初めて働く
+        const unequippedLamp = !p.equip.trinket && p.bag.some((s) => s && ITEMS[s.id] && ITEMS[s.id].trinket && ITEMS[s.id].trinket.light);
+        if (unequippedLamp) rows.push(h('div', { class: 'note warn', text: '携帯灯は、装飾スロットに装備すると灯ります。' }));
+        statBox.replaceChildren(...rows);
         toolsBox.replaceChildren(...['axe', 'pick', 'hoe'].map((k) => {
           const tier = p.tools[k];
           const it = Object.values(ITEMS).find((x) => x.tool === k && x.tier === tier);
@@ -663,7 +840,7 @@ export function createUI(root, api) {
         const acts = h('div', { class: 'acts' });
         if (idef.eat) acts.append(h('button', { class: 'btn sm', type: 'button', text: '食べる', onclick: () => { api.eat(s.id); close(); } }));
         if (idef.equip) acts.append(h('button', { class: 'btn sm', type: 'button', text: '装備する', onclick: () => { api.equipFromBag(sel); d.refresh(api.getState()); } }));
-        if (idef.eat || idef.place) {
+        if (idef.eat || idef.place || idef.rod) {
           acts.append(h('button', {
             class: 'btn sm', type: 'button', text: 'ホットバーへ',
             onclick: () => {
@@ -673,16 +850,21 @@ export function createUI(root, api) {
               if (idx < 0) idx = hb.indexOf(null);
               if (idx < 0) idx = st.player.sel >= 0 ? st.player.sel : hb.length - 1;
               api.assignHotbar(idx, s.id);
-              toast(`ホットバー${idx + 1}に入れた`, 'info');
+              // 登録できたときだけ知らせる(釣り竿など、coreが受け付けない場合は理由を出す)
+              if (api.getState().player.hotbar[idx] === s.id) toast(`ホットバー${idx + 1}に入れた`, 'info');
+              else { toast('ホットバーに入れられませんでした', 'warn'); api.sfx('error'); }
               d.refresh(api.getState());
             },
           }));
         }
         acts.append(h('button', { class: 'btn sm', type: 'button', text: '移動', onclick: () => { carry = sel; d.refresh(api.getState()); } }));
         if (!idef.key) acts.append(h('button', { class: 'btn sm', type: 'button', text: '捨てる', onclick: () => { api.dropItem(sel); d.refresh(api.getState()); } }));
+        const fx = effectLines(idef);
         detail.replaceChildren(
           h('div', { class: 'nm', text: `${idef.name}${s.n > 1 ? ` ×${s.n}` : ''}` }),
           h('div', { class: 'ds', text: `${CATEGORIES[idef.cat] || ''}　${idef.desc || ''}` }),
+          fx.length ? h('ul', { class: 'fx' }, fx.map((t) => h('li', { text: t }))) : '',
+          idef.rod ? h('div', { class: 'ds', text: 'ホットバーに入れて選び、水面に向けて行動すると釣りが始まります。' }) : '',
           acts);
       },
     };
@@ -692,58 +874,130 @@ export function createUI(root, api) {
   /* ---------------------------------------------------------------- 制作 */
   function buildCraft(payload) {
     const stationToTab = (s) => (s === 'campfire' ? 'pot' : s);
+    const TABS = [{ id: 'all', name: 'すべて' }, ...STATION_TABS];
     let tab = null;
     let selId = null;
     let times = 1;
     let sig = '';
+    let query = '';
+    let cat = 'all';
+    let onlyMake = false;
     const chips = h('div', { class: 'station-chips' });
-    const tabsEl = h('div', { class: 'tabs', role: 'tablist' });
+    const tabsEl = h('div', { class: 'tabs', role: 'tablist', 'aria-label': '作る場所' });
     const list = h('div', { class: 'recipe-list', role: 'listbox', 'aria-label': 'レシピ' });
     const right = h('div', { class: 'craft-right', 'aria-live': 'polite' });
+    const catEl = h('div', { class: 'cat-chips', role: 'group', 'aria-label': '種類で絞る' });
+    const countEl = h('div', { class: 'note' });
+    const search = h('input', {
+      class: 'search', type: 'search', placeholder: '名前・材料で探す', 'aria-label': 'レシピを検索', autocomplete: 'off', data: { fk: 'q' },
+      oninput: () => { query = search.value.trim(); d.refresh(api.getState(), true); },
+      onkeydown: (e) => { if (e.key === 'Escape' && search.value) { e.preventDefault(); e.stopPropagation(); search.value = ''; query = ''; d.refresh(api.getState(), true); } },
+    });
+    const onlyBtn = h('button', {
+      class: 'btn sm', type: 'button', 'aria-pressed': 'false', text: '作れるものだけ', data: { fk: 'only' },
+      onclick: () => { onlyMake = !onlyMake; d.refresh(api.getState(), true); },
+    });
 
-    const tabHere = (stations, id) => (id === 'pot' ? stations.has('pot') || stations.has('campfire') : stations.has(id));
+    const tabHere = (stations, id) => (id === 'all' || id === 'hand' ? false : id === 'pot' ? stations.has('pot') || stations.has('campfire') : stations.has(id));
+    const stationNames = (r) => r.stations.map((s) => STATIONS[s].name).join('か');
+    // 設備の入手案内(データから導く): どの設置物が提供し、どこで作れるか
+    function stationHow(sid, state) {
+      const st = Object.values(STRUCTURES).find((x) => (x.provides || []).includes(sid) && x.item);
+      if (!st) return '';
+      const rec = RECIPE_BY_ID[st.item];
+      if (countOf(state, st.item) > 0) return `バッグに${itemName(st.item)}があります。設置して、そばで使いましょう`;
+      return rec ? `${itemName(st.item)}は${STATIONS[rec.station] ? STATIONS[rec.station].name : '作業台'}で作れます` : '';
+    }
+    const matchQuery = (r, known) => {
+      if (!query) return true;
+      if (!known) return false;                     // 未発見のレシピは名前で当てられない
+      const q = query.toLowerCase();
+      const def = ITEMS[r.out];
+      return def.name.toLowerCase().includes(q) || Object.keys(r.inputs).some((id) => ITEMS[id].name.toLowerCase().includes(q)) || (def.desc || '').toLowerCase().includes(q);
+    };
+    // 作れない理由を、プレイヤーが次にやることの言葉で返す
+    // ×1 / ×5 それぞれで実際に作れるか（材料・設備・バッグ容量まで simulation.craftCheck と同じ判定）
+    function optsOf(r, st, stations) {
+      if (!st.known || !st.atStation || st.owned || !st.canMake) return { c1: null, c5: null, any: false };
+      const c1 = api.craftCheck(r, 1, stations);
+      const c5 = ITEMS[r.out].tool ? c1 : api.craftCheck(r, 5, stations);
+      return { c1, c5, any: c1.ok || c5.ok };
+    }
 
-    function recipesOf(tabId) {
-      return RECIPES.filter((r) => r.station === tabId);
+    function reasonOf(r, st, state, n) {
+      if (!st.known) return { text: '材料をまだ見つけていない。集めるうちに作り方がわかる。', warn: false };
+      if (st.owned) return { text: 'すでに持っている（自動で使われます）', warn: true };
+      if (!st.atStation) {
+        const how = r.stations.filter((s) => s !== 'hand').map((s) => stationHow(s, state)).filter(Boolean)[0];
+        return { text: `${stationNames(r)}の近くで作れます${how ? `。${how}` : ''}`, warn: true };
+      }
+      const lacks = Object.entries(r.inputs).filter(([id, need]) => st.have[id] < need * n);
+      if (lacks.length) return { text: `足りない材料：${lacks.map(([id, need]) => `${itemName(id)} あと${need * n - st.have[id]}`).join('、')}`, warn: true };
+      return { text: '材料はそろっています', warn: false };
     }
 
     const d = {
       title: '制作',
       foot: '設備から3タイル以内で作れます / ↑↓で選択 / Escで閉じる',
-      node: h('div', { class: 'craft-layout' }, h('div', { class: 'craft-left' }, chips, tabsEl, list), right),
+      node: h('div', { class: 'craft-layout' },
+        h('div', { class: 'craft-left' }, chips, tabsEl, h('div', { class: 'craft-filter' }, search, onlyBtn), catEl, countEl, list), right),
       focusFirst: () => list.querySelector('[aria-selected="true"]') || list.querySelector('button'),
       refresh(state, force) {
         const stations = api.nearbyStations();
-        const stSig = STATION_TABS.map((t) => (tabHere(stations, t.id) ? 1 : 0)).join('');
+        const stSig = TABS.map((t) => (tabHere(stations, t.id) ? 1 : 0)).join('');
         if (tab == null) {
           tab = payload && payload.station ? stationToTab(payload.station) : (stations.has('workbench') ? 'workbench' : 'hand');
-          if (!STATION_TABS.some((t) => t.id === tab)) tab = 'hand';
+          if (!TABS.some((t) => t.id === tab)) tab = 'hand';
         }
-        const rs = recipesOf(tab);
+        const catDef = CRAFT_FILTERS.find((c) => c.id === cat) || CRAFT_FILTERS[0];
+        const inTab = RECIPES.filter((r) => tab === 'all' || r.station === tab);
+        const stat = new Map(inTab.map((r) => [r, api.recipeStatus(r, stations)]));
+        const opt = new Map(inTab.map((r) => [r, optsOf(r, stat.get(r), stations)]));
+        const rs = inTab.filter((r) => {
+          const st = stat.get(r);
+          if (!catDef.test(ITEMS[r.out])) return false;
+          if (onlyMake && !opt.get(r).any) return false;
+          return matchQuery(r, st.known);
+        });
         if (!selId || !rs.some((r) => r.id === selId)) selId = rs[0] ? rs[0].id : null;
-        const newSig = `${tab}|${selId}|${times}|${state.rev}|${stSig}`;
+        const newSig = `${tab}|${selId}|${times}|${state.rev}|${stSig}|${query}|${cat}|${onlyMake}`;
         if (!force && newSig === sig) return;
         sig = newSig;
         const activeKey = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.fk : null;
         const scroll = list.scrollTop;
 
+        const near = TABS.filter((t) => tabHere(stations, t.id));
         chips.replaceChildren(h('span', { text: '近くの設備:' }),
-          ...STATION_TABS.filter((t) => tabHere(stations, t.id)).map((t) => h('span', { class: 'chip on', text: t.name })));
-        tabsEl.replaceChildren(...STATION_TABS.map((t) => {
-          const near = tabHere(stations, t.id);
-          const dot = near && t.id !== 'hand' ? h('span', { class: 'dot', title: '近くにあります' }) : null;
+          ...(near.length ? near.map((t) => h('span', { class: 'chip on', text: t.name })) : [h('span', { class: 'chip', text: 'なし（手で作れるもの）' })]));
+        tabsEl.replaceChildren(...TABS.map((t) => {
+          const dot = tabHere(stations, t.id) ? h('span', { class: 'dot', title: '近くにあります' }) : null;
           return h('button', {
             class: 'tab', type: 'button', role: 'tab', 'aria-selected': t.id === tab ? 'true' : 'false', data: { fk: `tab-${t.id}` },
-            onclick: () => { tab = t.id; selId = null; d.refresh(api.getState()); },
+            onclick: () => { tab = t.id; selId = null; d.refresh(api.getState(), true); },
           }, t.name, dot);
         }));
+        catEl.replaceChildren(...CRAFT_FILTERS.map((c) => {
+          const n = inTab.filter((r) => c.test(ITEMS[r.out])).length;
+          return h('button', {
+            class: 'btn sm', type: 'button', 'aria-pressed': c.id === cat ? 'true' : 'false', text: `${c.name} ${n}`, data: { fk: `cat-${c.id}` }, disabled: n === 0 && c.id !== cat,
+            onclick: () => { cat = c.id; selId = null; d.refresh(api.getState(), true); },
+          });
+        }));
+        onlyBtn.setAttribute('aria-pressed', String(onlyMake));
+        const makeable = inTab.filter((r) => opt.get(r).any).length;
+        countEl.textContent = rs.length === inTab.length ? `${rs.length}件（いま作れる ${makeable}件）` : `${inTab.length}件中 ${rs.length}件を表示（いま作れる ${makeable}件）`;
 
         const rows = rs.map((r) => {
-          const st = api.recipeStatus(r, stations);
+          const st = stat.get(r);
           const def = ITEMS[r.out];
           const known = st.known;
           const cls = ['rrow'];
-          if (!known) cls.push('locked'); else if (!st.atStation || st.owned) cls.push('dim');
+          const o = opt.get(r);
+          const ready = o.any;
+          if (!known) cls.push('locked'); else if (!ready) cls.push('dim');
+          const badge = !known ? '' : st.owned ? '所持'
+            : ready ? (o.c1.ok ? '作れる' : '×5で作れる')
+            : !st.canMake ? '材料不足' : !st.atStation ? '設備が遠い' : 'バッグ満杯';
           return h('button', {
             class: cls.join(' '), type: 'button', role: 'option', 'aria-selected': r.id === selId ? 'true' : 'false', data: { fk: `r-${r.id}`, id: r.id },
             tabindex: r.id === selId ? '0' : '-1',
@@ -759,36 +1013,50 @@ export function createUI(root, api) {
             },
           }, known ? itemIcon(r.out) : iconEl('bag'),
           h('span', { class: 'nm', text: known ? def.name + (r.n > 1 ? ` ×${r.n}` : '') : '？？？' }),
-          known && st.owned ? h('span', { class: 'ok', text: '所持' }) : (known && st.canMake && st.atStation ? h('span', { class: 'ok', text: '作れる' }) : ''));
+          badge ? h('span', { class: ready || st.owned ? 'ok' : 'sub', text: badge }) : '');
         });
-        list.replaceChildren(...rows);
+        list.replaceChildren(...(rows.length ? rows : [h('div', { class: 'note', text: query ? '見つかりません。名前を変えるか、「すべて」の場所で探してみましょう。' : 'この条件のレシピはありません。' })]));
         list.scrollTop = scroll;
 
         // 詳細
         const r = rs.find((x) => x.id === selId);
         if (!r) { right.replaceChildren(h('div', { class: 'note', text: 'レシピがありません' })); return; }
-        const st = api.recipeStatus(r, stations);
+        const st = stat.get(r);
         const def = ITEMS[r.out];
         if (!st.known) {
           right.replaceChildren(h('div', { class: 'craft-head' }, iconEl('bag'), h('span', { class: 'nm', text: '？？？' })),
-            h('div', { class: 'note', text: '材料をまだ見つけていない。集めるうちに作り方がわかる。' }));
+            h('div', { class: 'note', text: reasonOf(r, st, state, times).text }));
         } else {
-          const need = st.atStation ? '' : `${r.stations.map((s) => STATIONS[s].name).join('か')}の近くで作れます`;
+          const mult = def.tool ? 1 : times;
           const mats = Object.entries(r.inputs).map(([id, n]) => {
             const have = st.have[id];
-            const lack = have < n * (def.tool ? 1 : times);
-            return h('div', { class: `mat${lack ? ' lack' : ''}` }, itemIcon(id), h('span', { class: 'nm', text: ITEMS[id].name }), h('span', { class: 'n', text: `${have} / ${n * (def.tool ? 1 : times)}` }));
+            const lack = have < n * mult;
+            return h('div', { class: `mat${lack ? ' lack' : ''}` }, itemIcon(id), h('span', { class: 'nm', text: ITEMS[id].name }), h('span', { class: 'n', text: `${have} / ${n * mult}` }));
           });
-          const canNow = st.atStation && !st.owned && Object.entries(r.inputs).every(([id, n]) => st.have[id] >= n * (def.tool ? 1 : times));
+          const o = opt.get(r);
+          const cur = api.craftCheck(r, mult, stations);
+          let reason = reasonOf(r, st, state, mult);
+          if (!reason.warn && !cur.ok) {
+            reason = { text: 'バッグがいっぱいで作れません。空き枠を作ってください', warn: true };
+          }
+          if (!cur.ok && st.atStation && !st.owned) {
+            const other = [o.c1, o.c5].find((c) => c && c.ok);
+            if (other) reason = { text: `${reason.text}（×${other.times}なら${other.times > 1 ? 'まとめて' : ''}作れます）`, warn: true };
+          }
+          // ボタンごとに自分の数量で判定する（直前にクリックした数量には依存しない）
           const btn = (n) => h('button', {
             class: `btn${n === times ? ' primary' : ''}`, type: 'button', text: `×${n}を作る`, data: { fk: `make-${n}` },
-            disabled: !canNow || st.owned || (!!def.tool && n > 1),
+            disabled: !(n === 1 ? o.c1 : o.c5) || !(n === 1 ? o.c1 : o.c5).ok || (!!def.tool && n > 1),
             onclick: () => { times = n; api.craft(r.id, n); d.refresh(api.getState(), true); },
           });
+          const fx = effectLines(def);
+          const where = r.stations.map((s) => STATIONS[s].name).join('・');
           right.replaceChildren(
             h('div', { class: 'craft-head' }, itemIcon(r.out), h('div', {}, h('div', { class: 'nm', text: def.name + (r.n > 1 ? ` ×${r.n}` : '') }), h('div', { class: 'note', text: def.desc || '' }))),
+            fx.length ? h('ul', { class: 'fx' }, fx.map((t) => h('li', { text: t }))) : '',
+            h('div', { class: 'note', text: `作る場所：${where}　持っている数：${countOf(state, r.out)}` }),
             h('div', { class: 'mats' }, mats),
-            h('div', { class: `note${need || st.owned ? ' warn' : ''}`, text: st.owned ? 'すでに持っている（自動で使われます）' : need || (canNow ? '材料はそろっています' : '材料が足りません') }),
+            h('div', { class: `note${reason.warn ? ' warn' : ''}`, text: reason.text }),
             h('div', { class: 'craft-btns' }, btn(1), btn(5)));
         }
         if (activeKey) {
@@ -806,7 +1074,9 @@ export function createUI(root, api) {
   const BUILD_TABS = [
     { id: 'floor', name: '床・道', ids: ['floor_wood', 'path_stone'] },
     { id: 'wall', name: '壁・扉・柵', ids: ['wall_wood', 'door_wood', 'fence_wood'] },
-    { id: 'furniture', name: '家具', ids: ['bed', 'chest_wood', 'table', 'chair', 'workbench', 'furnace', 'pot'] },
+    { id: 'furniture', name: '家具', ids: ['bed', 'chest_wood', 'table', 'chair'] },
+    { id: 'station', name: '設備', ids: ['workbench', 'furnace', 'pot', 'loom', 'kiln', 'smoker'] },
+    { id: 'decor', name: '飾り', ids: ['rug', 'shelf', 'statue_moss', 'handcart', 'hay_bale', 'planter'], decor: true },
     { id: 'light', name: '灯', ids: ['torch', 'candlestick', 'lantern_stone'] },
     { id: 'farm', name: '畑', farm: true },
   ];
@@ -830,11 +1100,21 @@ export function createUI(root, api) {
     const entriesOf = (state, t) => {
       if (t.farm) {
         const p = state.player;
-        const seeds = countOf(state, 'wheat_seed'), potatoes = countOf(state, 'moss_potato');
+        // 全作物を、種を持っているものから先に並べる。持っていないものは入手先を案内する
+        const crops = Object.entries(CROPS).map(([kind, c]) => {
+          const n = countOf(state, c.seed);
+          const src = seedSources(c.seed);
+          const grow = `育つまで約${fmtSec(cropGrowSec(c))}`;
+          const gets = c.harvest.map((x) => itemName(x.item)).filter((v, i, a) => a.indexOf(v) === i).join('・');
+          return {
+            type: `plant_${kind}`, name: `${c.name}を植える`, icon: ITEMS[c.seed].icon, count: n, ok: n > 0,
+            lack: `${itemName(c.seed)}がありません${src.length ? `（${src[0]}）` : ''}`,
+            desc: `${grow}。収穫：${gets}`,
+          };
+        });
         return [
           { type: 'farm', name: '畑を耕す', icon: 'pickaxe', ok: p.tools.hoe > 0, lack: '石の鍬が必要です（作業台のそばでCから制作）', desc: '地面を耕して畑にします' },
-          { type: 'plant_wheat', name: '灯麦の種を植える', icon: ITEMS.wheat_seed.icon, count: seeds, ok: seeds > 0, lack: '灯麦の種がありません（草を刈ると手に入ります）', desc: '耕した畑に植えます' },
-          { type: 'plant_potato', name: '苔芋を植える', icon: ITEMS.moss_potato.icon, count: potatoes, ok: potatoes > 0, lack: '苔芋がありません（野生の苔芋を掘りましょう）', desc: '耕した畑に植えます' },
+          ...crops.filter((x) => x.ok), ...crops.filter((x) => !x.ok),
         ];
       }
       return t.ids.map((id) => {
@@ -857,7 +1137,7 @@ export function createUI(root, api) {
       const r = api.selectBuild(e.type);
       if (r && r.ok === false) { note = r.reason || '選べませんでした'; api.sfx('error'); d.refresh(api.getState(), true); focusKey(`b-${e.type}`); return; }
       close();
-      showHint(hintFor(e.type));
+      showHint(hintFor(e.type), 'build');
     }
     function focusKey(k) {
       const el = dialogEl().querySelector(`[data-fk="${k}"]`);
@@ -900,9 +1180,14 @@ export function createUI(root, api) {
           const step = (done, text) => h('li', { class: done ? 'done' : '' }, h('span', { class: 'mark', text: done ? '✔' : '・' }), text);
           guide.replaceChildren(h('h3', { text: '畑の流れ' }), h('ol', {},
             step(farms > 0, `① 鍬で耕す（耕した畑 ${farms}区画）`),
-            step(crops.length > 0, `② 灯麦の種か苔芋を植える（育成中 ${crops.length}本）`),
+            step(crops.length > 0, `② 好きな作物の種を植える（育成中 ${crops.length}本）`),
             step(false, `③ 熟した作物に近づいて、素手で収穫する（熟した作物 ${ripe}本）`)),
-          h('div', { class: 'ds', text: '畑は地上でだけ育ちます。燭台・灯籠・たいまつの近くでは成長が早くなります。' }));
+          h('div', { class: 'ds', text: '畑は地上でだけ育ちます。燭台・灯籠・たいまつの近くでは成長が早くなります。収穫すると種が増えて戻るので、植え続けられます。' }));
+          guide.hidden = false;
+        } else if (t.decor) {
+          const placed = (state.structures || []).filter((s) => DECOR_TYPES.includes(s.type)).length;
+          guide.replaceChildren(h('h3', { text: `飾り　${Math.min(placed, 10)} / 10 を置いた` }),
+            h('div', { class: 'ds', text: '敷物・棚・苔の像・花壇のほか、机・椅子・燭台・灯籠も飾りに数えます。暮らしの目標に使われます。' }));
           guide.hidden = false;
         } else { guide.replaceChildren(); guide.hidden = true; }
 
@@ -960,40 +1245,184 @@ export function createUI(root, api) {
   }
 
   /* ---------------------------------------------------------------- 日誌 */
-  function buildJournal() {
+  const BOOK_KINDS = [['fish', '魚'], ['forage', '採集'], ['dish', '料理'], ['crop', '作物']];
+  const BOOK_HINT = {
+    fish: 'まだ釣ったことがない魚。水辺で糸を垂らすと、会えるかもしれない。',
+    forage: 'まだ集めたことがない。歩いて探してみよう。',
+    dish: 'まだ作ったことがない料理。',
+    crop: 'まだ収穫したことがない作物。',
+  };
+  function buildJournal(payload) {
+    let tab = payload && payload.tab === 'book' ? 'book' : 'goals';
+    let kind = 'fish';
+    let selId = null;
+    let onlySeen = false;
+    const tabsEl = h('div', { class: 'tabs', role: 'tablist', 'aria-label': '日誌の項目' });
     const body = h('div', { class: 'journal' });
+    const JTABS = [['goals', '目的・目標'], ['book', '図鑑'], ['requests', '住人の依頼']];
     const reqRow = (r) => h('li', { class: r.done ? 'done' : '' },
       h('span', { class: 'mark', text: r.done ? '✔' : '・' }),
       h('span', { class: 'rt', text: r.text }),
       r.target != null ? h('span', { class: 'rn', text: `${Math.min(r.current == null ? 0 : r.current, r.target)} / ${r.target}` }) : '');
-    return {
+    const keyOf = (k) => dialogEl().querySelector(`[data-fk="${k}"]`);
+
+    function viewGoals(j) {
+      const o = j.objective || { text: '', items: [] };
+      const cleared = !!api.getState().progress.cleared;
+      const lightsDone = j.lights.filter((l) => l.done).length;
+      const goals = j.goals || [];
+      const goalsDone = goals.filter((g) => g.value >= g.target).length;
+      return [
+        h('div', { class: 'now' }, h('div', { class: 'ds', text: '次の目的' }), h('div', { text: o.text }),
+          o.items && o.items.length ? h('div', { class: 'ds', text: o.items.map((x) => `${itemName(x.id)} ${x.have}/${x.n != null ? x.n : x.need}`).join('　') }) : ''),
+        h('div', {}, h('h3', { text: `三つの灯　${lightsDone} / 3` }),
+          h('div', { class: 'lights' }, j.lights.map((l) => h('section', { class: `light${l.done ? ' done' : ''}` },
+            h('h4', {}, h('span', { class: 'mark', text: l.done ? '✔' : '○' }), l.name, l.done ? h('small', { text: '　復元済み' }) : ''),
+            h('ul', {}, (l.requirements || []).map(reqRow)))))),
+        h('div', { class: cleared ? '' : 'locked' }, h('h3', { text: `暮らしの目標　${goalsDone} / ${goals.length}` }),
+          cleared ? '' : h('div', { class: 'ds', text: '三つの灯をすべて戻すと、自由な暮らしの目標が始まります。' }),
+          h('ul', { class: 'goals' }, goals.map((g) => {
+            const done = g.value >= g.target;
+            return h('li', { class: done ? 'done' : '' },
+              h('span', { class: 'mark', text: done ? '✔' : '・' }), h('span', { class: 'rt', text: g.text }),
+              h('span', { class: 'rn', text: `${Math.min(g.value, g.target)} / ${g.target}` }));
+          }))),
+        j.story ? h('div', { class: 'ds story', text: j.story }) : '',
+      ];
+    }
+
+    // 図鑑の詳細。見つけていないものは名前も条件も出さない
+    function bookDetail(k, e) {
+      if (!e.seen) {
+        return [h('div', { class: 'craft-head' }, iconEl('bag'), h('span', { class: 'nm', text: '？？？' })), h('div', { class: 'note', text: BOOK_HINT[k] })];
+      }
+      const def = ITEMS[e.item] || {};
+      const lines = [];
+      const add = (a, b) => lines.push(h('div', { class: 'stat' }, h('span', { text: a }), h('span', { text: b })));
+      if (k === 'fish') {
+        const f = FISH[e.id];
+        add('釣った数', `${e.n}匹`);
+        add('最大', e.max ? `${e.max}cm` : '—');
+        add('大きさの目安', `${f.sizeMin}〜${f.sizeMax}cm`);
+        add('釣れる場所', f.regions.map((r) => REGION_NAMES[r] || r).join('・'));
+        add('時間帯', f.time.length >= 4 ? 'いつでも' : f.time.map((t) => TIME_NAMES[t]).join('・'));
+        add('釣り竿', f.minRod >= 2 ? '銅の釣り竿が必要' : '木の釣り竿でよい');
+        add('餌', f.bait ? `${itemName(f.bait)}が必要` : '不要');
+      } else if (k === 'forage') {
+        const nd = NODES[e.id];
+        add('集めた数', `${e.n}回`);
+        if (nd) add('採り方', `${nd.verb || '採る'}（${(nd.drops || []).filter((x) => !x.chance).map((x) => itemName(x.item)).join('・')}）`);
+        if (nd && nd.tool) add('道具', TOOL_LABEL[nd.tool] || '道具が必要');
+        const extra = nd ? (nd.drops || []).filter((x) => x.chance).map((x) => itemName(x.item)) : [];
+        if (extra.length) add('ときどき', extra.join('・'));
+      } else if (k === 'dish') {
+        add('作った数', `${e.n}回`);
+        const rec = RECIPES.filter((r) => r.out === e.item);
+        rec.slice(0, 3).forEach((r, i) => add(i === 0 ? '作り方' : '別の作り方', `${r.stations.map((s) => STATIONS[s].name).join('か')}：${Object.entries(r.inputs).map(([id, n]) => `${itemName(id)}${n > 1 ? `×${n}` : ''}`).join('、')}`));
+      } else if (k === 'crop') {
+        const c = CROPS[e.id];
+        add('収穫した数', `${e.n}回`);
+        if (c) {
+          add('育つまで', `約${fmtSec(cropGrowSec(c))}`);
+          add('収穫', c.harvest.map((x) => `${itemName(x.item)}×${x.n}`).join('、'));
+          add('種', itemName(c.seed));
+        }
+      }
+      const fx = k === 'dish' ? effectLines(def) : [];
+      return [
+        h('div', { class: 'craft-head' }, itemIcon(e.item), h('div', {}, h('div', { class: 'nm', text: e.name }), h('div', { class: 'note', text: def.desc || '' }))),
+        fx.length ? h('ul', { class: 'fx' }, fx.map((t) => h('li', { text: t }))) : '',
+        h('div', { class: 'mats' }, lines)];
+    }
+
+    function viewBook() {
+      const all = api.getJournalEntries();
+      const kindTabs = h('div', { class: 'tabs', role: 'tablist', 'aria-label': '図鑑の種類' }, BOOK_KINDS.map(([k, name]) => {
+        const list = all[k] || [];
+        return h('button', {
+          class: 'tab', type: 'button', role: 'tab', 'aria-selected': k === kind ? 'true' : 'false', data: { fk: `bk-${k}` },
+          onclick: () => { kind = k; selId = null; d.refresh(api.getState(), true); const el = keyOf(`bk-${k}`); if (el) el.focus(); },
+        }, `${name} ${list.filter((x) => x.seen).length}/${list.length}`);
+      }));
+      const entries = (all[kind] || []).filter((e) => !onlySeen || e.seen);
+      if (!selId || !entries.some((e) => e.id === selId)) selId = entries[0] ? entries[0].id : null;
+      const rows = entries.map((e) => h('button', {
+        class: `rrow${e.seen ? '' : ' locked'}`, type: 'button', role: 'option', 'aria-selected': e.id === selId ? 'true' : 'false', data: { fk: `be-${e.id}` },
+        tabindex: e.id === selId ? '0' : '-1',
+        onclick: () => { selId = e.id; d.refresh(api.getState(), true); const el = keyOf(`be-${e.id}`); if (el) el.focus(); },
+        onkeydown: (ev) => {
+          const i = entries.findIndex((x) => x.id === e.id);
+          const n = ev.key === 'ArrowDown' ? i + 1 : ev.key === 'ArrowUp' ? i - 1 : null;
+          if (n != null && n >= 0 && n < entries.length) {
+            ev.preventDefault(); selId = entries[n].id; d.refresh(api.getState(), true);
+            const el = keyOf(`be-${entries[n].id}`); if (el) el.focus();
+          }
+        },
+      }, e.seen ? itemIcon(e.item) : iconEl('bag'),
+      h('span', { class: 'nm', text: e.seen ? e.name : '？？？' }),
+      e.seen ? h('span', { class: 'ok', text: kind === 'fish' && e.max ? `${e.max}cm` : `×${e.n}` }) : ''));
+      const sel = entries.find((e) => e.id === selId);
+      const total = (all[kind] || []).length, seenN = (all[kind] || []).filter((e) => e.seen).length;
+      return [
+        kindTabs,
+        h('div', { class: 'craft-layout' },
+          h('div', { class: 'craft-left' },
+            h('div', { class: 'craft-filter' },
+              h('span', { class: 'note', text: `見つけた ${seenN} / ${total}` }),
+              h('button', {
+                class: 'btn sm', type: 'button', 'aria-pressed': String(onlySeen), text: '見つけたものだけ', data: { fk: 'onlyseen' },
+                onclick: () => { onlySeen = !onlySeen; d.refresh(api.getState(), true); const el = keyOf('onlyseen'); if (el) el.focus(); },
+              })),
+            h('div', { class: 'recipe-list', role: 'listbox', 'aria-label': '図鑑' }, rows.length ? rows : [h('div', { class: 'note', text: 'まだ見つけたものがありません。' })])),
+          h('div', { class: 'craft-right', 'aria-live': 'polite' }, sel ? bookDetail(kind, sel) : '')),
+      ];
+    }
+
+    // 依頼の一覧(読むだけ)。納品は、住人に話しかけて行う
+    function viewRequests() {
+      const st = api.getState();
+      const all = api.getRequests();
+      const done = all.filter((r) => r.done).length;
+      const groups = ['cook', 'farmer', 'builder'].map((id) => {
+        const list = all.filter((r) => r.npc === id);
+        const nm = (st.npcs || []).find((n) => n.id === id);
+        const name = nm ? nm.name : (NPCS[id] ? NPCS[id].name : '住人');
+        return h('section', { class: 'light' },
+          h('h4', {}, name, h('small', { text: `　${list.filter((r) => r.done).length} / ${list.length}` })),
+          h('ul', { class: 'goals' }, list.map((r) => h('li', { class: r.done ? 'done' : '' },
+            h('span', { class: 'mark', text: r.done ? '✔' : r.stageOpen ? '・' : '✕' }),
+            h('span', { class: 'rt', text: r.done ? `納品済み：${r.needs.map((x) => `${itemName(x.id)}×${x.need}`).join('、')}` : r.stageOpen ? r.needs.map((x) => `${itemName(x.id)} ${x.have}/${x.need}`).join('　') : (STAGE_TEXT[r.stage] || 'まだ受けられない') })))));
+      });
+      return [
+        h('h3', { text: `住人の依頼　${done} / ${all.length} 達成` }),
+        h('div', { class: 'ds', text: '納品は、家にいる住人に話しかけて行います。どの依頼も、お礼は一度きりです。' }),
+        h('div', { class: 'lights' }, groups),
+      ];
+    }
+
+    const d = {
       title: '日誌',
       foot: 'Escで閉じる',
-      node: body,
-      focusFirst: () => null,
-      refresh() {
-        const j = api.getJournal();
-        const o = j.objective || { text: '', items: [] };
-        const cleared = !!api.getState().progress.cleared;
-        const lightsDone = j.lights.filter((l) => l.done).length;
-        body.replaceChildren(
-          h('div', { class: 'now' }, h('div', { class: 'ds', text: '次の目的' }), h('div', { text: o.text }),
-            o.items && o.items.length ? h('div', { class: 'ds', text: o.items.map((x) => `${itemName(x.id)} ${x.have}/${x.n != null ? x.n : x.need}`).join('　') }) : ''),
-          h('div', {}, h('h3', { text: `三つの灯　${lightsDone} / 3` }),
-            h('div', { class: 'lights' }, j.lights.map((l) => h('section', { class: `light${l.done ? ' done' : ''}` },
-              h('h4', {}, h('span', { class: 'mark', text: l.done ? '✔' : '○' }), l.name, l.done ? h('small', { text: '　復元済み' }) : ''),
-              h('ul', {}, (l.requirements || []).map(reqRow)))))),
-          h('div', { class: cleared ? '' : 'locked' }, h('h3', { text: '暮らしの目標' }),
-            cleared ? '' : h('div', { class: 'ds', text: '三つの灯をすべて戻すと、自由な暮らしの目標が始まります。' }),
-            h('ul', { class: 'goals' }, (j.goals || []).map((g) => {
-              const done = g.value >= g.target;
-              return h('li', { class: done ? 'done' : '' },
-                h('span', { class: 'mark', text: done ? '✔' : '・' }), h('span', { class: 'rt', text: g.text }),
-                h('span', { class: 'rn', text: `${Math.min(g.value, g.target)} / ${g.target}` }));
-            }))),
-          j.story ? h('div', { class: 'ds story', text: j.story }) : '');
+      node: h('div', {}, tabsEl, body),
+      focusFirst: () => tabsEl.querySelector('[aria-selected="true"]'),
+      refresh(state) {
+        const activeKey = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.fk : null;
+        const scrolls = [...body.querySelectorAll('.recipe-list')].map((e) => e.scrollTop);
+        tabsEl.replaceChildren(...JTABS.map(([id, name]) => h('button', {
+          class: 'tab', type: 'button', role: 'tab', 'aria-selected': id === tab ? 'true' : 'false', data: { fk: `jt-${id}` },
+          onclick: () => { tab = id; d.refresh(api.getState()); const el = keyOf(`jt-${id}`); if (el) el.focus(); },
+          onkeydown: (ev) => {
+            const i = JTABS.findIndex((x) => x[0] === tab);
+            const n = ev.key === 'ArrowRight' ? (i + 1) % JTABS.length : ev.key === 'ArrowLeft' ? (i - 1 + JTABS.length) % JTABS.length : null;
+            if (n != null) { ev.preventDefault(); tab = JTABS[n][0]; d.refresh(api.getState()); const el = keyOf(`jt-${tab}`); if (el) el.focus(); }
+          },
+        }, name)));
+        body.replaceChildren(...(tab === 'goals' ? viewGoals(api.getJournal()) : tab === 'book' ? viewBook() : viewRequests()));
+        [...body.querySelectorAll('.recipe-list')].forEach((e, i) => { if (scrolls[i]) e.scrollTop = scrolls[i]; });
+        if (activeKey) { const el = keyOf(activeKey); if (el && el !== document.activeElement) el.focus(); }
       },
     };
+    return d;
   }
 
   /* ---------------------------------------------------------------- 祭壇・住人・再戦 */
@@ -1054,12 +1483,49 @@ export function createUI(root, api) {
     const basket = h('div', { class: 'mats' });
     const result = h('div', { class: 'note', role: 'alert' });
     const actions = h('div', { class: 'layer-btns left' });
+    const reqBox = h('div', { class: 'req-box' });
+    const reqResult = h('div', { class: 'note', role: 'alert' });
+    // この住人からの依頼。納品はここ(住人の目の前)でだけ行える
+    function renderRequests() {
+      const list = api.getRequests(id);
+      if (!list.length) { reqBox.replaceChildren(); return; }
+      const doneN = list.filter((r) => r.done).length;
+      reqBox.replaceChildren(
+        h('h3', { text: `依頼　${doneN} / ${list.length}` }),
+        ...list.map((r) => {
+          const locked = !r.stageOpen && !r.done;
+          const cls = `req${r.done ? ' done' : ''}${locked ? ' locked' : ''}`;
+          if (locked) {
+            return h('section', { class: cls }, h('div', { class: 'ds' }, h('span', { class: 'mark', text: '✕' }), STAGE_TEXT[r.stage] || 'まだ受けられません'));
+          }
+          return h('section', { class: cls },
+            h('div', { class: 'rq-text', text: r.text }),
+            h('div', { class: 'mats' }, r.needs.map((x) => h('div', { class: `mat${r.done || x.have >= x.need ? '' : ' lack'}` },
+              itemIcon(x.id), h('span', { class: 'nm', text: itemName(x.id) }), h('span', { class: 'n', text: r.done ? `×${x.need}` : `${x.have} / ${x.need}` })))),
+            h('div', { class: 'rq-reward' }, h('span', { class: 'lbl', text: 'お礼' }), r.reward.map((x) => h('span', { class: 'tool-chip' }, itemIcon(x.id), `${itemName(x.id)} ×${x.n}`))),
+            r.done
+              ? h('div', { class: 'note', text: '納品済み（お礼は一度きりです）' })
+              : h('div', { class: 'rq-act' },
+                h('button', {
+                  class: 'btn sm primary', type: 'button', text: '納品する', disabled: !r.canDeliver, data: { fk: `rq-${r.id}` },
+                  onclick: () => {
+                    const res = api.deliverRequest(r.id);
+                    if (res && res.ok) { reqResult.classList.remove('warn'); reqResult.textContent = `納品しました。お礼：${r.reward.map((x) => `${itemName(x.id)}×${x.n}`).join('、')}`; api.sfx('ui'); }
+                    else { reqResult.classList.add('warn'); reqResult.textContent = (res && res.reason) || '納品できませんでした'; api.sfx('error'); }
+                    d.refresh(api.getState());
+                  },
+                }),
+                r.canDeliver ? '' : h('span', { class: 'note warn', text: r.reason })));
+        }));
+    }
     const d = {
       title: '住人',
       foot: 'Escで閉じる',
-      node: h('div', { class: 'altar' }, head, job, status, h('h3', { text: '籠の中身' }), basket, result, actions),
+      node: h('div', { class: 'altar' }, head, job, status, h('h3', { text: '籠の中身' }), basket, result, actions, reqBox, reqResult),
       focusFirst: () => actions.querySelector('button:not(:disabled)'),
       refresh(state) {
+        const activeKey = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.fk : null;
+        renderRequests();
         const npc = (state.npcs || []).find((n) => n.id === id);
         const name = npc ? npc.name : (NPCS[id] ? NPCS[id].name : '住人');
         head.replaceChildren(iconEl('house'), h('div', { class: 'nm', text: name }));
@@ -1082,6 +1548,11 @@ export function createUI(root, api) {
             },
           }),
           h('button', { class: 'btn', type: 'button', text: '閉じる', onclick: () => close() }));
+        // 再構築で失ったフォーカスを戻す(納品後にボタンが消えたときは、先頭の操作へ)
+        if (activeKey && !dialogEl().contains(document.activeElement)) {
+          const el = dialogEl().querySelector(`[data-fk="${activeKey}"]`) || focusables(dialogEl().querySelector('.body'))[0];
+          if (el) el.focus();
+        }
       },
     };
     return d;
@@ -1379,7 +1850,9 @@ export function createUI(root, api) {
           row('移動', '左下のスティック'), row('行動', '右下の「行動」 / 対象をタップ'), row('回避', '右下の「回避」'),
           row('メニュー', '右上のボタン'), row('建築', '場所をタップ →「置く」。回転・取り壊し・解除も下のボタン'))),
         h('h3', { text: '畑の流れ' }),
-        h('p', { text: '鍬で耕す → 灯麦の種か苔芋を植える → 熟したら素手で収穫。建築メニューの「畑」から始められます。' })),
+        h('p', { text: '鍬で耕す → 好きな作物の種を植える → 熟したら素手で収穫。建築メニューの「畑」から始められます。' }),
+        h('h3', { text: '釣り' }),
+        h('p', { text: '釣り竿をホットバーに入れて選び、水面（4マス以内）に向けて行動すると糸を垂らします。「！」が出たらすぐ、もう一度行動して合わせます。動いたり画面を開いたりすると、糸を上げます。' })),
       refresh() {},
     };
   }
@@ -1394,7 +1867,7 @@ export function createUI(root, api) {
         h('button', { class: 'btn', type: 'button', text: '制作', onclick: () => open('craft') }),
         h('button', { class: 'btn', type: 'button', text: '建築', onclick: () => open('build') }),
         h('button', { class: 'btn', type: 'button', text: 'マップ', onclick: () => open('map') }),
-        h('button', { class: 'btn', type: 'button', text: '日誌', onclick: () => open('journal') }),
+        h('button', { class: 'btn', type: 'button', text: '日誌・図鑑', onclick: () => open('journal') }),
         h('button', { class: 'btn', type: 'button', text: '設定', onclick: () => open('settings') }),
         inGame ? h('button', { class: 'btn', type: 'button', text: '保存する', onclick: () => api.saveNow() }) : '',
         h('button', { class: 'btn', type: 'button', text: '保存してタイトルへ', onclick: () => { close(false); api.toTitle(); } })),
@@ -1411,6 +1884,7 @@ export function createUI(root, api) {
   function showEnding() {
     if (ending) return;
     if (current) close(false);
+    api.cancelFishing('modal');
     joyReset();
     const st = api.getState();
     const go = h('button', {
@@ -1468,7 +1942,7 @@ export function createUI(root, api) {
     titleEl = h('div', { class: 'title-screen' },
       h('div', { class: 'title-head' },
         h('div', { class: 'title-sub', text: '消えた灯を探す旅' }),
-        h('h1', { class: 'title-logo' }, h('img', { src: 'assets/logo/logo.png', alt: 'MOSSLIGHT', width: '240', height: '56', draggable: 'false' })),
+        h('h1', { class: 'title-logo' }, h('img', { src: api.assets.assetURL ? api.assets.assetURL('logo/logo.png') : 'assets/logo/logo.png', alt: 'MOSSLIGHT', width: '240', height: '56', draggable: 'false' })),
         h('div', { class: 'title-ja', text: '苔灯の境' })),
       h('div', { class: 'title-left' },
         h('p', { class: 'title-intro' },
@@ -1516,8 +1990,10 @@ export function createUI(root, api) {
   ui.reset = function reset() {
     lastRev = -1; lastSel = -2; lastObjKey = ''; lastStationSig = '';
     last.hp = last.food = last.tod = last.day = -1; last.boss = ''; last.build = '';
+    fishKey = ''; lastFishN = null; lastCatchEv = null; fishBox.hidden = true; app.classList.remove('fishing');
     for (const t of [...toasts]) remove(t);
     hintEl.classList.remove('show');
+    clearTimeout(hintTimer); hintContext = null;
     label.hidden = true;
     if (current) close(false);
     if (layer) finishLayer(layer.cancelValue);

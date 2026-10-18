@@ -1,11 +1,12 @@
 // 苔灯の境 / MOSSLIGHT — 起動・ゲームループ・入力の統合・保存I/O・音の接続
 // 固定ステップ(1/60秒)を積算して回し、dtは min(実時間, 0.1)。ダイアログ表示中とタブ非表示中は止める。
-import { BALANCE, TILE, ITEMS, LIGHTS, RUIN_TEMPLATE, validateData } from './data.js';
+import { BALANCE, TILE, ITEMS, LIGHTS, RUIN_TEMPLATE, REQUESTS, JOURNAL, EXTRA_GOALS, DECOR_TYPES, validateData } from './data.js';
 import { createWorld, verifyReachability } from './world.js';
 import * as sim from './simulation.js';
 import { loadAssets, createRenderer } from './renderer.js';
 import { createUI } from './ui.js';
 import { createAudio } from './audio.js';
+import { createSessionGuard } from './session.js';
 
 const params = new URLSearchParams(location.search);
 const DEBUG = params.get('debug') === '1';
@@ -24,6 +25,25 @@ const bootEl = document.getElementById('boot');
 
 let world = null, assets = null, renderer = null, ui = null, state = null, audio = null;
 let mode = 'boot';           // 'boot' | 'title' | 'play'
+const session = createSessionGuard({ onLost: () => { handleSessionLost(); } });
+
+async function handleSessionLost() {
+  if (mode !== 'play' || !ui) return;
+  resetInput();
+  ui.reset();
+  const pick = await ui.alert({
+    title: '別のタブでゲームが開かれました',
+    lines: ['このタブの進行と保存を停止しました。', '続ける場合は、最新の保存を読み込みます。このタブの進行を別ファイルに書き出すこともできます。'],
+    actions: [
+      { label: '最新の保存から再開', value: 'continue', primary: true },
+      { label: 'このタブの進行を書き出す', value: 'export' },
+      { label: 'タイトルへ', value: 'title', cancel: true },
+    ],
+  });
+  if (pick === 'continue' && await continueGame()) return;
+  if (pick === 'export') exportSave();
+  enterTitle();
+}
 
 /* ------------------------------------------------------------------ 保存 */
 const byteLength = (s) => { try { return new TextEncoder().encode(s).length; } catch (e) { return s.length * 3; } };
@@ -48,6 +68,7 @@ function looksLikeSave(raw) {
 let lastSaveAt = 0;
 function writeSave(reason) {
   if (mode !== 'play' || !state) return false;
+  if (!session.check()) return false;
   try {
     const data = sim.serialize(state);
     const json = JSON.stringify(data);
@@ -172,6 +193,7 @@ const fmtPlay = (sec) => {
 const infoLine = (i) => `保存日時 ${fmtDate(i.savedAt)}　灯 ${i.lights}/3　プレイ時間 ${fmtPlay(i.playTime)}`;
 
 function enterPlay(next, warnings) {
+  session.claim();
   resetInput();
   state = next;
   world = next.world;
@@ -319,18 +341,107 @@ function getHouseStatus() {
   return { valid: hs.filter((x) => x.valid).length, total: hs.length, houses: hs.map((x) => ({ ...x, reasons: x.reasons || [] })) };
 }
 
-const LIFE_GOALS = [
+// 旧8件 + data.js の追加目標。固定8件の配列ではなく定義から作る(coreのgetLifeGoalsがあればそちらが正)
+const BASE_GOALS = [
   ['houses', '家を4軒そろえる', 4], ['lanterns', '灯籠を8つ置く', 8], ['farms', '畑を12区画つくる', 12], ['dishes', '料理を6種類つくる', 6],
   ['residents', '住人を3人迎える', 3], ['roads', '道を60マス敷く', 60], ['iron', '翠鉄の装備一式をそろえる', 1], ['rematch', '両方のボスと再戦する', 2],
 ];
-function getLifeGoals() {
-  if (typeof sim.getLifeGoals === 'function') { try { return sim.getLifeGoals(state); } catch (e) { console.warn(e); } }
+const LIFE_GOALS = [...BASE_GOALS, ...EXTRA_GOALS.map((g) => [g.id, g.text, g.target])];
+const journalMap = (kind) => ((state.progress.journal || {})[kind]) || {};
+const countKeys = (o) => Object.keys(o || {}).filter((k) => (typeof o[k] === 'object' ? (o[k] && o[k].n > 0) : o[k] > 0)).length;
+// 追加目標の現在値。coreが数えていない間は、保存済みの進行とstateの実数から数える(読むだけ)
+function extraGoalValue(g) {
+  const m = g.metric || {};
+  if (m.kind === 'journalCount') return countKeys(journalMap(m.journal));
+  if (m.kind === 'requestsDone') return Object.keys(state.progress.requests || {}).filter((k) => state.progress.requests[k]).length;
+  if (m.kind === 'decorPlaced') return (state.structures || []).filter((s) => (m.types || DECOR_TYPES).includes(s.type)).length;
+  if (m.kind === 'ownedAny') return (m.items || []).filter((id) => have(id) > 0 || Object.values(state.player.equip || {}).includes(id)).length;
+  return 0;
+}
+// coreがまだ追加目標を返さないときの互換(返していればそのまま)
+function withExtraGoals(list) {
   const g = state.progress.goals || {};
-  return LIFE_GOALS.map(([id, text, target]) => ({ id, text, value: Math.min(target, Number(g[id]) || 0), target }));
+  const out = [...list];
+  for (const x of EXTRA_GOALS) {
+    if (out.some((y) => y.id === x.id)) continue;
+    out.push({ id: x.id, text: x.text, value: g[x.id] ? x.target : Math.min(x.target, extraGoalValue(x)), target: x.target });
+  }
+  return out;
+}
+function getLifeGoals() {
+  const g = state.progress.goals || {};
+  let list = null;
+  if (typeof sim.getLifeGoals === 'function') { try { list = sim.getLifeGoals(state); } catch (e) { console.warn(e); } }
+  if (!Array.isArray(list)) list = BASE_GOALS.map(([id, text, target]) => ({ id, text, value: Math.min(target, Number(g[id]) || 0), target }));
+  return withExtraGoals(list);
+}
+
+/* ------------------------------------------------------------------ 追加内容の表示API。判定と数量はsimulationを正とする。 */
+function cancelFishing(reason = 'ui') {
+  if (!state || !state.fishing) return;
+  if (typeof sim.cancelFishing === 'function') { try { sim.cancelFishing(state, reason); } catch (e) { console.warn(e); } }
+}
+
+// → { id, npc, stage, stageOpen, done, needs:[{id,need,have}], reward:[{id,n}], text, canDeliver, reason }
+function requestInfo(id) {
+  const def = REQUESTS[id];
+  if (!def) return null;
+  const st = sim.requestStatus(state, id);
+  // 容量は納品を引いた後のバッグでcoreが検査する。消費前のcanFitで再判定しない。
+  return {
+    id, npc: def.npc, stage: def.stage, stageOpen: !!st.available, done: !!st.done,
+    needs: st.needs.map((x) => ({ id: x.item, need: x.need, have: x.have })),
+    reward: st.reward.map((x) => ({ id: x.item, n: x.n })), text: def.text,
+    present: !!st.present, near: !!st.near, fits: st.code !== 'full',
+    canDeliver: !!st.ok, reason: st.reason || '',
+  };
+}
+const requestList = (npc) => {
+  let ids = Object.keys(REQUESTS);
+  if (typeof sim.getRequests === 'function') {
+    try { const r = sim.getRequests(state); if (Array.isArray(r)) ids = r.map((x) => (typeof x === 'string' ? x : x && x.id)).filter((x) => REQUESTS[x]); } catch (e) { console.warn(e); }
+  }
+  return ids.filter((id) => !npc || REQUESTS[id].npc === npc).map(requestInfo).filter(Boolean);
+};
+function deliverRequest(id) {
+  if (typeof sim.deliverRequest !== 'function') return { ok: false, reason: 'いまは納品できません' };
+  return safeCall(sim.deliverRequest, id);
+}
+
+// → { fish:[{id,name,item,seen,n,max}], forage:[...], dish:[...], crop:[...] }。定義を正とし、coreの値(あれば)を重ねる
+function journalEntries() {
+  return Object.fromEntries(sim.getJournalEntries(state).map((group) => [group.kind, group.entries]));
+}
+
+function equipStats() {
+  let s = null;
+  if (typeof sim.getEquipStats === 'function') { try { s = sim.getEquipStats(state); } catch (e) { console.warn(e); } }
+  if (s && typeof s === 'object') return s;
+  const t = { speed: 0, def: 0, light: null, fishBite: 1, fishWindow: 0, satietyRate: 1, regen: 0 };
+  for (const slot of ['armor', 'trinket']) {
+    const it = state.player.equip[slot] && ITEMS[state.player.equip[slot]];
+    const e = it && (it[slot] || {});
+    if (!e) continue;
+    t.speed += e.speed || 0; t.def += e.def || 0; t.fishBite *= e.fishBite || 1; t.fishWindow += e.fishWindow || 0;
+    t.satietyRate *= e.satietyRate || 1; t.regen += e.regen || 0;
+    if (e.light && (!t.light || e.light.radius > t.light.radius)) t.light = e.light;
+  }
+  return t;
+}
+function playerLight() {
+  if (typeof sim.getPlayerLight === 'function') { try { return sim.getPlayerLight(state); } catch (e) { console.warn(e); } }
+  const l = equipStats().light;
+  return l || null;
 }
 
 function getJournal() {
-  if (typeof sim.getJournal === 'function') { try { return sim.getJournal(state); } catch (e) { console.warn(e); } }
+  if (typeof sim.getJournal === 'function') {
+    try {
+      const j = sim.getJournal(state);
+      if (j && Array.isArray(j.goals)) j.goals = withExtraGoals(j.goals);
+      return j;
+    } catch (e) { console.warn(e); }
+  }
   const pr = state.progress, L = pr.lights;
   const req = (text, current, target) => ({ text, current, target, done: current >= target });
   const flag = (text, done) => ({ text, done: !!done });
@@ -374,7 +485,7 @@ let canvasPointer = null;
 let clientX = 0, clientY = 0;
 let endingActive = false;
 
-const canPlay = () => mode === 'play' && !!ui && !ui.isPaused();
+const canPlay = () => mode === 'play' && !!ui && session.check() && !ui.isPaused();
 const unit = (v) => Math.max(-1, Math.min(1, Number(v) || 0));
 
 function isTyping(e) {
@@ -527,6 +638,9 @@ function eventSound(ev) {
     case 'eat': snd('eat'); break;
     case 'harvest': snd('harvest'); break;
     case 'plant': snd('build'); break;
+    case 'cast': case 'fishCast': snd('swing'); break;
+    case 'bite': case 'fishBite': snd('ui'); break;
+    case 'catch': case 'fishCatch': snd('harvest'); break;
     case 'light': snd('light'); break;
     case 'bossStart': case 'telegraph': snd('warning'); break;
     case 'bossDead': snd('clear'); break;
@@ -574,6 +688,7 @@ const api = {
   nearbyStations: () => sim.nearbyStations(state),
   getObjective: () => sim.getObjective(state),
   craft: (id, n) => sim.craft(state, id, n),
+  craftCheck: (r, n, st) => sim.craftCheck(state, r, n, st),
   eat: (id) => sim.eat(state, id),
   useHotbar: (i) => sim.useHotbar(state, i),
   swapBag: (a, b) => sim.swapBag(state, a, b),
@@ -594,6 +709,15 @@ const api = {
   getHouseStatus,
   // 進行
   getJournal,
+  // 釣り・依頼・図鑑・装備(adapter経由)
+  cancelFishing,
+  getRequests: requestList,
+  requestStatus: requestInfo,
+  deliverRequest,
+  getJournalEntries: journalEntries,
+  getEquipStats: equipStats,
+  getPlayerLight: playerLight,
+  canCast: () => typeof sim.startCast === 'function',
   restoreLight: (id) => safeCall(sim.restoreLight, id),
   collectResident: (id) => safeCall(sim.collectResident, id),
   bossRematch: (id) => safeCall(sim.bossRematch, id),
@@ -634,6 +758,7 @@ const api = {
 
 /* ------------------------------------------------------------------ 場面 */
 function enterTitle() {
+  session.release();
   resetInput();
   state = sim.createState(world);
   sim.setClock(state, 418);              // タイトルは夕暮れの野営地
@@ -647,6 +772,7 @@ function enterTitle() {
 }
 
 function startNew() {
+  session.claim();
   resetInput();
   state = sim.createState(world);
   mode = 'play';
@@ -676,7 +802,7 @@ function frame(now) {
   const real = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
 
-  const running = mode === 'play' && !ui.isPaused() && !document.hidden;
+  const running = mode === 'play' && session.check() && !ui.isPaused() && !document.hidden;
   if (running) {
     acc += real;
     refreshInput();
@@ -741,7 +867,7 @@ async function boot() {
   document.addEventListener('visibilitychange', () => {
     resetInput();
     lastTime = 0; acc = 0;
-    if (document.hidden) writeSave('hidden');
+    if (document.hidden) { cancelFishing('hidden'); writeSave('hidden'); }
     audioFrame();
   });
   window.addEventListener('pagehide', () => { writeSave('pagehide'); });

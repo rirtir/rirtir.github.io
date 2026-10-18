@@ -1521,6 +1521,27 @@
       "overrides": "tiles",
       "normal": "farmland/normal.png",
       "height": "farmland/height.png"
+    },
+    "content_fish_icons7": {
+      "image": "content_fish_icons7/atlas.png",
+      "atlas": "content_fish_icons7/atlas.json",
+      "pivot": [
+        12,
+        12
+      ],
+      "names": [
+        "fish_minnow",
+        "fish_goby",
+        "fish_carp",
+        "fish_trout",
+        "fish_catfish",
+        "fish_eel",
+        "fish_bream",
+        "fish_pike"
+      ],
+      "normal": "content_fish_icons7/normal.png",
+      "height": "content_fish_icons7/height.png",
+      "overrides": "icons"
     }
   }
 }

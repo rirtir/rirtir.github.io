@@ -10,6 +10,7 @@
 import { BALANCE, TILE, TERRAIN_INFO, TERRAIN as T, ENEMIES, BOSSES, ITEMS } from './data.js';
 import { getTile, nodeAt, solidRadius, findWalkableNear } from './world.js';
 import { inSafeZone, safeRadius } from './settlement.js';
+import { getEquipStats, cancelFishing } from './activities.js';
 
 const P = BALANCE.player;
 const C = BALANCE.combat;
@@ -58,11 +59,9 @@ function keepOutOfSafe(state, e) {
   return true;
 }
 
-function playerDefense(p) {
-  let def = 0;
-  if (p.equip.armor && ITEMS[p.equip.armor]) def += ITEMS[p.equip.armor].armor.def;
-  if (p.equip.trinket && ITEMS[p.equip.trinket] && ITEMS[p.equip.trinket].trinket.def) def += ITEMS[p.equip.trinket].trinket.def;
-  return def;
+// 装備中の防具・装飾と期限内のbuffの被ダメージ減(activities.getEquipStats が実際の装備スロットから合算する)
+function playerDefense(state) {
+  return getEquipStats(state).def;
 }
 
 function segmentDist(px, py, ax, ay, bx, by) {
@@ -77,7 +76,8 @@ export function damagePlayer(state, dmg, sx, sy) {
   const p = state.player;
   if (p.invuln > 0 || p.roll && p.roll.t < P.rollInvuln) return false;
   if (inSafeZone(state, p.map, p.x, p.y)) return false;
-  const real = Math.max(1, Math.round(dmg - playerDefense(p)));
+  const real = Math.max(1, Math.round(dmg - playerDefense(state)));
+  cancelFishing(state, 'damage'); // 被弾で釣りは中断(魚・餌は増減しない)
   p.hp -= real;
   p.invuln = P.invuln;
   p.action = null;
@@ -92,7 +92,8 @@ export function damagePlayer(state, dmg, sx, sy) {
 }
 
 function addToBag(items, id, n) {
-  const cap = BALANCE.death.bagCap;
+  // 旧袋と新しいバッグを統合するため、通常バッグ1個分を上限にしない。
+  const cap = Number.MAX_SAFE_INTEGER;
   const hit = items.find((s) => s.id === id);
   if (hit) hit.n = Math.min(cap, hit.n + n); else items.push({ id, n: Math.min(cap, n) });
 }

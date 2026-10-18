@@ -1,6 +1,8 @@
 // 苔灯の境 / MOSSLIGHT — 空・太陽・月・暗さ(純関数。DOM・描画に依存しない)
 // 時計: ui.js の表示と同じ式。hour = (6 + (clock mod 600) / 25) mod 24。1時間 = 25秒、06:00 が tod 0。
-// 太陽は 06:00〜18:00 の昼弧(仰角 asin(sin62°·sin(π(h−6)/12)))。18:00〜06:00 の仰角は負で、太陽の寄与は厳密に 0。
+// 太陽は 06:00〜18:00 の昼弧(仰角 asin(sin50°·sin(π(h−6)/12)))。18:00〜06:00 の仰角は負で、太陽の寄与は厳密に 0。
+// 方位は画面で読めるよう東西の動きを主にする: 水平成分 = norm(sin φ, κ·cos φ)(φ=π(12−h)/12, κ=0.4。x右・y下=南)。
+// 朝(東)は光が右から・影が左へ、夕(西)は光が左から・影が右へ伸び、正午は南(画面の下)からの光で短い影が真上(画面の上)へ出る。
 // 明るさは「灰色128・水平な地面・影なし・局所光なし」の板(plate)の sRGB 表示値を時刻キーで指定し、
 // そこから 空の環境光(sky)・太陽の平行光・月の平行光 を分解して作る。分解しても板の値は定義どおりに戻る。
 // 値は linear(sRGB の ^2.2)。lighting.js のシェーダと同じ式で板の値を再計算できる(plateDisplay)。
@@ -8,8 +10,8 @@ import { BALANCE } from './data.js';
 
 export const DAY_TICKS = 600;
 const RAD = Math.PI / 180;
-const SUN_MAX_ELEV = 62 * RAD;     // 昼弧の最大仰角
-const SUN_SOUTH_BIAS = 0.35;       // 太陽の方位を画面の南(下)へ少し寄せる。正面の面がいつも少し照らされる
+const SUN_MAX_ELEV = 50 * RAD;     // 昼弧の最大仰角。低めにして正午でも影を絵の外側へ読める長さにする
+const SUN_AZ_KAPPA = 0.4;          // 南北成分(cos φ)の重み。小さいほど朝夕の光・影が左右に振れる(南寄せは使わない)
 const MOON_ELEV = 35 * RAD;
 const MOON_DIR2 = norm2([-0.3, 1]);
 const SHADOW_MAX_LEN = 2.5;        // 高さ1pxあたりの影の長さの上限
@@ -74,10 +76,11 @@ export function sunElevation(hour) {
   return Math.asin(clamp(s, -1, 1));
 }
 
-// 画面座標(x右・y下=南)での「太陽へ向かう」水平方向。06時=東、12時=南、18時=西。南へ少し寄せる
+// 画面座標(x右・y下=南)での「太陽へ向かう」水平方向(単位ベクトル)。06時=東(右)、12時=南(下)、18時=西(左)。
+// x = sin φ, y = κ·cos φ を正規化(κ=0.4)。南北は東西の 0.4 倍の重みなので、9時・15時は x 成分が大きく左右が反転して読める。影はこの逆向き
 export function sunAzimuth2(hour) {
   const phi = Math.PI * (12 - hour) / 12;
-  return norm2([Math.sin(phi), Math.cos(phi) + SUN_SOUTH_BIAS]);
+  return norm2([Math.sin(phi), SUN_AZ_KAPPA * Math.cos(phi)]);
 }
 
 const SUN_CHROMA = [ // [仰角deg, 色相の比]  低い太陽ほど赤い
@@ -158,7 +161,7 @@ export function skyAt(hour, mapId = 'surface', opt = {}) {
     let vx = -d[0] / t, vy = -d[1] / t;
     const l = Math.hypot(vx, vy);
     if (l > SHADOW_MAX_LEN) { vx *= SHADOW_MAX_LEN / l; vy *= SHADOW_MAX_LEN / l; }
-    shadow = { vec: [vx, vy], strength: 0.75 * vis * (0.4 + 0.6 * smoothstep(4, 14, eDeg)), caster: 'sun' };
+    shadow = { vec: [vx, vy], strength: 0.85 * vis * (0.4 + 0.6 * smoothstep(4, 14, eDeg)), caster: 'sun' };
   } else if (moonUp) {
     const t = Math.tan(MOON_ELEV);
     shadow = { vec: [-mAz[0] / t, -mAz[1] / t], strength: 0.45 * mEnv, caster: 'moon' };
