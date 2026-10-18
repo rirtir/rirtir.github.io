@@ -81,6 +81,7 @@ width:50%;
     </div>
 
     <input type="file" id="fileInput" hidden>
+    <p id="status" role="status" aria-live="polite"></p>
     <div id="plots"></div>
 
   </div>
@@ -119,7 +120,11 @@ if(f) handleFile(f)
 
 function handleFile(file){
 const reader=new FileReader()
-reader.onload=e=>parseJSONL(e.target.result)
+reader.onload=e=>{
+try{parseJSONL(e.target.result)}
+catch(error){document.getElementById("status").textContent=`読み込めませんでした: ${error.message}`}
+}
+reader.onerror=()=>{document.getElementById("status").textContent="ファイルを読み込めませんでした"}
 reader.readAsText(file)
 }
 
@@ -161,22 +166,28 @@ const lr=[]
 const speed=[]
 const mem=[]
 
-for(const line of lines){
+for(let index=0;index<lines.length;index++){
+const line=lines[index]
 
 if(!line.trim()) continue
 
-const data=JSON.parse(line)
+let data
+try{data=JSON.parse(line)}catch{throw new Error(`${index+1}行目のJSONが不正です`)}
+if(!data || typeof data!=="object" || Array.isArray(data))throw new Error(`${index+1}行目はオブジェクトではありません`)
 
 if("Progress/kimg" in data){
+if(!Number.isFinite(data["Progress/kimg"]))throw new Error(`${index+1}行目のProgress/kimgが数値ではありません`)
 kimg.push(data["Progress/kimg"])
-loss.push(data["Loss/loss"] ?? null)
-lr.push(data["Loss/learning_rate"] ?? null)
-speed.push(data["Timing/sec_per_kimg"] ?? null)
-mem.push(data["Resources/peak_gpu_mem_gb"] ?? null)
+loss.push(Number.isFinite(data["Loss/loss"])?data["Loss/loss"]:null)
+lr.push(Number.isFinite(data["Loss/learning_rate"])?data["Loss/learning_rate"]:null)
+speed.push(Number.isFinite(data["Timing/sec_per_kimg"])?data["Timing/sec_per_kimg"]:null)
+mem.push(Number.isFinite(data["Resources/peak_gpu_mem_gb"])?data["Resources/peak_gpu_mem_gb"]:null)
 }
 }
 
+if(!kimg.length)throw new Error("Progress/kimgを持つ行がありません")
 globalData={kimg,loss,lr,speed,mem}
+document.getElementById("status").textContent=`${kimg.length}行を読み込みました。`
 
 redrawAllGraphs()
 }

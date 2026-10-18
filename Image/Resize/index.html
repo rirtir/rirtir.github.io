@@ -60,8 +60,8 @@ border:1px solid #ccc;
 <label><input type="radio" name="scale" value="custom" checked> カスタム</label>
 
 <div class="row">
-幅: <input type="number" id="widthInput">
-高さ: <input type="number" id="heightInput">
+幅: <input type="number" id="widthInput" min="1" max="16384" step="1">
+高さ: <input type="number" id="heightInput" min="1" max="16384" step="1">
 </div>
 </div>
 
@@ -77,9 +77,11 @@ border:1px solid #ccc;
 <button id="downloadBtn">ダウンロード</button>
 
 <canvas id="canvas"></canvas>
+<p id="resizeStatus" role="status" aria-live="polite"></p>
 
 </div>
 
+<script src="./lanczos.js"></script>
 <script>
 const dropArea = document.getElementById("dropArea")
 const fileInput = document.getElementById("fileInput")
@@ -139,6 +141,11 @@ info.textContent = `元解像度: ${originalWidth} x ${originalHeight}`
 
 widthInput.value = originalWidth
 heightInput.value = originalHeight
+const selectedScale=document.querySelector('input[name="scale"]:checked').value
+if(selectedScale!=="custom"){
+widthInput.value=Math.max(1,Math.round(originalWidth*Number(selectedScale)))
+heightInput.value=Math.max(1,Math.round(originalHeight*Number(selectedScale)))
+}
 
 controls.style.display = "flex"
 
@@ -164,8 +171,8 @@ if(r.value === "custom") return
 
 const scale = parseFloat(r.value)
 
-const w = Math.round(originalWidth * scale)
-const h = Math.round(originalHeight * scale)
+const w = Math.max(1, Math.round(originalWidth * scale))
+const h = Math.max(1, Math.round(originalHeight * scale))
 
 widthInput.value = w
 heightInput.value = h
@@ -205,86 +212,6 @@ ctx.imageSmoothingQuality = "high"
 
 }
 
-// Lanczos kernel
-function lanczosKernel(x, a) {
-if (x === 0) return 1
-if (Math.abs(x) > a) return 0
-
-x *= Math.PI
-return (a * Math.sin(x) * Math.sin(x / a)) / (x * x)
-}
-
-// Lanczos resize
-function resizeLanczos(srcCanvas, dstCanvas, a = 3) {
-
-const srcCtx = srcCanvas.getContext("2d")
-const dstCtx = dstCanvas.getContext("2d")
-
-const srcData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height)
-const dstData = dstCtx.createImageData(dstCanvas.width, dstCanvas.height)
-
-const sw = srcCanvas.width
-const sh = srcCanvas.height
-const dw = dstCanvas.width
-const dh = dstCanvas.height
-
-const sx = sw / dw
-const sy = sh / dh
-
-for (let y = 0; y < dh; y++) {
-for (let x = 0; x < dw; x++) {
-
-const srcX = x * sx
-const srcY = y * sy
-
-const ix = Math.floor(srcX)
-const iy = Math.floor(srcY)
-
-let r = 0, g = 0, b = 0, aSum = 0
-let weightSum = 0
-
-for (let j = -a; j <= a; j++) {
-for (let i = -a; i <= a; i++) {
-
-const px = ix + i
-const py = iy + j
-
-if (px < 0 || px >= sw || py < 0 || py >= sh) continue
-
-const dx = (srcX - px) / sx
-const dy = (srcY - py) / sy
-
-const weight =
-lanczosKernel(dx, a) *
-lanczosKernel(dy, a)
-
-const idx = (py * sw + px) * 4
-
-r += srcData.data[idx] * weight
-g += srcData.data[idx + 1] * weight
-b += srcData.data[idx + 2] * weight
-aSum += srcData.data[idx + 3] * weight
-
-weightSum += weight
-}
-}
-
-const di = (y * dw + x) * 4
-
-if(weightSum === 0){
-continue
-}
-
-dstData.data[di]     = r / weightSum
-dstData.data[di + 1] = g / weightSum
-dstData.data[di + 2] = b / weightSum
-dstData.data[di + 3] = aSum / weightSum
-}
-}
-
-dstCtx.putImageData(dstData, 0, 0)
-}
-
 // =========================
 // 描画
 // =========================
@@ -293,8 +220,12 @@ function drawPreview(){
 
 if(!image) return
 
-const w = parseInt(widthInput.value)
-const h = parseInt(heightInput.value)
+const w = Number(widthInput.value)
+const h = Number(heightInput.value)
+const valid=Number.isInteger(w)&&Number.isInteger(h)&&w>=1&&h>=1&&w<=16384&&h<=16384&&w*h<=32000000
+document.getElementById("downloadBtn").disabled=!valid
+document.getElementById("resizeStatus").textContent=valid?`出力: ${w} × ${h}px`:"幅と高さを1〜16384の整数で指定してください（最大3200万画素）。"
+if(!valid) return
 
 canvas.width = w
 canvas.height = h
@@ -302,6 +233,11 @@ canvas.height = h
 const mode = document.querySelector('input[name="interp"]:checked').value
 
 if(mode === "lanczos"){
+if(w*originalHeight>32000000){
+document.getElementById("resizeStatus").textContent="Lanczosの中間画像が大きすぎます。幅を小さくするか、別の品質を選んでください。"
+document.getElementById("downloadBtn").disabled=true
+return
+}
 
 // 一旦元サイズで描画
 const tempCanvas = document.createElement("canvas")
@@ -311,7 +247,7 @@ const tctx = tempCanvas.getContext("2d")
 tctx.drawImage(image, 0, 0)
 
 // Lanczosで縮小
-resizeLanczos(tempCanvas, canvas)
+resizeLanczosPremultiplied(tempCanvas, canvas)
 
 }else{
 
@@ -334,7 +270,7 @@ r.onchange = drawPreview
 
 document.getElementById("downloadBtn").onclick = () => {
 
-if(!image) return
+if(!image || document.getElementById("downloadBtn").disabled) return
 
 const link = document.createElement("a")
 link.download = "resized.png"

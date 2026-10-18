@@ -230,6 +230,8 @@ loadFile(e.dataTransfer.files[0])
 
 function loadFile(file){
 
+if(!file)return
+
 const reader=new FileReader()
 
 reader.onload=ev=>{
@@ -308,9 +310,9 @@ const L=0.299*r+0.587*g+0.114*b
 
 let A0;
 if (bg === "black") {
-  A0 = L;
+  A0 = L*a/255;
 } else if (bg === "white") {
-  A0 = 255 - L;
+  A0 = (255 - L)*a/255;
 } else {
   A0 = a; // デフォルト
 }

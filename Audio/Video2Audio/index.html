@@ -70,8 +70,9 @@ font-size:16px;
 <div id="popup">
 <div id="popupContent">処理中...</div>
 </div>
+<p id="status" role="status" aria-live="polite"></p>
 
-<script src="https://unpkg.com/lamejs@1.2.0/lame.min.js"></script>
+<script src="./vendor/lame.min.js"></script>
 <!-- <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script> -->
 <!-- <script src="./../../ffmpeg/ffmpeg.min.js"></script> -->
 
@@ -95,6 +96,12 @@ const audioCtx=new AudioContext()
 
 let ffmpeg
 let ffmpegLoaded = false
+let busy=false
+let loadGeneration=0
+let probeLogs=[]
+
+function invalidate(){outputBlob=null;downloadBtn.style.display="none"}
+modeSelect.onchange=invalidate
 
 function showPopup(msg){
 popup.style.display="flex"
@@ -134,32 +141,33 @@ loadFile(f)
 }
 
 async function loadFile(f){
-
-file=f
-
-const url=URL.createObjectURL(f)
-
-const video=document.createElement("video")
-
+if(!f || busy)return
+const generation=++loadGeneration
+invalidate()
+controls.style.display="none"
+const url=URL.createObjectURL(f),video=document.createElement("video")
+try{
+await new Promise((resolve,reject)=>{
+video.onloadedmetadata=resolve
+video.onerror=()=>reject(new Error("動画を読み込めませんでした"))
+video.preload="metadata"
 video.src=url
-
-await video.play().catch(()=>{})
-video.pause()
-
-info.innerHTML=`
-ファイル名: ${f.name}<br>
-サイズ: ${(f.size/1024/1024).toFixed(2)} MB<br>
-長さ: ${video.duration.toFixed(2)} 秒
-`
-
+})
+if(generation!==loadGeneration)return
+file=f
+info.textContent=`ファイル名: ${f.name} / ${(f.size/1024/1024).toFixed(2)} MB / 長さ: ${Number.isFinite(video.duration)?video.duration.toFixed(2)+"秒":"不明"}`
 controls.style.display="flex"
-
+document.getElementById("status").textContent=""
+}catch(error){if(generation===loadGeneration)document.getElementById("status").textContent=error.message}
+finally{video.removeAttribute("src");video.load();URL.revokeObjectURL(url)}
 }
 
 extractBtn.onclick=async()=>{
-
-downloadBtn.style.display="none"
-
+if(busy || !file)return
+busy=true
+invalidate()
+extractBtn.disabled=modeSelect.disabled=fileInput.disabled=true
+try{
 const mode=modeSelect.value
 
 if(mode==="wav"){
@@ -175,7 +183,15 @@ await extractOriginal()
 }
 
 downloadBtn.style.display="block"
-
+document.getElementById("status").textContent="音声を作成しました。"
+}catch(error){
+document.getElementById("status").textContent=`音声を作成できませんでした: ${error.message}`
+invalidate()
+}finally{
+hidePopup()
+busy=false
+extractBtn.disabled=modeSelect.disabled=fileInput.disabled=false
+}
 }
 
 async function decodeAudio(){
@@ -255,11 +271,27 @@ hidePopup()
 
 async function extractMp3(){
 
-const audioBuffer=await decodeAudio()
+let audioBuffer=await decodeAudio()
+if(audioBuffer.numberOfChannels>2){
+const mixer=new OfflineAudioContext(2,audioBuffer.length,audioBuffer.sampleRate)
+const source=mixer.createBufferSource()
+source.buffer=audioBuffer
+source.connect(mixer.destination)
+source.start()
+audioBuffer=await mixer.startRendering()
+}
 
 showPopup("MP3エンコード中...")
 
-const channels=audioBuffer.numberOfChannels
+const channels=Math.min(2,audioBuffer.numberOfChannels)
+function toPCM16(samples){
+const result=new Int16Array(samples.length)
+for(let i=0;i<samples.length;i++){
+const sample=Math.max(-1,Math.min(1,samples[i]))
+result[i]=Math.round(sample*(sample<0?32768:32767))
+}
+return result
+}
 
 const mp3encoder=new lamejs.Mp3Encoder(
 channels,
@@ -272,7 +304,7 @@ let mp3Data=[]
 
 if(channels===1){
 
-const samples=audioBuffer.getChannelData(0)
+const samples=toPCM16(audioBuffer.getChannelData(0))
 
 for(let i=0;i<samples.length;i+=block){
 
@@ -286,8 +318,8 @@ if(mp3buf.length>0) mp3Data.push(new Int8Array(mp3buf))
 
 }else{
 
-const left=audioBuffer.getChannelData(0)
-const right=audioBuffer.getChannelData(1)
+const left=toPCM16(audioBuffer.getChannelData(0))
+const right=toPCM16(audioBuffer.getChannelData(1))
 
 for(let i=0;i<left.length;i+=block){
 
@@ -317,6 +349,7 @@ async function loadFFmpeg(){
 if(ffmpegLoaded) return
 
 ffmpeg = new FFmpeg()
+ffmpeg.on("log",({message})=>probeLogs.push(message))
 
 showPopup("FFmpegロード中（初回のみ）...")
 
@@ -349,28 +382,31 @@ await loadFFmpeg()
 
 showPopup("音声抽出中...")
 
-// Convert File → Uint8Array
-const data = new Uint8Array(await file.arrayBuffer())
-await ffmpeg.writeFile("input", data)
-
-// Extract audio
-await ffmpeg.exec([
-  "-i","input",
-  "-vn",
-  "-acodec","copy",
-  "output.m4a"
-])
-
-const out = await ffmpeg.readFile("output.m4a")
-
-outputExt = "m4a"
-outputBlob = new Blob([out.buffer])
-
+let outputName
+try{
+await ffmpeg.writeFile("input",new Uint8Array(await file.arrayBuffer()))
+probeLogs=[]
+await ffmpeg.exec(["-hide_banner","-i","input"])
+const codec=/Audio:\s*([\w]+)/.exec(probeLogs.join("\n"))?.[1]
+if(!codec)throw new Error("音声トラックが見つかりません")
+outputExt=codecToExt(codec)
+if(codec==="flac")outputExt="flac"
+else if(codec.startsWith("pcm_"))outputExt="wav"
+else if(!/^(aac|mp3|opus|vorbis)$/.test(codec))outputExt="mka"
+outputName="output."+outputExt
+const code=await ffmpeg.exec(["-y","-i","input","-map","0:a:0","-vn","-acodec","copy",outputName])
+if(code!==0)throw new Error("元の音声形式で抽出できませんでした")
+outputBlob=new Blob([await ffmpeg.readFile(outputName)])
+}finally{
+for(const name of ["input",outputName])if(name){try{await ffmpeg.deleteFile(name)}catch{}}
 hidePopup()
+}
 
 }
 
 downloadBtn.onclick=()=>{
+
+if(!outputBlob)return
 
 const url=URL.createObjectURL(outputBlob)
 

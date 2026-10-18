@@ -10,7 +10,14 @@
 <style>
 [hidden]{display:none !important}
 
-.wrap{width:100%;max-width:720px}
+.wrap{width:100%;max-width:720px;min-width:0}
+#dropArea{box-sizing:border-box}
+@media(max-width:480px){
+.row{flex-wrap:wrap}
+.row > span.lbl{width:100%}
+.row select,.pair{width:100%;flex-basis:100%}
+.row input[type=range]{width:60%}
+}
 #dropArea{max-width:none}
 
 .card{
@@ -74,6 +81,8 @@ background:#000;
 
 progress{width:100%;height:16px}
 #cmd{
+white-space:pre-wrap;
+overflow-wrap:anywhere;
 font-family:monospace;
 font-size:12px;
 background:#f0f0f0;

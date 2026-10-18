@@ -29,6 +29,7 @@ margin-bottom:10px;
 
 <canvas id="waveCanvas" width="500" height="150"></canvas>
 <canvas id="fftCanvas" width="500" height="150"></canvas>
+<p id="status" role="status" aria-live="polite"></p>
 
 <script>
 
@@ -49,10 +50,20 @@ let source
 let stream
 
 let running=false
+let starting=false
+let animationFrame=null
+let generation=0
 
 async function startMic(){
 
+if(running||starting)return
+starting=true
+startBtn.disabled=true
+const session=++generation
+try{
+
 stream=await navigator.mediaDevices.getUserMedia({audio:true})
+if(session!==generation){stream.getTracks().forEach(track=>track.stop());stream=null;return}
 
 audioContext=new AudioContext()
 
@@ -72,21 +83,31 @@ source.connect(analyser)
 
 running=true
 draw()
-
+document.getElementById("status").textContent="マイク解析中"
+}catch(error){
+stopMic()
+document.getElementById("status").textContent=`開始できませんでした: ${error.message}`
+}finally{starting=false;startBtn.disabled=running}
 }
 
 function stopMic(){
 
 running=false
+generation++
+if(animationFrame!==null){cancelAnimationFrame(animationFrame);animationFrame=null}
+startBtn.disabled=false
+document.getElementById("status").textContent="停止"
 
 if(stream){
 
 stream.getTracks().forEach(track=>track.stop())
+stream=null
 
 }
 
 if(audioContext){
-audioContext.close()
+audioContext.close().catch(()=>{})
+audioContext=null
 }
 
 }
@@ -95,7 +116,7 @@ function draw(){
 
 if(!running) return
 
-requestAnimationFrame(draw)
+animationFrame=requestAnimationFrame(draw)
 
 analyser.getByteTimeDomainData(dataArray)
 analyser.getByteFrequencyData(freqArray)
@@ -152,6 +173,7 @@ fftCtx.fillRect(i*barWidth,fftCanvas.height-h,barWidth,h)
 
 startBtn.onclick=startMic
 stopBtn.onclick=stopMic
+window.addEventListener("pagehide",stopMic)
 
 </script>
 

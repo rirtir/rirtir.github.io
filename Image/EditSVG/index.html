@@ -101,6 +101,7 @@ SVGをドラッグ&ドロップ<br>
 </div>
 
 <button id="download">Download SVG</button>
+<p id="status" role="status" aria-live="polite"></p>
 
 <div class="scrollBox" id="layerList"></div>
 
@@ -126,6 +127,8 @@ const layerList = document.getElementById("layerList")
 
 let elements = []
 let selected = null
+let baseTransform=""
+let baseCenter={x:0,y:0}
 
 let transformState = {
 x:0,
@@ -162,20 +165,30 @@ loadSVG(e.dataTransfer.files[0])
 
 function loadSVG(file){
 
+if(!file)return
+
 const reader = new FileReader()
 
 reader.onload = e=>{
 
+const parser = new DOMParser()
+const doc = parser.parseFromString(e.target.result,"image/svg+xml")
+const imported = doc.documentElement
+if(doc.querySelector("parsererror") || imported.localName!=="svg"){
+document.getElementById("status").textContent="SVGを読み込めませんでした"
+return
+}
+selected=null
+stopAction()
+document.getElementById("status").textContent=""
+for(const attr of Array.from(svgCanvas.attributes))if(!["id","width","height"].includes(attr.name))svgCanvas.removeAttribute(attr.name)
+for(const attr of Array.from(imported.attributes))if(!["id","width","height"].includes(attr.name))svgCanvas.setAttributeNS(attr.namespaceURI,attr.name,attr.value)
+
 svgCanvas.innerHTML = ""
 svgCanvas.setAttribute("width", "100%")
 svgCanvas.setAttribute("height", "100%")
-svgCanvas.removeAttribute("viewBox")
+if(!imported.hasAttribute("viewBox"))svgCanvas.setAttribute("viewBox",`0 0 ${parseFloat(imported.getAttribute("width"))||300} ${parseFloat(imported.getAttribute("height"))||150}`)
 svgCanvas.setAttribute("preserveAspectRatio", "xMidYMid meet")
-
-const parser = new DOMParser()
-const doc = parser.parseFromString(e.target.result,"image/svg+xml")
-
-const imported = doc.documentElement
 
 // 子要素だけ使う
 elements = Array.from(imported.children)
@@ -223,8 +236,11 @@ e.dataTransfer.setData("index",i)
 div.ondragover=e=>e.preventDefault()
 
 div.ondrop=e=>{
+e.preventDefault()
+e.stopPropagation()
 const from=e.dataTransfer.getData("index")
 const to=i
+if(from==="" || !Number.isInteger(Number(from)) || !elements[Number(from)])return
 
 const tmp=elements[from]
 elements.splice(from,1)
@@ -248,7 +264,13 @@ layerList.appendChild(div)
 
 function selectElement(el){
 
+if(!el.getBBox || ["defs","style","title","desc","metadata"].includes(el.localName))return
+
 selected = el
+baseTransform=el.getAttribute("transform")||""
+const sourceBox=el.getBBox()
+const sourceMatrix=el.transform.baseVal.consolidate()?.matrix||svgCanvas.createSVGMatrix()
+baseCenter=svgPoint(sourceBox.x+sourceBox.width/2,sourceBox.y+sourceBox.height/2).matrixTransform(sourceMatrix)
 
 // ★ 追加（毎回リセット）
 transformState = {
@@ -396,8 +418,8 @@ function applyTransform(){
 
 const box = selected.getBBox()
 
-const cx = box.x + box.width/2
-const cy = box.y + box.height/2
+const cx = baseCenter.x
+const cy = baseCenter.y
 
 selected.setAttribute(
 "transform",
@@ -406,6 +428,7 @@ translate(${transformState.x + cx},${transformState.y + cy})
 rotate(${transformState.rotation})
 scale(${transformState.scaleX},${transformState.scaleY})
 translate(${-cx},${-cy})
+${baseTransform}
 `.replace(/\s+/g," ")
 )
 
@@ -493,6 +516,9 @@ const ys = points.map(p=>p.y)
 
 const cx = (Math.min(...xs) + Math.max(...xs)) / 2
 const cy = (Math.min(...ys) + Math.max(...ys)) / 2
+const startPoint=getSVGPoint(e)
+const startAngle=Math.atan2(startPoint.y-cy,startPoint.x-cx)*180/Math.PI
+const initialRotation=transformState.rotation
 
 document.onmousemove = ev=>{
 
@@ -500,7 +526,7 @@ const p = getSVGPoint(ev)
 
 const angle = Math.atan2(p.y - cy, p.x - cx) * 180/Math.PI
 
-transformState.rotation = angle
+transformState.rotation = initialRotation+angle-startAngle
 applyTransform()
 
 }
@@ -528,7 +554,7 @@ function svgPointFrom(svg, x, y){
 document.getElementById("download").onclick = ()=>{
 
 // ★ 実DOMでbbox計算（これが本質）
-const items = Array.from(svgCanvas.children)
+const items = elements.filter(el=>!["defs","style","title","desc","metadata"].includes(el.localName))
 
 let minX = Infinity
 let minY = Infinity
@@ -540,7 +566,7 @@ items.forEach(el=>{
 if(!el.getBBox) return
 
 const box = el.getBBox()
-const matrix = el.getCTM()
+const matrix = svgCanvas.getCTM().inverse().multiply(el.getCTM())
 
 const points = [
 svgPointFrom(svgCanvas, box.x, box.y),
@@ -559,11 +585,9 @@ maxY = Math.max(maxY, ...ys)
 
 })
 
-const clone = svgCanvas.cloneNode(true)
-
-// 不要要素削除
-clone.querySelectorAll(".bbox,.handle,.rotateHandle,.moveHandle")
-.forEach(e=>e.remove())
+const clone = svgCanvas.cloneNode(false)
+elements.forEach(el=>clone.appendChild(el.cloneNode(true)))
+if(![minX,minY,maxX,maxY].every(Number.isFinite))return
 
 const g = document.createElementNS("http://www.w3.org/2000/svg","g")
 
@@ -595,6 +619,7 @@ const a=document.createElement("a")
 a.href = URL.createObjectURL(blob)
 a.download="edited.svg"
 a.click()
+setTimeout(()=>URL.revokeObjectURL(a.href),1000)
 
 }
 

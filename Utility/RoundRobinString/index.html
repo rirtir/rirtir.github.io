@@ -429,6 +429,11 @@ container.appendChild(box)
 
 function generateCombinations(vars){
 
+if(vars.length>100 || new Set(vars.map(v=>v.name)).size!==vars.length){showToast("変数名は重複させず、100個以内にしてください");return []}
+const total=vars.reduce((count,v)=>count*v.items.filter(i=>i.enabled&&i.text!=="").length,1)
+if(total>100000){showToast("組み合わせが10万件を超えます。候補を減らしてください");return []}
+if(total===0)return []
+
 if(vars.length === 0) return [{}]
 
 const [first, ...rest] = vars
@@ -458,21 +463,16 @@ return result
 // =========================
 
 function applyTemplate(template, data){
-
-let str = template
-
-for(const key in data){
-const reg = new RegExp(`\\{${key}\\}`, "g")
-str = str.replace(reg, data[key])
-}
-
-return str
+return template.replace(/\{([^{}]+)\}/g,(match,key)=>Object.prototype.hasOwnProperty.call(data,key)?String(data[key]):match)
 
 }
 
 function applyTemplateWithCalc(template, data){
 
 return template.replace(/\{([^}]+)\}/g, (_, expr)=>{
+
+const key=expr.trim()
+if(Object.prototype.hasOwnProperty.call(data,key))return data[key]
 
 try{
 
@@ -597,8 +597,9 @@ const text = await file.text()
 
 const data = JSON.parse(text)
 
-// variables復元
-variables = data.variables || []
+if(!data || !Array.isArray(data.variables) || data.variables.length>100 || typeof data.template!=="string" || data.variables.some(v=>!v || typeof v.name!=="string" || !Number.isFinite(v.order) || !Array.isArray(v.items) || v.items.length>10000 || v.items.some(i=>!i || typeof i.text!=="string" || typeof i.enabled!=="boolean")))throw new Error("JSONの形式が不正です")
+// 検証後にまとめて置き換え、不正なJSONで編集中の内容を失わない。
+variables = data.variables.map(v=>({name:v.name,order:v.order,items:v.items.map(i=>({text:i.text,enabled:i.enabled}))}))
 
 // template復元
 document.getElementById("template").value =

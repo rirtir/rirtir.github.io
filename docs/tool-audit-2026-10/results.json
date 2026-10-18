@@ -1,0 +1,668 @@
+{
+  "date": "2026-10-19",
+  "tool_count": 26,
+  "changed_tool_count": 17,
+  "browser": "Chrome 155 / Playwright",
+  "scope": "ツールの主要操作。ゲームは起動時のみ。マイク許可と文字起こしモデルは模擬。",
+  "checks": {
+    "verification": {
+      "checks": [
+        "PDF: 元の90度回転と追加90度回転が同じ向きになり、出力もプレビュー通り・テキスト維持",
+        "PDF: originalで全回転角・切抜き・UserUnit・リンク注釈・テキストを維持",
+        "PDF: fitWidthで全回転角・切抜き・UserUnit・リンク注釈・テキストを維持",
+        "PDF: fitHeightで全回転角・切抜き・UserUnit・リンク注釈・テキストを維持",
+        "PDF: 並べ替え・削除・壊れたPDFのエラー回復・同名再追加",
+        "パレット: 3方式×4色/1px/全透明画像で重複色なし、原寸・透明度を維持してPNG保存",
+        "パレット: 最大256色の数値入力・1刻み調整・破損画像で古い結果を保存しない",
+        "パレット: 多色画像を3方式で256色に抽出し、連続変更時は古い計算を中止して最後の指定に一致",
+        "深度: NPY v1/v2/v3・float32/64・big endian・uint16・Fortran順・NaN・1pxをZIP内PNGで照合",
+        "深度: 同名ファイルを上書きしない・不正入力でも処理表示を閉じる・古いZIPを残さない",
+        "PDF・パレット・深度の全操作で未処理JSエラー・外部リクエストなし"
+      ],
+      "errors": []
+    },
+    "media-verification": {
+      "checks": [
+        "透過: 元の透明度を維持し、元画像/アルファ表示中も処理結果を書き出す。画像入替で前の状態を残さない",
+        "リサイズ: 全4方式のPNG寸法・空欄/0からの復帰・1px縮小・半透明Lanczos",
+        "動画→画像: 読込・シーク後に追加の画像化操作なしで正しいフレームを保存。不正動画で古い画像を保存しない",
+        "画像→動画: サイズ混在/奇数寸法の画像を実ffmpegでMP4化・FPSに一致する長さ・再生成・設定変更で古い出力を無効化",
+        "動画→音声: WAV/MP3/元のOpusを再デコードし、長さと音量を照合（MP3が無音化しない）",
+        "MP3: 5.1chのセンターだけにある音声をステレオへ混ぜ、台詞の脱落を防ぐ"
+      ],
+      "errors": []
+    },
+    "controls-verification": {
+      "checks": [
+        "CSS差分: 実ファイル出力、メディアクエリ・同一セレクタの複数規則・引用符内の区切りを維持、390px表示",
+        "RE10K: 既定181行、増加方向91行、0ステップ・極小ステップ・逆方向を即時拒否",
+        "総当たり: 記号を含む変数名と$を文字通り置換、JSON保存復元、不正JSONから編集中の内容を保護",
+        "JSONL: 学習ログから4グラフ、壊れた行番号を表示し前のグラフを維持",
+        "SVG: viewBoxと継承色を維持、選択ハンドルを保存寸法に含めない、元の変換付き要素を移動できる",
+        "線画→透過: 白背景の黒線を抽出し、元の完全透明画素を透明のまま保存",
+        "ドット絵メーカー: 8×8の新規作成・描画・原寸PNG保存",
+        "モザイク検出: 入力画像と同寸法の白黒マスクを保存（検出精度の一般保証は対象外）",
+        "レイヤー画像処理: フィルタ追加・PNG保存・スマホ幅で比較切替を繰り返しても画像が縮み続けない",
+        "文字起こし: 16kHz Float32入力・推論重複防止・停止後の結果破棄・全トラック終了・拒否後の再試行（推論とマイクは模擬）",
+        "マイク解析: 二重開始を防止し、開始停止を繰り返しても全トラックが終了（マイクは模擬）"
+      ],
+      "errors": []
+    },
+    "other-verification": {
+      "checks": [
+        "メディア変換: WebMからPNGを実ffmpegで出力・スマホ幅の入力後画面も横はみ出しなし",
+        "音声・動画解析: WAVのPCMとWebMの映像サイズを実ファイルから表示",
+        "MML作曲: サンプル読込・パート追加・MMLファイル保存復元・再生停止",
+        "ご飯ルーレット: 候補0件では開始不可、候補選択後に抽選結果を表示"
+      ],
+      "errors": []
+    },
+    "FileLedger": {
+      "checks": [
+        "配信版の実Worker: 同サイズ・同日時の変更、追加、削除、移動候補、重複",
+        "台帳JSONに本文を含まず、6ファイルを書き出す",
+        "重複一覧とUTF-8 BOM付きCSV",
+        "390pxのモバイル幅でページの横はみ出しなし",
+        "SHA-256一致",
+        "日時だけ変更",
+        "サイズ同一の変更",
+        "一対一の移動候補",
+        "重複内容は移動を決めつけない",
+        "高速台帳は内容一致としない",
+        "高速台帳の変更は候補",
+        "不完全な今回台帳から削除を断定しない",
+        "不完全な前回台帳から追加を断定しない",
+        "今回の除外は削除扱いしない",
+        "前回の除外は追加扱いしない",
+        "フォルダ除外",
+        "拡張子ワイルドカード",
+        "複数階層ワイルドカード",
+        "単一文字ワイルドカード",
+        "除外設定の大文字小文字を区別",
+        "重複容量はn-1",
+        "不正パス拒否: ../a",
+        "不正パス拒否: a/../b",
+        "不正パス拒否: /a",
+        "不正パス拒否: C:/a",
+        "不正パス拒否: a//b",
+        "不正パス拒否: a\\\\b",
+        "重複パスの台帳を拒否",
+        "壊れたSHA-256を拒否",
+        "読取エラーがある完了台帳を拒否",
+        "CSV数式の実行対策",
+        "不正な台帳を拒否し直前の結果を保持",
+        "単体HTML file://のWorkerで空・日本語・2MiB境界の実ファイルをPython SHA-256と照合",
+        "実フォルダの相対パスと除外設定",
+        "実ファイル名のCSV数式対策",
+        "実ファイルの高速検証は内容未検証として表示",
+        "再読み込み後の台帳同士の比較",
+        "205件のページング、全ページCSV、検索時のページ復帰",
+        "クリアで参照・結果を破棄",
+        "大きいファイルの中止で未完了台帳を公開しない",
+        "ファイル名をHTMLとして実行しない",
+        "ポータルの主要一覧に新ツールと推薦9件",
+        "JavaScript例外なし・外部通信なし"
+      ]
+    },
+    "BackListen": {
+      "checks": [
+        "配信版HTTP 200・音がないと聞き返せない",
+        "途中のバッファを時系列で取得",
+        "上限を超える古い音を上書き",
+        "直近の指定長だけを取得",
+        "モノ入力を両チャンネルに保持",
+        "消去後に音を復元しない",
+        "左右チャンネルを混同しない",
+        "最大60秒",
+        "終了後も末尾だけ取得",
+        "上限より長いバッファを拒否",
+        "空のWAVを書き出さない",
+        "Python waveでWAVヘッダー・PCM・クリッピング・NaN処理を照合",
+        "画面共有のキャンセル後に再試行できる",
+        "音声のない共有を拒否し映像トラックを終了",
+        "本物の音声ストリームをAudioWorkletで取り込み",
+        "取り込んだ440Hz音をWAVに保存し、Pythonで左右・周波数・振幅を検証",
+        "聞き返し中に取り込みを止め、終了ボタンで再開",
+        "取り込み終了後も音を再生でき、共有トラックは全終了",
+        "390px表示で横はみ出しなし",
+        "残った音・プレイヤーを消去",
+        "単体HTML file://で実AudioWorkletとサンプル音の保存",
+        "終了・消去後にサンプルを再開始できる",
+        "主要一覧に新ツールと暮らしの推薦5件",
+        "JavaScript例外・外部通信なし"
+      ]
+    },
+    "PixelWorkbench": {
+      "checks": [
+        "static file:// viewer",
+        "canvas pixel parity with CLI",
+        "before and diff modes",
+        "tag, stepping, playback, grid, onion",
+        "motion preview preserves aspect ratio",
+        "390px mobile without page overflow",
+        "invalid upload preserves previous state",
+        "invalid pixel lengths rejected",
+        "valid upload after invalid input",
+        "large sprite scroll starts at visible top left",
+        "standalone review.html",
+        "no JavaScript exceptions"
+      ]
+    }
+  },
+  "pages": [
+    {
+      "path": "index.html",
+      "status": 200,
+      "title": "Portal",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Audio/AudioInfo/index.html",
+      "status": 200,
+      "title": "音声・動画解析ツール",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Audio/BackListen/index.html",
+      "status": 200,
+      "title": "ききもどし — さっきの音を、もう一回。",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Audio/MMLComposer/index.html",
+      "status": 200,
+      "title": "MMLコードメーカー",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Audio/RealTimeAudioAnalyzer/index.html",
+      "status": 200,
+      "title": "Microphone Analyzer",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Audio/RealTimeWhisper/index.html",
+      "status": 200,
+      "title": "Realtime Whisper",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Audio/Video2Audio/index.html",
+      "status": 200,
+      "title": "動画→音声抽出ツール",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/AirHockey/index.html",
+      "status": 200,
+      "title": "AIR HOCKEY — ファミコン風エアホッケー",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/AnchorVector/index.html",
+      "status": 200,
+      "title": "ANCHOR//VECTOR — 星環の残響",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/BlockPuzzle/index.html",
+      "status": 200,
+      "title": "9x9 Block Puzzle",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/bob/index.html",
+      "status": 200,
+      "title": "ボブジテン",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/BrainVita/index.html",
+      "status": 200,
+      "title": "ブレインビータ",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/Cenote/index.html",
+      "status": 200,
+      "title": "セノーテ ― 光の降る地下の泉",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/DawnTrain/index.html",
+      "status": 200,
+      "title": "黎明列車 ― 七夜の終着点",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/Emberveil/index.html",
+      "status": 200,
+      "title": "残り火の深庭 — EMBERVEIL",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/GravityGolf/index.html",
+      "status": 200,
+      "title": "グラビティゴルフ — 重力で曲がる宇宙ゴルフ",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/incremental/index.html",
+      "status": 200,
+      "title": "Tap Incremental",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/ito/index.html",
+      "status": 200,
+      "title": "ito",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/ito_p2p/index.html",
+      "status": 200,
+      "title": "ito P2P — サーバーレス対戦",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/KemonoCreator/index.html",
+      "status": 200,
+      "title": "ケモノキャラクリ ― アニメ調3Dの獣人キャラクター作成",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/LuminaIsle/index.html",
+      "status": 200,
+      "title": "陽だまりクラフト — LUMINA ISLE",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/Mosslight/index.html",
+      "status": 200,
+      "title": "苔灯の境 / MOSSLIGHT",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/Nonogram/index.html",
+      "status": 200,
+      "title": "ノノグラム",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": [
+        {
+          "url": "/Game/Nonogram/images/24.png",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/24.jpg",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/24.jpeg",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/24.gif",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/24.webp",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/24.bmp",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/25.png",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/25.jpg",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/25.jpeg",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/25.gif",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/25.webp",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/25.bmp",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/26.png",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/26.jpg",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/26.jpeg",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/26.gif",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/26.webp",
+          "status": 404
+        },
+        {
+          "url": "/Game/Nonogram/images/26.bmp",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "path": "Game/PartyGames/index.html",
+      "status": 200,
+      "title": "みんなのミニゲーム集",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/Prism/index.html",
+      "status": 200,
+      "title": "PRISM — 光を導くパズル",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/puzzle/index.html",
+      "status": 200,
+      "title": "Puzzle",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/ShelteredGirl/index.html",
+      "status": 200,
+      "title": "箱入り娘",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/StarSproutGarden/index.html",
+      "status": 200,
+      "title": "星の芽の庭 | STARSPROUT GARDEN",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Game/Synesthesia/index.html",
+      "status": 200,
+      "title": "SYNESTHESIA — 音が光になるリズムゲーム",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Image/AlphaTool/index.html",
+      "status": 200,
+      "title": "Magic Transparency Tool",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Image/CreateColorPalette/index.html",
+      "status": 200,
+      "title": "カラーパレット抽出",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Image/EditSVG/index.html",
+      "status": 200,
+      "title": "SVG Editor",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Image/Image2Video/index.html",
+      "status": 200,
+      "title": "画像→動画生成ツール",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Image/ImageEffectLayerTool/index.html",
+      "status": 200,
+      "title": "PRISM — レイヤー画像エディタ",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Image/Line2AlphaConverter/index.html",
+      "status": 200,
+      "title": "Line Alpha Tool",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Image/MosaicMask/index.html",
+      "status": 200,
+      "title": "モザイク領域マスク作成ツール",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Image/PixelArtMaker/index.html",
+      "status": 200,
+      "title": "ドット絵メーカー",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Image/PixelWorkbench/index.html",
+      "status": 200,
+      "title": "Pixel Workbench — ドット絵の確認台",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Image/Resize/index.html",
+      "status": 200,
+      "title": "画像リサイズツール",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Image/Video2Image/index.html",
+      "status": 200,
+      "title": "Video Frame Extractor",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Utility/CSSDiffRemovalTool/index.html",
+      "status": 200,
+      "title": "CSS重複削除ツール",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Utility/DepthPreview/index.html",
+      "status": 200,
+      "title": "深度マッププレビュー＆一括ZIP",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Utility/FileLedger/index.html",
+      "status": 200,
+      "title": "ファイル台帳と差分チェック | rirtir",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Utility/GohanRoulette/index.html",
+      "status": 200,
+      "title": "ご飯ルーレット",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Utility/jsonl2graph/index.html",
+      "status": 200,
+      "title": "Training Log Viewer",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Utility/MediaConverter/index.html",
+      "status": 200,
+      "title": "メディア変換ツール",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Utility/PDFJoiner/index.html",
+      "status": 200,
+      "title": "PDF結合・分割ツール",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Utility/RealEstate10Kcreatemeta/index.html",
+      "status": 200,
+      "title": "FOV → RE10K Generator",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    },
+    {
+      "path": "Utility/RoundRobinString/index.html",
+      "status": 200,
+      "title": "変数展開ツール",
+      "desktopOverflow": false,
+      "mobileOverflow": false,
+      "errors": [],
+      "failed": []
+    }
+  ]
+}
