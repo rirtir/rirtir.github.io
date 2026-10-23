@@ -101,6 +101,7 @@ SVGをドラッグ&ドロップ<br>
 </div>
 
 <button id="download">Download SVG</button>
+<p id="status" role="status" aria-live="polite"></p>
 
 <div class="scrollBox" id="layerList"></div>
 
@@ -113,6 +114,7 @@ SVGをドラッグ&ドロップ<br>
 
 </div>
 
+<script src="./sanitize-svg.js"></script>
 <script>
 
 // =====================
@@ -176,15 +178,21 @@ const reader = new FileReader()
 
 reader.onload = e=>{
 
-svgCanvas.innerHTML = ""
-svgCanvas.setAttribute("width", "100%")
-svgCanvas.setAttribute("height", "100%")
-svgCanvas.setAttribute("preserveAspectRatio", "xMidYMid meet")
-
 const parser = new DOMParser()
 const doc = parser.parseFromString(e.target.result,"image/svg+xml")
 
 const imported = doc.documentElement
+if(doc.querySelector("parsererror") || imported.localName!=="svg"){
+document.getElementById("status").textContent="SVGを読み込めませんでした"
+return
+}
+const removed = sanitizeSVG(imported)
+document.getElementById("status").textContent = removed ? `安全のため、スクリプトなど${removed}か所を取り除いて読み込みました` : ""
+
+svgCanvas.innerHTML = ""
+svgCanvas.setAttribute("width", "100%")
+svgCanvas.setAttribute("height", "100%")
+svgCanvas.setAttribute("preserveAspectRatio", "xMidYMid meet")
 
 // 子要素だけ使う
 elements = Array.from(imported.children)

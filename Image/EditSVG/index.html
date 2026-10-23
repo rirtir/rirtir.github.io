@@ -114,6 +114,7 @@ SVGをドラッグ&ドロップ<br>
 
 </div>
 
+<script src="./sanitize-svg.js"></script>
 <script>
 
 // =====================
@@ -180,7 +181,8 @@ return
 }
 selected=null
 stopAction()
-document.getElementById("status").textContent=""
+const removed = sanitizeSVG(imported)
+document.getElementById("status").textContent = removed ? `安全のため、スクリプトなど${removed}か所を取り除いて読み込みました` : ""
 for(const attr of Array.from(svgCanvas.attributes))if(!["id","width","height"].includes(attr.name))svgCanvas.removeAttribute(attr.name)
 for(const attr of Array.from(imported.attributes))if(!["id","width","height"].includes(attr.name))svgCanvas.setAttributeNS(attr.namespaceURI,attr.name,attr.value)
 

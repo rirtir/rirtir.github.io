@@ -1,12 +1,20 @@
 import * as pdfjsLib from './vendor/pdf.min.mjs';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';
+// 日本語フォントを埋め込んでいないPDFや特殊な画像形式もプレビューできるよう、補助データを同梱している。
+const pdfjsAssets = new URL('./vendor/pdfjs/', import.meta.url).href;
 const { PDFDocument, degrees, PDFName } = window.PDFLib;
 const dropArea = document.getElementById('dropArea');
 const fileInput = document.getElementById('fileInput');
 const pagesDiv = document.getElementById('pages');
 const downloadBtn = document.getElementById('downloadBtn');
 const status = document.getElementById('status');
+const passwordDialog = document.getElementById('passwordDialog');
+const passwordMessage = document.getElementById('passwordMessage');
+const passwordInput = document.getElementById('passwordInput');
+const passwordError = document.getElementById('passwordError');
+const protectOutput = document.getElementById('protectOutput');
+const outputPassword = document.getElementById('outputPassword');
 let pages = [];
 let nextId = 1;
 let pendingLoads = 0;
@@ -22,11 +30,52 @@ function message(text, error = false) {
 function syncControls() {
   const busy = pendingLoads > 0 || exporting;
   downloadBtn.disabled = busy || pages.length === 0;
-  document.querySelectorAll('.page button, input[name="sizeMode"]').forEach(el => { el.disabled = busy; });
+  document.querySelectorAll('.page button, input[name="sizeMode"], #protectOutput, #outputPassword').forEach(el => { el.disabled = busy; });
   pagesDiv.setAttribute('aria-busy', String(busy));
 }
 
 function totalRotation(p) { return (p.sourceRotation + p.rotation) % 360; }
+
+// 入力を待つ。「追加しない」やEscでは null を返す。
+function askPassword(name, wrong) {
+  return new Promise(resolve => {
+    passwordMessage.textContent = `「${name}」はパスワードで保護されています。`;
+    passwordError.hidden = !wrong;
+    passwordInput.value = '';
+    passwordDialog.returnValue = '';
+    passwordDialog.addEventListener('close', () => {
+      const value = passwordInput.value;
+      passwordInput.value = '';
+      resolve(passwordDialog.returnValue === 'open' ? value : null);
+    }, { once: true });
+    passwordDialog.showModal();
+    passwordInput.focus();
+  });
+}
+
+document.getElementById('passwordSkip').onclick = () => passwordDialog.close('skip');
+
+function isPasswordError(error) { return /NEEDS PASSWORD|Password incorrect/.test(error?.message || ''); }
+
+// 暗号化PDFは復号して読み込む。閲覧パスワードのない（印刷禁止などの制限だけの）PDFは空のパスワードで開ける。
+async function openDocument(bytes, name) {
+  const probe = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  if (!probe.isEncrypted) return { document: probe, password: undefined };
+  try {
+    return { document: await PDFDocument.load(bytes, { password: '' }), password: '' };
+  } catch (error) {
+    if (!isPasswordError(error)) throw error;
+  }
+  for (let wrong = false; ; wrong = true) {
+    const password = await askPassword(name, wrong);
+    if (password === null) throw Object.assign(new Error('スキップ'), { skipped: true });
+    try {
+      return { document: await PDFDocument.load(bytes, { password }), password };
+    } catch (error) {
+      if (!isPasswordError(error)) throw error;
+    }
+  }
+}
 
 function drawPreview(p, canvas) {
   // 同一ファイルのPDFは一度だけ開き、描画も順番に行う。古いcanvasには描画しない。
@@ -38,7 +87,7 @@ function drawPreview(p, canvas) {
     if (!canvas.isConnected) return;
     canvas.width = Math.ceil(viewport.width);
     canvas.height = Math.ceil(viewport.height);
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    await page.render({ canvas, viewport }).promise;
     canvas.dataset.ready = 'true';
   }).catch(error => {
     if (canvas.isConnected) {
@@ -122,6 +171,8 @@ function enqueueFiles(input) {
   syncControls();
   loadQueue = loadQueue.then(async () => {
     const failures = [];
+    const skipped = [];
+    let unlocked = 0;
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       message(`読込中 ${i + 1}/${files.length}: ${file.name}`);
@@ -129,10 +180,18 @@ function enqueueFiles(input) {
       try {
         if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') throw new Error('PDFを選択してください');
         const bytes = new Uint8Array(await file.arrayBuffer());
-        // 暗号化PDFは保存時に壊さないよう、追加時に扱えないことを知らせる。
-        const document = await PDFDocument.load(bytes);
-        preview = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
-        const source = { bytes, document, preview, name: file.name };
+        const { document, password } = await openDocument(bytes, file.name);
+        // pdf.js はデータをワーカーへ移すので複製を渡す。
+        preview = await pdfjsLib.getDocument({
+          data: bytes.slice(),
+          password,
+          cMapUrl: pdfjsAssets + 'cmaps/',
+          standardFontDataUrl: pdfjsAssets + 'standard_fonts/',
+          wasmUrl: pdfjsAssets + 'wasm/',
+          iccUrl: pdfjsAssets + 'iccs/',
+        }).promise;
+        if (password !== undefined) unlocked++;
+        const source = { document, preview, name: file.name };
         const added = [];
         for (let pageIndex = 0; pageIndex < preview.numPages; pageIndex++) {
           const original = await preview.getPage(pageIndex + 1);
@@ -141,11 +200,14 @@ function enqueueFiles(input) {
         pages.push(...added);
       } catch (error) {
         if (preview) await preview.destroy();
-        failures.push(`${file.name}: ${error.message}`);
+        if (error.skipped) skipped.push(file.name);
+        else failures.push(`${file.name}: ${error.message}`);
       }
     }
     render();
-    message(`${pages.length}ページを保存できます。${failures.length ? ' 読込失敗: ' + failures.join(' / ') : ''}`, failures.length > 0);
+    const unlockedNote = unlocked ? ` 保護されたPDF ${unlocked}件を解除して読み込みました（保存するPDFには、下で指定しない限りパスワードは付きません）。` : '';
+    const skippedNote = skipped.length ? ` 追加しなかったファイル: ${skipped.join(' / ')}` : '';
+    message(`${pages.length}ページを保存できます。${unlockedNote}${skippedNote}${failures.length ? ' 読込失敗: ' + failures.join(' / ') : ''}`, failures.length > 0);
   }).catch(error => message(`読込に失敗しました: ${error.message}`, true)).finally(() => {
     pendingLoads--;
     syncControls();
@@ -158,8 +220,18 @@ fileInput.onchange = () => { enqueueFiles(fileInput.files); fileInput.value = ''
 dropArea.ondragover = e => e.preventDefault();
 dropArea.ondrop = e => { e.preventDefault(); enqueueFiles(e.dataTransfer.files); };
 
+protectOutput.onchange = () => {
+  outputPassword.hidden = !protectOutput.checked;
+  if (protectOutput.checked) outputPassword.focus();
+};
+
 downloadBtn.onclick = async () => {
   if (pendingLoads || exporting || !pages.length) return;
+  if (protectOutput.checked && !outputPassword.value) {
+    message('保存するPDFのパスワードを入力してください。', true);
+    outputPassword.focus();
+    return;
+  }
   exporting = true;
   syncControls();
   message('PDFを作成中…');
@@ -193,6 +265,15 @@ downloadBtn.onclick = async () => {
       }
       out.addPage(copy);
     }
+    if (protectOutput.checked) {
+      // 開くときのパスワードだけを付け、開いた後の印刷やコピーは制限しない。
+      const password = outputPassword.value;
+      out.encrypt({
+        userPassword: password,
+        ownerPassword: password,
+        permissions: { printing: 'highResolution', modifying: true, copying: true, annotating: true, fillingForms: true, contentAccessibility: true, documentAssembly: true },
+      });
+    }
     const blob = new Blob([await out.save()], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -200,7 +281,7 @@ downloadBtn.onclick = async () => {
     a.download = 'merged.pdf';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    message(`${pages.length}ページのPDFを保存しました。`);
+    message(`${pages.length}ページのPDFを${protectOutput.checked ? 'パスワード付きで' : ''}保存しました。`);
   } catch (error) {
     message(`PDFを作成できませんでした: ${error.message}`, true);
   } finally {

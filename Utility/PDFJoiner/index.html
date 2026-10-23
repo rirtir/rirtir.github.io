@@ -22,6 +22,14 @@
 .error{color:#b42318}
 .hint{font-size:13px;color:#555;line-height:1.6}
 button:disabled{opacity:.5;cursor:default}
+.protect{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 16px}
+.protect input[type=password]{padding:6px 8px;font-size:15px;min-width:0;max-width:100%}
+#passwordDialog{border:1px solid #ccc;border-radius:10px;padding:20px;max-width:min(400px,calc(100vw - 32px));box-sizing:border-box}
+#passwordDialog::backdrop{background:rgba(0,0,0,.4)}
+#passwordDialog h2{margin:0 0 8px;font-size:18px}
+#passwordDialog p{margin:0 0 10px;overflow-wrap:anywhere}
+#passwordInput{width:100%;box-sizing:border-box;padding:8px;font-size:16px;margin-bottom:10px}
+.dialog-buttons{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
 @media(max-width:480px){.page{width:calc(50% - 6px);padding:7px}.controls button{padding:6px}.controls .move{flex:1}}
 </style>
 </head>
@@ -30,7 +38,7 @@ button:disabled{opacity:.5;cursor:default}
 <h1>PDF結合・分割ツール</h1>
 <div id="dropArea" role="button" tabindex="0">PDFをドラッグ＆ドロップ またはクリック（複数可）</div>
 <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple hidden>
-<p class="hint">追加した順に結合します。不要なページを削除して一部だけ保存できます。並べ替えはドラッグ、または各ページの矢印で操作できます。</p>
+<p class="hint">追加した順に結合します。不要なページを削除して一部だけ保存できます。並べ替えはドラッグ、または各ページの矢印で操作できます。パスワードで保護されたPDFも、パスワードを入力すれば読み込めます。</p>
 <p id="status" role="status" aria-live="polite">PDFを追加してください。ファイルは外部に送信されません。</p>
 <div id="pages" aria-label="保存するページ"></div>
 <div class="size-options" role="group" aria-label="ページサイズ">
@@ -38,9 +46,25 @@ button:disabled{opacity:.5;cursor:default}
 <label><input type="radio" name="sizeMode" value="fitWidth"> 幅を統一</label>
 <label><input type="radio" name="sizeMode" value="fitHeight"> 高さを統一</label>
 </div>
+<div class="protect">
+<label><input type="checkbox" id="protectOutput"> 保存するPDFにパスワードを付ける</label>
+<input type="password" id="outputPassword" autocomplete="new-password" aria-label="保存するPDFのパスワード" placeholder="パスワード" hidden>
+</div>
 <button id="downloadBtn" disabled>PDFをダウンロード</button>
 <noscript>JavaScriptを有効にすると利用できます。</noscript>
 </main>
+<dialog id="passwordDialog" aria-labelledby="passwordTitle">
+<form method="dialog">
+<h2 id="passwordTitle">パスワードを入力</h2>
+<p id="passwordMessage"></p>
+<input type="password" id="passwordInput" autocomplete="off" aria-label="PDFのパスワード" aria-describedby="passwordMessage passwordError">
+<p id="passwordError" class="error" hidden>パスワードが違います。もう一度入力してください。</p>
+<div class="dialog-buttons">
+<button type="button" id="passwordSkip">このファイルを追加しない</button>
+<button value="open">開く</button>
+</div>
+</form>
+</dialog>
 <script src="./vendor/pdf-lib.min.js"></script>
 <script type="module" src="./app.js"></script>
 </body>
