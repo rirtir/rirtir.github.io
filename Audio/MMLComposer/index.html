@@ -186,6 +186,7 @@ details code{background:#2a3544;color:#ffcf7a}
 details summary,details h3{color:#ffcf7a}
 .hint,.note,.trk-body,.out .stat{color:var(--sub)}
 .trk-body .vol b{color:#fff}
+.trk-body select[data-act=inst]{flex:1 1 100%;min-width:0;max-width:100%;text-overflow:ellipsis}
 .parts{border-top:1px dashed var(--line)}
 .msg{color:#5fd6a0}
 .panel .row button{flex:1;width:auto;margin:0;padding:6px 8px}
@@ -319,6 +320,15 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
           </select></div>
         <div class="row"><span></span><button data-mv="t:-1" title="早める（Alt+←）">◀ 早める</button><button data-mv="t:1" title="遅める（Alt+→）">遅める ▶</button></div>
       </div>
+
+      <div class="panel" id="swPanel">
+        <b class="t">⇄ パートを入れ替える</b>
+        <div class="row"><span>A</span><select id="swA"></select></div>
+        <div class="row"><span>B</span><select id="swB"></select></div>
+        <label class="chk" title="オンにすると、音符だけでなく、音量・楽器・ミュート／ソロも入れ替えます"><input type="checkbox" id="swAll">音量・楽器なども一緒に入れ替える</label>
+        <button id="swGo">AとBを入れ替える</button>
+        <p class="note">例：メロディと和音2を入れ替えると、今のメロディの音符が和音2に、和音2の音符がメロディになります。</p>
+      </div>
     </aside>
 
     <section class="rollbox">
@@ -371,6 +381,8 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
       <li>ファイル：「💾 ファイルに保存」で今のMMLをテキストファイル（.txt）にします（Chrome／Edgeでは保存先を選べます）。「📂 ファイルを読み込む」、またはファイルをページにドラッグ＆ドロップで、MMLの書かれたテキストを読み込んで編集できます。</li>
       <li>曲から譜面（β）：「🎵 曲から譜面（β）」に、MIDIファイル（.mid）や音声ファイル（MP3・WAV等）を渡すと、メロディと和音のパートに分けた譜面を作ります。MIDIはほぼそのまま取り込めます。音声の自動採譜はベータ版で、単音のメロディなど単純な曲向きです。</li>
       <li>全体を動かす：左の「↕ 全体を動かす」で、今のパート（または選んだ音だけ／全パート）をまとめて、半音・1オクターブ単位で上下、32分〜1小節単位で早く／遅くできます。Alt+↑↓で半音、Alt+←→で時間（設定した幅ぶん）でも動かせます。</li>
+      <li>パートの入れ替え：左の「⇄ パートを入れ替える」で、AとBに選んだ2つのパートの音符を入れ替えます（例：メロディ⇔和音2）。「音量・楽器なども一緒に」をオンにすると、音量・楽器・ミュート／ソロも入れ替わります。</li>
+      <li>楽器：「ピアノ（サンプル）」「ナイロンギター」「スチールギター」「ハープ」「バンジョー」「フルート（サンプル）」は、実際の楽器を録音した音源（FluidR3_GM、作者 Frank Wen、MIT License）を使っています。選んだときに自動で読み込みます。マビノギモバイルのマンドリンとは別物ですが、聴き比べの参考にできます。「（簡易合成）」はツール内で作った音です。</li>
       <li>MIDIキーボード：ツールバーの「🎹 MIDIキーボード」を押して許可すると、接続したキーボードで試し弾きできます（Chrome／Edge向け）。今選んでいるパートの楽器と音量で鳴り、弾いた鍵盤は画面の鍵盤にも光ります。サスティンペダルにも対応しています。</li>
       <li>シークバー（再生開始位置・貼り付け位置）：上の目盛りをクリック、またはAキー／Dキーで左右に動かせます（吸着の幅ぶん。Shiftを押すと1小節ずつ）。Home／Endで先頭／最後へ。W／Sキーで編集するパートを上下に切り替えます。</li>
       <li>ショートカット：スペース＝再生／停止、Ctrl+Z／Ctrl+Y＝元に戻す／やり直す、矢印キー＝選択中の音を移動（Shift+↑↓でオクターブ）。</li>
@@ -439,7 +451,12 @@ const MMIN = 24, MMAX = 119;        // C1 〜 B8（MIDIノート番号。o4 の 
 const ROWS = MMAX - MMIN + 1;
 const ROW_H = 16, KEY_W = 60, RULER_H = 24;
 const COLORS = ['#f2a03d', '#3fc79b', '#6aa8f0', '#c18af0', '#f0809e', '#52cfe0', '#d9b84a', '#97a6f7'];
-const INSTS = { mandolin: 'マンドリン風', piano: 'ピアノ風', flute: 'フルート風', pluck: 'リュート風', organ: 'オルガン風', clarinet: 'クラリネット風' };
+const INSTS = {
+  mandolin: 'マンドリン風（ゲームの録音に合わせた合成）',
+  sf_piano: 'ピアノ（サンプル）', sf_nylon: 'ナイロンギター（リュートの代用）', sf_steel: 'スチールギター',
+  sf_harp: 'ハープ（サンプル）', sf_banjo: 'バンジョー（マンドリンに近い撥弦）', sf_flute: 'フルート（サンプル）',
+  piano: 'ピアノ（簡易合成）', flute: 'フルート（簡易合成）', pluck: 'リュート風（簡易合成）', organ: 'オルガン風（簡易合成）', clarinet: 'クラリネット風（簡易合成）',
+};
 const INST_ORDER = ['piano', 'flute', 'pluck', 'organ'];
 const METERS = { '4/4': [192, 48], '3/4': [144, 48], '2/4': [96, 48], '5/4': [240, 48], '6/8': [144, 72], '9/8': [216, 72], '12/8': [288, 72] };
 const PCNAME = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -639,7 +656,10 @@ function totalTicks() {
   const b = barT();
   return Math.max(b * 8, Math.ceil((songEnd() + b * 2) / b) * b);
 }
-function structureChanged() { renderTracks(); notesChanged(); }
+function structureChanged() {
+  renderTracks(); notesChanged();
+  S.tracks.forEach(t => { if (SF_FILES[t.inst] && !SF.banks[t.inst]) sfLoad(t.inst).catch(() => {}); });
+}
 function notesChanged() {
   updateSpacer(); updateOutput(); updateCounts(); requestDraw(); saveSoon();
 }
@@ -712,6 +732,7 @@ function renderTracks() {
   const src = $('hSrc'), keep = src.value;
   src.innerHTML = S.tracks.map((t, i) => '<option value="' + i + '">' + t.name.replace(/</g, '&lt;') + '</option>').join('');
   src.value = keep && keep < S.tracks.length ? keep : '0';
+  renderSwapOptions();
   updateCounts();
 }
 function isAudible(i) {
@@ -751,7 +772,13 @@ $('tracks').addEventListener('change', e => {
   const row = e.target.closest('.trk'); if (!row) return;
   const tr = S.tracks[Number(row.dataset.i)];
   if (e.target.classList.contains('name')) { renderTracks(); }
-  else if (e.target.dataset.act === 'inst') { tr.inst = e.target.value; saveSoon(); preview(60, tr); }
+  else if (e.target.dataset.act === 'inst') {
+    tr.inst = e.target.value; saveSoon();
+    if (SF_FILES[tr.inst] && !SF.banks[tr.inst]) {
+      flash('音色を読み込み中…');
+      sfLoad(tr.inst).then(() => { flash('音色を読み込みました'); preview(60, tr); }).catch(() => flash('音色を読み込めませんでした', true));
+    } else preview(60, tr);
+  }
 });
 $('bAdd').onclick = () => {
   if (S.tracks.length >= MAX_TRACKS) return;
@@ -979,7 +1006,24 @@ function voice(inst, midi, t, dur, vol, dest, nodes, ctx) {
     g.gain.linearRampToValueAtTime(1e-4, t + d + rel);
     return t + d + rel + 0.02;
   };
-  if (inst === 'mandolin') {
+  if (SF_FILES[inst]) {
+    /* 実際の楽器を録音したサンプル（FluidR3_GM）。一番近い音を選び、再生速度を変えて音程を合わせる */
+    const bank = SF.banks[inst];
+    if (!bank) { sfLoad(inst).catch(() => {}); return; }          // まだ読み込み中：今回は鳴らさない
+    let best = bank.list[0];
+    for (const q of bank.list) if (Math.abs(q.m - midi) < Math.abs(best.m - midi)) best = q;
+    const rate = Math.pow(2, (midi - best.m) / 12);
+    const src = add(c.createBufferSource()); src.buffer = best.buf; src.playbackRate.value = rate;
+    src.connect(g);
+    const level = peak * bank.gain, sampleEnd = t + best.buf.duration / rate;
+    const rel = inst === 'sf_flute' ? 0.09 : 0.18;
+    const hold = Math.max(t + 0.01, Math.min(t + Math.max(dur, 0.05), sampleEnd - 0.05));
+    g.gain.setValueAtTime(level, t);
+    g.gain.setValueAtTime(level, hold);
+    g.gain.linearRampToValueAtTime(0.0001, hold + rel);
+    end = Math.min(sampleEnd, hold + rel) + 0.02;
+    src.start(t); src.stop(end);
+  } else if (inst === 'mandolin') {
     /* マンドリン：ゲーム内の録音の計測値に合わせた音色。
        ほぼ正弦波＋少しの倍音（音域で2種類）、約0.04秒で立ち上がり、2段階でゆっくり減衰、音の終わりで短く切れる */
     const o = add(c.createOscillator());
@@ -1044,6 +1088,28 @@ function voice(inst, midi, t, dur, vol, dest, nodes, ctx) {
     end = sus(0.04, 0.06);
     o.start(t); o.stop(end);
   }
+}
+/* サンプル音源（samples/*.json）：必要になったときに読み込み、デコードして保持する */
+const SF_FILES = { sf_piano: 'piano', sf_nylon: 'nylon', sf_steel: 'steel', sf_harp: 'harp', sf_banjo: 'banjo', sf_flute: 'flute' };
+const SF = { banks: {}, loading: {} };
+function sfLoad(inst) {
+  if (SF.banks[inst]) return Promise.resolve(SF.banks[inst]);
+  if (SF.loading[inst]) return SF.loading[inst];
+  const dec = new OfflineAudioContext(1, 1, 44100);          // デコード専用（ユーザー操作の前でも使える）
+  SF.loading[inst] = fetch('./samples/' + SF_FILES[inst] + '.json')
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(async j => {
+      const list = await Promise.all(Object.keys(j.notes).map(async k => {
+        const bin = atob(j.notes[k]), u = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+        return { m: Number(k), buf: await dec.decodeAudioData(u.buffer) };
+      }));
+      list.sort((a, b) => a.m - b.m);
+      SF.banks[inst] = { gain: j.gain, list }; delete SF.loading[inst]; requestDraw();
+      return SF.banks[inst];
+    })
+    .catch(e => { delete SF.loading[inst]; throw e; });
+  return SF.loading[inst];
 }
 /* ゲーム内マンドリンの倍音の強さ（dB）。低め／高めの音域で別々に計測 */
 const MANDO_HARM = [
@@ -1125,6 +1191,12 @@ function pump() {
 function play() {
   const c = audio();
   if (S.playing) return;
+  const need = [...new Set(S.tracks.filter((t, i) => isAudible(i)).map(t => t.inst))].filter(k => SF_FILES[k] && !SF.banks[k]);
+  if (need.length) {                                         // 音色の読み込みが終わってから再生する
+    flash('音色を読み込み中…');
+    Promise.all(need.map(sfLoad)).then(() => { flash('音色を読み込みました'); play(); }).catch(() => flash('音色を読み込めませんでした', true));
+    return;
+  }
   const end = songEnd();
   if (!end) { flash('音を置いてから再生してください', true); return; }
   if (S.cursor >= end) S.cursor = 0;
@@ -1441,6 +1513,27 @@ function endDrag(e) {
 scroller.addEventListener('pointerup', endDrag);
 scroller.addEventListener('pointercancel', endDrag);
 scroller.addEventListener('pointerleave', () => { if (!drag && S.hoverRow !== -1) { S.hoverRow = -1; requestDraw(); } });
+
+/* ================= パートの入れ替え ================= */
+function renderSwapOptions() {
+  const a = $('swA'), b = $('swB'), ka = a.value, kb = b.value;
+  const html = S.tracks.map((t, i) => '<option value="' + i + '">' + t.name.replace(/</g, '&lt;') + '</option>').join('');
+  a.innerHTML = html; b.innerHTML = html;
+  a.value = ka !== '' && Number(ka) < S.tracks.length ? ka : String(S.cur);
+  b.value = kb !== '' && Number(kb) < S.tracks.length && kb !== a.value ? kb : String(S.tracks.length > 1 ? (Number(a.value) === 0 ? 1 : 0) : 0);
+}
+function swapParts() {
+  const i = Number($('swA').value), j = Number($('swB').value);
+  if (i === j) { flash('AとBに別のパートを選んでください', true); return; }
+  const A = S.tracks[i], B = S.tracks[j], all = $('swAll').checked;
+  edit(() => {
+    [A.notes, B.notes] = [B.notes, A.notes];
+    if (all) for (const k of ['vol', 'inst', 'mute', 'solo']) [A[k], B[k]] = [B[k], A[k]];
+    S.sel = [];
+  });
+  flash('「' + A.name + '」と「' + B.name + '」を入れ替えました（元に戻すで戻せます）');
+}
+$('swGo').onclick = swapParts;
 
 /* ================= パート全体の移動（音程・時間） ================= */
 function moveNotes(dp, dir) {
@@ -2083,6 +2176,7 @@ function init() {
   try { migrated = !!localStorage.getItem('mmlcomposer.mandolin'); localStorage.setItem('mmlcomposer.mandolin', '1'); } catch (e) { migrated = true; }
   S.tracks.forEach((t, i) => { t.inst = !migrated ? 'mandolin' : INSTS[t.inst] ? t.inst : 'mandolin'; });
   $('iTempo').value = S.tempo; $('sMeter').value = S.meter;
+  new Set(S.tracks.map(t => t.inst)).forEach(k => { if (SF_FILES[k]) sfLoad(k).catch(() => {}); });
   syncLen(); updateUndoButtons();
   structureChanged();
   resize();
@@ -2092,7 +2186,7 @@ function init() {
   scroller.scrollTop = Math.max(0, RULER_H + (MMAX - mid) * ROW_H - ($('roll').clientHeight / 2));
 }
 init();
-window.__mml = { imp, voice, parseSMF, layerSplit, transcribeAudio, estimateTempo, coherence, TR, midiMessage, audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
+window.__mml = { SF, imp, voice, parseSMF, layerSplit, transcribeAudio, estimateTempo, coherence, TR, midiMessage, audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
 })();
 </script>
 </body>
