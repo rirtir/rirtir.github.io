@@ -89,7 +89,7 @@ def parse_part(text, offset, part_index):
                 last['char_end'] = offset + i
             else:
                 last = dict(part=part_index, pitch=pitch, start=t, dur=ticks, vol=vol, ties=1,
-                            char_start=offset + start_i, char_end=offset + i)
+                            char_start=offset + start_i, char_end=offset + i, deflen=(L, Ldots))
                 notes.append(last)
             tie_pending = False
             t += ticks

@@ -257,6 +257,34 @@ def cmd_setup(args):
     do_learn(x, Score(mml))
 
 
+def cmd_desync(args):
+    """音抜け対策：同じ音域の音が同時に始まる所だけ、後ろのパートの音を1/64ずらしたMMLを作る"""
+    import collections
+    import desync
+    raw = open(args.input, 'rb').read()
+    for enc in ('utf-8-sig', 'cp932'):
+        try:
+            text = raw.decode(enc).strip()
+            break
+        except UnicodeDecodeError:
+            continue
+    sc = Score(text)
+    new, rep = desync.desync(text)
+    bad = desync.verify(text, new)
+    print(f'元: {sc.n_parts}パート・音{len(sc.notes)}個・{len(text)}文字')
+    print(f'同じ音域の音が同時に始まる所: {rep["conflicts"]}か所 → ずらした音 {rep["shifted"]}個（パート別 {dict(sorted(rep["by_part"].items()))}）、ずらせなかった音 {len(rep["skipped"])}個')
+    print(f'加工後: {len(new)}文字（{len(new) - len(text):+d}文字）')
+    if bad:
+        print('検証で問題が見つかったので、保存しません:')
+        for b_ in bad:
+            print('  ', b_)
+        return
+    print('検証: 問題なし')
+    if args.output:
+        open(args.output, 'w', encoding='utf-8', newline='').write(new)
+        print('保存:', args.output)
+
+
 def cmd_probes(args):
     P = probes.all_probes()
     for p in P.values():
@@ -362,6 +390,10 @@ def main():
     su.add_argument('--auto-stop', type=float, default=4.0)
     su.add_argument('--no-auto-stop', action='store_true')
     su.set_defaults(fn=cmd_setup)
+    ds = sub.add_parser('desync', help='音抜け対策：同じ音域の同時開始を、1/64ずらしたMMLを作る')
+    ds.add_argument('input', help='元のMMLのテキストファイル')
+    ds.add_argument('-o', '--output', help='保存先')
+    ds.set_defaults(fn=cmd_desync)
     sub.add_parser('open-latest', help='最新の結果（図）をブラウザで開く').set_defaults(fn=cmd_open_latest)
     sub.add_parser('devices', help='録音できる出力先の一覧').set_defaults(fn=lambda a: recorder.list_devices())
     c = sub.add_parser('calibrate', help='ゲームの音が出ている出力先を自動で探して覚える')
