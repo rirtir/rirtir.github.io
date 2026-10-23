@@ -228,6 +228,22 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
 .midi-st.ok{color:#5fd6a0;font-weight:bold}
 .msg.err{color:var(--danger)}
 .out .stat.warn{color:var(--danger)}
+
+/* ===== 集中モード：タイトル・出力欄・説明を隠し、画面いっぱいに編集する ===== */
+body.focus{overflow:hidden;height:100vh}
+body.focus header,body.focus .out,body.focus details,body.focus .hint{display:none}
+body.focus .wrap{max-width:none;height:100vh;padding:6px 8px;display:flex;flex-direction:column}
+body.focus .toolbar{margin-bottom:6px;flex:none}
+body.focus .main{--h:auto;flex:1 1 0;min-height:0;align-items:stretch}
+body.focus .side{height:auto}
+body.focus .rollbox{min-height:0}
+body.focus .roll{height:auto;flex:1 1 0;min-height:0}
+@media (max-width:860px){
+  body.focus .main{flex-direction:column}
+  body.focus .toolbar{max-height:26vh;overflow-y:auto}
+  body.focus .side{max-height:22vh;overflow-y:auto}
+  body.focus .roll{flex:1 1 0;height:auto}
+}
 </style>
 </head>
 <body>
@@ -243,6 +259,7 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
       <button id="bPlay" class="primary" title="再生／停止（スペースキー）">▶ 再生</button>
       <button id="bHome" title="先頭に戻る">⏮</button>
       <label class="chk" title="曲の最後まで再生したら先頭から繰り返します"><input type="checkbox" id="cLoop">ループ</label>
+      <button id="bFocus" title="タイトルや出力欄を隠して、全画面で編集します（Fキー。やめるときはもう一度押すかEsc）">⛶ 集中モード</button>
     </div>
     <div class="sep"></div>
     <div class="grp">
@@ -415,6 +432,7 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
       <li>曲から譜面（β）：「🎵 曲から譜面（β）」に、MIDIファイル（.mid）や音声ファイル（MP3・WAV等）を渡すと、メロディと和音のパートに分けた譜面を作ります。MIDIはほぼそのまま取り込めます。音声の自動採譜はベータ版で、単音のメロディなど単純な曲向きです。</li>
       <li>全体を動かす：左の「↕ 全体を動かす」で、今のパート（または選んだ音だけ／全パート）をまとめて、半音・1オクターブ単位で上下、32分〜1小節単位で早く／遅くできます。Alt+↑↓で半音、Alt+←→で時間（設定した幅ぶん）でも動かせます。</li>
       <li>音域と音抜け対策：ピアノロールに、ゲームの<b>3つの音域</b>（低：D#4以下／中：E4〜E5／高：F5以上）を色で表示します。同じ音域の音が同時に始まると、前のパートの音が約1/4の確率で鳴らなくなるので、そういう音に赤い点を付けます。左の「🛡 音抜け対策」の「ずらす」で、後ろのパートの音を1/64音符だけ遅らせて防げます（再生とMMLの出力だけずらす方式と、エディタ上で実際にずらす方式を選べます）。</li>
+      <li>集中モード：左上の「⛶ 集中モード」（またはFキー）で、タイトル・出力欄・説明を隠し、全画面でピアノロールを広く使えます。やめるときは、もう一度押すか、Escキーを押してください。出力したいときは、いったんやめてください。</li>
       <li>ピアノロールの縦スクロール：ピアノロールは、音を置ける範囲（C1〜B8）の上下に余白があり、ホイールで好きな位置までスクロールできます。余白（暗い部分）には音を置けません。作曲に使う音域を、見やすい位置に動かしてください。</li>
       <li>文字数の上限：マビノギモバイルは<b>各パート2400文字まで</b>です。超えたパートは赤く表示し、出力欄の上に警告を出します（パートの文字数は、左のパート一覧と、出力欄の「パートごとにコピー」に出ています）。</li>
       <li>パートの入れ替え：左の「⇄ パートを入れ替える」で、AとBに選んだ2つのパートの音符を入れ替えます（例：メロディ⇔和音2）。「音量・楽器なども一緒に」をオンにすると、音量・楽器・ミュート／ソロも入れ替わります。</li>
@@ -779,6 +797,20 @@ function updateCounts() {
     w.style.display = 'none';
   }
 }
+/* 集中モード：全画面にして、編集に要らない部分を隠す。全画面にできない環境では、画面内だけで切り替える */
+function setFocus(on, fromFs) {
+  document.body.classList.toggle('focus', on);
+  $('bFocus').textContent = on ? '✕ 集中モードをやめる' : '⛶ 集中モード';
+  $('bFocus').classList.toggle('on', on);
+  if (!fromFs) {
+    try {
+      if (on && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+      else if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    } catch (e) {}
+  }
+  window.scrollTo(0, 0);
+  setTimeout(() => { resize(); requestDraw(); }, 50);
+}
 function flash(text, err) {
   const m = $('msg'); m.textContent = text; m.classList.toggle('err', !!err);
   clearTimeout(flash.t); flash.t = setTimeout(() => { m.textContent = ''; }, 3500);
@@ -958,6 +990,8 @@ $('hGo').onclick = () => {
   $('iLimit').onchange = e => { S.limit = Math.max(0, Number(e.target.value) || 0); updateCounts(); };
   $('bUndo').onclick = undo; $('bRedo').onclick = redo;
   $('bPlay').onclick = () => S.playing ? stop() : play();
+  $('bFocus').onclick = () => setFocus(!document.body.classList.contains('focus'));
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && document.body.classList.contains('focus')) setFocus(false, true); });
   $('bHome').onclick = () => { const was = S.playing; stop(); S.cursor = 0; S.head = 0; scroller.scrollLeft = 0; requestDraw(); if (was) play(); };
   $('bNew').onclick = () => {
     if (S.tracks.some(t => t.notes.length) && !confirm('今の曲を消して新しく始めますか？（元に戻すで復元できます）')) return;
@@ -1736,6 +1770,8 @@ document.addEventListener('keydown', e => {
     const base = Math.round((S.playing ? S.head : S.cursor) / g) * g;
     seekTo(base + (kl === 'd' ? g : -g)); return;
   }
+  if (kl === 'f') { e.preventDefault(); setFocus(!document.body.classList.contains('focus')); return; }
+  if (k === 'Escape' && document.body.classList.contains('focus') && !S.sel.length) { setFocus(false); return; }
   if (k === 'Home') { e.preventDefault(); seekTo(0); return; }
   if (k === 'End') { e.preventDefault(); seekTo(songEnd()); return; }
   if ((kl === 'w' || kl === 's') && !e.repeat) {             // W/S：編集するパートを上下に切り替え
