@@ -90,7 +90,7 @@ input[type=number]{width:64px}
   position:relative;flex:1 1 auto;min-height:340px;max-height:1640px;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;
 }
 .roll canvas{position:absolute;left:0;top:0;width:100%;height:100%}
-.scroller{position:absolute;inset:0;overflow:auto;overscroll-behavior:contain}
+.scroller{position:absolute;inset:0;overflow:auto;overscroll-behavior-x:contain;overscroll-behavior-y:auto}
 .scroller.edit{touch-action:none}
 .spacer{pointer-events:none}
 .hint{font-size:12px;color:var(--sub);margin:4px 2px 0}
@@ -412,6 +412,7 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
       <li>曲から譜面（β）：「🎵 曲から譜面（β）」に、MIDIファイル（.mid）や音声ファイル（MP3・WAV等）を渡すと、メロディと和音のパートに分けた譜面を作ります。MIDIはほぼそのまま取り込めます。音声の自動採譜はベータ版で、単音のメロディなど単純な曲向きです。</li>
       <li>全体を動かす：左の「↕ 全体を動かす」で、今のパート（または選んだ音だけ／全パート）をまとめて、半音・1オクターブ単位で上下、32分〜1小節単位で早く／遅くできます。Alt+↑↓で半音、Alt+←→で時間（設定した幅ぶん）でも動かせます。</li>
       <li>音域と音抜け対策：ピアノロールに、ゲームの<b>3つの音域</b>（低：D#4以下／中：E4〜E5／高：F5以上）を色で表示します。同じ音域の音が同時に始まると、前のパートの音が約1/4の確率で鳴らなくなるので、そういう音に赤い点を付けます。左の「🛡 音抜け対策」の「ずらす」で、後ろのパートの音を1/64音符だけ遅らせて防げます（再生とMMLの出力だけずらす方式と、エディタ上で実際にずらす方式を選べます）。</li>
+      <li>ピアノロールの縦スクロール：ピアノロールは、音を置ける範囲（C1〜B8）の上下に余白があり、ホイールで好きな位置までスクロールできます。余白（暗い部分）には音を置けません。作曲に使う音域を、見やすい位置に動かしてください。</li>
       <li>文字数の上限：マビノギモバイルは<b>各パート2400文字まで</b>です。超えたパートは赤く表示し、出力欄の上に警告を出します（パートの文字数は、左のパート一覧と、出力欄の「パートごとにコピー」に出ています）。</li>
       <li>パートの入れ替え：左の「⇄ パートを入れ替える」で、AとBに選んだ2つのパートの音符を入れ替えます（例：メロディ⇔和音2）。「音量・楽器なども一緒に」をオンにすると、音量・楽器・ミュート／ソロも入れ替わります。</li>
       <li>楽器：「ピアノ（サンプル）」「ナイロンギター」「スチールギター」「ハープ」「バンジョー」「フルート（サンプル）」は、実際の楽器を録音した音源（FluidR3_GM、作者 Frank Wen、MIT License）を使っています。選んだときに自動で読み込みます。マビノギモバイルのマンドリンとは別物ですが、聴き比べの参考にできます。「（簡易合成）」はツール内で作った音です。</li>
@@ -482,6 +483,7 @@ const TPW = 192;                    // 全音符 = 192 tick（64分=3, 3連32分
 const MMIN = 24, MMAX = 119;        // C1 〜 B8（MIDIノート番号。o4 の c = 60）
 const ROWS = MMAX - MMIN + 1;
 const ROW_H = 16, KEY_W = 60, RULER_H = 24;
+let padV = 0;        // 音を置ける範囲（C1〜B8）の上下に足す余白（px）。ここは暗く表示し、編集できない
 const COLORS = ['#f2a03d', '#3fc79b', '#6aa8f0', '#c18af0', '#f0809e', '#52cfe0', '#d9b84a', '#97a6f7'];
 const INSTS = {
   mandolin: 'マンドリン風（ゲームの録音に合わせた合成）',
@@ -729,7 +731,7 @@ function notesChanged() {
 }
 function updateSpacer() {
   $('spacer').style.width = (KEY_W + totalTicks() * S.zoom) + 'px';
-  $('spacer').style.height = (RULER_H + ROWS * ROW_H) + 'px';
+  $('spacer').style.height = (RULER_H + 2 * padV + ROWS * ROW_H) + 'px';
 }
 function updateOutput() {
   const ta = $('tOut');
@@ -1320,13 +1322,20 @@ function resize() {
   dpr = window.devicePixelRatio || 1;
   cw = Math.max(1, Math.floor(r.width)); ch = Math.max(1, Math.floor(r.height));
   cv.width = cw * dpr; cv.height = ch * dpr;
+  const np_ = Math.max(0, Math.floor(ch - RULER_H - 120));       // 端まで動かしても、音域が120pxは見えるように
+  if (np_ !== padV) {
+    const old = padV;
+    padV = np_;
+    updateSpacer();
+    scroller.scrollTop = Math.max(0, scroller.scrollTop + (padV - old));
+  }
   requestDraw();
 }
 new ResizeObserver(resize).observe($('roll'));
 scroller.addEventListener('scroll', () => requestDraw());
 function requestDraw() { if (!drawPending) { drawPending = true; requestAnimationFrame(draw); } }
 
-const rowY = (midi, sy) => RULER_H + (MMAX - midi) * ROW_H - sy;
+const rowY = (midi, sy) => RULER_H + padV + (MMAX - midi) * ROW_H - sy;
 const tickX = (t, sx) => KEY_W + t * S.zoom - sx;
 
 function roundRect(c, x, y, w, h, r) {
@@ -1367,6 +1376,7 @@ function draw() {
   /* 行の背景 */
   cx.save();
   cx.beginPath(); cx.rect(KEY_W, RULER_H, cw - KEY_W, ch - RULER_H); cx.clip();
+  cx.fillStyle = '#0c1118'; cx.fillRect(KEY_W, RULER_H, cw - KEY_W, ch - RULER_H);      // 編集できない範囲は暗い色
   for (let m = MMAX; m >= MMIN; m--) {
     const y = rowY(m, sy);
     if (y > ch || y < RULER_H - ROW_H) continue;
@@ -1403,6 +1413,29 @@ function draw() {
   const se = songEnd();
   if (se) { const ex = tickX(Math.ceil(se / bar) * bar, sx); if (ex < cw) { cx.fillStyle = 'rgba(0,0,0,.2)'; cx.fillRect(Math.max(ex, KEY_W), RULER_H, cw, ch); } }
 
+  /* 編集できない範囲（音域の外）に、縞模様の暗い覆いをかけて、はっきり分かるようにする */
+  {
+    const yTopRows = rowY(MMAX, sy), yBotRows = rowY(MMIN, sy) + ROW_H;
+    cx.fillStyle = 'rgba(6,9,14,.55)';
+    if (yTopRows > RULER_H) cx.fillRect(KEY_W, RULER_H, cw - KEY_W, Math.min(yTopRows, ch) - RULER_H);
+    if (yBotRows < ch) cx.fillRect(KEY_W, Math.max(yBotRows, RULER_H), cw - KEY_W, ch - Math.max(yBotRows, RULER_H));
+    const stripes = (ya, yb) => {                      // 斜めの縞
+      if (yb <= ya) return;
+      cx.save(); cx.beginPath(); cx.rect(KEY_W, ya, cw - KEY_W, yb - ya); cx.clip();
+      cx.strokeStyle = 'rgba(120,140,165,.10)'; cx.lineWidth = 1; cx.beginPath();
+      for (let x = KEY_W - (yb - ya); x < cw; x += 14) { cx.moveTo(x, yb); cx.lineTo(x + (yb - ya), ya); }
+      cx.stroke(); cx.restore();
+    };
+    stripes(RULER_H, Math.min(yTopRows, ch)); stripes(Math.max(yBotRows, RULER_H), ch);
+    if (yTopRows > RULER_H + 24) {
+      cx.fillStyle = 'rgba(160,175,195,.55)'; cx.font = '12px sans-serif'; cx.textAlign = 'left'; cx.textBaseline = 'middle';
+      cx.fillText('これより上は、音を置けません（B8が上端）', KEY_W + 12, Math.min(yTopRows, ch) - 14);
+    }
+    if (yBotRows < ch - 24) {
+      cx.fillStyle = 'rgba(160,175,195,.55)'; cx.font = '12px sans-serif'; cx.textAlign = 'left'; cx.textBaseline = 'middle';
+      cx.fillText('これより下は、音を置けません（C1が下端）', KEY_W + 12, Math.max(yBotRows, RULER_H) + 14);
+    }
+  }
   /* 音 */
   let risk = null;
   if (S.dsMark && !dsVirtual()) {
@@ -1441,6 +1474,7 @@ function draw() {
   /* 鍵盤 */
   cx.save();
   cx.beginPath(); cx.rect(0, RULER_H, KEY_W, ch - RULER_H); cx.clip();
+  cx.fillStyle = '#0a0f15'; cx.fillRect(0, RULER_H, KEY_W, ch - RULER_H);
   for (let m = MMAX; m >= MMIN; m--) {
     const y = rowY(m, sy);
     if (y > ch || y < RULER_H - ROW_H) continue;
@@ -1495,7 +1529,7 @@ function posOf(e) {
   return {
     x, y,
     tick: (x - KEY_W + scroller.scrollLeft) / S.zoom,
-    midi: MMAX - Math.floor((y - RULER_H + scroller.scrollTop) / ROW_H),
+    midi: MMAX - Math.floor((y - RULER_H - padV + scroller.scrollTop) / ROW_H),
     onScrollbar: x > scroller.clientWidth || y > scroller.clientHeight,
   };
 }
@@ -1536,7 +1570,7 @@ scroller.addEventListener('pointerdown', e => {
   const p = posOf(e);
   if (p.onScrollbar) return;
   audio();
-  if (p.x < KEY_W && p.y >= RULER_H) { preview(p.midi); return; }
+  if (p.x < KEY_W && p.y >= RULER_H) { if (p.midi >= MMIN && p.midi <= MMAX) preview(p.midi); return; }
   if (p.y < RULER_H) {                       // ルーラー：再生開始位置（貼り付け位置にもなる）
     const g = gridTicks();
     S.cursor = Math.max(0, Math.round(p.tick / g) * g);
@@ -1595,7 +1629,7 @@ scroller.addEventListener('pointermove', e => {
     const m = S.marq;
     m.x1 = p.x - KEY_W + scroller.scrollLeft; m.y1 = p.y - RULER_H + scroller.scrollTop;
     const t0 = Math.min(m.x0, m.x1) / S.zoom, t1 = Math.max(m.x0, m.x1) / S.zoom;
-    const r0 = Math.min(m.y0, m.y1) / ROW_H, r1 = Math.max(m.y0, m.y1) / ROW_H;
+    const r0 = (Math.min(m.y0, m.y1) - padV) / ROW_H, r1 = (Math.max(m.y0, m.y1) - padV) / ROW_H;
     const inside = S.tracks[S.cur].notes.filter(n => n.s < t1 && n.s + n.l > t0 && (MMAX - n.p) + 1 > r0 && (MMAX - n.p) < r1);
     S.sel = drag.base.concat(inside.filter(n => !drag.base.includes(n)));
     requestDraw(); return;
@@ -2342,10 +2376,10 @@ function init() {
   /* 最初はメロディの音域あたりが見えるようにスクロール */
   const ns = S.tracks[0].notes;
   const mid = ns.length ? ns.reduce((a, n) => a + n.p, 0) / ns.length : 66;
-  scroller.scrollTop = Math.max(0, RULER_H + (MMAX - mid) * ROW_H - ($('roll').clientHeight / 2));
+  scroller.scrollTop = Math.max(0, padV + (MMAX - mid) * ROW_H - $('roll').clientHeight * 0.3);
 }
 init();
-window.__mml = { conflictGroups, desyncCopy, outTracks, genAll, SF, imp, voice, parseSMF, layerSplit, transcribeAudio, estimateTempo, coherence, TR, midiMessage, audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
+window.__mml = { get padV() { return padV; }, conflictGroups, desyncCopy, outTracks, genAll, SF, imp, voice, parseSMF, layerSplit, transcribeAudio, estimateTempo, coherence, TR, midiMessage, audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
 })();
 </script>
 </body>
