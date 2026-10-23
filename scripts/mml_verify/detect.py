@@ -188,19 +188,33 @@ def align(flux, dt, notes):
     return align_candidates(flux, dt, notes, 1)[0]
 
 
-def best_alignment(M, times, flux, notes, k=4):
-    """候補のうち、音の高さまで含めて一番よく合うもの（各音の立ち上がりの合計が最大）を選ぶ"""
+def _score_tau(M, times, notes, tau, scale):
+    ns = [dict(n) for n in notes]
+    analyze_notes(M, times, ns, tau, scale, 0)
+    return sum(max(0.0, n['rise']) for n in ns)
+
+
+def best_alignment(M, times, flux, notes, k=8, fine=False):
+    """候補のうち、音の高さまで含めて一番よく合うもの（各音の立ち上がりの合計が最大）を選び、
+    さらに時刻を少しずつ動かして、一番よく合うところに細かく合わせる"""
     cands = align_candidates(flux, HOP / SR, notes, k)
     if len(cands) == 1:
-        return cands[0]
-    best = None
-    for tau, scale, z in cands:
-        ns = [dict(n) for n in notes]
-        analyze_notes(M, times, ns, tau, scale, 0)
-        tr = sum(max(0.0, n['rise']) for n in ns)
-        if best is None or tr > best[0]:
-            best = (tr, tau, scale, z)
-    return best[1:]
+        best = (None, *cands[0])
+    else:
+        best = None
+        for tau, scale, z in cands:
+            tr = _score_tau(M, times, notes, tau, scale)
+            if best is None or tr > best[0]:
+                best = (tr, tau, scale, z)
+    _, tau, scale, z = best
+    if not fine:
+        return float(tau), float(scale), float(z)
+    # 細かい合わせ：音を間引いて（最大60音）、時刻を前後に動かして、立ち上がりの合計が最大のところを探す
+    sub = notes if len(notes) <= 60 else [notes[i] for i in np.linspace(0, len(notes) - 1, 60).astype(int)]
+    for span, step in ((0.4, 0.05), (0.04, 0.01)):
+        cs = [(_score_tau(M, times, sub, tau + d, scale), tau + d) for d in np.arange(-span, span + 1e-9, step)]
+        tau = max(cs)[1]
+    return float(tau), float(scale), float(z)
 
 
 # ---------------------------------------------------------------- 各音の判定
