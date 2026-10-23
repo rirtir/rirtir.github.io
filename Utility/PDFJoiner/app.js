@@ -278,7 +278,9 @@ downloadBtn.onclick = async () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'merged.pdf';
+    // 1つのPDFだけを編集した場合は元のファイル名で保存する。
+    const sources = new Set(pages.map(p => p.source));
+    a.download = sources.size === 1 ? pages[0].source.name.replace(/\.pdf$/i, '') + '.pdf' : 'merged.pdf';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     message(`${pages.length}ページのPDFを${protectOutput.checked ? 'パスワード付きで' : ''}保存しました。`);
