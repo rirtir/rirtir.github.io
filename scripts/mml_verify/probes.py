@@ -146,13 +146,173 @@ def combo_mml(contents, slots, bars=4):
     rest = [R(1)] * bars
     return build([contents[s] if s is not None else rest for s in slots])
 
+# ---- 3パート（メロディ＋和音1＋和音2）が重なる曲だけを集めた「集中検証セット」 ----
+CH = [(76, 67, 60), (77, 69, 60), (79, 71, 62), (76, 69, 57)]       # メロディ・和音1・和音2（C, F, G, Am）
+
+
+def three_same_rhythm(chords, ln, rest=None):
+    """3つのパートが、同じタイミングで同じ長さの音を鳴らす。rest を指定すると、音のあとに休符を入れて音を短くする"""
+    parts = [[], [], []]
+    for c in chords:
+        for k in range(3):
+            parts[k].append(N(c[k], ln))
+            if rest:
+                parts[k].append(R(rest))
+    return build(parts)
+
+
+def focus_probes():
+    out = []
+    cc = lambda n: (CH * n)
+    out.append(('F01_chords_quarter', '3つが同時に始まる音（和音）を、4分音符で',
+                '3つのパートが同時に鳴り始める、いちばん基本の形。', three_same_rhythm(cc(2), 4)))
+    out.append(('F02_chords_eighth', '同じ和音を、8分音符で（2倍の速さ）',
+                '同時に始まる和音を、速くしたとき。速さが関係するか。', three_same_rhythm(cc(4), 8)))
+    out.append(('F03_chords_16th', '同じ和音を、16分音符で（4倍の速さ）',
+                '同時に始まる和音を、さらに速くしたとき。', three_same_rhythm(cc(8), 16)))
+    out.append(('F04_staggered', '3つの始まりを、8分・16分ずつずらす',
+                '同時ではなく、少しずつずれて3つ目が入ってくるとき。', build([
+                    [N(c[0], 4) for c in cc(2)],
+                    [R(8)] + [N(c[1], 4) for c in cc(2)],
+                    [R(16)] + [N(c[2], 4) for c in cc(2)]])))
+    out.append(('F05_hold2_move1', '和音1・和音2は全音符で伸ばし、メロディだけ8分で動く',
+                '2つが鳴り続けているところへ、3つ目の音が次々と入るとき。', build([
+                    [N(m, 8) for m in [76, 79, 77, 74, 76, 79, 84, 79] * 2],
+                    [N(67, 1), N(69, 1)], [N(60, 1), N(57, 1)]])))
+    out.append(('F06_hold1_move2', 'メロディは全音符で伸ばし、和音1・和音2が8分で動く',
+                '長い音が1つ鳴り続けているところへ、2つのパートが動くとき。', build([
+                    [N(79, 1), N(76, 1)],
+                    [N(m, 8) for m in [64, 67, 65, 62, 64, 67, 72, 67] * 2],
+                    [R(16)] + [N(m, 8) for m in [55, 59, 57, 53, 55, 59, 64, 59] * 2][:15]])))
+    out.append(('F07_chords_staccato', '同じ和音を、短く切って（音と音が重ならない）',
+                '音が短く、次の和音までに切れているとき。長さ（重なり）が関係するか。', three_same_rhythm(cc(2), 16, '8.')))
+    out.append(('F08_cluster', '3つの音が、半音〜全音で密集した和音',
+                '3つの音の高さが近いとき。', three_same_rhythm([(72, 71, 70), (74, 72, 71), (76, 75, 74), (73, 72, 71)] * 2, 4)))
+    out.append(('F09_octaves', '3つとも同じ音名（オクターブ違い）の和音',
+                '3つが同じ音名で、オクターブだけ違うとき。', three_same_rhythm([(84, 72, 60), (86, 74, 62), (88, 76, 64), (84, 72, 60)] * 2, 4)))
+    for k in (1, 2, 3):
+        out.append((f'F10_random{k}', f'ランダムな3パートの曲（{k}）',
+                    '条件がいろいろ混ざった、実際の曲に近い形（3パートとも常に動く）。', random_mml(100 + k, bars=4, density=0.8)))
+    return out
+
+
+# ---- 長く（約1分）、いろいろな重なり方を順番に詰め込んだ3パートの曲 ----
+LEN_TOK = {12: '16', 24: '8', 36: '8.', 48: '4', 72: '4.', 96: '2', 144: '2.', 192: '1'}
+SCALE = {0, 2, 4, 5, 7, 9, 11}
+REG = [(71, 83), (62, 74), (50, 62)]        # メロディ・和音1・和音2 の音域（C3より上：録音で判定しやすい）
+SECTION_JP = {'sync4': '同時・4分', 'sync8': '同時・8分', 'sync16': '同時・16分', 'stagger': 'ずらして入る', 'hold2move1': '2つ伸ばし1つ動く',
+              'hold1move2': '1つ伸ばし2つ動く', 'staccato': '短く切る', 'poly': '3つがバラバラの長さ', 'rand': 'ランダム'}
+
+
+def _tok(d):
+    """ticks を、1つの長さ記号で書ける長さに分ける（大きい順）"""
+    out = []
+    for v in (192, 144, 96, 72, 48, 36, 24, 12):
+        while d >= v:
+            out.append(v)
+            d -= v
+    return out
+
+
+def section_events(kind, rng, bars):
+    """1つの区間の、3パートぶんの (開始, 長さ) の並び（ticks）。区間の長さを返す。"""
+    L = 192 * bars
+    ev = [[], [], []]
+    if kind in ('sync4', 'sync8', 'sync16'):
+        d = {'sync4': 48, 'sync8': 24, 'sync16': 12}[kind]
+        for k in range(3):
+            ev[k] = [(t, d) for t in range(0, L, d)]
+    elif kind == 'stagger':
+        for k, off in enumerate((0, 24, 12)):
+            ev[k] = [(t, 48) for t in range(off, L - 48 + 1, 48)]
+    elif kind == 'hold2move1':
+        ev[0] = [(t, 24) for t in range(0, L, 24)]
+        for k in (1, 2):
+            ev[k] = [(t, 192) for t in range(0, L, 192)]
+    elif kind == 'hold1move2':
+        ev[0] = [(t, 192) for t in range(0, L, 192)]
+        ev[1] = [(t, 24) for t in range(0, L, 24)]
+        ev[2] = [(t, 24) for t in range(12, L - 24 + 1, 24)]
+    elif kind == 'staccato':
+        for k in range(3):
+            ev[k] = [(t, 12) for t in range(0, L, 48)]
+    elif kind == 'poly':
+        for k, d in enumerate((24, 72, 48)):
+            ev[k] = [(t, d) for t in range(0, L - d + 1, d)]
+    else:   # rand
+        for k in range(3):
+            t = 0
+            while t < L:
+                d = int(rng.choice([12, 24, 24, 48, 48, 96]))
+                d = min(d, L - t)
+                d = max(v for v in LEN_TOK if v <= d)
+                if rng.random() > 0.2:
+                    ev[k].append((t, d))
+                t += d
+    return ev, L
+
+
+def rich_mml(seed, tempo, n_sections=8):
+    rng = np.random.default_rng(seed)
+    kinds = ['sync4', 'sync8', 'sync16', 'stagger', 'hold2move1', 'hold1move2', 'staccato', 'poly', 'rand', 'rand']
+    order = list(rng.permutation(kinds))[:n_sections]
+    ev, secs, t0 = [[], [], []], [], 0
+    for kind in order:
+        bars = 2 if kind == 'sync16' else 4
+        e, L = section_events(kind, rng, bars)
+        for k in range(3):
+            ev[k] += [(t0 + a, d) for a, d in e[k]]
+        secs.append((t0, t0 + L, kind))
+        t0 += L
+    # 音の高さを決める：なるべく自然につなぎ、同じ高さの音が近くに重ならないようにする（録音で区別しやすくするため）
+    allnotes = sorted(((a, k, d) for k in range(3) for a, d in ev[k]))
+    pitch, last = {}, [None, None, None]
+    for a, k, d in allnotes:
+        lo, hi = REG[k]
+        cands = [m for m in range(lo, hi + 1) if m % 12 in SCALE]
+        near = [m for m in cands if last[k] is None or abs(m - last[k]) <= 5]
+        def ok(m):
+            for (a2, k2, d2), m2 in pitch.items():
+                if m2 == m and abs(a2 - a) <= 120 and not (k2 == k and a2 == a):
+                    return False
+            return True
+        pool = [m for m in near if ok(m)] or [m for m in cands if ok(m)] or near
+        m = int(rng.choice(pool))
+        pitch[(a, k, d)] = m
+        last[k] = m
+    parts = []
+    for k in range(3):
+        toks, t = [], 0
+        for a, d in sorted(ev[k]):
+            if a > t:
+                toks += [R(LEN_TOK[v]) for v in _tok(a - t)]
+            toks.append(N(pitch[(a, k, d)], LEN_TOK[d]))
+            t = a + d
+        parts.append(toks)
+    sec_s = [(a * 240 / tempo / 192, b * 240 / tempo / 192, kind) for a, b, kind in secs]
+    return build(parts, tempo=tempo), sec_s
+
+
+def rich_probes():
+    """(名前, 説明, MML, 区間の一覧[(開始秒, 終了秒, 種類)])"""
+    out = []
+    for i, (tempo, seed) in enumerate([(110, 11), (130, 12), (90, 13), (150, 14), (120, 15), (100, 16)], start=1):
+        mml, secs = rich_mml(seed, tempo)
+        out.append((f'R{i}_t{tempo}', f'長い3パート曲（テンポ{tempo}・約{secs[-1][1]:.0f}秒）', mml, secs))
+    return out
+
 
 def all_probes():
     P = {}
 
-    def add(name, desc, mml):
-        P[name] = dict(name=name, desc=desc, mml=mml)
-    # ---- 「3パートそろってから音が抜ける」の確認：同じ中身を、パートの組み合わせ・割り当てを変えて ----
+    def add(name, desc, mml, group='other', why=''):
+        P[name] = dict(name=name, desc=desc, mml=mml, group=group, why=why or desc)
+    for name, desc, mml, secs in rich_probes():
+        add(name, desc, mml, group='focus', why='いろいろな重なり方を順番に入れた長い曲。どのパターンで・どの音が抜けるかを調べる。')
+        P[name]['sections'] = secs
+    for name, desc, why, mml in focus_probes():
+        add(name, desc, mml, group='short', why=why)
+    # ---- （参考）パートの組み合わせ・割り当てを変えた検証：集中検証セットには含めない ----
     C = three_contents(7)
     add('00a_melody_chord1', '2パート：メロディ＋和音1（3パートではないので、抜けないはず）', combo_mml(C, (0, 1, None)))
     add('00b_melody_chord2', '2パート：メロディ＋和音2（和音1は休符）', combo_mml(C, (0, None, 1)))
@@ -186,4 +346,4 @@ def all_probes():
 
 if __name__ == '__main__':
     for p in all_probes().values():
-        print(p['name'], len(p['mml']), '文字', '-', p['desc'])
+        print(p['group'], p['name'], len(p['mml']), '文字', '-', p['desc'])

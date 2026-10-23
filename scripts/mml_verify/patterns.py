@@ -30,6 +30,9 @@ NUM_FEATS = [
 ]
 
 
+CAT_FEATS = [('f_section', '曲の中のパターン（区間の種類）')]
+
+
 def wilson(k, n, z=1.96):
     if n == 0:
         return (0.0, 1.0)
@@ -88,7 +91,7 @@ def match(kind, v, x):
 
 def univariate(rows):
     out = []
-    for key, jp in NUM_FEATS:
+    for key, jp in CAT_FEATS + NUM_FEATS:
         vals = [r.get(key) for r in rows]
         if all(v is None for v in vals):
             continue

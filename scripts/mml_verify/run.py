@@ -73,6 +73,14 @@ def analyze_and_save(mml, x, source, note='', sid=None, device=''):
     for w in sc.warnings[:5]:
         print('  注意:', w)
     features.add_features(sc.notes)
+    if source.startswith('probe:'):
+        pr = probes.all_probes().get(source.split(' / ')[0].split(':', 1)[1])
+        if pr and pr.get('sections'):
+            for n in sc.notes:
+                for a, b, kind in pr['sections']:
+                    if a - 1e-6 <= n['start_s'] < b - 1e-6:
+                        n['f_section'] = probes.SECTION_JP.get(kind, kind)
+                        break
     if len(x) < detect.SR * 2 or float(np.abs(x).max()) < 1e-3:
         print('  ※ 録音がほとんど無音（または短すぎ）でした。解析をやめます。録音先が違う可能性があります（「録音先を探す」を実行してください）。')
         return None
@@ -127,22 +135,39 @@ def run_once(mml, source, from_clipboard, args, sid=None):
 
 def cmd_run(args):
     if args.all_probes:
-        names = list(probes.all_probes())
+        P = probes.all_probes()
+        names = [n for n, p in P.items() if p['group'] == args.set or args.set == 'all']
         if args.start_from:
             names = names[names.index(args.start_from):]
+        total = sum(Score(P[n]['mml']).duration for n in names) * args.times
+        print()
+        print(f'■ 3パート（メロディ＋和音1＋和音2）の長い曲（約1分）を {len(names)} 曲、1曲あたり {args.times} 回ずつ演奏してもらいます。')
+        print('  1回ごとに：①MMLが自動でコピーされる → ②ゲームに貼り付けて、最後まで演奏 → ③演奏後、静かになると自動で解析')
+        print(f'  演奏時間の合計は約{total / 60:.0f}分（貼り付けなどを含めて、全部で{total / 60 + len(names) * args.times * 0.4:.0f}分ほど）。いつでも q で終われます。')
         for i, name in enumerate(names):
-            print(f'\n==================== {i + 1}/{len(names)}: {name} ====================')
-            print(probes.all_probes()[name]['desc'])
+            print(f'\n==================== 曲 {i + 1}/{len(names)}: {name} ====================')
+            print(f'{P[name]["desc"]}。{P[name]["why"]}')
             args.probe = name
             mml, source, clip = get_mml(args)
-            run_once(mml, source, clip, args)
+            for rep in range(args.times):
+                if args.times > 1:
+                    print(f'\n--- {name}  {rep + 1}回目 / {args.times} ---')
+                run_once(mml, source, clip or rep > 0, args)
+                if rep + 1 < args.times:
+                    try:
+                        r = input('\n同じ曲をもう1回演奏します（Enter＝録音開始 / q＝終了）: ').strip().lower()
+                    except EOFError:
+                        r = 'q'
+                    if r == 'q':
+                        return
             if i + 1 < len(names):
                 try:
-                    r = input('\n次の検証用MMLへ進みます（Enter＝進む / q＝ここで終了）: ').strip().lower()
+                    r = input('\n次の曲へ進みます（Enter＝進む / q＝ここで終了）: ').strip().lower()
                 except EOFError:
                     r = 'q'
                 if r == 'q':
                     break
+        print('\nお疲れさまでした。「法則を探す」を実行すると、結果から条件を探します。')
         return
     mml, source, clip = get_mml(args)
     while True:
@@ -193,7 +218,7 @@ def cmd_learn(args):
 def cmd_probes(args):
     P = probes.all_probes()
     for p in P.values():
-        print(f'  {p["name"]:18s} {len(p["mml"]):4d}文字  {p["desc"]}')
+        print(f'  {"★" if p["group"] == "focus" else " "} {p["name"]:22s} {len(p["mml"]):4d}文字  {p["desc"]}')
     if args.write:
         store.ensure()
         for p in P.values():
@@ -237,7 +262,9 @@ def main():
     r.add_argument('--auto-stop', type=float, default=4.0, metavar='秒', help='演奏が終わったあと、この秒数だけ無音が続いたら自動で停止（既定4秒）')
     r.add_argument('--no-auto-stop', action='store_true', help='自動停止を使わず、Enterキーで止める')
     r.add_argument('--repeat', action='store_true', help='同じMMLを続けて何回も録音する（再現性を見る）')
-    r.add_argument('--all-probes', action='store_true', help='検証用のMMLを順番に全部、続けて検証する')
+    r.add_argument('--all-probes', action='store_true', help='3パートの検証用MML（集中検証セット）を、順番に続けて検証する')
+    r.add_argument('--set', choices=['focus', 'short', 'all'], default='focus', help='--all-probes で使うMML：focus=長い3パート曲（既定） / short=短い3パート曲 / all=全部')
+    r.add_argument('--times', type=int, default=2, help='--all-probes で、1曲を何回ずつ演奏するか（既定2回。同じ曲で毎回同じ音が抜けるかが分かる）')
     r.add_argument('--start-from', help='--all-probes を、この名前のところから始める')
     r.set_defaults(fn=cmd_run)
 

@@ -7,8 +7,8 @@ pushd "%~dp0..\.."
 "%PY%" --version >nul 2>nul
 if errorlevel 1 echo Python が見つかりません。 & pause & exit /b 1
 echo.
-echo ===== MML検証：検証用の MML を、順番に全部（1つずつ MML が自動でコピーされます） =====
-echo  各MMLで：ゲームに貼り付けて演奏 → 静かになると自動で解析 → Enter で次へ（q で終了）
+echo ===== 長い3パート曲（約1分）を6曲、1曲2回ずつ演奏して検証します =====
+echo  （1曲につき1回だけにするなら、このファイルの run.py の行の最後に  --times 1  を付けてください）
 echo.
 "%PY%" scripts\mml_verify\run.py run --all-probes
 echo.
