@@ -165,11 +165,48 @@ transition:0.2s;
 text-decoration:none;
 color:white;
 display:block;
+position:relative;
+overflow:hidden;
+isolation:isolate;
 }
 
 .card:hover{
 background:#252a36;
 transform:translateY(-2px);
+}
+
+/* サムネイル：文字の後ろに敷く。文字のある上側ほど暗くして読みやすさを保ち、下端の余白で中身が見えるようにする */
+.card.has-thumb{
+padding-bottom:calc(var(--space-m) + 36px);
+}
+
+.card .thumb{
+position:absolute;
+inset:0;
+width:100%;
+height:100%;
+object-fit:cover;
+z-index:-2;
+opacity:0.85;
+transition:opacity 0.3s,transform 0.4s;
+}
+
+.card.has-thumb::before{
+content:"";
+position:absolute;
+inset:0;
+z-index:-1;
+background:linear-gradient(180deg,rgba(20,23,30,0.9) 0%,rgba(20,23,30,0.82) 55%,rgba(20,23,30,0.35) 100%);
+}
+
+.card.has-thumb:hover .thumb{
+opacity:1;
+transform:scale(1.04);
+}
+
+.card.has-thumb strong,
+.card.has-thumb p{
+text-shadow:0 1px 3px rgba(0,0,0,0.9);
 }
 
 .card p{

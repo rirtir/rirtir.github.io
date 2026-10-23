@@ -5,72 +5,82 @@ const data = [
             {
                 title: "ケモノキャラクリ — アニメ調3Dの獣人キャラ作成",
                 url: "https://rirtir.com/Game/KemonoCreator/",
-                desc: "ブラウザで動くアニメ調3Dのケモノ男性キャラクリ。マズルの長さ・太さ、目・鼻・口、ヒゲ、頭まわりや体の毛の形、耳・尻尾、毛色と模様、細かい体型まで調整できる。16種の種族プリセット・キャラコード保存・撮影つき。",
+                desc: "顔・毛並み・耳や尻尾・体型まで細かく作り込める。撮影モードつき。",
                 tags: ["ソロ", "3D", "キャラクリ", "ゲーム"],
+                thumb: "assets/thumbs/KemonoCreator.webp",
                 main: true,
             },
             {
                 title: "苔灯の境 — MOSSLIGHT",
                 url: "https://rirtir.com/Game/Mosslight/",
-                desc: "森に拠点を築き、地下に眠る三つの灯を取り戻すサバイバルクラフト。採集・制作・建築・農業・料理と二体のボス戦、三人の住人との暮らしを楽しめる。自動保存・保存ファイルの書き出し・PCとタッチ操作に対応。",
+                desc: "森に拠点を築き、地下の三つの灯を取り戻すドット絵サバイバルクラフト。",
                 tags: ["ソロ", "サバイバルクラフト", "ドット絵", "やり込み", "ゲーム"],
+                thumb: "assets/thumbs/Mosslight.webp",
                 main: true,
             },
             {
                 title: "残り火の深庭 — EMBERVEIL",
                 url: "https://rirtir.com/Game/Emberveil/",
-                desc: "厳密なドット絵の地下庭園で採掘・建築・農業・釣り・料理を楽しむサバイバルクラフト。三つのバイオームと守護者を攻略し、炉心を再生する。シード付き世界・3セーブスロット・PCとタッチ操作に対応。",
+                desc: "地下庭園を掘り進め、炉心を再生するドット絵サバイバルクラフト。",
                 tags: ["ソロ", "サバイバルクラフト", "ドット絵", "やり込み", "ゲーム"],
-                main: true,
+                thumb: "assets/thumbs/Emberveil.webp",
+                main: false,
             },
             {
                 title: "星の芽の庭 — 放置・育成ゲーム",
                 url: "https://rirtir.com/Game/StarSproutGarden/",
-                desc: "夜の温室で星の植物を育てる放置ゲーム。しずくで設備を強化し、星を収穫して次の庭へ。自動保存・最大8時間のオフライン育成に対応。",
+                desc: "夜の温室で星の植物を育てる。オフライン中も育つ。",
                 tags: ["ソロ", "放置", "育成", "ゲーム"],
-                main: true,
+                thumb: "assets/thumbs/StarSproutGarden.webp",
+                main: false,
             },
             {
                 title: "SYNESTHESIA — 音が光になるリズムゲーム",
                 url: "https://rirtir.com/Game/Synesthesia/",
-                desc: "手持ちの曲をドロップすると、音を解析して譜面を自動生成。音のスペクトルが光の街になるHDR描画のリズムゲーム。オリジナル5曲・4難易度・「音の肖像」画像つき。",
+                desc: "手持ちの曲から譜面を自動生成。オリジナル5曲も収録。",
                 tags: ["ソロ", "リズム", "音楽", "やり込み", "ゲーム"],
+                thumb: "assets/thumbs/Synesthesia.webp",
                 main: true,
             },
             {
                 title: "PRISM — 光を導くパズル",
                 url: "https://rirtir.com/Game/Prism/",
-                desc: "鏡・ハーフミラー・フィルタ・プリズム・ガラス玉で光を操り、虹のスペクトルを受光器へ届ける光学パズル。波長ごとの光線追跡とHDR描画。全43ステージ＋無限生成・デイリー・エディタ（共有リンク）・ライトアート。",
+                desc: "鏡やプリズムで虹の光を受光器へ。ステージエディタつき。",
                 tags: ["ソロ", "パズル", "やり込み", "ゲーム"],
+                thumb: "assets/thumbs/Prism.webp",
                 main: true,
             },
             {
                 title: "セノーテ ― 光の降る地下の泉",
                 url: "https://rirtir.com/Game/Cenote/",
-                desc: "天井の穴から光の柱が降り注ぐ地下の泉をリアルタイム3Dで散策。水中にも潜れる。実写と見まがうことを目指した3D体験。",
+                desc: "地下の泉をリアルタイム3Dで散策。水中にも潜れる。",
                 tags: ["ソロ", "3D", "散策", "ゲーム"],
-                main: true,
+                thumb: "assets/thumbs/Cenote.webp",
+                main: false,
             },
             {
                 title: "ANCHOR//VECTOR — 星環の残響",
                 url: "https://rirtir.com/Game/AnchorVector/",
-                desc: "時間を遅くして3D空間に経路を描き、高速斬撃へ変えるスマホ向けアクション・ローグライト。",
+                desc: "時間を遅くして斬撃の軌道を描く3Dアクション・ローグライト。",
                 tags: ["ソロ", "3Dアクション", "やり込み", "ゲーム"],
-                main: true,
+                thumb: "assets/thumbs/AnchorVector.webp",
+                main: false,
             },
             {
                 title: "黎明列車 ― 七夜の終着点",
                 url: "https://rirtir.com/Game/DawnTrain/",
-                desc: "手描きの装甲列車を指揮し、夜に沈む世界を七夜で横断する全7章の戦術RPG。",
+                desc: "装甲列車を指揮して七夜を越える戦術RPG。",
                 tags: ["ソロ", "戦術RPG", "物語", "ゲーム"],
-                main: true,
+                thumb: "assets/thumbs/DawnTrain.webp",
+                main: false,
             },
             {
                 title: "陽だまりクラフト — LUMINA ISLE",
                 url: "https://rirtir.com/Game/LuminaIsle/",
-                desc: "ドット絵の島で採集・建築・農耕・釣りを楽しみ、三つの自然プリズムで灯台を再点灯するサバイバルクラフト。",
+                desc: "島で採集・建築・釣りをして灯台を灯すドット絵サバイバルクラフト。",
                 tags: ["ソロ", "サバイバルクラフト", "ドット絵", "やり込み", "ゲーム"],
-                main: true,
+                thumb: "assets/thumbs/LuminaIsle.webp",
+                main: false,
             },
             {
                 title: "ito",
@@ -84,6 +94,7 @@ const data = [
                 url: "https://rirtir.com/Game/PartyGames/",
                 desc: "スマホ1台でもオンラインでも遊べる、会話中心のミニゲーム16本。",
                 tags: ["みんなで", "スマホ一台", "スマホ複数台", "オンライン", "わいわい", "ゲーム"],
+                thumb: "assets/thumbs/PartyGames.webp",
                 main: true,
             },
             {
@@ -105,6 +116,7 @@ const data = [
                 url: "https://rirtir.com/Game/ito_p2p/",
                 desc: "QRでスマホ同士を直接接続する、サーバーレス版ito（実験版）",
                 tags: ["みんなで", "スマホ複数台", "P2P", "わいわい", "ゲーム"],
+                thumb: "assets/thumbs/ito_p2p.webp",
                 main: false,
             },
             {
@@ -112,6 +124,7 @@ const data = [
                 url: "https://rirtir.com/Game/BrainVita/",
                 desc: "玉を飛び越して消していくゲーム。楽しいよ",
                 tags: ["ソロ", "やり込み", "ゲーム"],
+                thumb: "assets/thumbs/BrainVita.webp",
                 main: true,
             },
             {
@@ -119,6 +132,7 @@ const data = [
                 url: "https://pochari-tiger.onrender.com/",
                 desc: "制作中（ベータ版）",
                 tags: ["ふたりで", "やり込み", "ゲーム"],
+                thumb: "assets/thumbs/pochari.webp",
                 main: false,
             },
             {
@@ -133,6 +147,7 @@ const data = [
                 url: "https://rirtir.com/Game/puzzle/",
                 desc: "任意の画像、任意の難易度で遊べるパズルゲーム",
                 tags: ["ソロ", "ゲーム"],
+                thumb: "assets/thumbs/puzzle.webp",
                 main: true,
             },
             {
@@ -140,6 +155,7 @@ const data = [
                 url: "https://rirtir.com/Game/BlockPuzzle/",
                 desc: "ブロックを並べ替えて完成させるゲーム",
                 tags: ["ソロ", "ゲーム"],
+                thumb: "assets/thumbs/BlockPuzzle.webp",
                 main: true,
             },
             {
@@ -147,13 +163,15 @@ const data = [
                 url: "https://rirtir.com/Game/AirHockey/",
                 desc: "エアーホッケーゲーム。難易度選択可能。",
                 tags: ["ソロ", "ゲーム"],
-                main: true,
+                thumb: "assets/thumbs/AirHockey.webp",
+                main: false,
             },
             {
                 title: "ノノグラム",
                 url: "https://rirtir.com/Game/Nonogram/",
                 desc: "ピクセルアートのやつ。自分でステージを追加可能。",
                 tags: ["ソロ", "やり込み", "ゲーム"],
+                thumb: "assets/thumbs/Nonogram.webp",
                 main: true,
             },
             {
@@ -161,6 +179,7 @@ const data = [
                 url: "https://telepath-online.onrender.com",
                 desc: "テレパシーで相手と意思疎通するゲーム。制作中（ベータ版）",
                 tags: ["みんなで", "やり込み", "ゲーム"],
+                thumb: "assets/thumbs/telepath.webp",
                 main: false,
             },
             {
@@ -168,7 +187,8 @@ const data = [
                 url: "https://rirtir.com/Game/GravityGolf/",
                 desc: "惑星の重力で曲がる宇宙ゴルフ。全54ホール収録。",
                 tags: ["ソロ", "やり込み", "ゲーム"],
-                main: true,
+                thumb: "assets/thumbs/GravityGolf.webp",
+                main: false,
             },
         ]
     },
@@ -180,6 +200,7 @@ const data = [
                 url: "https://rirtir.com/Image/ImageEffectLayerTool/",
                 desc: "様々なエフェクトを重ねることができるツール（ベータ版）",
                 tags: ["画像", "画像処理", "オフライン"],
+                thumb: "assets/thumbs/ImageEffectLayerTool.webp",
                 main: true,
             },
             {
@@ -187,6 +208,7 @@ const data = [
                 url: "https://rirtir.com/Image/Line2AlphaConverter/",
                 desc: "グレースケール画像を透過画像にする。線画を線だけにするなど。",
                 tags: ["画像", "画像処理", "透過", "オフライン"],
+                thumb: "assets/thumbs/Line2AlphaConverter.webp",
                 main: true,
             },
             {
@@ -194,6 +216,7 @@ const data = [
                 url: "https://rirtir.com/Image/AlphaTool/",
                 desc: "画像の一部を透過する。透過したい箇所をタップして透過可能。",
                 tags: ["画像", "画像処理", "透過", "オフライン"],
+                thumb: "assets/thumbs/AlphaTool.webp",
                 main: true,
             },
             {
@@ -201,6 +224,7 @@ const data = [
                 url: "https://rirtir.com/Image/Resize/",
                 desc: "画像のサイズを自由に変更できるツール",
                 tags: ["画像", "画像処理", "オフライン"],
+                thumb: "assets/thumbs/Resize.webp",
                 main: true,
             },
             {
@@ -208,6 +232,7 @@ const data = [
                 url: "https://rirtir.com/Image/Video2Image/",
                 desc: "動画から任意のフレームを抜き出す。",
                 tags: ["画像", "動画", "オフライン"],
+                thumb: "assets/thumbs/Video2Image.webp",
                 main: true,
             },
             {
@@ -215,6 +240,7 @@ const data = [
                 url: "https://rirtir.com/Image/Image2Video/",
                 desc: "画像を複数入力して動画を作成",
                 tags: ["画像", "動画", "オフライン"],
+                thumb: "assets/thumbs/Image2Video.webp",
                 main: false,
             },
             {
@@ -222,6 +248,7 @@ const data = [
                 url: "https://rirtir.com/Image/CreateColorPalette/",
                 desc: "画像から主要な色を抽出（調整中）",
                 tags: ["画像", "画像処理", "オフライン"],
+                thumb: "assets/thumbs/CreateColorPalette.webp",
                 main: false,
             },
             {
@@ -229,6 +256,7 @@ const data = [
                 url: "https://rirtir.com/Image/MosaicMask/",
                 desc: "モザイクのかかっている箇所をマスク画像として出力可能。",
                 tags: ["画像", "画像処理", "オフライン"],
+                thumb: "assets/thumbs/MosaicMask.webp",
                 main: false,
             },
             {
@@ -236,6 +264,7 @@ const data = [
                 url: "https://rirtir.com/Image/PixelArtMaker/",
                 desc: "簡単なドット絵を作成できるツール",
                 tags: ["画像", "画像処理", "お絵描き", "オフライン"],
+                thumb: "assets/thumbs/PixelArtMaker.webp",
                 main: true,
             }
         ]
@@ -246,8 +275,9 @@ const data = [
             {
                 title: "MMLコードメーカー",
                 url: "https://rirtir.com/Audio/MMLComposer/",
-                desc: "ピアノロールで作曲して、マビノギ形式のMMLコード（メロディ＋和音）を出力する。和音パートはいくつでも追加でき、メロディから3度下などの和音を自動生成。試聴・MMLの読み込みにも対応。",
+                desc: "ピアノロールで作曲し、マビノギ形式のMMLを出力。和音の自動生成つき。",
                 tags: ["音楽", "作曲", "MML", "マビノギ", "オフライン"],
+                thumb: "assets/thumbs/MMLComposer.webp",
                 main: true,
             },
             {
@@ -255,6 +285,7 @@ const data = [
                 url: "https://rirtir.com/Audio/Video2Audio/",
                 desc: "動画から音声ファイルを抽出する。オリジナル、mp3、wavから選べる。",
                 tags: ["音声", "動画", "オフライン"],
+                thumb: "assets/thumbs/Video2Audio.webp",
                 main: true,
             },
             {
@@ -262,6 +293,7 @@ const data = [
                 url: "https://rirtir.com/Audio/AudioInfo/",
                 desc: "音声・動画のコーデック、解像度、FPS、ビットレート、コンテナ形式などを表示する。波形とFFTも表示。",
                 tags: ["音声", "動画", "音声処理", "オフライン"],
+                thumb: "assets/thumbs/AudioInfo.webp",
                 main: false,
             },
             {
@@ -269,6 +301,7 @@ const data = [
                 url: "https://rirtir.com/Audio/RealTimeAudioAnalyzer/",
                 desc: "マイク音声の波形とFFTを表示する",
                 tags: ["音声", "音声処理", "オフライン"],
+                thumb: "assets/thumbs/RealTimeAudioAnalyzer.webp",
                 main: false,
             },
             {
@@ -276,6 +309,7 @@ const data = [
                 url: "https://rirtir.com/Audio/RealTimeWhisper/",
                 desc: "音声から文字起こしをする。調整中",
                 tags: ["音声", "音声処理", "オフライン"],
+                thumb: "assets/thumbs/RealTimeWhisper.webp",
                 main: false,
             }
         ]
@@ -286,15 +320,17 @@ const data = [
             {
                 title: "メディア変換ツール",
                 url: "https://rirtir.com/Utility/MediaConverter/",
-                desc: "動画・音声・画像を任意の形式に変換。WebMをAviUtl向け形式にしたり、MP4・GIF・MP3・WAVなどに変換できる。",
+                desc: "動画・音声・画像を好きな形式に変換。AviUtl向けの変換にも。",
                 tags: ["動画", "音声", "画像", "変換", "オフライン"],
+                thumb: "assets/thumbs/MediaConverter.webp",
                 main: true,
             },
             {
                 title: "PDF結合・分割ツール",
                 url: "https://rirtir.com/Utility/PDFJoiner/",
-                desc: "PDFを結合・分割するツール。完全ローカル処理なのでセキュリティ面も安心",
+                desc: "PDFを結合・分割。パスワード付きPDFにも対応。完全ローカル処理で安心。",
                 tags: ["PDF", "結合", "分割", "オフライン"],
+                thumb: "assets/thumbs/PDFJoiner.webp",
                 main: true,
             },
             {
@@ -302,6 +338,7 @@ const data = [
                 url: "https://rirtir.com/Utility/RoundRobinString/",
                 desc: "複数の変数と候補を登録し、テンプレートに埋め込んで全パターンの文章を自動生成できるツール。数式にも対応",
                 tags: ["個人用"],
+                thumb: "assets/thumbs/RoundRobinString.webp",
                 main: true,
             },
             {
@@ -309,6 +346,7 @@ const data = [
                 url: "https://rirtir.com/Utility/CSSDiffRemovalTool/",
                 desc: "CSSの被りをなくすためのツール",
                 tags: ["個人用"],
+                thumb: "assets/thumbs/CSSDiffRemovalTool.webp",
                 main: false,
             },
             {
@@ -316,6 +354,7 @@ const data = [
                 url: "https://rirtir.com/Utility/jsonl2graph/",
                 desc: "jsonlの学習結果をグラフに起こすだけのツール。完全に研究用",
                 tags: ["個人用"],
+                thumb: "assets/thumbs/jsonl2graph.webp",
                 main: false,
             },
             {
@@ -323,6 +362,7 @@ const data = [
                 url: "https://rirtir.com/Utility/DepthPreview/",
                 desc: "深度マップをプレビューし、複数のファイルを一括でZIP形式でダウンロードするツール。完全に研究用",
                 tags: ["個人用", "画像処理"],
+                thumb: "assets/thumbs/DepthPreview.webp",
                 main: false,
             },
             {
@@ -330,6 +370,7 @@ const data = [
                 url: "https://rirtir.com/Utility/RealEstate10Kcreatemeta/",
                 desc: "RE10Kのメタデータを作成するツール。完全に研究用",
                 tags: ["個人用"],
+                thumb: "assets/thumbs/RealEstate10Kcreatemeta.webp",
                 main: false,
             },
             {
@@ -337,6 +378,7 @@ const data = [
                 url: "https://rirtir.com/Utility/GohanRoulette/",
                 desc: "ランダムに食事の候補を提示するツール",
                 tags: [],
+                thumb: "assets/thumbs/GohanRoulette.webp",
                 main: false,
             }
         ]
@@ -431,12 +473,29 @@ function render(){
             a.href = link.url
             a.className = "card"
             a.target = "_blank"
+            a.rel = "noopener"
 
             a.innerHTML = `
 <strong>${link.title}</strong>
 <p>${link.desc}</p>
 <div>${link.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</div>
 `
+
+            // サムネイルは文字の後ろに薄く敷く。読み込めなければ通常のカードに戻す
+            if(link.thumb){
+                const img = document.createElement("img")
+                img.className = "thumb"
+                img.src = link.thumb
+                img.alt = ""
+                img.loading = "lazy"
+                img.decoding = "async"
+                img.onerror = ()=>{
+                    img.remove()
+                    a.classList.remove("has-thumb")
+                }
+                a.classList.add("has-thumb")
+                a.prepend(img)
+            }
 
             grid.appendChild(a)
         })
