@@ -137,39 +137,52 @@ def run_once(mml, source, from_clipboard, args, sid=None):
 
 def cmd_run(args):
     if args.all_probes:
+        import collections
         P = probes.all_probes()
         names = [n for n, p in P.items() if p['group'] == args.set or args.set == 'all']
         if args.start_from:
             names = names[names.index(args.start_from):]
-        total = sum(Score(P[n]['mml']).duration for n in names) * args.times
-        print()
+        # 続きから：すでに必要な回数ぶん記録のある曲は飛ばす（--again で、全部やり直す）
+        done = collections.Counter() if args.again else collections.Counter(r['source'] for r in store.load_results())
+        todo = [(n, max(0, args.times - done.get('probe:' + n, 0))) for n in names]
+        skipped = [n for n, k in todo if k == 0]
+        todo = [(n, k) for n, k in todo if k > 0]
         kind = '仮説を確かめる曲（約30秒）' if args.set == 'exp' else '3パート（メロディ＋和音1＋和音2）の長い曲（約1分）'
-        print(f'■ {kind}を {len(names)} 曲、1曲あたり {args.times} 回ずつ演奏してもらいます。')
+        print()
+        if skipped:
+            print(f'■ 続きから始めます。すでに終わっている {len(skipped)} 曲（{", ".join(skipped)}）は飛ばします。')
+            print('  （最初からやり直したいときは、起動するときの run.py の行に  --again  を付けてください）')
+        if not todo:
+            print('■ 全部の曲が、すでに必要な回数ぶん終わっています。「法則を探す」を実行してください。')
+            return
+        total = sum(Score(P[n]['mml']).duration * k for n, k in todo)
+        nplays = sum(k for _, k in todo)
+        print(f'■ {kind}を、あと {len(todo)} 曲・計 {nplays} 回演奏してもらいます。')
         print('  1回ごとに：①MMLが自動でコピーされる → ②ゲームに貼り付けて、最後まで演奏 → ③演奏後、静かになると自動で解析')
-        print(f'  演奏時間の合計は約{total / 60:.0f}分（貼り付けなどを含めて、全部で{total / 60 + len(names) * args.times * 0.4:.0f}分ほど）。いつでも q で終われます。')
-        for i, name in enumerate(names):
-            print(f'\n==================== 曲 {i + 1}/{len(names)}: {name} ====================')
+        print(f'  演奏時間の合計は約{total / 60:.0f}分（貼り付けなどを含めて、全部で{total / 60 + nplays * 0.4:.0f}分ほど）。q で途中で終わっても、終わった分は残ります（次は続きから始まります）。')
+        for i, (name, need) in enumerate(todo):
+            print(f'\n==================== 曲 {i + 1}/{len(todo)}: {name} ====================')
             print(f'{P[name]["desc"]}。{P[name]["why"]}')
             args.probe = name
             mml, source, clip = get_mml(args)
-            for rep in range(args.times):
+            for rep in range(need):
                 if args.times > 1:
-                    print(f'\n--- {name}  {rep + 1}回目 / {args.times} ---')
+                    print(f'\n--- {name}  あと{need - rep}回 ---')
                 run_once(mml, source, clip or rep > 0, args)
-                if rep + 1 < args.times:
+                if rep + 1 < need:
                     try:
                         r = input('\n同じ曲をもう1回演奏します（Enter＝録音開始 / q＝終了）: ').strip().lower()
                     except EOFError:
                         r = 'q'
                     if r == 'q':
                         return
-            if i + 1 < len(names):
+            if i + 1 < len(todo):
                 try:
                     r = input('\n次の曲へ進みます（Enter＝進む / q＝ここで終了）: ').strip().lower()
                 except EOFError:
                     r = 'q'
                 if r == 'q':
-                    break
+                    return
         print('\nお疲れさまでした。「法則を探す」を実行すると、結果から条件を探します。')
         return
     mml, source, clip = get_mml(args)
@@ -329,6 +342,7 @@ def main():
     r.add_argument('--set', choices=['focus', 'short', 'exp', 'all'], default='focus', help='--all-probes で使うMML：focus=長い3パート曲（既定） / exp=仮説を確かめる実験用 / short=短い3パート曲 / all=全部')
     r.add_argument('--times', type=int, default=2, help='--all-probes で、1曲を何回ずつ演奏するか（既定2回。同じ曲で毎回同じ音が抜けるかが分かる）')
     r.add_argument('--start-from', help='--all-probes を、この名前のところから始める')
+    r.add_argument('--again', action='store_true', help='--all-probes で、記録済みの曲も含めて、最初からやり直す')
     r.set_defaults(fn=cmd_run)
 
     a = sub.add_parser('analyze', help='すでにある録音ファイル（OBSの録画など）を解析する')
