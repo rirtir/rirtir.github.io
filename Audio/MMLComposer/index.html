@@ -50,10 +50,13 @@ input[type=number]{width:64px}
 .chk input{margin:0}
 .sep{width:1px;align-self:stretch;background:var(--line)}
 
-.main{display:flex;gap:8px;align-items:stretch}
+/* ピアノロールは決まった高さ（画面に合わせる）。左の項目は、はみ出したらその中だけでスクロールする */
+.main{--h:clamp(440px,76vh,780px);display:flex;gap:8px;align-items:flex-start}
 .side{
   width:262px;flex:none;display:flex;flex-direction:column;gap:8px;
+  height:var(--h);overflow-y:auto;overscroll-behavior:contain;padding-right:4px;box-sizing:border-box;scrollbar-width:thin;
 }
+.side>*{flex:none}
 .tracks{display:flex;flex-direction:column;gap:6px}
 .trk{
   background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:8px;
@@ -87,7 +90,7 @@ input[type=number]{width:64px}
 
 .rollbox{flex:1;min-width:0;display:flex;flex-direction:column}
 .roll{
-  position:relative;flex:1 1 auto;min-height:340px;max-height:1640px;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  position:relative;flex:none;height:var(--h);background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;
 }
 .roll canvas{position:absolute;left:0;top:0;width:100%;height:100%}
 .scroller{position:absolute;inset:0;overflow:auto;overscroll-behavior-x:contain;overscroll-behavior-y:auto}
@@ -122,7 +125,7 @@ details ul{margin:2px 0;padding-left:20px}
 
 @media (max-width:860px){
   .main{flex-direction:column}
-  .side{width:auto}
+  .side{width:auto;height:auto;overflow:visible;padding-right:0}
   .rollbox{order:-1}
   .roll{flex:none;height:clamp(340px,58vh,600px)}
   .tracks{flex-direction:row;overflow-x:auto;padding-bottom:4px}
