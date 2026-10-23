@@ -1446,11 +1446,12 @@ function setZoom(z) {
 }
 scroller.addEventListener('wheel', e => {
   if (e.ctrlKey) { e.preventDefault(); setZoom(S.zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15)); return; }
-  if (e.shiftKey && e.deltaY !== 0 && e.deltaX === 0) {            // Shift＋ホイール：横にスクロール
-    e.preventDefault();
-    const unit = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? scroller.clientWidth : 1;
-    scroller.scrollLeft += e.deltaY * unit;
-  }
+  /* Shift＋ホイールで横スクロール。ブラウザや入力機器によって、動きが deltaX・deltaY のどちらで届くか（両方のこともある）が違うので、大きいほうを使い、こちらで動かす */
+  if (!e.shiftKey) return;
+  const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  if (d === 0) return;
+  e.preventDefault();
+  scroller.scrollLeft += d * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? scroller.clientWidth : 1);
 }, { passive: false });
 
 /* ================= ピアノロール操作 ================= */
