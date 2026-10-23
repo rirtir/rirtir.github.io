@@ -285,6 +285,35 @@ def cmd_desync(args):
         print('保存:', args.output)
 
 
+def cmd_fit(args):
+    """MMLを、パート数・1パートの文字数の上限に合わせて作り直す（音の割り振り・主要な音の選び出し・音抜け対策のずらし）"""
+    import fit
+    raw = open(args.input, 'rb').read()
+    for enc in ('utf-8-sig', 'cp932'):
+        try:
+            text = raw.decode(enc).strip()
+            break
+        except UnicodeDecodeError:
+            continue
+    sc = Score(text)
+    parts = args.parts or sc.n_parts
+    new, rep = fit.fit_mml(text, parts, args.limit, not args.no_desync)
+    bad, st = fit.check_fit(text, new, args.limit, thinned=rep['omitted'] > 0 or rep['cut'] > 0)
+    print(f'元: {sc.n_parts}パート・音{len(sc.notes)}個 → {parts}パートに作り直し')
+    print(f'  和音の音: {rep["chord_notes"]}個（同時に鳴る最大 {rep["max_overlap"]}個）→ 残した {st["kept"]}個（短くした {rep["cut"]}個・省いた {rep["omitted"]}個）')
+    print(f'  同じ音域の同時開始をずらした音: {rep["shifted"]}個（残りの同時開始: {st["conflicts"]}か所）')
+    print(f'  各パートの文字数: {st["lens"]}（上限 {args.limit}）')
+    if bad:
+        print('検証で問題が見つかったので、保存しません:')
+        for b_ in bad:
+            print('  ', b_)
+        return
+    print('検証: 問題なし')
+    if args.output:
+        open(args.output, 'w', encoding='utf-8', newline='').write(new)
+        print('保存:', args.output)
+
+
 def cmd_probes(args):
     P = probes.all_probes()
     for p in P.values():
@@ -394,6 +423,13 @@ def main():
     ds.add_argument('input', help='元のMMLのテキストファイル')
     ds.add_argument('-o', '--output', help='保存先')
     ds.set_defaults(fn=cmd_desync)
+    ft = sub.add_parser('fit', help='MMLを、パート数・1パートの文字数に合わせて作り直す')
+    ft.add_argument('input')
+    ft.add_argument('-o', '--output')
+    ft.add_argument('--parts', type=int, help='パート数（省略すると元のまま）')
+    ft.add_argument('--limit', type=int, default=2400, help='1パートの文字数の上限')
+    ft.add_argument('--no-desync', action='store_true', help='同じ音域の同時開始のずらしをしない')
+    ft.set_defaults(fn=cmd_fit)
     sub.add_parser('open-latest', help='最新の結果（図）をブラウザで開く').set_defaults(fn=cmd_open_latest)
     sub.add_parser('devices', help='録音できる出力先の一覧').set_defaults(fn=lambda a: recorder.list_devices())
     c = sub.add_parser('calibrate', help='ゲームの音が出ている出力先を自動で探して覚える')
