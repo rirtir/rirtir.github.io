@@ -415,7 +415,7 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
       <li>ピアノロールの縦スクロール：ピアノロールは、音を置ける範囲（C1〜B8）の上下に余白があり、ホイールで好きな位置までスクロールできます。余白（暗い部分）には音を置けません。作曲に使う音域を、見やすい位置に動かしてください。</li>
       <li>文字数の上限：マビノギモバイルは<b>各パート2400文字まで</b>です。超えたパートは赤く表示し、出力欄の上に警告を出します（パートの文字数は、左のパート一覧と、出力欄の「パートごとにコピー」に出ています）。</li>
       <li>パートの入れ替え：左の「⇄ パートを入れ替える」で、AとBに選んだ2つのパートの音符を入れ替えます（例：メロディ⇔和音2）。「音量・楽器なども一緒に」をオンにすると、音量・楽器・ミュート／ソロも入れ替わります。</li>
-      <li>楽器：「ピアノ（サンプル）」「ナイロンギター」「スチールギター」「ハープ」「バンジョー」「フルート（サンプル）」は、実際の楽器を録音した音源（FluidR3_GM、作者 Frank Wen、MIT License）を使っています。選んだときに自動で読み込みます。マビノギモバイルのマンドリンとは別物ですが、聴き比べの参考にできます。「（簡易合成）」はツール内で作った音です。</li>
+      <li>楽器：「ピアノ（サンプル）」「ナイロンギター」「スチールギター」「ハープ」「バンジョー」「フルート（サンプル）」は、実際の楽器を録音した音源（FluidR3_GM、作者 Frank Wen、MIT License）を使っています。選んだときに自動で読み込みます。マビノギモバイルのマンドリンとは別物ですが、聴き比べの参考にできます。「マンドリン風」だけは、ゲームの録音に合わせてツール内で作った音です。</li>
       <li>MIDIキーボード：ツールバーの「🎹 MIDIキーボード」を押して許可すると、接続したキーボードで試し弾きできます（Chrome／Edge向け）。今選んでいるパートの楽器と音量で鳴り、弾いた鍵盤は画面の鍵盤にも光ります。サスティンペダルにも対応しています。</li>
       <li>シークバー（再生開始位置・貼り付け位置）：上の目盛りをクリック、またはAキー／Dキーで左右に動かせます（吸着の幅ぶん。Shiftを押すと1小節ずつ）。Home／Endで先頭／最後へ。W／Sキーで編集するパートを上下に切り替えます。</li>
       <li>ショートカット：スペース＝再生／停止、Ctrl+Z／Ctrl+Y＝元に戻す／やり直す、矢印キー＝選択中の音を移動（Shift+↑↓でオクターブ）。</li>
@@ -489,9 +489,8 @@ const INSTS = {
   mandolin: 'マンドリン風（ゲームの録音に合わせた合成）',
   sf_piano: 'ピアノ（サンプル）', sf_nylon: 'ナイロンギター（リュートの代用）', sf_steel: 'スチールギター',
   sf_harp: 'ハープ（サンプル）', sf_banjo: 'バンジョー（マンドリンに近い撥弦）', sf_flute: 'フルート（サンプル）',
-  piano: 'ピアノ（簡易合成）', flute: 'フルート（簡易合成）', pluck: 'リュート風（簡易合成）', organ: 'オルガン風（簡易合成）', clarinet: 'クラリネット風（簡易合成）',
 };
-const INST_ORDER = ['piano', 'flute', 'pluck', 'organ'];
+const DEF_INST = 'sf_piano';        // 既定の楽器（サンプルのピアノ）
 const METERS = { '4/4': [192, 48], '3/4': [144, 48], '2/4': [96, 48], '5/4': [240, 48], '6/8': [144, 72], '9/8': [216, 72], '12/8': [288, 72] };
 const PCNAME = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const MMLNAME = ['c', 'c+', 'd', 'd+', 'e', 'f', 'f+', 'g', 'g+', 'a', 'a+', 'b'];
@@ -514,7 +513,7 @@ const beatT = () => METERS[S.meter][1];
 const midiName = m => PCNAME[m % 12] + (Math.floor(m / 12) - 1);
 
 function newTrack(i, name) {
-  return { name: name || (i === 0 ? 'メロディ' : '和音' + i), vol: i === 0 ? 12 : 8, inst: 'mandolin', mute: false, solo: false, notes: [] };
+  return { name: name || (i === 0 ? 'メロディ' : '和音' + i), vol: i === 0 ? 12 : 8, inst: DEF_INST, mute: false, solo: false, notes: [] };
 }
 
 /* ================= 長さ（tick）計算 ================= */
@@ -1072,22 +1071,6 @@ function voice(inst, midi, t, dur, vol, dest, nodes, ctx) {
   const peak = Math.pow(vol / 15, 1.4) * 0.3;
   const add = o => { nodes.push(o); return o; };
   let end;
-  const env = (tau, rel) => {   // 指数減衰（鍵盤楽器・撥弦用）
-    const vEnd = Math.max(peak * Math.exp(-dur / tau), 1e-4);
-    g.gain.setValueAtTime(1e-4, t);
-    g.gain.linearRampToValueAtTime(peak, t + 0.004);
-    g.gain.exponentialRampToValueAtTime(vEnd, t + Math.max(dur, 0.02));
-    g.gain.exponentialRampToValueAtTime(1e-4, t + Math.max(dur, 0.02) + rel);
-    return t + Math.max(dur, 0.02) + rel + 0.02;
-  };
-  const sus = (att, rel) => {   // 持続（管・オルガン用）
-    const d = Math.max(dur, 0.05);
-    g.gain.setValueAtTime(1e-4, t);
-    g.gain.linearRampToValueAtTime(peak, t + att);
-    g.gain.setValueAtTime(peak, t + Math.max(d - rel, att));
-    g.gain.linearRampToValueAtTime(1e-4, t + d + rel);
-    return t + d + rel + 0.02;
-  };
   if (SF_FILES[inst]) {
     /* 実際の楽器を録音したサンプル（FluidR3_GM）。一番近い音を選び、再生速度を変えて音程を合わせる */
     const bank = SF.banks[inst];
@@ -1121,54 +1104,7 @@ function voice(inst, midi, t, dur, vol, dest, nodes, ctx) {
     g.gain.setValueCurveAtTime(curve, t, total);
     end = t + total + 0.02;
     o.start(t); o.stop(end);
-  } else if (inst === 'piano') {
-    const o1 = add(c.createOscillator()); o1.type = 'triangle'; o1.frequency.value = f;
-    const o2 = add(c.createOscillator()); o2.type = 'sine'; o2.frequency.value = f * 2;
-    const g2 = c.createGain(); g2.gain.value = 0.35;
-    o1.connect(g); o2.connect(g2); g2.connect(g);
-    end = env(0.9 + 60 / f, 0.12);
-    o1.start(t); o2.start(t); o1.stop(end); o2.stop(end);
-  } else if (inst === 'pluck') {
-    const o = add(c.createOscillator()); o.type = 'sawtooth'; o.frequency.value = f;
-    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1;
-    lp.frequency.setValueAtTime(Math.min(f * 8, 9000), t);
-    lp.frequency.exponentialRampToValueAtTime(Math.max(f * 1.5, 200), t + 0.35);
-    o.connect(lp); lp.connect(g);
-    end = env(0.35, 0.08);
-    o.start(t); o.stop(end);
-  } else if (inst === 'flute') {
-    /* フルート：ほぼ正弦波＋かすかな倍音、立ち上がりの息の音、遅れて始まるビブラート */
-    const o = add(c.createOscillator()); o.type = 'sine'; o.frequency.value = f;
-    const o2 = add(c.createOscillator()); o2.type = 'sine'; o2.frequency.value = f * 2;
-    const g2 = c.createGain(); g2.gain.value = 0.07;
-    const lfo = add(c.createOscillator()); lfo.frequency.value = 5.0;
-    const lg = c.createGain(); lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(10, t + Math.max(0.4, dur * 0.5));
-    lfo.connect(lg); lg.connect(o.detune); lg.connect(o2.detune);
-    const nz = add(c.createBufferSource()); nz.buffer = noiseBuf(); nz.loop = true;
-    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = Math.min(f * 3, 8000); bp.Q.value = 0.9;
-    const ng = c.createGain();
-    ng.gain.setValueAtTime(0.5, t); ng.gain.exponentialRampToValueAtTime(0.06, t + 0.12);
-    o.connect(g); o2.connect(g2); g2.connect(g); nz.connect(bp); bp.connect(ng); ng.connect(g);
-    end = sus(0.07, 0.1);
-    o.start(t); o2.start(t); lfo.start(t); nz.start(t);
-    o.stop(end); o2.stop(end); lfo.stop(end); nz.stop(end);
-  } else if (inst === 'organ') {
-    /* オルガン：ドローバーのような正弦波の足し合わせ、立ち上がり・切れともに素早い */
-    const parts = [[0.5, 0.28], [1, 0.5], [2, 0.38], [3, 0.24], [4, 0.14], [6, 0.07]];
-    const sum = parts.reduce((a, q) => a + q[1], 0);
-    end = sus(0.012, 0.045);
-    parts.forEach(([mul, amp]) => {
-      const o = add(c.createOscillator()); o.type = 'sine'; o.frequency.value = f * mul;
-      const pg = c.createGain(); pg.gain.value = amp / sum * 1.4;
-      o.connect(pg); pg.connect(g); o.start(t); o.stop(end);
-    });
-  } else if (inst === 'clarinet') {
-    /* クラリネット：奇数倍音の多い方形波を丸めた音 */
-    const o = add(c.createOscillator()); o.type = 'square'; o.frequency.value = f;
-    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = Math.min(f * 4, 3000);
-    o.connect(lp); lp.connect(g);
-    end = sus(0.04, 0.06);
-    o.start(t); o.stop(end);
+
   }
 }
 /* サンプル音源（samples/*.json）：必要になったときに読み込み、デコードして保持する */
@@ -1222,15 +1158,6 @@ async function renderNote(inst, midi, dur) {          // 検証用：音をオ�
   const oc = new OfflineAudioContext(1, 44100 * 3, 44100), nodes = [];
   voice(inst, midi, 0.02, dur, 12, oc.destination, nodes, oc);
   return Array.from((await oc.startRendering()).getChannelData(0));
-}
-let noiseBuffer = null;
-function noiseBuf() {
-  if (!noiseBuffer) {
-    noiseBuffer = actx.createBuffer(1, actx.sampleRate, actx.sampleRate);
-    const d = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  }
-  return noiseBuffer;
 }
 function preview(midi, tr) {
   tr = tr || S.tracks[S.cur]; if (!tr) return;
@@ -2365,8 +2292,8 @@ function init() {
     loadParsed(parseMML(SAMPLE));
   }
   let migrated = false;
-  try { migrated = !!localStorage.getItem('mmlcomposer.mandolin'); localStorage.setItem('mmlcomposer.mandolin', '1'); } catch (e) { migrated = true; }
-  S.tracks.forEach((t, i) => { t.inst = !migrated ? 'mandolin' : INSTS[t.inst] ? t.inst : 'mandolin'; });
+  try { migrated = !!localStorage.getItem('mmlcomposer.defpiano'); localStorage.setItem('mmlcomposer.defpiano', '1'); } catch (e) { migrated = true; }
+  S.tracks.forEach(t => { t.inst = !migrated ? DEF_INST : INSTS[t.inst] ? t.inst : DEF_INST; });
   $('iTempo').value = S.tempo; $('sMeter').value = S.meter;
   new Set(S.tracks.map(t => t.inst)).forEach(k => { if (SF_FILES[k]) sfLoad(k).catch(() => {}); });
   loadDs();
