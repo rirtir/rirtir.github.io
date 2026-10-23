@@ -45,7 +45,7 @@ def note_wave(midi, dur, sr=SR_DEFAULT, vol=1.0, rel=0.08, harm=None):
 
 
 def render(notes, drop=(), sr=SR_DEFAULT, lead=1.5, tail=2.0, offset=0.0, scale=1.0, gain=0.3,
-           bgm=0.0, noise=0.0, seed=0, vol_by_part=None, harm=None):
+           bgm=0.0, noise=0.0, seed=0, vol_by_part=None, harm=None, reg_gain=False):
     """notes: Score.notes のリスト。drop: 鳴らさない音の gid の集合。
     offset: 演奏開始までの無音(秒)に足す量、scale: 時間の伸び縮み、bgm/noise: 混ぜる大きさ(0〜)"""
     rng = np.random.default_rng(seed)
@@ -55,6 +55,8 @@ def render(notes, drop=(), sr=SR_DEFAULT, lead=1.5, tail=2.0, offset=0.0, scale=
         if n['gid'] in drop:
             continue
         v = (n['vol'] / 15.0) ** 1.4 if vol_by_part is None else vol_by_part[n['part']]
+        if reg_gain:      # 音域によって音の大きさが違う（実際のゲームの録音に近づける）
+            v *= 0.5 if 64 <= n['pitch'] <= 76 else (1.3 if n['pitch'] >= 77 else 1.0)
         w = note_wave(n['pitch'], n['dur_s'] * scale, sr, v, harm=harm)
         i0 = int((lead + offset + n['start_s'] * scale) * sr)
         out[i0:i0 + len(w)] += w[:len(out) - i0]

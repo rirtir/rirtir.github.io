@@ -65,7 +65,7 @@ def resample_to_22050(x, sr):
     return resample_poly(x, detect.SR // g, sr // g).astype(np.float32)
 
 
-def analyze_and_save(mml, x, source, note='', sid=None, device=''):
+def analyze_and_save(mml, x, source, note='', sid=None, device='', append=True, save_wav=True):
     import soundfile as sf
     sc = Score(mml)
     if not sc.notes:
@@ -88,7 +88,8 @@ def analyze_and_save(mml, x, source, note='', sid=None, device=''):
     ns, info, M, times = detect.run_analysis(x, sc, octave_candidates=(0, -12, 12))
     sid = sid or store.new_session_id(source.split(' / ')[0].split(':', 1)[-1] if source.startswith('probe') else '')
     d = store.session_dir(sid)
-    sf.write(str(d / 'rec.wav'), x, detect.SR, subtype='PCM_16')
+    if save_wav:
+        sf.write(str(d / 'rec.wav'), x, detect.SR, subtype='PCM_16')
     title = f'{sid}  MML {sc.hash}  ({source})'
     txt = report.text_report(sc, ns, info, title)
     (d / 'report.txt').write_text(txt, encoding='utf-8')
@@ -97,7 +98,8 @@ def analyze_and_save(mml, x, source, note='', sid=None, device=''):
                mml=mml, mml_hash=sc.hash, info=info, tempo_events=sc.tempo_events,
                notes=[{k: n[k] for k in report.NOTE_KEYS + [k for k in n if k.startswith('f_')] if k in n} for n in ns])
     (d / 'result.json').write_text(json.dumps(rec, ensure_ascii=False, default=to_py), encoding='utf-8')
-    store.append_result(json.loads(json.dumps(rec, default=to_py)))
+    if append:
+        store.append_result(json.loads(json.dumps(rec, default=to_py)))
     print()
     print(txt)
     print()
@@ -141,7 +143,8 @@ def cmd_run(args):
             names = names[names.index(args.start_from):]
         total = sum(Score(P[n]['mml']).duration for n in names) * args.times
         print()
-        print(f'■ 3パート（メロディ＋和音1＋和音2）の長い曲（約1分）を {len(names)} 曲、1曲あたり {args.times} 回ずつ演奏してもらいます。')
+        kind = '仮説を確かめる曲（約30秒）' if args.set == 'exp' else '3パート（メロディ＋和音1＋和音2）の長い曲（約1分）'
+        print(f'■ {kind}を {len(names)} 曲、1曲あたり {args.times} 回ずつ演奏してもらいます。')
         print('  1回ごとに：①MMLが自動でコピーされる → ②ゲームに貼り付けて、最後まで演奏 → ③演奏後、静かになると自動で解析')
         print(f'  演奏時間の合計は約{total / 60:.0f}分（貼り付けなどを含めて、全部で{total / 60 + len(names) * args.times * 0.4:.0f}分ほど）。いつでも q で終われます。')
         for i, name in enumerate(names):
@@ -191,17 +194,8 @@ def cmd_analyze(args):
     analyze_and_save(mml, x, source + ' / ' + str(args.audio), args.note or '')
 
 
-def cmd_learn(args):
-    if args.reset:
-        cfg = store.load_config()
-        cfg.pop('timbre', None)
-        store.save_config(cfg)
-        print('覚えた音色を消しました（標準の音色に戻ります）。')
-        return
-    mml, source, _ = get_mml(args)
-    sc = Score(mml)
-    print(f'録音ファイルを読み込みます: {args.audio}')
-    x = detect.load_audio(args.audio)
+def do_learn(x, sc):
+    """全部の音が鳴った録音から、音色と、音ごとの標準の大きさを覚える"""
     timbre, info = detect.learn_timbre(x, sc)
     print(f'演奏の開始位置 {info["tau"]:.2f}秒目、時間のずれ {info["scale"]:.4f}倍、一致の強さ z={info["z"]:.1f}'
           + ('  ※一致が弱いので、この録音は使わないほうがよいかもしれません' if info['z'] < 4 else ''))
@@ -209,10 +203,45 @@ def cmd_learn(args):
         raise SystemExit('音色を測れませんでした。')
     cfg = store.load_config()
     cfg['timbre'] = {str(k): v for k, v in timbre.items()}
+    cfg.pop('amp', None)
     store.save_config(cfg)
-    print(f'{len(timbre)}種類の高さの音色を覚えました（以後の解析はこの音色を使います）。')
-    for p in sorted(timbre)[::max(1, len(timbre) // 6)]:
-        print('   ', p, ' '.join(f'{v:6.1f}' for v in timbre[p][:6]), 'dB（基音, 2倍音, 3倍音…）')
+    detect.reset_learned()
+    ns, _, _, _ = detect.run_analysis(x, sc)
+    amp = {}
+    for n in ns:
+        amp.setdefault(n['pitch'], []).append(n['rise'])
+    cfg['amp'] = {str(k): float(np.median(v)) for k, v in amp.items() if np.median(v) > 0}
+    store.save_config(cfg)
+    detect.reset_learned()
+    print(f'{len(timbre)}種類の高さの音色と、音ごとの標準の大きさを覚えました（以後の解析はこれを使います）。')
+
+
+def cmd_learn(args):
+    if args.reset:
+        cfg = store.load_config()
+        cfg.pop('timbre', None)
+        cfg.pop('amp', None)
+        store.save_config(cfg)
+        print('覚えた音色を消しました（標準の音色に戻ります）。')
+        return
+    mml, source, _ = get_mml(args)
+    sc = Score(mml)
+    print(f'録音ファイルを読み込みます: {args.audio}')
+    do_learn(detect.load_audio(args.audio), sc)
+
+
+def cmd_setup(args):
+    """最初の準備：半音階（1パートだけ・全部の音が鳴る）を演奏して録音し、ゲームの音色と音の大きさを覚える"""
+    print('■ 最初の準備：ゲームの音色を覚えます（1回だけ。1分ほど）')
+    print('  半音階（1パート）を演奏してもらいます。全部の音が鳴った録音から、音域ごとの音色と音の大きさを覚えます。')
+    args.probe, args.file, args.text = '01_scale', None, None
+    args.note = '最初の準備（音色の学習）'
+    mml, source, clip = get_mml(args)
+    rec = run_once(mml, source, clip, args)
+    if rec is None:
+        return
+    x = detect.load_audio(store.SESSIONS / rec['session'] / 'rec.wav')
+    do_learn(x, Score(mml))
 
 
 def cmd_probes(args):
@@ -235,6 +264,40 @@ def cmd_open_latest(args):
         return
     print('最新の結果:', d[-1].name)
     os.startfile(str(d[-1] / 'report.html'))
+
+
+def cmd_reanalyze(args):
+    """保存してある全部の録音を、今の解析（判定のしかた）でやり直す。結果の記録を作り直す（元は .bak に残す）"""
+    import contextlib
+    import io
+    import shutil
+    old = store.load_results()
+    if not old:
+        print('結果がまだありません。')
+        return
+    bak = store.RESULTS.with_name('results.jsonl.bak-' + time.strftime('%Y%m%d-%H%M%S'))
+    shutil.copy(store.RESULTS, bak)
+    print(f'元の記録を {bak.name} に残しました。{len(old)}回ぶんを解析し直します…')
+    new = []
+    for i, r in enumerate(old):
+        wav = store.SESSIONS / r['session'] / 'rec.wav'
+        if not wav.exists():
+            print(f'  録音がないので、そのまま残します: {r["session"]}')
+            new.append(r)
+            continue
+        x = detect.load_audio(wav)
+        with contextlib.redirect_stdout(io.StringIO()):
+            rec = analyze_and_save(r['mml'], x, r['source'], r.get('note', ''), r['session'], r.get('device', ''), append=False, save_wav=False)
+        if rec is None:
+            new.append(r)
+            continue
+        rec['time'] = r.get('time', rec['time'])
+        rec = json.loads(json.dumps(rec, default=to_py))
+        new.append(rec)
+        c = report.summarize(rec['notes'])
+        print(f'  [{i + 1}/{len(old)}] {r["session"]}: 鳴らなかった {c["missing"]}（オクターブ補正 {rec["info"]["octave_shift"]:+d}）')
+    store.RESULTS.write_text(''.join(json.dumps(r, ensure_ascii=False) + '\n' for r in new), encoding='utf-8')
+    print('完了。')
 
 
 def cmd_patterns(args):
@@ -263,7 +326,7 @@ def main():
     r.add_argument('--no-auto-stop', action='store_true', help='自動停止を使わず、Enterキーで止める')
     r.add_argument('--repeat', action='store_true', help='同じMMLを続けて何回も録音する（再現性を見る）')
     r.add_argument('--all-probes', action='store_true', help='3パートの検証用MML（集中検証セット）を、順番に続けて検証する')
-    r.add_argument('--set', choices=['focus', 'short', 'all'], default='focus', help='--all-probes で使うMML：focus=長い3パート曲（既定） / short=短い3パート曲 / all=全部')
+    r.add_argument('--set', choices=['focus', 'short', 'exp', 'all'], default='focus', help='--all-probes で使うMML：focus=長い3パート曲（既定） / exp=仮説を確かめる実験用 / short=短い3パート曲 / all=全部')
     r.add_argument('--times', type=int, default=2, help='--all-probes で、1曲を何回ずつ演奏するか（既定2回。同じ曲で毎回同じ音が抜けるかが分かる）')
     r.add_argument('--start-from', help='--all-probes を、この名前のところから始める')
     r.set_defaults(fn=cmd_run)
@@ -279,6 +342,12 @@ def main():
     le.add_argument('--reset', action='store_true', help='覚えた音色を消す')
     le.set_defaults(fn=cmd_learn)
 
+    sub.add_parser('reanalyze', help='保存してある全部の録音を、今の解析でやり直す').set_defaults(fn=cmd_reanalyze)
+    su = sub.add_parser('setup', help='最初の準備：半音階を演奏して、ゲームの音色を覚える')
+    su.add_argument('--device')
+    su.add_argument('--auto-stop', type=float, default=4.0)
+    su.add_argument('--no-auto-stop', action='store_true')
+    su.set_defaults(fn=cmd_setup)
     sub.add_parser('open-latest', help='最新の結果（図）をブラウザで開く').set_defaults(fn=cmd_open_latest)
     sub.add_parser('devices', help='録音できる出力先の一覧').set_defaults(fn=lambda a: recorder.list_devices())
     c = sub.add_parser('calibrate', help='ゲームの音が出ている出力先を自動で探して覚える')

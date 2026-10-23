@@ -302,6 +302,53 @@ def rich_probes():
     return out
 
 
+# ---- 仮説を確かめる実験用の曲：8分音符で全パートが同時に鳴る（音域をそろえる／ずらす／パート数を変える） ----
+ZONES = {'mid_m': list(range(71, 77)), 'mid_c1': list(range(64, 71)), 'low_c2': list(range(52, 61)), 'high_m': list(range(77, 84)),
+         'low_c1': list(range(57, 63))}
+
+
+def exp_mml(kind, seed=21, slots=100, tempo=120):
+    rng = np.random.default_rng(seed)
+
+    def seq(zone, n):
+        out, last = [], None
+        for _ in range(n):
+            m = int(rng.choice([x for x in ZONES[zone] if x != last]))
+            out.append(m)
+            last = m
+        return out
+    mel = seq('high_m' if kind == 'X7_diff_zone' else 'mid_m', slots)
+    c1 = seq('mid_c1', slots)
+    c2 = seq('low_c2', slots)
+    A = [N(m, 8) for m in mel]
+    B = [N(m, 8) for m in c1]
+    C = [N(m, 8) for m in c2]
+    if kind == 'X1_two_parts':
+        return build([A, B])
+    if kind == 'X3_third_rests':
+        return build([A, B, [R(1)] * (slots // 8) + [R(8)] * (slots % 8)])
+    if kind == 'X4_third_holds':
+        return build([A, B, [N(m, 1) for m in (c2[:slots // 8] if slots >= 8 else c2)]])
+    if kind == 'X5_offset_64th':
+        return build([A, [R(64)] + B, C])
+    if kind == 'X6_offset_32nd':
+        return build([A, [R(32)] + B, C])
+    return build([A, B, C])         # X2_three_same_zone / X7_diff_zone
+
+
+def exp_probes():
+    items = [
+        ('X1_two_parts', '2パートだけ：メロディ(中音域)＋和音1(中音域)が同時', '同じ音域の2音が同時に始まるとき、2パートだけでも抜けるか。'),
+        ('X2_three_same_zone', '3パート：メロディ・和音1が中音域、和音2が低音域（すべて同時）', '基準になる形。メロディの中音域の音が抜けやすいはず。'),
+        ('X3_third_rests', '3パートのMMLだが、和音2はずっと休符', '3つ目のパートが「あるだけ」で音は鳴らないとき。抜けるか。'),
+        ('X4_third_holds', '3つ目（和音2）が長い音を鳴らし続け、メロディ・和音1が同時に動く', '3つ目がすでに鳴っているところへ、同じ音域の2音が同時に入るとき。'),
+        ('X5_offset_64th', '和音1を、64分音符ぶんだけ遅らせて始める', 'ごくわずかなずらしで、抜けなくなるか。'),
+        ('X6_offset_32nd', '和音1を、32分音符ぶんだけ遅らせて始める', '少しだけずらしたら、抜けなくなるか。'),
+        ('X7_diff_zone', '3パート：メロディが高音域、和音1が中音域、和音2が低音域（すべて同時）', '音域がすべて違うとき。抜けないはず（対照）。'),
+    ]
+    return [(n, d, why, exp_mml(n)) for n, d, why in items]
+
+
 def all_probes():
     P = {}
 
@@ -312,6 +359,8 @@ def all_probes():
         P[name]['sections'] = secs
     for name, desc, why, mml in focus_probes():
         add(name, desc, mml, group='short', why=why)
+    for name, desc, why, mml in exp_probes():
+        add(name, desc, mml, group='exp', why=why)
     # ---- （参考）パートの組み合わせ・割り当てを変えた検証：集中検証セットには含めない ----
     C = three_contents(7)
     add('00a_melody_chord1', '2パート：メロディ＋和音1（3パートではないので、抜けないはず）', combo_mml(C, (0, 1, None)))

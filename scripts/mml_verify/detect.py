@@ -76,6 +76,30 @@ def learned_profile(midi):
     return d[k] if abs(k - midi) <= 6 else None
 
 
+_AMP = {'loaded': False, 'data': {}}
+
+
+def learned_amp(midi):
+    """learn で覚えた「その高さの音の標準の立ち上がりの大きさ」。近い高さ(±1)になければ None"""
+    if not _AMP['loaded']:
+        try:
+            import store
+            _AMP['data'] = {int(k): v for k, v in store.load_config().get('amp', {}).items()}
+        except Exception:
+            _AMP['data'] = {}
+        _AMP['loaded'] = True
+    d = _AMP['data']
+    if not d:
+        return None
+    k = min(d, key=lambda q: abs(q - midi))
+    return d[k] if abs(k - midi) <= 1 else None
+
+
+def reset_learned():
+    _TIMBRE['loaded'] = False
+    _AMP['loaded'] = False
+
+
 def make_template(midi, kmin, kmax):
     """ある高さの音が作るスペクトルの形（基音＋倍音。ハン窓の山の形で配置）"""
     f0 = mtof(midi)
@@ -114,21 +138,11 @@ def impulses(starts, dt, length, tau=0.0, scale=1.0):
     return imp
 
 
-def align(flux, dt, notes):
-    """演奏開始時刻 tau（録音の先頭から何秒後に楽譜の0秒が来るか）と、時間の伸び縮み scale を返す"""
-    starts = np.array(sorted({round(n['start_s'], 3) for n in notes}))
-    dur = max(n['end_s'] for n in notes)
-    L = int(dur / dt) + 4
-    f = np.concatenate([flux - np.median(flux), np.zeros(L)])
-    imp = impulses(starts, dt, L)
-    corr = correlate(f, imp, mode='valid')[:len(flux)]
-    k = int(np.argmax(corr))
-    z = (corr[k] - corr.mean()) / (corr.std() + 1e-9)
-    tau = k * dt
-    scale = 1.0
-    # 時間の伸び縮み（テンポのずれ）を、各音の近くの変化の山から求める
+def _refine(flux, starts, tau, scale):
+    """時間の伸び縮み（テンポのずれ）を、各音の近くの変化の山から求めて、tau と scale を直す"""
+    dt = HOP / SR
     for _ in range(2):
-        res, xs, wt = [], [], []
+        res, xs = [], []
         thr = np.median(flux) + 2 * np.median(np.abs(flux - np.median(flux))) + 1e-9
         for s in starts:
             p = (s * scale + tau) / dt
@@ -137,7 +151,7 @@ def align(flux, dt, notes):
                 continue
             j = lo + int(np.argmax(flux[lo:hi]))
             if flux[j] > thr * 2:
-                res.append(j * dt - (s * scale + tau)); xs.append(s); wt.append(flux[j])
+                res.append(j * dt - (s * scale + tau)); xs.append(s)
         if len(res) >= 8:
             res, xs = np.array(res), np.array(xs)
             keep = np.abs(res - np.median(res)) < 0.05
@@ -146,8 +160,47 @@ def align(flux, dt, notes):
                 (a, b), *_ = np.linalg.lstsq(A, res[keep], rcond=None)
                 tau += a
                 scale += b
-    scale = float(np.clip(scale, 0.97, 1.03))
-    return float(tau), scale, float(z)
+    return float(tau), float(np.clip(scale, 0.97, 1.03))
+
+
+def align_candidates(flux, dt, notes, k=4):
+    """演奏開始時刻の候補（一致の強い順に最大k個）。(tau, scale, z) のリスト。
+    音が等間隔だと、1音ぶんずれた位置も同じくらい一致するので、候補を複数出しておく"""
+    from scipy.signal import find_peaks
+    starts = np.array(sorted({round(n['start_s'], 3) for n in notes}))
+    dur = max(n['end_s'] for n in notes)
+    L = int(dur / dt) + 4
+    f = np.concatenate([flux - np.median(flux), np.zeros(L)])
+    imp = impulses(starts, dt, L)
+    corr = correlate(f, imp, mode='valid')[:len(flux)]
+    pk, _ = find_peaks(corr, distance=max(1, int(0.12 / dt)), height=0.7 * corr.max())
+    order = sorted(pk, key=lambda i: -corr[i])[:k] or [int(np.argmax(corr))]
+    out = []
+    for i in order:
+        z = (corr[i] - corr.mean()) / (corr.std() + 1e-9)
+        tau, scale = _refine(flux, starts, i * dt, 1.0)
+        out.append((tau, scale, float(z)))
+    return out
+
+
+def align(flux, dt, notes):
+    """演奏開始時刻 tau（録音の先頭から何秒後に楽譜の0秒が来るか）と、時間の伸び縮み scale、一致の強さ z"""
+    return align_candidates(flux, dt, notes, 1)[0]
+
+
+def best_alignment(M, times, flux, notes, k=4):
+    """候補のうち、音の高さまで含めて一番よく合うもの（各音の立ち上がりの合計が最大）を選ぶ"""
+    cands = align_candidates(flux, HOP / SR, notes, k)
+    if len(cands) == 1:
+        return cands[0]
+    best = None
+    for tau, scale, z in cands:
+        ns = [dict(n) for n in notes]
+        analyze_notes(M, times, ns, tau, scale, 0)
+        tr = sum(max(0.0, n['rise']) for n in ns)
+        if best is None or tr > best[0]:
+            best = (tr, tau, scale, z)
+    return best[1:]
 
 
 # ---------------------------------------------------------------- 各音の判定
@@ -232,16 +285,38 @@ def decide(notes, params=None):
     if params:
         P.update(params)
     # 基準の大きさ：パートごとの立ち上がりの中央値（大半の音が鳴っている前提）
-    by_part = {}
+    by_part_notes = {}
     for n in notes:
-        by_part.setdefault(n['part'], []).append(n['rise'])
+        by_part_notes.setdefault(n['part'], []).append(n)
     allr = np.array([n['rise'] for n in notes])
-    # 基準：パートごとの立ち上がりの上位15%の値（鳴らなかった音が多くても崩れにくい）
-    pct = lambda v: float(np.percentile([r for r in v if r > 0], 85)) if any(r > 0 for r in v) else 0.0
-    ref_all = pct(allr) or 1.0
-    ref = {p: (pct(v) or ref_all) for p, v in by_part.items()}
+    # 基準：音の高さごとの標準の大きさ（learn で覚えたもの）に、パートごとの音量の違いを掛けたもの。
+    # （ゲームの音は、音域でかなり大きさが違う。半音階の録音で、その高さの音が普通に鳴ったときの大きさを測ってある）
+    pct = lambda v: float(np.percentile(v, 85)) if len(v) else 0.0
+    ref_all = pct([r for r in allr if r > 0]) or 1.0
+    gain = {}
+    for part, ns_ in by_part_notes.items():
+        ratios = []
+        for m in ns_:
+            e = learned_amp(m['mp'])
+            m['_exp'] = e
+            if e and m['rise'] > 0:
+                ratios.append(m['rise'] / e)
+        gain[part] = pct(ratios)
     for n in notes:
-        r = ref.get(n['part'], ref_all)
+        e = n.get('_exp')
+        if e and gain.get(n['part']):
+            n['_ref'] = gain[n['part']] * e
+            continue
+        # 標準の大きさが分からない音は、同じパートの近い高さの音の、上位15%を基準にする
+        peers = [m for m in by_part_notes[n['part']] if m['rise'] > 0]
+        for w in (4, 8, 14, 200):
+            near = [m['rise'] for m in peers if abs(m['mp'] - n['mp']) <= w]
+            if len(near) >= 10:
+                break
+        n['_ref'] = pct(near) or ref_all
+    for n in notes:
+        r = n.pop('_ref')
+        n.pop('_exp', None)
         n['ref'] = r
         n['rel'] = n['rise'] / (r + 1e-12)
         if n['rel'] >= P['rel_thr']:
@@ -266,17 +341,19 @@ def run_analysis(x, score, octave_candidates=(0,), params=None):
     flux = onset_flux(M)
     dt = HOP / SR
     notes_base = score.notes
-    tau, scale, z = align(flux, dt, notes_base)
-    best = None
+    tau, scale, z = best_alignment(M, times, flux, notes_base)
+    cands = []
     for osh in octave_candidates:
         ns = [dict(n) for n in notes_base]
         analyze_notes(M, times, ns, tau, scale, osh, params)
         decide(ns, params)
-        n_ok = sum(1 for n in ns if n['detected'])
         total_rise = sum(max(0.0, n['rise']) for n in ns)
-        key = (n_ok, total_rise)
-        if best is None or key > best[0]:
-            best = (key, osh, ns)
+        cands.append((total_rise, osh, ns))
+    # 1オクターブ違いは倍音のせいで「鳴った音の数」がほぼ同じになる。立ち上がりの合計で比べ、
+    # 楽譜どおり(0)を基本にして、ほかが1.5倍以上よいときだけ採用する
+    base = next((c for c in cands if c[1] == 0), cands[0])
+    top = max(cands, key=lambda c: c[0])
+    best = (None, top[1], top[2]) if top[0] >= 1.5 * base[0] else (None, base[1], base[2])
     _, osh, ns = best
     info = dict(tau=tau, scale=scale, align_z=z, octave_shift=osh, frames=len(times),
                 duration_rec=len(x) / SR)
@@ -288,7 +365,7 @@ def learn_timbre(x, score, params=None):
     戻り値: {音の高さ(MIDI): [基音を0dBとした倍音1〜8の強さ(dB)]}"""
     M, times = stft_mag(x)
     flux = onset_flux(M)
-    tau, scale, z = align(flux, HOP / SR, score.notes)
+    tau, scale, z = best_alignment(M, times, flux, score.notes)
     per = {}
     for n in score.notes:
         t0 = n['start_s'] * scale + tau
