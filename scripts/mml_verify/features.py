@@ -15,6 +15,7 @@ def add_features(notes):
     pitches = np.array([n['pitch'] for n in ns])
     parts = np.array([n['part'] for n in ns])
     last_in_part = {}
+    n_parts = len({n['part'] for n in ns})
     for gi, n in enumerate(ns):
         s, e = n['start_s'], n['end_s']
         others = np.arange(len(ns)) != gi
@@ -51,6 +52,13 @@ def add_features(notes):
             n['f_gap_prev'] = round(s - prev['end_s'], 4)          # 負：重なり／0：隙間なし
             n['f_interval_prev'] = int(n['pitch'] - prev['pitch'])
         last_in_part[n['part']] = n
+        # パートの数と、同時に鳴っているパートの組（1=メロディ, 2=和音1, 4=和音2 の合計）
+        n['f_n_parts'] = n_parts
+        snd = (starts <= s + 0.03) & (ends > s + 0.03)
+        snd[gi] = True
+        n['f_parts_active'] = int(len(set(parts[snd].tolist())))
+        n['f_part_combo'] = int(sum(1 << int(p) for p in set(parts[snd].tolist())))
+        n['f_parts_start_simul'] = int(len(set(parts[(np.abs(starts - s) <= 0.03)].tolist() + [n['part']])))
         n['f_octave'] = n['pitch'] // 12 - 1
         n['f_pc'] = n['pitch'] % 12
         n['f_dur_s'] = round(n['dur_s'], 4)

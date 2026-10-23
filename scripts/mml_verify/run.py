@@ -73,8 +73,9 @@ def analyze_and_save(mml, x, source, note='', sid=None, device=''):
     for w in sc.warnings[:5]:
         print('  注意:', w)
     features.add_features(sc.notes)
-    if len(x) < detect.SR * 2 or float(np.abs(x).max()) < 1e-4:
-        print('  ※ 録音がほとんど無音です。録音先の出力先が違う可能性があります（calibrate を実行してください）。')
+    if len(x) < detect.SR * 2 or float(np.abs(x).max()) < 1e-3:
+        print('  ※ 録音がほとんど無音（または短すぎ）でした。解析をやめます。録音先が違う可能性があります（「録音先を探す」を実行してください）。')
+        return None
     t0 = time.time()
     ns, info, M, times = detect.run_analysis(x, sc, octave_candidates=(0, -12, 12))
     sid = sid or store.new_session_id(source.split(' / ')[0].split(':', 1)[-1] if source.startswith('probe') else '')
@@ -103,15 +104,25 @@ def run_once(mml, source, from_clipboard, args, sid=None):
         import pyperclip
         pyperclip.copy(mml)
         print('  → このMMLをクリップボードにコピーしました。ゲームの作曲画面で貼り付けてください。')
-    dev = recorder.find_device(args.device)
-    print(f'  録音先: {dev.name}' + ('' if store.load_config().get('device') or args.device else '   ※まだ録音先を覚えていません。音が録れないときは、先に calibrate を実行してください'))
+    cfg = store.load_config()
+    auto_pick = not args.device and not cfg.get('device')
+    if auto_pick:
+        devs = recorder.loopback_devices()
+        print(f'  録音先: まだ決まっていないので、全部の出力先（{len(devs)}個）を同時に録音して、一番音が大きかった所を自動で選びます')
+    else:
+        devs = [recorder.find_device(args.device)]
+        print(f'  録音先: {devs[0].name}')
     print()
     print('★ 録音を開始しました。ゲームでMMLを貼り付けて、演奏を始めてください。')
     print('   演奏が終わって静かになると、自動で停止して解析します（すぐ止めたいときは、このウィンドウで Enter キー）。')
-    x, sr = recorder.record_until_stop(dev, auto_stop=None if args.no_auto_stop else args.auto_stop, expect_seconds=sc.duration)
+    x, sr, dev_name = recorder.record_until_stop(devs, auto_stop=None if args.no_auto_stop else args.auto_stop, expect_seconds=sc.duration)
     x = resample_to_22050(x, sr)
-    print(f'録音 {len(x) / detect.SR:.1f}秒 を解析します…')
-    return analyze_and_save(mml, x, source, args.note or '', sid, dev.name)
+    print(f'録音 {len(x) / detect.SR:.1f}秒（録音先: {dev_name}）を解析します…')
+    if auto_pick and len(x) > detect.SR * 2 and float(np.abs(x).max()) > 1e-3:
+        cfg['device'] = dev_name
+        store.save_config(cfg)
+        print(f'  → 音が出ていた「{dev_name}」を、次回からの録音先として覚えました。')
+    return analyze_and_save(mml, x, source, args.note or '', sid, dev_name)
 
 
 def cmd_run(args):
@@ -126,7 +137,10 @@ def cmd_run(args):
             mml, source, clip = get_mml(args)
             run_once(mml, source, clip, args)
             if i + 1 < len(names):
-                r = input('\n次の検証用MMLへ進みます（Enter＝進む / q＝ここで終了）: ').strip().lower()
+                try:
+                    r = input('\n次の検証用MMLへ進みます（Enter＝進む / q＝ここで終了）: ').strip().lower()
+                except EOFError:
+                    r = 'q'
                 if r == 'q':
                     break
         return
@@ -135,7 +149,10 @@ def cmd_run(args):
         run_once(mml, source, clip, args)
         if not args.repeat:
             break
-        r = input('\n同じMMLでもう一度録音しますか？（Enter＝もう一度 / q＝終了）: ').strip().lower()
+        try:
+            r = input('\n同じMMLでもう一度録音しますか？（Enter＝もう一度 / q＝終了）: ').strip().lower()
+        except EOFError:
+            r = 'q'
         if r == 'q':
             break
         clip = True       # 2回目以降は、クリップボードにすでに入っている
@@ -184,6 +201,17 @@ def cmd_probes(args):
         print(f'\n{store.PROBES} に、1つずつファイルとして書き出しました。')
 
 
+def cmd_open_latest(args):
+    import os
+    d = sorted(store.SESSIONS.glob('*')) if store.SESSIONS.exists() else []
+    d = [x for x in d if (x / 'report.html').exists()]
+    if not d:
+        print('結果がまだありません。')
+        return
+    print('最新の結果:', d[-1].name)
+    os.startfile(str(d[-1] / 'report.html'))
+
+
 def cmd_patterns(args):
     txt = patterns.report(include_low=args.include_low)
     print(txt)
@@ -224,6 +252,7 @@ def main():
     le.add_argument('--reset', action='store_true', help='覚えた音色を消す')
     le.set_defaults(fn=cmd_learn)
 
+    sub.add_parser('open-latest', help='最新の結果（図）をブラウザで開く').set_defaults(fn=cmd_open_latest)
     sub.add_parser('devices', help='録音できる出力先の一覧').set_defaults(fn=lambda a: recorder.list_devices())
     c = sub.add_parser('calibrate', help='ゲームの音が出ている出力先を自動で探して覚える')
     c.add_argument('--seconds', type=int, default=8)

@@ -16,6 +16,9 @@ from report import status_of, part_name
 NUM_FEATS = [
     ('pitch', '音の高さ(MIDI番号)'), ('f_octave', 'オクターブ'), ('part', 'パート'), ('vol', '音量(v)'), ('tempo', 'テンポ'),
     ('f_dur_s', '音の長さ(秒)'), ('start_s', '曲の中の時刻(秒)'), ('f_global_index', '曲の中の何音目か'),
+    ('f_n_parts', 'MMLのパート数'), ('f_parts_active', '同時に鳴っているパートの数(自分を含む)'),
+    ('f_part_combo', '同時に鳴っているパートの組(1=メロディ 2=和音1 4=和音2 の合計。7=3パートとも)'),
+    ('f_parts_start_simul', '同時に始まるパートの数(自分を含む)'),
     ('f_simul_start', '同時に始まる他の音の数'), ('f_active_notated', '譜面上、鳴っている最中の他の音の数'),
     ('f_ring_0.5s', '直前0.5秒以内に始まった音の数'), ('f_ring_1s', '直前1秒以内に始まった音の数'),
     ('f_ring_2s', '直前2秒以内に始まった音の数'), ('f_ring_3s', '直前3秒以内に始まった音の数'),
@@ -128,11 +131,21 @@ def best_stumps(rows, min_leaf=None):
             ph, pl = y[hi].mean(), y[lo].mean()
             gain = base - (hi.sum() * entropy(ph) + lo.sum() * entropy(pl)) / (hi.sum() + lo.sum())
             if best is None or gain > best[0]:
-                best = (gain, float(c), float(ph), float(pl), int(hi.sum()), int(lo.sum()))
+                best = (gain, float(c), float(ph), float(pl), int(hi.sum()), int(lo.sum()), (ok & (x >= c)).tobytes())
         if best:
             res.append((best[0], key, jp) + best[1:])
-    res.sort(reverse=True)
-    return res
+    res.sort(key=lambda r: -r[0])
+    # 分け方がまったく同じ条件は、1行にまとめる
+    out, seen = [], {}
+    for r in res:
+        sig = r[-1]
+        if sig in seen:
+            seen[sig][-1].append(r[2])
+            continue
+        row = list(r[:-1]) + [[]]
+        seen[sig] = row
+        out.append(row)
+    return out
 
 
 def fit_tree(rows, depth=3, min_leaf=None):
@@ -234,8 +247,10 @@ def report(include_low=False):
     if n_miss >= 1 and len(rows) - n_miss >= 1:
         lines.append('')
         lines.append('■ 一番よく分ける条件（この値以上かどうかで、鳴らなかった率が一番変わる順）')
-        for gain, key, jp, thr, ph, pl, nh, nl in best_stumps(rows)[:8]:
+        for gain, key, jp, thr, ph, pl, nh, nl, same in best_stumps(rows)[:8]:
             lines.append(f'  {jp}  {thr:g} 以上: 鳴らなかった率 {ph:.1%}（{nh}音）  /  未満: {pl:.1%}（{nl}音）   [情報量 {gain:.3f}]')
+            if same:
+                lines.append('       （同じ分け方になる条件: ' + ' / '.join(same) + '）')
         lines.append('')
         lines.append('■ 決定木で見つけた「鳴らなかった率が高い条件」')
         shown = 0

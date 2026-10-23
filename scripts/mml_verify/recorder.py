@@ -63,7 +63,7 @@ def find_device(name_or_index=None):
 class Recorder:
     def __init__(self, device, sr=SR_REC):
         self.device, self.sr = device, sr
-        self.blocks, self._stop, self.level = [], threading.Event(), 0.0
+        self.blocks, self._stop, self.level, self.peak = [], threading.Event(), 0.0, 0.0
         self._th = None
         self.error = None
 
@@ -78,6 +78,7 @@ class Recorder:
                     d = r.record(numframes=2048)
                     self.blocks.append(d.astype(np.float32).mean(axis=1))
                     self.level = float(np.abs(self.blocks[-1]).max())
+                    self.peak = max(self.peak, self.level)
         except Exception as e:           # 録音が始められない／途中で失敗
             self.error = e
 
@@ -94,34 +95,47 @@ class Recorder:
         return sum(len(b) for b in self.blocks) / self.sr
 
 
-def record_until_stop(device, auto_stop=None, expect_seconds=None, banner=True):
-    """録音を開始し、Enter が押されるまで（または自動停止まで）録音する。戻り値: (波形, サンプルレート)"""
-    rec = Recorder(device)
-    rec.start()
+def record_until_stop(devices, auto_stop=None, expect_seconds=None):
+    """録音を開始し、Enter が押されるまで（または自動停止まで）録音する。
+    devices が複数なら全部を同時に録音し、一番音が大きかった出力先の録音を返す。
+    戻り値: (波形, サンプルレート, 選ばれた出力先の名前)"""
+    if not isinstance(devices, (list, tuple)):
+        devices = [devices]
+    recs = [Recorder(d) for d in devices]
+    for r in recs:
+        r.start()
     stop_flag = threading.Event()
 
-    def wait_enter():
+    def enter_pressed():
+        """Enter が押されたか（裏で入力待ちをしない方式：自動停止のあとに、次の入力を横取りしないため）"""
         try:
-            input()
-        except EOFError:
-            pass
-        stop_flag.set()
+            import msvcrt
+            hit = False
+            while msvcrt.kbhit():
+                if msvcrt.getwch() in ('\r', '\n'):
+                    hit = True
+            return hit
+        except ImportError:
+            return False
 
-    threading.Thread(target=wait_enter, daemon=True).start()
     t0 = time.time()
     heard, last_sound, first_sound = False, time.time(), None
     try:
         while not stop_flag.is_set():
             time.sleep(0.2)
-            lv = rec.level
+            if enter_pressed():
+                break
+            top = max(recs, key=lambda r: r.peak)
+            lv = max(r.level for r in recs)
             if lv > 0.003:
                 if not heard:
                     first_sound = time.time()
                 heard, last_sound = True, time.time()
             bar = '#' * min(30, int(lv * 120))
-            sys.stdout.write(f'\r  録音中 {time.time() - t0:5.1f}秒  音量 |{bar:<30}|' + ('  (音を検出)' if heard else '  (まだ無音)') + '   ')
+            where = f'  [{top.device.name[:24]}]' if len(recs) > 1 and heard else ''
+            sys.stdout.write('\r  録音中 %5.1f秒  音量 |%-30s|' % (time.time() - t0, bar) + ('  (音を検出)' if heard else '  (まだ無音)') + where + '   ')
             sys.stdout.flush()
-            if rec.error:
+            if all(r.error for r in recs):
                 break
             if auto_stop and heard and time.time() - last_sound > auto_stop and (not expect_seconds or time.time() - first_sound > expect_seconds * 0.9):
                 print(f'\n  {auto_stop:g}秒間の無音を検出したので、自動で停止します')
@@ -129,8 +143,19 @@ def record_until_stop(device, auto_stop=None, expect_seconds=None, banner=True):
     except KeyboardInterrupt:
         pass
     print()
-    x = rec.stop()
-    return x, rec.sr
+    results = []
+    for r in recs:
+        try:
+            x = r.stop()
+        except Exception:
+            continue
+        rms = float(np.sqrt((x ** 2).mean())) if len(x) else 0.0
+        results.append((rms, x, r.sr, r.device.name))
+    if not results:
+        raise RuntimeError('どの出力先でも録音を始められませんでした。')
+    results.sort(key=lambda t: -t[0])
+    rms, x, sr, name = results[0]
+    return x, sr, name
 
 
 def calibrate(seconds=8):

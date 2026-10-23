@@ -123,11 +123,47 @@ def random_mml(seed, n_parts=3, bars=6, density=0.7, tempo=None):
     return build(parts, tempo=tempo)
 
 
+def three_contents(seed, bars=4):
+    """3つのパートの中身（音の列）を作る。短めの音が多く、同時に鳴る場面が多い"""
+    rng = np.random.default_rng(seed)
+    lens, w = [16, 8, 4], [0.3, 0.5, 0.2]
+    out = []
+    for k, base in enumerate((72, 64, 52)):
+        toks, total = [], 0.0
+        while total < bars * 192:
+            ln = int(rng.choice(lens, p=w))
+            ticks = 192 / ln
+            if total + ticks > bars * 192 + 1e-6:
+                ln, ticks = 16, 12
+            toks.append(N(int(rng.integers(base - 5, base + 8)), ln) if rng.random() < 0.9 else R(ln))
+            total += ticks
+        out.append(toks)
+    return out
+
+
+def combo_mml(contents, slots, bars=4):
+    """slots[k] = k番目のパートに入れる中身の番号（None なら休符）"""
+    rest = [R(1)] * bars
+    return build([contents[s] if s is not None else rest for s in slots])
+
+
 def all_probes():
     P = {}
 
     def add(name, desc, mml):
         P[name] = dict(name=name, desc=desc, mml=mml)
+    # ---- 「3パートそろってから音が抜ける」の確認：同じ中身を、パートの組み合わせ・割り当てを変えて ----
+    C = three_contents(7)
+    add('00a_melody_chord1', '2パート：メロディ＋和音1（3パートではないので、抜けないはず）', combo_mml(C, (0, 1, None)))
+    add('00b_melody_chord2', '2パート：メロディ＋和音2（和音1は休符）', combo_mml(C, (0, None, 1)))
+    add('00c_chord1_chord2', '2パート：和音1＋和音2（メロディは休符）', combo_mml(C, (None, 0, 1)))
+    add('00d_all3', '3パートとも：メロディ＋和音1＋和音2（同じ中身）', combo_mml(C, (0, 1, 2)))
+    import itertools
+    for perm in itertools.permutations((0, 1, 2)):
+        if perm == (0, 1, 2):
+            continue
+        add('00e_perm_' + ''.join(map(str, perm)), f'3パートの中身を入れ替え（メロディ←{perm[0]} 和音1←{perm[1]} 和音2←{perm[2]}）：抜ける音が中身につくか、パートにつくか',
+            combo_mml(C, perm))
     add('01_scale', '半音階（メロディのみ）C3〜C6：音の高さによる違い', probe_scale_single())
     add('02_repeat', '同じ高さの連打（4/8/16/32分）：連打の速さによる違い', probe_repeat_single())
     for t in (80, 120, 160, 200):

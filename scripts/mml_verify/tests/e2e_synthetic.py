@@ -8,10 +8,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import numpy as np, synth, features, probes, patterns, run
 from mmlparse import Score
 
-def hidden_rule(n):           # 例：直前1秒以内に10音以上が始まっている状況で、6音に1音だけ鳴らない
-    return n['f_ring_1s'] >= 10 and n['gid'] % 6 == 0
+def hidden_rule(n):           # 例：3パートが同時に鳴っている音のうち、5音に1音だけ鳴らない（2パートでは鳴る）
+    return n['f_parts_active'] >= 3 and n['gid'] % 5 == 0
 
-names = ['08_dense16', '09_long_vs_fast', '10_staggered', '07_triads', '20_random1', '20_random2', '20_random3', '20_random4', '04_two_third']
+names = ['00a_melody_chord1', '00b_melody_chord2', '00c_chord1_chord2', '00d_all3', '00e_perm_102', '00e_perm_210', '07_triads', '20_random1', '20_random2']
 P = probes.all_probes()
 for rep in range(2):          # 2回ずつ（再現性の確認）
     for name in names:
