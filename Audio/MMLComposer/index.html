@@ -365,7 +365,7 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
         <canvas id="cv"></canvas>
         <div class="scroller edit" id="scroller"><div class="spacer" id="spacer"></div></div>
       </div>
-      <p class="hint">クリックで音を置く／ドラッグで長さ調整／音をドラッグで移動／右クリックまたはDeleteで削除／Shift+ドラッグで範囲選択→Ctrl+C／Ctrl+Vで、上の目盛りかA／Dキーで決めた再生開始位置に貼り付け／左の鍵盤をクリックで試聴／Ctrl+ホイールで拡大縮小</p>
+      <p class="hint">クリックで音を置く／ドラッグで長さ調整／音をドラッグで移動／右クリックまたはDeleteで削除／Shift+ドラッグで範囲選択→Ctrl+C／Ctrl+Vで、上の目盛りかA／Dキーで決めた再生開始位置に貼り付け／左の鍵盤をクリックで試聴／Ctrl+ホイールで拡大縮小／Shift+ホイールで横スクロール</p>
     </section>
   </div>
 
@@ -1445,8 +1445,12 @@ function setZoom(z) {
   requestDraw();
 }
 scroller.addEventListener('wheel', e => {
-  if (!e.ctrlKey) return;
-  e.preventDefault(); setZoom(S.zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
+  if (e.ctrlKey) { e.preventDefault(); setZoom(S.zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15)); return; }
+  if (e.shiftKey && e.deltaY !== 0 && e.deltaX === 0) {            // Shift＋ホイール：横にスクロール
+    e.preventDefault();
+    const unit = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? scroller.clientWidth : 1;
+    scroller.scrollLeft += e.deltaY * unit;
+  }
 }, { passive: false });
 
 /* ================= ピアノロール操作 ================= */
