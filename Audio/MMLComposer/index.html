@@ -189,6 +189,11 @@ details summary,details h3{color:#ffcf7a}
 .trk-body select[data-act=inst]{flex:1 1 100%;min-width:0;max-width:100%;text-overflow:ellipsis}
 .parts{border-top:1px dashed var(--line)}
 .msg{color:#5fd6a0}
+.zleg{display:flex;flex-direction:column;gap:3px;margin:4px 0;font-size:12px;color:var(--sub)}
+.zleg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px}
+.dsbadge{display:none;background:var(--gold);color:#2b2008;border-radius:8px;padding:1px 8px;font-size:12px;margin-left:8px;font-weight:bold;vertical-align:middle}
+#dsStat{display:block;font-size:12px;line-height:1.5;margin:4px 0;color:#fff}
+.panel label.chk{margin:3px 0;font-size:12px;color:var(--text)}
 .panel .row button{flex:1;width:auto;margin:0;padding:6px 8px}
 dialog{background:#18212d;color:var(--text);border:1px solid #2e3b50;border-radius:20px;padding:18px 20px;width:min(680px,94vw);max-height:92vh;box-shadow:0 20px 60px rgba(0,0,0,.6)}
 dialog::backdrop{background:rgba(5,10,16,.7)}
@@ -258,6 +263,7 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
       <label for="sGrid">吸着</label>
       <select id="sGrid"></select>
       <label for="rZoom">拡大</label><input type="range" id="rZoom" min="0.6" max="7" step="0.1" value="2" style="width:80px">
+      <label class="chk" title="ゲームの音は、音域ごとに別の元音を使っています。同じ音域の音が同時に始まると、音が抜けることがあります"><input type="checkbox" id="cZones" checked>音域を表示</label>
     </div>
     <div class="grp">
       <button id="bClipCopy" title="選択した音をコピー（Ctrl+C）">コピー</button>
@@ -329,6 +335,24 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
         <button id="swGo">AとBを入れ替える</button>
         <p class="note">例：メロディと和音2を入れ替えると、今のメロディの音符が和音2に、和音2の音符がメロディになります。</p>
       </div>
+
+      <div class="panel" id="dsPanel">
+        <b class="t">🛡 音抜け対策</b>
+        <p class="note" style="margin-top:0">マビノギモバイルでは、<b>音域が同じ2音が同時に始まる</b>と、前のパートの音が約1/4の確率で鳴らなくなります（実測）。</p>
+        <div class="zleg">
+          <span><i style="background:rgba(255,190,90,.9)"></i>高音域：F5以上</span>
+          <span><i style="background:rgba(80,215,165,.9)"></i>中音域：E4〜E5</span>
+          <span><i style="background:rgba(90,150,255,.9)"></i>低音域：D#4以下</span>
+        </div>
+        <span id="dsStat"></span>
+        <label class="chk"><input type="checkbox" id="dsMark" checked><span>危ない音に印（赤い点）を付ける</span></label>
+        <div class="row"><span>幅</span>
+          <select id="dsUnit"><option value="3" selected>1/64音符（おすすめ）</option><option value="6">1/32音符（念のため大きめ）</option></select></div>
+        <label class="chk"><input type="radio" name="dsMode" value="output" checked><span>エディタはそのまま。<b>再生とMMLの出力だけ</b>ずらす</span></label>
+        <label class="chk"><input type="radio" name="dsMode" value="edit"><span>エディタ上で<b>実際にずらす</b></span></label>
+        <div class="row"><button id="dsGo" class="primary">ずらす</button><button id="dsOff">やめる</button></div>
+        <p class="note" id="dsNote">ずらすのは、同時に始まる音のうち<b>後ろのパート</b>の音だけです（メロディは動かしません）。音の終わりの位置は変えず、その分だけ短くなります。</p>
+      </div>
     </aside>
 
     <section class="rollbox">
@@ -341,7 +365,7 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
   </div>
 
   <div class="out">
-    <h2>MMLコード（メロディ,和音1,和音2…の順にカンマ区切り）</h2>
+    <h2>MMLコード（メロディ,和音1,和音2…の順にカンマ区切り）<span class="dsbadge" id="dsBadge">同じ音域の同時開始をずらした状態</span></h2>
     <textarea id="tOut" spellcheck="false" placeholder="ここにMMLを貼り付けて「MMLから読み込む」で編集もできます"></textarea>
     <div class="bar">
       <button id="bCopy" class="primary">📋 全部コピー</button>
@@ -381,6 +405,7 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
       <li>ファイル：「💾 ファイルに保存」で今のMMLをテキストファイル（.txt）にします（Chrome／Edgeでは保存先を選べます）。「📂 ファイルを読み込む」、またはファイルをページにドラッグ＆ドロップで、MMLの書かれたテキストを読み込んで編集できます。</li>
       <li>曲から譜面（β）：「🎵 曲から譜面（β）」に、MIDIファイル（.mid）や音声ファイル（MP3・WAV等）を渡すと、メロディと和音のパートに分けた譜面を作ります。MIDIはほぼそのまま取り込めます。音声の自動採譜はベータ版で、単音のメロディなど単純な曲向きです。</li>
       <li>全体を動かす：左の「↕ 全体を動かす」で、今のパート（または選んだ音だけ／全パート）をまとめて、半音・1オクターブ単位で上下、32分〜1小節単位で早く／遅くできます。Alt+↑↓で半音、Alt+←→で時間（設定した幅ぶん）でも動かせます。</li>
+      <li>音域と音抜け対策：ピアノロールに、ゲームの<b>3つの音域</b>（低：D#4以下／中：E4〜E5／高：F5以上）を色で表示します。同じ音域の音が同時に始まると、前のパートの音が約1/4の確率で鳴らなくなるので、そういう音に赤い点を付けます。左の「🛡 音抜け対策」の「ずらす」で、後ろのパートの音を1/64音符だけ遅らせて防げます（再生とMMLの出力だけずらす方式と、エディタ上で実際にずらす方式を選べます）。</li>
       <li>パートの入れ替え：左の「⇄ パートを入れ替える」で、AとBに選んだ2つのパートの音符を入れ替えます（例：メロディ⇔和音2）。「音量・楽器なども一緒に」をオンにすると、音量・楽器・ミュート／ソロも入れ替わります。</li>
       <li>楽器：「ピアノ（サンプル）」「ナイロンギター」「スチールギター」「ハープ」「バンジョー」「フルート（サンプル）」は、実際の楽器を録音した音源（FluidR3_GM、作者 Frank Wen、MIT License）を使っています。選んだときに自動で読み込みます。マビノギモバイルのマンドリンとは別物ですが、聴き比べの参考にできます。「（簡易合成）」はツール内で作った音です。</li>
       <li>MIDIキーボード：ツールバーの「🎹 MIDIキーボード」を押して許可すると、接続したキーボードで試し弾きできます（Chrome／Edge向け）。今選んでいるパートの楽器と音量で鳴り、弾いた鍵盤は画面の鍵盤にも光ります。サスティンペダルにも対応しています。</li>
@@ -469,7 +494,8 @@ const S = {
   tempo: 120, meter: '4/4', tracks: [], cur: 0,
   tool: 'pen', lenN: 8, dot: false, trip: false, grid: 'auto', zoom: 2,
   loop: false, useShift: false, limit: 0, chordTempo: false, pfmt: 'bare',
-  sel: [], clip: null, marq: null, live: new Set(), cursor: 0, head: 0, playing: false, hoverRow: -1,
+  sel: [], clip: null, marq: null, live: new Set(),
+  showZones: true, dsMark: true, dsMode: 'output', dsOn: false, dsUnit: 3, cursor: 0, head: 0, playing: false, hoverRow: -1,
 };
 
 const $ = id => document.getElementById(id);
@@ -524,6 +550,37 @@ function decompose(d) {
 }
 
 /* ================= MML 生成 ================= */
+/* ---- 音域（ゲームの元音の切り替わり）と、同じ音域の同時開始 ---- */
+const zoneOf = p => (p <= 63 ? 0 : p <= 76 ? 1 : 2);
+const ZONE_NAME = ['低音域', '中音域', '高音域'];
+const ZONE_RANGE = ['D#4以下', 'E4〜E5', 'F5以上'];
+const ZONE_RGB = ['90,150,255', '80,215,165', '255,190,90'];
+function conflictGroups(tracks) {       // 同じ音域の音が、別のパートで同時に始まる所（パート順の音のリスト）
+  const g = new Map();
+  tracks.forEach((tr, ti) => tr.notes.forEach(n => {
+    const k = n.s + '|' + zoneOf(n.p);
+    if (!g.has(k)) g.set(k, []);
+    g.get(k).push({ n, ti });
+  }));
+  const out = [];
+  g.forEach(list => { if (list.length >= 2 && new Set(list.map(x => x.ti)).size >= 2) out.push(list.sort((a, b) => a.ti - b.ti)); });
+  return out;
+}
+/* 後ろのパートの音の始まりを、順に unit tick ずつ遅らせる（終わりの位置は変えない）。元は触らず、コピーを返す */
+function desyncCopy(tracks, unit) {
+  const copy = tracks.map(t => Object.assign({}, t, { notes: t.notes.map(n => Object.assign({}, n)) }));
+  let shifted = 0, skipped = 0;
+  conflictGroups(copy).forEach(list => list.forEach((x, rank) => {
+    if (!rank) return;
+    const off = rank * unit;
+    if (x.n.l - off < 3) { skipped++; return; }
+    x.n.s += off; x.n.l -= off; shifted++;
+  }));
+  return { tracks: copy, shifted, skipped };
+}
+const dsVirtual = () => S.dsMode === 'output' && S.dsOn;
+function outTracks() { return dsVirtual() ? desyncCopy(S.tracks, S.dsUnit).tracks : S.tracks; }
+
 function genTrack(tr, withTempo) {
   const notes = tr.notes.slice().sort((a, b) => a.s - b.s || a.p - b.p);
   const pieces = [];
@@ -552,7 +609,7 @@ function genTrack(tr, withTempo) {
   }
   return out;
 }
-const partMML = i => genTrack(S.tracks[i], i === 0 || S.chordTempo);
+const partMML = i => genTrack(outTracks()[i], i === 0 || S.chordTempo);
 function partCopyText(i) { return S.pfmt === 'full' ? 'MML@' + partMML(i) + ';' : partMML(i); }
 function genAll() { return 'MML@' + S.tracks.map((_, i) => partMML(i)).join(',') + ';'; }
 
@@ -670,6 +727,7 @@ function updateSpacer() {
 function updateOutput() {
   const ta = $('tOut');
   ta.value = genAll();
+  updateDsStat();
   const rows = $('partRows');
   if (rows.children.length !== S.tracks.length) {
     rows.innerHTML = S.tracks.map((_, i) => '<div class="prow" data-i="' + i + '"><span class="pn"></span><input readonly><span class="pc"></span><button data-act="pcopy">コピー</button></div>').join('');
@@ -1163,7 +1221,7 @@ let sess = null;
 const LOOKAHEAD = 1.2;     // 秒：この先ここまでの音を予約しておく
 function buildEvents(t0, fromTick) {        // 1周ぶんの音を時刻順に並べる（まだ鳴らさない）
   const ts = tickSec(), ev = [];
-  S.tracks.forEach((tr, i) => {
+  outTracks().forEach((tr, i) => {
     if (!isAudible(i)) return;
     tr.notes.forEach(n => {
       if (n.s + n.l <= fromTick) return;
@@ -1254,7 +1312,7 @@ function roundRect(c, x, y, w, h, r) {
   c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
   c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
 }
-function drawNotes(tr, color, ghost, sx, sy) {
+function drawNotes(tr, color, ghost, sx, sy, risk) {
   const vis0 = (sx) / S.zoom - 4, vis1 = (sx + cw - KEY_W) / S.zoom + 4;
   for (const n of tr.notes) {
     if (n.s + n.l < vis0 || n.s > vis1) continue;
@@ -1262,6 +1320,11 @@ function drawNotes(tr, color, ghost, sx, sy) {
     if (y < RULER_H - ROW_H || y > ch) continue;
     cx.globalAlpha = ghost ? 0.38 : 1;
     cx.fillStyle = color; roundRect(cx, x, y, w, h, 3); cx.fill();
+    if (risk && risk.has(n)) {          // 同じ音域の音と同時に始まる＝抜ける危険あり
+      cx.globalAlpha = 1; cx.fillStyle = '#ff4d4d'; cx.strokeStyle = '#fff'; cx.lineWidth = 1;
+      cx.beginPath(); cx.arc(x + Math.min(w - 4, 6), y + 3.5, 3.2, 0, 7); cx.fill(); cx.stroke();
+      cx.globalAlpha = ghost ? 0.38 : 1;
+    }
     if (!ghost) {
       cx.globalAlpha = 1;
       if (S.sel.includes(n)) { cx.lineWidth = 2.5; cx.strokeStyle = '#ffffff'; cx.stroke(); }
@@ -1292,6 +1355,17 @@ function draw() {
     cx.fillStyle = m % 12 === 0 ? '#4d5f76' : '#26313f';
     cx.fillRect(KEY_W, y + ROW_H - 1, cw - KEY_W, 1);
   }
+  /* 音域の色（ゲームの元音の切り替わり：D#4/E4 と E5/F5 の境目） */
+  if (S.showZones) {
+    for (let zi = 0; zi < 3; zi++) {
+      const lo = [MMIN, 64, 77][zi], hi = [63, 76, MMAX][zi];
+      const yTop = rowY(hi, sy), yBot = rowY(lo, sy) + ROW_H;
+      const y0 = Math.max(yTop, RULER_H), y1 = Math.min(yBot, ch);
+      if (y1 <= y0) continue;
+      cx.fillStyle = 'rgba(' + ZONE_RGB[zi] + ',.075)'; cx.fillRect(KEY_W, y0, cw - KEY_W, y1 - y0);
+      if (yTop >= RULER_H && yTop <= ch) { cx.fillStyle = 'rgba(' + ZONE_RGB[zi] + ',.85)'; cx.fillRect(KEY_W, Math.round(yTop), cw - KEY_W, 2); }
+    }
+  }
   /* 縦線（吸着・拍・小節） */
   const g = gridTicks(), bt = beatT(), bar = barT();
   const t0 = Math.floor(sx / z / g) * g, t1 = (sx + cw - KEY_W) / z;
@@ -1308,9 +1382,25 @@ function draw() {
   if (se) { const ex = tickX(Math.ceil(se / bar) * bar, sx); if (ex < cw) { cx.fillStyle = 'rgba(0,0,0,.2)'; cx.fillRect(Math.max(ex, KEY_W), RULER_H, cw, ch); } }
 
   /* 音 */
-  S.tracks.forEach((tr, i) => { if (i !== S.cur) drawNotes(tr, COLORS[i % COLORS.length], true, sx, sy); });
+  let risk = null;
+  if (S.dsMark && !dsVirtual()) {
+    risk = new Set();
+    conflictGroups(S.tracks).forEach(list => list.forEach((x, k) => { if (k < list.length - 1) risk.add(x.n); }));
+  }
+  S.tracks.forEach((tr, i) => { if (i !== S.cur) drawNotes(tr, COLORS[i % COLORS.length], true, sx, sy, risk); });
   const ct = S.tracks[S.cur];
-  if (ct) drawNotes(ct, COLORS[S.cur % COLORS.length], false, sx, sy);
+  if (ct) drawNotes(ct, COLORS[S.cur % COLORS.length], false, sx, sy, risk);
+  if (S.showZones) {                      // 音域の名前（左端に固定して表示）
+    cx.font = 'bold 11px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'left';
+    for (let zi = 0; zi < 3; zi++) {
+      const lo = [MMIN, 64, 77][zi], hi = [63, 76, MMAX][zi];
+      const y0 = Math.max(rowY(hi, sy), RULER_H), y1 = Math.min(rowY(lo, sy) + ROW_H, ch);
+      if (y1 - y0 < 22) continue;
+      const label = ZONE_NAME[zi] + '（' + ZONE_RANGE[zi] + '）', tw = cx.measureText(label).width;
+      cx.fillStyle = 'rgba(15,23,32,.78)'; roundRect(cx, KEY_W + 6, y0 + 4, tw + 12, 18, 9); cx.fill();
+      cx.fillStyle = 'rgba(' + ZONE_RGB[zi] + ',1)'; cx.fillText(label, KEY_W + 12, y0 + 13);
+    }
+  }
 
   /* 範囲選択の枠 */
   if (S.marq) {
@@ -1335,6 +1425,7 @@ function draw() {
     const black = BLACK[m % 12];
     cx.fillStyle = S.live.has(m) ? '#5fe0b5' : m === S.hoverRow ? '#9fe3c8' : '#e6ebf2'; cx.fillRect(0, y, KEY_W, ROW_H);
     cx.fillStyle = '#9aa6b6'; cx.fillRect(0, y + ROW_H - 1, KEY_W, 1);
+    if (S.showZones) { cx.fillStyle = 'rgb(' + ZONE_RGB[zoneOf(m)] + ')'; cx.fillRect(KEY_W - 6, y, 5, ROW_H - 1); }
     if (black) { cx.fillStyle = S.live.has(m) ? '#1fb386' : m === S.hoverRow ? '#1fb386' : '#2a3340'; cx.fillRect(0, y + 1, KEY_W * 0.62, ROW_H - 2); }
     if (m % 12 === 0 || m === S.hoverRow) {
       cx.fillStyle = black ? '#fff' : '#3a4656'; cx.font = '10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'right';
@@ -2158,6 +2249,51 @@ $('impApply').onclick = () => {
   flash('譜面を作りました（' + total + '音）。元に戻すで取り消せます。ピアノロールで直してください');
 };
 
+/* ================= 音抜け対策：音域の表示・同じ音域の同時開始をずらす ================= */
+const DS_KEY = 'mmlcomposer.desync';
+function saveDs() {
+  try { localStorage.setItem(DS_KEY, JSON.stringify({ zones: S.showZones, mark: S.dsMark, mode: S.dsMode, on: S.dsOn, unit: S.dsUnit })); } catch (e) {}
+}
+function loadDs() {
+  try {
+    const o = JSON.parse(localStorage.getItem(DS_KEY) || 'null');
+    if (o) { S.showZones = o.zones !== false; S.dsMark = o.mark !== false; S.dsMode = o.mode === 'edit' ? 'edit' : 'output'; S.dsOn = !!o.on && S.dsMode === 'output'; S.dsUnit = o.unit === 6 ? 6 : 3; }
+  } catch (e) {}
+  $('cZones').checked = S.showZones; $('dsMark').checked = S.dsMark; $('dsUnit').value = String(S.dsUnit);
+  document.querySelectorAll('input[name=dsMode]').forEach(r => { r.checked = r.value === S.dsMode; });
+}
+function updateDsStat() {
+  const el = $('dsStat'); if (!el) return;
+  const groups = conflictGroups(S.tracks);
+  const risky = groups.reduce((a, g) => a + g.length - 1, 0);
+  let t = groups.length ? '同じ音域の同時開始：' + groups.length + 'か所（抜ける危険のある音 ' + risky + '個）' : '同じ音域の同時開始：ありません ✓';
+  if (dsVirtual()) t += ' → 再生とMMLの出力は、ずらした状態です';
+  el.textContent = t;
+  $('dsBadge').style.display = dsVirtual() ? 'inline-block' : 'none';
+  $('dsOff').disabled = !dsVirtual();
+  $('dsGo').textContent = S.dsMode === 'edit' ? 'エディタ上でずらす' : (dsVirtual() ? 'ずらし中（再度押すと更新）' : '出力をずらす');
+}
+$('cZones').onchange = e => { S.showZones = e.target.checked; saveDs(); requestDraw(); };
+$('dsMark').onchange = e => { S.dsMark = e.target.checked; saveDs(); requestDraw(); };
+$('dsUnit').onchange = e => { S.dsUnit = Number(e.target.value); saveDs(); notesChanged(); };
+document.querySelectorAll('input[name=dsMode]').forEach(r => r.onchange = () => {
+  S.dsMode = document.querySelector('input[name=dsMode]:checked').value;
+  if (S.dsMode === 'edit') S.dsOn = false;
+  saveDs(); notesChanged();
+});
+$('dsGo').onclick = () => {
+  const r = desyncCopy(S.tracks, S.dsUnit);
+  if (!r.shifted && !dsVirtual()) { flash('ずらす所がありません（同じ音域の同時開始はありません）'); return; }
+  if (S.dsMode === 'edit') {
+    edit(() => { S.tracks.forEach((t, i) => { t.notes = r.tracks[i].notes; }); S.sel = []; });
+    flash(r.shifted + '個の音の始まりを、エディタ上でずらしました（元に戻すで戻せます）' + (r.skipped ? '。短すぎてずらせなかった音 ' + r.skipped + '個' : ''));
+  } else {
+    S.dsOn = true; saveDs(); notesChanged();
+    flash('再生とMMLの出力を、ずらした状態にしました（' + r.shifted + '個の音）。エディタの音は、そのままです');
+  }
+};
+$('dsOff').onclick = () => { S.dsOn = false; saveDs(); notesChanged(); flash('出力のずらしをやめました'); };
+
 /* ================= サンプル・起動 ================= */
 const SAMPLE = 'MML@t100v12l4o4cc g g a a g2 f f e e d d c2,' +
   'v8l4o3a a o4e e f f e2 d d c c o3b b a2,' +
@@ -2177,6 +2313,7 @@ function init() {
   S.tracks.forEach((t, i) => { t.inst = !migrated ? 'mandolin' : INSTS[t.inst] ? t.inst : 'mandolin'; });
   $('iTempo').value = S.tempo; $('sMeter').value = S.meter;
   new Set(S.tracks.map(t => t.inst)).forEach(k => { if (SF_FILES[k]) sfLoad(k).catch(() => {}); });
+  loadDs();
   syncLen(); updateUndoButtons();
   structureChanged();
   resize();
@@ -2186,7 +2323,7 @@ function init() {
   scroller.scrollTop = Math.max(0, RULER_H + (MMAX - mid) * ROW_H - ($('roll').clientHeight / 2));
 }
 init();
-window.__mml = { SF, imp, voice, parseSMF, layerSplit, transcribeAudio, estimateTempo, coherence, TR, midiMessage, audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
+window.__mml = { conflictGroups, desyncCopy, outTracks, genAll, SF, imp, voice, parseSMF, layerSplit, transcribeAudio, estimateTempo, coherence, TR, midiMessage, audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
 })();
 </script>
 </body>

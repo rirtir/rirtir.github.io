@@ -333,6 +333,10 @@ def exp_mml(kind, seed=21, slots=100, tempo=120):
         return build([A, [R(64)] + B, C])
     if kind == 'X6_offset_32nd':
         return build([A, [R(32)] + B, C])
+    if kind == 'X8_offset_96th':          # 1/64より細かい長さ（ゲームが受け付けるかの実験）
+        return build([A, [R(96)] + B, C])
+    if kind == 'X9_offset_128th':
+        return build([A, [R(128)] + B, C])
     return build([A, B, C])         # X2_three_same_zone / X7_diff_zone
 
 
@@ -344,6 +348,8 @@ def exp_probes():
         ('X4_third_holds', '3つ目（和音2）が長い音を鳴らし続け、メロディ・和音1が同時に動く', '3つ目がすでに鳴っているところへ、同じ音域の2音が同時に入るとき。'),
         ('X5_offset_64th', '和音1を、64分音符ぶんだけ遅らせて始める', 'ごくわずかなずらしで、抜けなくなるか。'),
         ('X6_offset_32nd', '和音1を、32分音符ぶんだけ遅らせて始める', '少しだけずらしたら、抜けなくなるか。'),
+        ('X8_offset_96th', '和音1を、96分音符（1/64より細かい）だけ遅らせる', 'MMLの長さは1〜64のはずだが、96を入れたらどうなるか。ゲームが受け付けるか・抜けなくなるかの実験（受け付けないと、貼り付けでエラーになるかも）。'),
+        ('X9_offset_128th', '和音1を、128分音符（1/64より細かい）だけ遅らせる', '同上（さらに細かい）。'),
         ('X7_diff_zone', '3パート：メロディが高音域、和音1が中音域、和音2が低音域（すべて同時）', '音域がすべて違うとき。抜けないはず（対照）。'),
     ]
     return [(n, d, why, exp_mml(n)) for n, d, why in items]
