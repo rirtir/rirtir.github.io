@@ -241,6 +241,44 @@ body.focus .side{height:auto}
 body.focus .rollbox{min-height:0}
 body.focus .roll{height:auto;flex:1 1 0;min-height:0}
 @media (max-width:860px){
+  .main{align-items:stretch}                          /* 横に並べる設定（flex-start）のままだと、パート一覧の幅で画面が横に広がってしまう */
+  .side{min-width:0;max-width:100%}
+  .tracks{max-width:100%}
+  .wrap{padding:4px 6px 18px}
+  header{padding:8px 10px 2px}
+  header h1{font-size:1.05rem}
+  header p{font-size:11px;margin-top:1px}
+  .toolbar{gap:4px 8px;padding:5px 7px;margin-bottom:5px;border-radius:14px}
+  .grp{gap:3px 4px;max-width:100%}
+  .seg{flex-wrap:wrap;max-width:100%;row-gap:2px}
+  .toolbar button{font-size:11.5px;padding:4px 8px}
+  .toolbar .seg button{padding:4px 8px;min-width:0}
+  .grp>label,.grp>.lab,.chk,.midi-st{font-size:11px}
+  .toolbar select,.toolbar input[type=number]{font-size:12px;padding:2px 5px}
+  .toolbar input[type=number]{width:52px}
+  .sep{display:none}
+  .trk{min-width:196px;padding:4px 6px;border-radius:12px}
+  .trk-head input.name{font-size:12.5px}
+  .trk-head button,.trk-body button{padding:2px 6px;font-size:11px;border-radius:8px}
+  .trk-body{font-size:11px;gap:4px;margin-top:3px}
+  .trk-body select{font-size:11px;padding:1px 4px}
+  .trk-body input[type=range]{width:60px}
+  .add{padding:5px;font-size:12px}
+  .panel{padding:6px 8px;font-size:12px;border-radius:14px}
+  .panel b.t{font-size:12.5px;margin-bottom:2px}
+  .panel .row{margin:3px 0}
+  .panel .row>span{font-size:11px;width:30px}
+  .panel select{font-size:12px;padding:2px 5px}
+  .panel button,.panel .row button{font-size:12px;padding:4px 8px}
+  .panel textarea{font-size:12px}
+  .note,.hint,.zleg{font-size:11px}
+  .roll{border-radius:12px}
+  .out{padding:8px;border-radius:14px}
+  .out h2{font-size:14px}
+  .out textarea{font-size:12px}
+  .prow input{font-size:11px;padding:4px}
+  details{padding:6px 10px;font-size:12.5px;line-height:1.6;border-radius:14px}
+  body.focus .toolbar{overflow-x:hidden}
   body.focus .main{flex-direction:column}
   body.focus .toolbar{max-height:26vh;overflow-y:auto}
   body.focus .side{max-height:22vh;overflow-y:auto}
@@ -1738,6 +1776,37 @@ function resolveOverlaps(tr, nts) {
 }
 
 let drag = null;
+
+/* ===== 二本指の操作（スマホ）：ピンチで横の拡大縮小（二本の指の真ん中が基準）、二本指のドラッグで上下左右に動かす。
+   二本指のあいだは、音を置いたり動かしたりしない ===== */
+const touches = new Map();           // pointerId → 指の位置（ピアノロール内の座標）
+let gest = null;                     // 二本指の操作の開始時の状態
+function gestCenter() {
+  const a = [...touches.values()]; if (a.length < 2) return null;
+  const [q, r] = a;
+  return { cx: (q.x + r.x) / 2, cy: (q.y + r.y) / 2, d: Math.hypot(q.x - r.x, q.y - r.y) };
+}
+function gestStart() {
+  const c = gestCenter(); if (!c) return;
+  gest = { d0: Math.max(c.d, 1), cx0: c.cx, cy0: c.cy, zoom0: S.zoom, st0: scroller.scrollTop };
+  gest.t0 = (c.cx - KEY_W + scroller.scrollLeft) / S.zoom;        // 二本の指の真ん中にある時刻
+}
+function gestMove() {
+  const c = gestCenter(); if (!c || !gest) return;
+  S.zoom = clamp(gest.zoom0 * c.d / gest.d0, 0.6, 7); $('rZoom').value = S.zoom; updateSpacer();
+  scroller.scrollLeft = Math.max(0, gest.t0 * S.zoom - (c.cx - KEY_W));      // 真ん中の下の時刻を、指の下に保つ（移動もここで）
+  scroller.scrollTop = Math.max(0, gest.st0 - (c.cy - gest.cy0));
+  requestDraw();
+}
+function cancelDrag() {              // 一本目の指で始めていた操作を、なかったことにする
+  if (!drag) return;
+  const d = drag; drag = null; S.marq = null;
+  if (d.before) { restore(d.before); structureChanged(); } else requestDraw();
+}
+function touchUp(e) { touches.delete(e.pointerId); if (!touches.size) gest = null; }
+scroller.addEventListener('pointerup', touchUp);
+scroller.addEventListener('pointercancel', touchUp);
+
 scroller.addEventListener('contextmenu', e => {
   e.preventDefault();
   const p = posOf(e); if (p.x < KEY_W || p.y < RULER_H) return;
@@ -1748,6 +1817,11 @@ scroller.addEventListener('contextmenu', e => {
 scroller.addEventListener('pointerdown', e => {
   const p = posOf(e);
   if (p.onScrollbar) return;
+  if (e.pointerType === 'touch') {
+    touches.set(e.pointerId, { x: p.x, y: p.y });
+    if (touches.size >= 2) { if (!gest) { cancelDrag(); gestStart(); } return; }
+  }
+  if (gest) return;
   audio();
   if (p.x < KEY_W && p.y >= RULER_H) { if (p.midi >= MMIN && p.midi <= MMAX) preview(p.midi); return; }
   if (p.y < RULER_H) {                       // ルーラー：再生開始位置（貼り付け位置にもなる）
@@ -1802,6 +1876,8 @@ scroller.addEventListener('pointerdown', e => {
 });
 scroller.addEventListener('pointermove', e => {
   const p = posOf(e);
+  if (touches.has(e.pointerId)) { touches.set(e.pointerId, { x: p.x, y: p.y }); if (gest) { gestMove(); return; } }
+  if (gest) return;
   if (!drag) {
     const row = p.x < KEY_W || p.x > scroller.clientWidth ? S.hoverRow : p.midi;
     const prev = S.hoverRow; S.hoverRow = (p.y >= RULER_H && p.y <= scroller.clientHeight) ? row : -1;
