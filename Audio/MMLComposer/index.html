@@ -235,6 +235,7 @@ dialog[data-kind=midi] .only-audio,dialog[data-kind=audio] .only-midi,dialog:not
 .roll,.toolbar,.side,.rollbox,.hint,.scroller,button,label,.trk,.panel{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea,select{-webkit-user-select:text;user-select:text}
 button,.scroller,.roll{-webkit-tap-highlight-color:transparent}
+html,body,button,label,select,input{touch-action:manipulation}      /* スマホでボタンなどをダブルタップしたときの拡大を止める（ピンチの拡大は残す） */
 
 /* ===== 集中モード：タイトル・出力欄・説明を隠し、画面いっぱいに編集する ===== */
 body.focus{overflow:hidden;height:100vh}
@@ -1846,7 +1847,12 @@ scroller.addEventListener('pointerdown', e => {
   }
   if (gest) return;
   audio();
-  if (p.x < KEY_W && p.y >= RULER_H) { if (p.midi >= MMIN && p.midi <= MMAX) preview(p.midi); return; }
+  if (p.x < KEY_W && p.y >= RULER_H) {       // 左の鍵盤：押すと音が鳴る。そのまま上下に動かすと、ピアノロールが縦にスクロールする
+    if (p.midi >= MMIN && p.midi <= MMAX) preview(p.midi);
+    scroller.setPointerCapture(e.pointerId);
+    drag = { mode: 'kscroll', y0: p.y, st0: scroller.scrollTop };
+    return;
+  }
   if (p.y < RULER_H) {                       // ルーラー：押したまま動かすと、再生開始位置（貼り付け位置にもなる）が付いてきて、離した所に決まる
     const was = S.playing; stop();
     scroller.setPointerCapture(e.pointerId);
@@ -1918,6 +1924,7 @@ scroller.addEventListener('pointermove', e => {
     return;
   }
   if (drag.mode === 'seek') { drag.x = p.x; seekDragTo(p.x); return; }
+  if (drag.mode === 'kscroll') { scroller.scrollTop = Math.max(0, drag.st0 - (p.y - drag.y0)); return; }
   const g = gridTicks();
   if (drag.mode === 'marquee') {
     const m = S.marq;
@@ -1947,6 +1954,7 @@ function endDrag(e) {
   if (!drag) return;
   const tr = S.tracks[S.cur], d = drag; drag = null;
   if (d.mode === 'seek') { requestDraw(); if (d.was) play(); return; }
+  if (d.mode === 'kscroll') return;
   if (d.mode === 'marquee') { S.marq = null; requestDraw(); return; }
   if (d.mode === 'bcreate') {
     const dropped = rebalanceBatch();
