@@ -87,6 +87,8 @@ input[type=number]{width:64px}
 .panel .row select{flex:1;min-width:0}
 .panel button{width:100%;margin-top:4px}
 .note{color:var(--sub);font-size:12px;margin:4px 0 0;line-height:1.5}
+.note.err{color:var(--danger)}
+.panel textarea{width:100%;font-family:Consolas,monospace;font-size:13px;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--text);resize:vertical}
 
 .rollbox{flex:1;min-width:0;display:flex;flex-direction:column}
 .roll{
@@ -198,7 +200,7 @@ details summary,details h3{color:#ffcf7a}
 .prow.over input{border-color:var(--danger);color:#ffb3ab}
 #limitWarn{display:none;margin:6px 0 0;padding:8px 10px;border:1px solid var(--danger);border-radius:10px;background:rgba(255,143,132,.12);color:#ffb3ab;font-size:13px;line-height:1.6}
 .zleg{display:flex;flex-direction:column;gap:3px;margin:4px 0;font-size:12px;color:var(--sub)}
-.zleg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px}
+.zleg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.4)}
 .dsbadge{display:none;background:var(--gold);color:#2b2008;border-radius:8px;padding:1px 8px;font-size:12px;margin-left:8px;font-weight:bold;vertical-align:middle}
 #dsStat{display:block;font-size:12px;line-height:1.5;margin:4px 0;color:#fff}
 .panel label.chk{margin:3px 0;font-size:12px;color:var(--text)}
@@ -272,6 +274,7 @@ body.focus .roll{height:auto;flex:1 1 0;min-height:0}
       <span class="lab">道具</span>
       <div class="seg" id="tools">
         <button data-tool="pen" class="on" title="クリックで音を置く／ドラッグで移動・長さ変更／右クリックで削除／Shift+ドラッグで範囲選択">✏️ 描く</button>
+        <button data-tool="multi" title="和音のまとめ入力：クリックで音を置くと、同時に鳴る音が高い順に和音1・和音2…へ自動で振り分けられます。置いた音をもう一度クリックすると消えます">🎶 まとめ</button>
         <button data-tool="select" title="ドラッグで範囲選択（Shiftで追加）。選んだ音はまとめて移動できます">⬚ 選択</button>
         <button data-tool="erase" title="クリックした音を消す">🧽 消す</button>
         <button data-tool="hand" title="スマホ用：ドラッグでスクロール">✋ 移動</button>
@@ -331,6 +334,24 @@ body.focus .roll{height:auto;flex:1 1 0;min-height:0}
         <p class="note">元のパートの音を調の音階に合わせてずらし、新しい和音パートにします。あとから自由に編集できます。</p>
       </div>
 
+      <div class="panel" id="cdPanel">
+        <b class="t">🎶 コードで入力（まとめ入力）</b>
+        <textarea id="cdText" rows="2" spellcheck="false" placeholder="例：C | Am | F G7 | C"></textarea>
+        <div class="row"><span>音域</span>
+          <select id="cdOct"><option value="2">低め（C2〜）</option><option value="3" selected>ふつう（C3〜）</option><option value="4">高め（C4〜）</option></select></div>
+        <div class="row"><span>音数</span>
+          <select id="cdMax"><option value="99">コードの音すべて</option><option value="2">2音まで</option><option value="3">3音まで</option><option value="4">4音まで</option><option value="5">5音まで</option></select></div>
+        <div class="row"><span>弾き方</span>
+          <select id="cdPat"><option value="hold">伸ばす</option><option value="beat">拍ごとに刻む</option><option value="eighth">8分で刻む</option><option value="arp">分散（8分・下から上へ）</option></select></div>
+        <div class="row" id="cdUnitRow"><span>長さ</span>
+          <select id="cdUnit"><option value="bar">1コード＝1小節</option><option value="half">1コード＝2拍</option><option value="beat">1コード＝1拍</option></select></div>
+        <label class="chk"><input type="checkbox" id="cdBass"><span>ルート（根音）の低い音も足す</span></label>
+        <div class="note" id="cdInfo"></div>
+        <div class="row"><button id="cdPlay" title="先頭のコードを鳴らします">▶ 試聴</button><button id="cdIns" class="primary">挿入</button></div>
+        <button id="cdInsPlay">挿入して、その位置から再生</button>
+        <p class="note">コードは「C」「Am」「G7」「Dm7」「F#m7b5」「C/E」のように書き、<b>|</b>で小節を区切ります（1小節に複数なら、均等に分けます）。「%」＝直前と同じ、「-」＝のばす、「r」＝休み。挿入位置は、上の目盛りで決めた再生開始位置（A／Dキーで動かせます）。同じ場所にもう一度挿入すると、前に入れたまとめ入力の音は置き換わります。音は<b>高い順に和音1、和音2…</b>へ自動で割り当たります。メロディに合わせて試して、気に入らなければ「元に戻す」で戻せます。</p>
+      </div>
+
       <div class="panel" id="mvPanel">
         <b class="t">↕ 全体を動かす</b>
         <div class="row"><span>対象</span>
@@ -365,12 +386,12 @@ body.focus .roll{height:auto;flex:1 1 0;min-height:0}
         <b class="t">🛡 音抜け対策</b>
         <p class="note" style="margin-top:0">マビノギモバイルでは、<b>音域が同じ2音が同時に始まる</b>と、前のパートの音が約1/4の確率で鳴らなくなります（実測）。</p>
         <div class="zleg">
-          <span><i style="background:rgba(255,190,90,.9)"></i>高音域：F5以上</span>
-          <span><i style="background:rgba(80,215,165,.9)"></i>中音域：E4〜E5</span>
-          <span><i style="background:rgba(90,150,255,.9)"></i>低音域：D#4以下</span>
+          <span><i style="background:rgba(240,245,252,.95)"></i>高音域：F5以上（いちばん明るい灰色）</span>
+          <span><i style="background:rgba(185,197,214,.95)"></i>中音域：E4〜E5（中間の灰色）</span>
+          <span><i style="background:rgba(120,135,158,.95)"></i>低音域：D#4以下（暗い灰色）</span>
         </div>
         <span id="dsStat"></span>
-        <label class="chk"><input type="checkbox" id="dsMark" checked><span>危ない音に印（赤い点）を付ける</span></label>
+        <label class="chk"><input type="checkbox" id="dsMark" checked><span>危ない音に印（赤い輪の白い点）を付ける</span></label>
         <div class="row"><span>幅</span>
           <select id="dsUnit"><option value="3" selected>1/64音符（おすすめ）</option><option value="6">1/32音符（念のため大きめ）</option></select></div>
         <label class="chk"><input type="radio" name="dsMode" value="output" checked><span>エディタはそのまま。<b>再生とMMLの出力だけ</b>ずらす</span></label>
@@ -432,6 +453,7 @@ body.focus .roll{height:auto;flex:1 1 0;min-height:0}
       <li>曲から譜面（β）：「🎵 曲から譜面（β）」に、MIDIファイル（.mid）や音声ファイル（MP3・WAV等）を渡すと、メロディと和音のパートに分けた譜面を作ります。MIDIはほぼそのまま取り込めます。音声の自動採譜はベータ版で、単音のメロディなど単純な曲向きです。</li>
       <li>全体を動かす：左の「↕ 全体を動かす」で、今のパート（または選んだ音だけ／全パート）をまとめて、半音・1オクターブ単位で上下、32分〜1小節単位で早く／遅くできます。Alt+↑↓で半音、Alt+←→で時間（設定した幅ぶん）でも動かせます。</li>
       <li>音域と音抜け対策：ピアノロールに、ゲームの<b>3つの音域</b>（低：D#4以下／中：E4〜E5／高：F5以上）を色で表示します。同じ音域の音が同時に始まると、前のパートの音が約1/4の確率で鳴らなくなるので、そういう音に赤い点を付けます。左の「🛡 音抜け対策」の「ずらす」で、後ろのパートの音を1/64音符だけ遅らせて防げます（再生とMMLの出力だけずらす方式と、エディタ上で実際にずらす方式を選べます）。</li>
+      <li>和音のまとめ入力：道具の「🎶 まとめ」で、ピアノロールに和音の音を好きなだけ置くと、同時に鳴る音が<b>高い順に和音1、和音2…</b>へ自動で割り当たります（置いた音をもう一度クリックすると消えます）。左の「🎶 コードで入力」では、「C | Am | F G7 | C」のようにコード名を書いて、再生開始位置から和音を入れられます。メロディに合わせて「このコードならどうなるか」を試す用途にも使えます。まとめ入力で入れた音だけが振り分けの対象で、手で入れた和音やメロディは動かしません。</li>
       <li>集中モード：左上の「⛶ 集中モード」（またはFキー）で、タイトル・出力欄・説明を隠し、全画面でピアノロールを広く使えます。やめるときは、もう一度押すか、Escキーを押してください。出力したいときは、いったんやめてください。</li>
       <li>ピアノロールの縦スクロール：ピアノロールは、音を置ける範囲（C1〜B8）の上下に余白があり、ホイールで好きな位置までスクロールできます。余白（暗い部分）には音を置けません。作曲に使う音域を、見やすい位置に動かしてください。</li>
       <li>文字数の上限：マビノギモバイルは<b>各パート2400文字まで</b>です。超えたパートは赤く表示し、出力欄の上に警告を出します（パートの文字数は、左のパート一覧と、出力欄の「パートごとにコピー」に出ています）。</li>
@@ -583,7 +605,7 @@ function decompose(d) {
 const zoneOf = p => (p <= 63 ? 0 : p <= 76 ? 1 : 2);
 const ZONE_NAME = ['低音域', '中音域', '高音域'];
 const ZONE_RANGE = ['D#4以下', 'E4〜E5', 'F5以上'];
-const ZONE_RGB = ['90,150,255', '80,215,165', '255,190,90'];
+const ZONE_RGB = ['120,135,158', '185,197,214', '240,245,252'];      // パートの色（橙・緑・青など）と被らないよう、灰色の濃淡で表す
 function conflictGroups(tracks) {       // 同じ音域の音が、別のパートで同時に始まる所（パート順の音のリスト）
   const g = new Map();
   tracks.forEach((tr, ti) => tr.notes.forEach(n => {
@@ -952,6 +974,182 @@ $('hGo').onclick = () => {
   flash('「' + PCNAME[key.root] + (key.mode === 'maj' ? '長調' : '短調') + '」の音階で和音パートを追加しました');
 };
 
+/* ================= 和音のまとめ入力 ================= */
+/* まとめ入力で置いた音には b:1 の印を付ける。印の付いた音は、置くたびに「同時に鳴る音を高い順に和音1・和音2…」へ振り分け直す
+   （手で入れた音や、メロディには触らない）。 */
+function rebalanceBatch() {
+  const pool = [];
+  S.tracks.forEach((t, i) => { if (i >= 1) t.notes = t.notes.filter(n => { if (n.b) { pool.push(n); return false; } return true; }); });
+  pool.sort((a, b) => a.s - b.s || b.p - a.p || b.l - a.l);
+  const busy = [];                       // 和音k が次に空く時刻
+  let dropped = 0;
+  for (const n of pool) {
+    let k = 1;
+    for (; k < MAX_TRACKS; k++) {
+      if ((busy[k] || 0) > n.s) continue;
+      const tr = S.tracks[k];
+      if (tr && tr.notes.some(o => o.s < n.s + n.l && o.s + o.l > n.s)) continue;     // 手で入れた音と重なる
+      break;
+    }
+    if (k >= MAX_TRACKS) { dropped++; continue; }
+    while (S.tracks.length <= k) {
+      const nt = newTrack(S.tracks.length), ref = S.tracks[1];
+      if (ref) { nt.inst = ref.inst; nt.vol = ref.vol; }
+      S.tracks.push(nt);
+    }
+    S.tracks[k].notes.push(n); busy[k] = n.s + n.l;
+  }
+  S.tracks.forEach(t => t.notes.sort((a, b) => a.s - b.s));
+  return dropped;
+}
+function hitBatch(tick, midi) {
+  for (let i = S.tracks.length - 1; i >= 1; i--) {
+    const t = S.tracks[i];
+    for (let k = t.notes.length - 1; k >= 0; k--) {
+      const n = t.notes[k];
+      if (n.b && n.p === midi && tick >= n.s && tick < n.s + n.l) return { t, n };
+    }
+  }
+  return null;
+}
+/* まとめ入力の音のうち [a,b) に掛かる部分を取り除く（はみ出す部分は残す） */
+function clearBatchRange(a, b) {
+  S.tracks.forEach((t, i) => {
+    if (i < 1) return;
+    const out = [];
+    t.notes.forEach(o => {
+      const e = o.s + o.l;
+      if (!o.b || e <= a || o.s >= b) { out.push(o); return; }
+      if (o.s < a) out.push(Object.assign({}, o, { l: a - o.s }));
+      if (e > b) out.push(Object.assign({}, o, { s: b, l: e - b }));
+    });
+    t.notes = out;
+  });
+}
+
+/* ---- コードの解析 ---- */
+const CHORD_Q = {
+  '': [0, 4, 7], 'm': [0, 3, 7], 'dim': [0, 3, 6], 'aug': [0, 4, 8], 'sus4': [0, 5, 7], 'sus2': [0, 2, 7],
+  '6': [0, 4, 7, 9], 'm6': [0, 3, 7, 9], '69': [0, 4, 7, 9, 14],
+  '7': [0, 4, 7, 10], 'M7': [0, 4, 7, 11], 'm7': [0, 3, 7, 10], 'mM7': [0, 3, 7, 11], 'm7b5': [0, 3, 6, 10], 'dim7': [0, 3, 6, 9],
+  'aug7': [0, 4, 8, 10], '7sus4': [0, 5, 7, 10], '7b5': [0, 4, 6, 10], '7#5': [0, 4, 8, 10], '7b9': [0, 4, 7, 10, 13], '7#9': [0, 4, 7, 10, 15],
+  'add9': [0, 4, 7, 14], 'madd9': [0, 3, 7, 14], '9': [0, 4, 7, 10, 14], 'M9': [0, 4, 7, 11, 14], 'm9': [0, 3, 7, 10, 14],
+  '11': [0, 4, 7, 10, 14, 17], 'm11': [0, 3, 7, 10, 14, 17], '13': [0, 4, 7, 10, 14, 21], 'M13': [0, 4, 7, 11, 14, 21],
+};
+const NOTE_PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+function pcOf(letter, acc) { return ((NOTE_PC[letter] + (acc === '#' ? 1 : acc === 'b' ? -1 : 0)) % 12 + 12) % 12; }
+function parseChord(tok) {
+  const t = tok.replace(/[♯＃]/g, '#').replace(/[♭]/g, 'b').replace(/[()（）]/g, '').replace(/\s+/g, '');
+  const m = /^([A-Ga-g])([#b]?)([^\/]*)(?:\/([A-Ga-g])([#b]?))?$/.exec(t);
+  if (!m) return null;
+  let q = m[3].replace(/^maj/i, 'M').replace(/^min/i, 'm').replace(/[Δ△]/g, 'M7').replace(/ø/g, 'm7b5').replace(/^-/, 'm').replace(/^\+/, 'aug');
+  if (q === 'M') q = '';
+  if (q === 'sus') q = 'sus4';
+  if (q === 'M7' || q === 'maj7') q = 'M7';
+  if (q === 'mmaj7' || q === 'mM') q = 'mM7';
+  if (q === 'dim7' || q === 'o7') q = 'dim7';
+  if (!(q in CHORD_Q)) return null;
+  const root = pcOf(m[1].toUpperCase(), m[2]);
+  return { name: m[1].toUpperCase() + m[2] + m[3], root, bass: m[4] ? pcOf(m[4].toUpperCase(), m[5]) : null, ivs: CHORD_Q[q].slice() };
+}
+const chordImp = iv => iv >= 12 ? 4 : iv === 0 ? 0 : (iv === 3 || iv === 4 || iv === 2 || iv === 5) ? 1 : (iv === 9 || iv === 10 || iv === 11) ? 2 : (iv === 6 || iv === 8) ? 3 : 5;
+/* コード → 実際の音（MIDI番号、低い順）。音数が足りないときは、大事な音（根音・3度・7度）を残して5度などから減らす */
+function chordMidis(ch, o) {
+  const root = 12 * (o.oct + 1) + ch.root;
+  let bass = null;
+  if (ch.bass != null) bass = root - ((((ch.root - ch.bass) % 12) + 12) % 12 || 12);
+  else if (o.bass) bass = root - 12;
+  const room = Math.max(1, o.max - (bass != null ? 1 : 0));
+  const keep = ch.ivs.map((iv, i) => ({ iv, i })).sort((a, b) => chordImp(a.iv) - chordImp(b.iv) || a.i - b.i).slice(0, room).map(x => x.iv);
+  const ms = keep.map(iv => root + iv);
+  if (bass != null) ms.push(bass);
+  return ms.map(m => { while (m < MMIN) m += 12; while (m > MMAX) m -= 12; return m; }).sort((a, b) => a - b);
+}
+/* 進行の文字列 → 区間の並び。「|」があれば小節ごと（小節の中は均等割り）、なければ1コードずつ */
+function parseProgression(text, unit) {
+  const bar = barT(), beat = beatT();
+  const bars = /[|\n]/.test(text) ? text.split(/[|\n]+/).map(x => x.trim()).filter(Boolean).map(x => ({ toks: x.split(/\s+/), len: bar }))
+    : text.split(/\s+/).filter(Boolean).map(x => ({ toks: [x], len: unit === 'beat' ? beat : unit === 'half' ? beat * 2 : bar }));
+  const segs = [], bad = [];
+  let t = 0, prev = null;
+  for (const b of bars) {
+    const k = b.toks.length;
+    for (let i = 0; i < k; i++) {
+      const a = t + Math.round(i * b.len / k), e = t + Math.round((i + 1) * b.len / k), tok = b.toks[i];
+      if (tok === '-' && segs.length) { segs[segs.length - 1].e = e; continue; }
+      if (/^(N\.?C\.?|r|R|rest|\.)$/.test(tok)) { segs.push({ a, e, ch: null, tok }); prev = null; continue; }
+      let ch = tok === '%' ? prev : parseChord(tok);
+      if (!ch) { bad.push(tok); continue; }
+      prev = ch; segs.push({ a, e, ch, tok });
+    }
+    t += b.len;
+  }
+  return { segs, bad, total: t };
+}
+/* 区間 → 音（弾き方に応じて）。a は挿入位置 */
+function chordSegNotes(seg, a0, o) {
+  const ms = chordMidis(seg.ch, o), out = [], A = a0 + seg.a, E = a0 + seg.e;
+  const step = o.pat === 'beat' ? beatT() : (o.pat === 'eighth' || o.pat === 'arp') ? 24 : 0;
+  if (!step) { ms.forEach(m => out.push({ s: A, l: E - A, p: m, b: 1 })); return out; }
+  let i = 0;
+  for (let t = A; t < E; t += step, i++) {
+    const l = Math.min(step, E - t);
+    if (o.pat === 'arp') out.push({ s: t, l, p: ms[i % ms.length], b: 1 });
+    else ms.forEach(m => out.push({ s: t, l, p: m, b: 1 }));
+  }
+  return out;
+}
+const CD_KEY = 'mmlcomposer.chord';
+function cdOpts() {
+  return { oct: Number($('cdOct').value), max: Number($('cdMax').value), pat: $('cdPat').value, bass: $('cdBass').checked, unit: $('cdUnit').value };
+}
+const posText = t => '小節' + (Math.floor(t / barT()) + 1) + '・' + (Math.floor((t % barT()) / beatT()) + 1) + '拍目';
+function updateChordInfo() {
+  const text = $('cdText').value, o = cdOpts();
+  $('cdUnitRow').style.display = /[|\n]/.test(text) ? 'none' : '';
+  const pr = parseProgression(text, o.unit), el = $('cdInfo');
+  let msg = '挿入位置：' + posText(S.cursor);
+  if (pr.bad.length) { msg += '　⚠ 読めないコード：' + pr.bad.join('、').replace(/</g, '&lt;'); el.classList.add('err'); }
+  else el.classList.remove('err');
+  const first = pr.segs.find(x => x.ch);
+  if (first && !pr.bad.length) msg += '　先頭：' + first.ch.name.replace(/</g, '&lt;') + ' → ' + chordMidis(first.ch, o).map(midiName).join(' ');
+  el.innerHTML = msg;
+}
+function insertChords(thenPlay) {
+  const o = cdOpts(), pr = parseProgression($('cdText').value, o.unit);
+  if (!pr.segs.length && !pr.bad.length) { flash('コードを入力してください（例：C | Am | F G7 | C）', true); return; }
+  if (pr.bad.length) { flash('読めないコードがあります：' + pr.bad.join('、'), true); return; }
+  if (S.playing) stop();
+  const a0 = Math.max(0, S.cursor);
+  let dropped = 0;
+  edit(() => {
+    clearBatchRange(a0, a0 + pr.total);
+    if (S.tracks.length < 2) S.tracks.push(newTrack(1));
+    pr.segs.forEach(sg => { if (sg.ch) chordSegNotes(sg, a0, o).forEach(n => S.tracks[1].notes.push(n)); });
+    dropped = rebalanceBatch() || 0;
+    S.sel = [];
+  });
+  let used = 1; S.tracks.forEach((t, i) => { if (i >= 1 && t.notes.some(n => n.b)) used = i; });
+  flash('コードを挿入しました（' + posText(a0) + 'から' + Math.round(pr.total / barT() * 10) / 10 + '小節分、和音1〜和音' + used + '）。元に戻すで戻せます' + (dropped ? '　※パートの上限で入りきらない音が' + dropped + '個ありました' : ''), !!dropped);
+  if (thenPlay) play();
+}
+function previewChord() {
+  const o = cdOpts(), pr = parseProgression($('cdText').value, o.unit), first = pr.segs.find(x => x.ch);
+  if (!first) { flash('コードを入力してください', true); return; }
+  const c = audio(), ref = S.tracks[1] || S.tracks[0], inst = ref ? ref.inst : DEF_INST;
+  if (SF_FILES[inst] && !SF.banks[inst]) { sfLoad(inst).then(previewChord).catch(() => {}); return; }
+  chordMidis(first.ch, o).forEach(m => voice(inst, m, c.currentTime + 0.01, 1.1, Math.max(ref ? ref.vol : 8, 8), master, []));
+}
+(function initChordPanel() {
+  try { const o = JSON.parse(localStorage.getItem(CD_KEY) || 'null'); if (o) { $('cdText').value = o.text || ''; for (const k of ['Oct', 'Max', 'Pat', 'Unit']) if (o[k] != null) $('cd' + k).value = o[k]; $('cdBass').checked = !!o.bass; } } catch (e) {}
+  const save = () => { try { localStorage.setItem(CD_KEY, JSON.stringify({ text: $('cdText').value, Oct: $('cdOct').value, Max: $('cdMax').value, Pat: $('cdPat').value, Unit: $('cdUnit').value, bass: $('cdBass').checked })); } catch (e) {} };
+  ['cdText', 'cdOct', 'cdMax', 'cdPat', 'cdUnit', 'cdBass'].forEach(id => { $(id).addEventListener('input', () => { updateChordInfo(); save(); }); $(id).addEventListener('change', () => { updateChordInfo(); save(); }); });
+  $('cdIns').onclick = () => insertChords(false);
+  $('cdInsPlay').onclick = () => insertChords(true);
+  $('cdPlay').onclick = previewChord;
+  updateChordInfo();
+})();
+
 /* ================= ツールバー ================= */
 (function initToolbar() {
   const lens = $('lens');
@@ -1316,21 +1514,26 @@ function drawNotes(tr, color, ghost, sx, sy, risk) {
     cx.globalAlpha = ghost ? 0.38 : 1;
     cx.fillStyle = color; roundRect(cx, x, y, w, h, 3); cx.fill();
     if (risk && risk.has(n)) {          // 同じ音域の音と同時に始まる＝抜ける危険あり
-      cx.globalAlpha = 1; cx.fillStyle = '#ff4d4d'; cx.strokeStyle = '#fff'; cx.lineWidth = 1;
-      cx.beginPath(); cx.arc(x + Math.min(w - 4, 6), y + 3.5, 3.2, 0, 7); cx.fill(); cx.stroke();
+      cx.globalAlpha = 1;                                    // 白い丸＋赤い輪＋黒い縁：どのパートの色の上でも目立つ
+      const mx = x + Math.min(w - 4, 6), my = y + 3.5;
+      cx.fillStyle = '#10151c'; cx.beginPath(); cx.arc(mx, my, 5, 0, 7); cx.fill();
+      cx.fillStyle = '#ffffff'; cx.beginPath(); cx.arc(mx, my, 4, 0, 7); cx.fill();
+      cx.fillStyle = '#e5173f'; cx.beginPath(); cx.arc(mx, my, 2.1, 0, 7); cx.fill();
       cx.globalAlpha = ghost ? 0.38 : 1;
     }
     if (!ghost) {
       cx.globalAlpha = 1;
       if (S.sel.includes(n)) { cx.lineWidth = 2.5; cx.strokeStyle = '#ffffff'; cx.stroke(); }
       else { cx.lineWidth = 1; cx.strokeStyle = 'rgba(0,0,0,.5)'; cx.stroke(); }
-      if (w > 28) { cx.fillStyle = '#0f1b27'; cx.font = 'bold 10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'left'; cx.fillText(midiName(n.p), x + 4, y + h / 2 + 0.5); }
+      if (w > 28) { cx.fillStyle = '#0f1b27'; cx.font = 'bold 10px sans-serif'; cx.textBaseline = 'middle'; cx.textAlign = 'left'; cx.fillText(midiName(n.p), x + (risk && risk.has(n) ? 14 : 4), y + h / 2 + 0.5); }
     }
   }
   cx.globalAlpha = 1;
 }
+let cdCursor = -1;
 function draw() {
   drawPending = false;
+  if (S.cursor !== cdCursor) { cdCursor = S.cursor; updateChordInfo(); }
   updateClipButtons();
   cx.setTransform(dpr, 0, 0, dpr, 0, 0);
   cx.clearRect(0, 0, cw, ch);
@@ -1406,7 +1609,7 @@ function draw() {
     risk = new Set();
     conflictGroups(S.tracks).forEach(list => list.forEach((x, k) => { if (k < list.length - 1) risk.add(x.n); }));
   }
-  S.tracks.forEach((tr, i) => { if (i !== S.cur) drawNotes(tr, COLORS[i % COLORS.length], true, sx, sy, risk); });
+  S.tracks.forEach((tr, i) => { if (i !== S.cur) drawNotes(tr, COLORS[i % COLORS.length], S.tool !== 'multi', sx, sy, risk); });
   const ct = S.tracks[S.cur];
   if (ct) drawNotes(ct, COLORS[S.cur % COLORS.length], false, sx, sy, risk);
   if (S.showZones) {                      // 音域の名前（左端に固定して表示）
@@ -1432,7 +1635,10 @@ function draw() {
 
   /* 再生位置 */
   const hx = Math.round(tickX(S.head, sx));
-  if (hx >= KEY_W && hx <= cw) { cx.fillStyle = S.playing ? '#ff8a7a' : '#7cc4ff'; cx.fillRect(hx, RULER_H, 2, ch); }
+  if (hx >= KEY_W && hx <= cw) {                // 再生位置：パートの色と被らない白＋暗い縁取り（再生中は太く）
+    cx.fillStyle = 'rgba(8,12,18,.8)'; cx.fillRect(hx - 1, RULER_H, S.playing ? 5 : 4, ch);
+    cx.fillStyle = '#ffffff'; cx.fillRect(hx, RULER_H, S.playing ? 3 : 2, ch);
+  }
   cx.restore();
 
   /* 鍵盤 */
@@ -1466,7 +1672,10 @@ function draw() {
     if (t % bar === 0) { cx.fillStyle = '#dbe4f0'; cx.fillRect(x, 4, 1, RULER_H - 5); cx.fillText(String(t / bar + 1), x + 4, RULER_H / 2); }
     else { cx.fillStyle = '#5b6c82'; cx.fillRect(x, RULER_H - 8, 1, 7); }
   }
-  if (hx >= KEY_W && hx <= cw) { cx.fillStyle = S.playing ? '#ff8a7a' : '#7cc4ff'; cx.beginPath(); cx.moveTo(hx - 5, 0); cx.lineTo(hx + 7, 0); cx.lineTo(hx + 1, 9); cx.fill(); }
+  if (hx >= KEY_W && hx <= cw) {
+    cx.beginPath(); cx.moveTo(hx - 6, 0); cx.lineTo(hx + 8, 0); cx.lineTo(hx + 1, 11); cx.closePath();
+    cx.fillStyle = '#ffffff'; cx.fill(); cx.lineWidth = 1.5; cx.strokeStyle = '#10151c'; cx.stroke();
+  }
   cx.restore();
   cx.fillStyle = '#2a3646'; cx.fillRect(0, 0, KEY_W, RULER_H - 1);
   cx.fillStyle = '#9aa7b8'; cx.font = '10px sans-serif'; cx.textAlign = 'center'; cx.fillText('小節', KEY_W / 2, RULER_H / 2);
@@ -1532,6 +1741,7 @@ let drag = null;
 scroller.addEventListener('contextmenu', e => {
   e.preventDefault();
   const p = posOf(e); if (p.x < KEY_W || p.y < RULER_H) return;
+  if (S.tool === 'multi') { const h = hitBatch(p.tick, p.midi); if (h) edit(() => { h.t.notes.splice(h.t.notes.indexOf(h.n), 1); rebalanceBatch(); }); return; }
   const tr = S.tracks[S.cur], n = hitNote(tr, p.tick, p.midi);
   if (n) edit(() => { tr.notes.splice(tr.notes.indexOf(n), 1); S.sel = S.sel.filter(x => x !== n); });
 });
@@ -1547,6 +1757,18 @@ scroller.addEventListener('pointerdown', e => {
     return;
   }
   if (e.button === 2 || S.tool === 'hand') return;
+  if (S.tool === 'multi') {                       // まとめ入力：クリックで置く（高い順に和音1・和音2…へ）／置いた音をクリックで消す
+    const g0 = gridTicks(), bf = snapshot(), h = hitBatch(p.tick, p.midi);
+    if (h) { h.t.notes.splice(h.t.notes.indexOf(h.n), 1); rebalanceBatch(); pushUndo(bf); structureChanged(); return; }
+    if (p.midi < MMIN || p.midi > MMAX || p.tick < 0) return;
+    scroller.setPointerCapture(e.pointerId);
+    const bn = { s: Math.floor(p.tick / g0) * g0, l: curLenTicks(), p: p.midi, b: 1 };
+    if (S.tracks.length < 2) S.tracks.push(newTrack(1));
+    S.tracks[1].notes.push(bn); preview(bn.p);
+    drag = { mode: 'bcreate', n: bn, before: bf, x0: p.x, y0: p.y, moved: false };
+    requestDraw();
+    return;
+  }
   const tr = S.tracks[S.cur];
   const hit = hitNote(tr, p.tick, p.midi);
   const g = gridTicks();
@@ -1589,6 +1811,7 @@ scroller.addEventListener('pointermove', e => {
     else if (p.y < RULER_H) cur = 'pointer';
     else if (S.tool === 'hand') cur = 'grab';
     else if (S.tool === 'erase') cur = 'not-allowed';
+    else if (S.tool === 'multi') cur = hitBatch(p.tick, p.midi) ? 'not-allowed' : 'crosshair';
     else { const h = hitNote(S.tracks[S.cur], p.tick, p.midi); if (h) cur = S.tool === 'pen' && nearEnd(h, p.tick) ? 'ew-resize' : 'move'; }
     scroller.style.cursor = cur;
     return;
@@ -1612,8 +1835,8 @@ scroller.addEventListener('pointermove', e => {
     if (n.p !== drag.p0 + dp) preview(drag.p0 + dp);
     drag.items.forEach(it => { it.n.s = it.s + ds; it.n.p = it.p + dp; });
     S.hoverRow = drag.p0 + dp;
-  } else if (drag.mode === 'resize' || (drag.mode === 'create' && drag.moved)) {
-    const raw = drag.mode === 'create' ? Math.ceil((p.tick - n.s) / g) : Math.round((p.tick - n.s) / g);
+  } else if (drag.mode === 'resize' || ((drag.mode === 'create' || drag.mode === 'bcreate') && drag.moved)) {
+    const raw = drag.mode !== 'resize' ? Math.ceil((p.tick - n.s) / g) : Math.round((p.tick - n.s) / g);
     n.l = Math.max(g, raw * g);
   }
   requestDraw();
@@ -1622,6 +1845,13 @@ function endDrag(e) {
   if (!drag) return;
   const tr = S.tracks[S.cur], d = drag; drag = null;
   if (d.mode === 'marquee') { S.marq = null; requestDraw(); return; }
+  if (d.mode === 'bcreate') {
+    const dropped = rebalanceBatch();
+    if (snapshot() !== d.before) pushUndo(d.before);
+    structureChanged();
+    if (dropped) flash('パートの上限（' + MAX_TRACKS + '）で入りきらない音を取り除きました', true);
+    return;
+  }
   resolveOverlaps(tr, d.mode === 'move' ? d.items.map(it => it.n) : [d.n]);
   if (snapshot() !== d.before) pushUndo(d.before);
   notesChanged();
@@ -2350,7 +2580,7 @@ function init() {
   scroller.scrollTop = Math.max(0, padV + (MMAX - mid) * ROW_H - $('roll').clientHeight * 0.3);
 }
 init();
-window.__mml = { get padV() { return padV; }, conflictGroups, desyncCopy, outTracks, genAll, SF, imp, voice, parseSMF, layerSplit, transcribeAudio, estimateTempo, coherence, TR, midiMessage, audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey };
+window.__mml = { get padV() { return padV; }, conflictGroups, desyncCopy, outTracks, genAll, SF, imp, voice, parseSMF, layerSplit, transcribeAudio, estimateTempo, coherence, TR, midiMessage, audio, renderNote, mtof, S, parseMML, genAll, genTrack, decompose, harmonize, detectKey, parseChord, chordMidis, parseProgression, rebalanceBatch, midiName };
 })();
 </script>
 </body>
