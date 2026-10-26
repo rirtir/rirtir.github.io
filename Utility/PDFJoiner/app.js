@@ -15,12 +15,23 @@ const passwordInput = document.getElementById('passwordInput');
 const passwordError = document.getElementById('passwordError');
 const protectOutput = document.getElementById('protectOutput');
 const outputPassword = document.getElementById('outputPassword');
+const previewNote = document.getElementById('previewNote');
+const THUMB_SIZE = 320;          // プレビュー画像の長辺(px)
+const RENDER_TIMEOUT = 15000;    // 1ページの描画をあきらめるまでの時間
+const MAX_PREVIEW_FAILURES = 3;  // 描画の失敗がこの回数に達したら、以降のプレビューをやめる
+// プレビュー用にPDF.jsへ渡すデータ量の上限。端末のメモリ（GB、Chrome系のみ取得可）に合わせる。
+const PREVIEW_BYTE_LIMIT = Math.min(8, navigator.deviceMemory || 4) * 64 * 1024 * 1024;
 let pages = [];
 let nextId = 1;
 let pendingLoads = 0;
 let exporting = false;
 let loadQueue = Promise.resolve();
-let previewQueue = Promise.resolve();
+let previewBytes = 0;
+let previewFailures = 0;
+let previewStopped = '';         // プレビューをやめた理由（空なら有効）
+let pumping = false;
+let rendering = Promise.resolve();
+const wanted = new Set();        // 画面付近にあり、プレビューを待っているページのid
 
 function message(text, error = false) {
   status.textContent = text;
@@ -35,6 +46,23 @@ function syncControls() {
 }
 
 function totalRotation(p) { return (p.sourceRotation + p.rotation) % 360; }
+
+// PDF.js と同じく、90の倍数でない回転は無視して 0〜270 に揃える。
+function normalizeRotation(angle) { return angle % 90 ? 0 : ((angle % 360) + 360) % 360; }
+
+// CropBoxとMediaBoxの交差が表示領域。UserUnitも物理寸法に含める。回転前の大きさを返す。
+function visibleSize(src) {
+  const media = src.getMediaBox(), crop = src.getCropBox();
+  const unit = src.node.lookup(PDFName.of('UserUnit'))?.asNumber?.() || 1;
+  let width = Math.min(media.x + media.width, crop.x + crop.width) - Math.max(media.x, crop.x);
+  let height = Math.min(media.y + media.height, crop.y + crop.height) - Math.max(media.y, crop.y);
+  if (!(width > 0 && height > 0)) { width = media.width; height = media.height; }
+  return { width: width * unit, height: height * unit };
+}
+
+function rotatedSize(p) {
+  return totalRotation(p) % 180 ? { width: p.size.height, height: p.size.width } : p.size;
+}
 
 // 入力を待つ。「追加しない」やEscでは null を返す。
 function askPassword(name, wrong) {
@@ -77,24 +105,129 @@ async function openDocument(bytes, name) {
   }
 }
 
-function drawPreview(p, canvas) {
-  // 同一ファイルのPDFは一度だけ開き、描画も順番に行う。古いcanvasには描画しない。
-  previewQueue = previewQueue.then(async () => {
-    if (!canvas.isConnected) return;
-    const page = await p.source.preview.getPage(p.pageIndex + 1);
-    const base = page.getViewport({ scale: 1, rotation: totalRotation(p) });
-    const viewport = page.getViewport({ scale: Math.min(1.5, 320 / Math.max(base.width, base.height)), rotation: totalRotation(p) });
-    if (!canvas.isConnected) return;
+function memoryTight() {
+  const m = performance.memory; // Chrome系のみ
+  return m ? m.usedJSHeapSize > m.jsHeapSizeLimit * 0.7 : false;
+}
+
+// 描画中のものが終わってから閉じる。
+function closePreview(source) {
+  const doc = source.preview;
+  if (!doc) return;
+  source.preview = null;
+  previewBytes -= source.size;
+  rendering.then(() => doc.destroy()).catch(() => {});
+}
+
+// 重いPDFでブラウザごと落ちるのを避けるため、危なくなったらプレビューだけをやめる。保存はそのままできる。
+function stopPreviews(reason) {
+  if (previewStopped) return;
+  previewStopped = reason;
+  wanted.clear();
+  observer.disconnect();
+  new Set(pages.map(p => p.source)).forEach(closePreview);
+  previewNote.textContent = `${reason}、これ以降のプレビュー表示を止めました。並べ替え・削除・ダウンロードはそのまま使えます。`;
+  previewNote.hidden = false;
+  pagesDiv.querySelectorAll('.page').forEach(card => {
+    const p = pages.find(item => item.id === Number(card.dataset.id));
+    if (p) fillThumb(card.querySelector('.thumb'), p);
+  });
+}
+
+function resetPreviews() {
+  previewStopped = '';
+  previewFailures = 0;
+  previewNote.hidden = true;
+}
+
+// 描画したら小さなJPEGにしてcanvasは捨て、ページのキャッシュ（デコード済み画像など）も解放する。
+async function makeThumb(p) {
+  const page = await p.source.preview.getPage(p.pageIndex + 1);
+  try {
+    const base = page.getViewport({ scale: 1, rotation: p.sourceRotation });
+    const viewport = page.getViewport({ scale: Math.min(1.5, THUMB_SIZE / Math.max(base.width, base.height)), rotation: p.sourceRotation });
+    const canvas = document.createElement('canvas');
     canvas.width = Math.ceil(viewport.width);
     canvas.height = Math.ceil(viewport.height);
-    await page.render({ canvas, viewport }).promise;
-    canvas.dataset.ready = 'true';
-  }).catch(error => {
-    if (canvas.isConnected) {
-      canvas.dataset.error = 'true';
-      message(`プレビューを表示できません: ${p.source.name}（${error.message}）`, true);
+    const task = page.render({ canvas, viewport });
+    const timer = setTimeout(() => task.cancel(), RENDER_TIMEOUT);
+    try {
+      await task.promise;
+    } finally {
+      clearTimeout(timer);
     }
-  });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+    canvas.width = canvas.height = 0;
+    if (!blob) throw new Error('画像にできません');
+    return URL.createObjectURL(blob);
+  } finally {
+    page.cleanup();
+  }
+}
+
+function needsThumb(p) { return !p.thumb && !p.thumbError && p.source.preview && !previewStopped; }
+
+// 画面付近のページを、並び順に1枚ずつ描画する。
+async function pumpPreviews() {
+  if (pumping) return;
+  pumping = true;
+  try {
+    while (!previewStopped) {
+      const p = pages.find(item => wanted.has(item.id));
+      if (!p) break;
+      wanted.delete(p.id);
+      if (!needsThumb(p)) continue;
+      if (memoryTight()) { stopPreviews('メモリが足りなくなりそうなため'); break; }
+      const job = makeThumb(p);
+      rendering = job.catch(() => {});
+      try {
+        p.thumb = await job;
+        if (!pages.includes(p)) URL.revokeObjectURL(p.thumb);
+      } catch (error) {
+        p.thumbError = error?.name === 'RenderingCancelledException' ? '重いため省略' : 'プレビューなし';
+        if (++previewFailures >= MAX_PREVIEW_FAILURES) stopPreviews('プレビューの描画に何度も失敗したため');
+      }
+      const box = pagesDiv.querySelector(`[data-id="${p.id}"] .thumb`);
+      if (box) {
+        observer.unobserve(box);
+        fillThumb(box, p);
+      }
+    }
+  } finally {
+    pumping = false;
+  }
+}
+
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    const id = Number(entry.target.closest('.page').dataset.id);
+    if (entry.isIntersecting) wanted.add(id);
+    else wanted.delete(id);
+  }
+  pumpPreviews();
+}, { rootMargin: '400px 0px' });
+
+// プレビューが届く前も、ページの形をした仮の図形で同じ場所を確保しておく。
+function fillThumb(box, p) {
+  const name = `${p.source.name} ${p.pageIndex + 1}ページ目`;
+  if (p.thumb) {
+    const img = document.createElement('img');
+    img.src = p.thumb;
+    img.alt = `${name}のプレビュー`;
+    img.style.transform = `rotate(${p.rotation}deg)`;
+    box.replaceChildren(img);
+    box.classList.remove('waiting');
+    return;
+  }
+  const { width, height } = rotatedSize(p);
+  const shape = document.createElement('div');
+  shape.className = width >= height ? 'shape wide' : 'shape tall';
+  shape.style.aspectRatio = `${width} / ${height}`;
+  const waiting = needsThumb(p);
+  shape.textContent = waiting ? String(p.pageIndex + 1) : p.thumbError || 'プレビュー省略';
+  shape.setAttribute('aria-label', waiting ? `${name}（プレビュー読込待ち）` : `${name}（${shape.textContent}）`);
+  box.replaceChildren(shape);
+  box.classList.toggle('waiting', waiting);
 }
 
 function move(id, offset) {
@@ -107,14 +240,17 @@ function move(id, offset) {
 }
 
 function render() {
+  observer.disconnect();
+  wanted.clear();
   pagesDiv.replaceChildren();
   pages.forEach((p, i) => {
     const card = document.createElement('section');
     card.className = 'page';
     card.dataset.id = p.id;
     card.draggable = true;
-    const canvas = document.createElement('canvas');
-    canvas.setAttribute('aria-label', `${p.source.name} ${p.pageIndex + 1}ページ目のプレビュー`);
+    const thumb = document.createElement('div');
+    thumb.className = 'thumb';
+    fillThumb(thumb, p);
     const label = document.createElement('div');
     label.className = 'page-title';
     label.textContent = `${i + 1}. ${p.source.name} / ${p.pageIndex + 1}ページ`;
@@ -130,19 +266,21 @@ function render() {
       controls.appendChild(b);
     }
     button('回転', '時計回りに90度回転', () => {
+      // 描き直さず、プレビュー画像を回すだけにする。
       p.rotation = (p.rotation + 90) % 360;
-      delete canvas.dataset.ready;
-      drawPreview(p, canvas);
+      fillThumb(thumb, p);
     });
     button('削除', 'このページを削除', () => {
       pages = pages.filter(other => other.id !== p.id);
-      if (!pages.some(other => other.source === p.source)) previewQueue.then(() => p.source.preview.destroy()).catch(() => {});
+      if (p.thumb) URL.revokeObjectURL(p.thumb);
+      if (!pages.some(other => other.source === p.source)) closePreview(p.source);
+      if (!pages.length) resetPreviews();
       render();
       message(`${pages.length}ページを保存できます。`);
     });
     button('←', '前へ移動', () => move(p.id, -1), 'move');
     button('→', '後ろへ移動', () => move(p.id, 1), 'move');
-    card.append(canvas, label, controls);
+    card.append(thumb, label, controls);
     card.ondragstart = e => {
       if (pendingLoads || exporting) { e.preventDefault(); return; }
       e.dataTransfer.setData('application/x-pdf-page', String(p.id));
@@ -159,7 +297,7 @@ function render() {
       render();
     };
     pagesDiv.appendChild(card);
-    drawPreview(p, canvas);
+    if (needsThumb(p)) observer.observe(thumb);
   });
   syncControls();
 }
@@ -172,42 +310,54 @@ function enqueueFiles(input) {
   loadQueue = loadQueue.then(async () => {
     const failures = [];
     const skipped = [];
+    const noPreview = [];
     let unlocked = 0;
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       message(`読込中 ${i + 1}/${files.length}: ${file.name}`);
-      let preview;
       try {
         if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') throw new Error('PDFを選択してください');
         const bytes = new Uint8Array(await file.arrayBuffer());
         const { document, password } = await openDocument(bytes, file.name);
-        // pdf.js はデータをワーカーへ移すので複製を渡す。
-        preview = await pdfjsLib.getDocument({
-          data: bytes.slice(),
-          password,
-          cMapUrl: pdfjsAssets + 'cmaps/',
-          standardFontDataUrl: pdfjsAssets + 'standard_fonts/',
-          wasmUrl: pdfjsAssets + 'wasm/',
-          iccUrl: pdfjsAssets + 'iccs/',
-        }).promise;
         if (password !== undefined) unlocked++;
-        const source = { document, preview, name: file.name };
-        const added = [];
-        for (let pageIndex = 0; pageIndex < preview.numPages; pageIndex++) {
-          const original = await preview.getPage(pageIndex + 1);
-          added.push({ id: nextId++, source, pageIndex, sourceRotation: original.rotate, rotation: 0 });
+        // ページの情報は保存に使う pdf-lib から取る。プレビューを開けなくても、ページの編集と保存はできる。
+        const source = { document, preview: null, name: file.name, size: bytes.length };
+        const added = document.getPages().map((page, pageIndex) => ({
+          id: nextId++, source, pageIndex, size: visibleSize(page),
+          sourceRotation: normalizeRotation(page.getRotation().angle), rotation: 0, thumb: null, thumbError: '',
+        }));
+        if (previewStopped) {
+          // 既にプレビューをやめている
+        } else if (previewBytes + bytes.length > PREVIEW_BYTE_LIMIT) {
+          noPreview.push(`${file.name}（大きすぎるため）`);
+        } else {
+          try {
+            // pdf.js はデータをワーカーへ移すので複製を渡す。
+            source.preview = await pdfjsLib.getDocument({
+              data: bytes.slice(),
+              password,
+              cMapUrl: pdfjsAssets + 'cmaps/',
+              standardFontDataUrl: pdfjsAssets + 'standard_fonts/',
+              wasmUrl: pdfjsAssets + 'wasm/',
+              iccUrl: pdfjsAssets + 'iccs/',
+            }).promise;
+            previewBytes += bytes.length;
+          } catch (error) {
+            noPreview.push(`${file.name}（${error.message}）`);
+          }
         }
         pages.push(...added);
+        render();
       } catch (error) {
-        if (preview) await preview.destroy();
         if (error.skipped) skipped.push(file.name);
         else failures.push(`${file.name}: ${error.message}`);
       }
     }
     render();
-    const unlockedNote = unlocked ? ` 保護されたPDF ${unlocked}件を解除して読み込みました（保存するPDFには、下で指定しない限りパスワードは付きません）。` : '';
+    const unlockedNote = unlocked ? ` 保護されたPDF ${unlocked}件を解除して読み込みました（保存するPDFには、上で指定しない限りパスワードは付きません）。` : '';
     const skippedNote = skipped.length ? ` 追加しなかったファイル: ${skipped.join(' / ')}` : '';
-    message(`${pages.length}ページを保存できます。${unlockedNote}${skippedNote}${failures.length ? ' 読込失敗: ' + failures.join(' / ') : ''}`, failures.length > 0);
+    const noPreviewNote = noPreview.length ? ` プレビューを省略: ${noPreview.join(' / ')}` : '';
+    message(`${pages.length}ページを保存できます。${unlockedNote}${skippedNote}${noPreviewNote}${failures.length ? ' 読込失敗: ' + failures.join(' / ') : ''}`, failures.length > 0);
   }).catch(error => message(`読込に失敗しました: ${error.message}`, true)).finally(() => {
     pendingLoads--;
     syncControls();
@@ -238,17 +388,7 @@ downloadBtn.onclick = async () => {
   try {
     const out = await PDFDocument.create();
     const mode = document.querySelector('input[name="sizeMode"]:checked').value;
-    // CropBoxとMediaBoxの交差が表示領域。UserUnitも物理寸法に含める。
-    const dimensions = pages.map(p => {
-      const src = p.source.document.getPage(p.pageIndex);
-      const media = src.getMediaBox(), crop = src.getCropBox();
-      const unit = src.node.lookup(PDFName.of('UserUnit'))?.asNumber?.() || 1;
-      let width = Math.min(media.x + media.width, crop.x + crop.width) - Math.max(media.x, crop.x);
-      let height = Math.min(media.y + media.height, crop.y + crop.height) - Math.max(media.y, crop.y);
-      if (!(width > 0 && height > 0)) { width = media.width; height = media.height; }
-      if (totalRotation(p) % 180) [width, height] = [height, width];
-      return { width: width * unit, height: height * unit };
-    });
+    const dimensions = pages.map(rotatedSize);
     const maxWidth = Math.max(...dimensions.map(d => d.width));
     const maxHeight = Math.max(...dimensions.map(d => d.height));
     for (let i = 0; i < pages.length; i++) {

@@ -12,17 +12,28 @@
 #dropArea{max-width:none;box-sizing:border-box}
 #pages{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}
 .page{border:1px solid #ccc;border-radius:8px;padding:10px;width:180px;max-width:100%;box-sizing:border-box;background:#fff}
-.page canvas{display:block;width:100%;height:auto;margin:0;border:0;max-width:none}
+.thumb{aspect-ratio:1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.thumb img{display:block;width:100%;height:100%;object-fit:contain}
+.thumb .shape{box-sizing:border-box;border:1px solid #ddd;background:#f3f3f3;color:#999;font-size:13px;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px}
+.thumb .shape.wide{width:100%}
+.thumb .shape.tall{height:100%}
+.thumb.waiting .shape{animation:waiting 1s ease-in-out infinite alternate}
+@keyframes waiting{to{background:#e4e4e4}}
+@media(prefers-reduced-motion:reduce){.thumb.waiting .shape{animation:none}}
+.toolbar{position:sticky;top:0;z-index:1;background:#f5f5f5;padding:10px 0;border-bottom:1px solid #ddd}
+.toolbar-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+#downloadBtn{flex:0 0 auto}
 .page-title{font-size:12px;margin:8px 0;overflow-wrap:anywhere;color:#444}
 .controls{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .controls button{font-size:13px;padding:6px 9px;white-space:nowrap}
 .controls .move{flex:0 0 auto}
-.size-options{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}
-#status{min-height:1.5em;overflow-wrap:anywhere}
+.size-options{display:flex;flex-wrap:wrap;gap:12px}
+#status{min-height:1.5em;margin:8px 0 0;overflow-wrap:anywhere}
+#previewNote{margin:4px 0 0}
 .error{color:#b42318}
 .hint{font-size:13px;color:#555;line-height:1.6}
 button:disabled{opacity:.5;cursor:default}
-.protect{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 16px}
+.protect{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .protect input[type=password]{padding:6px 8px;font-size:15px;min-width:0;max-width:100%}
 #passwordDialog{border:1px solid #ccc;border-radius:10px;padding:20px;max-width:min(400px,calc(100vw - 32px));box-sizing:border-box}
 #passwordDialog::backdrop{background:rgba(0,0,0,.4)}
@@ -39,18 +50,23 @@ button:disabled{opacity:.5;cursor:default}
 <div id="dropArea" role="button" tabindex="0">PDFをドラッグ＆ドロップ またはクリック（複数可）</div>
 <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple hidden>
 <p class="hint">追加した順に結合します。不要なページを削除して一部だけ保存できます。並べ替えはドラッグ、または各ページの矢印で操作できます。パスワードで保護されたPDFも、パスワードを入力すれば読み込めます。</p>
-<p id="status" role="status" aria-live="polite">PDFを追加してください。ファイルは外部に送信されません。</p>
-<div id="pages" aria-label="保存するページ"></div>
+<div class="toolbar">
+<div class="toolbar-row">
+<button id="downloadBtn" disabled>PDFをダウンロード</button>
 <div class="size-options" role="group" aria-label="ページサイズ">
 <label><input type="radio" name="sizeMode" value="original" checked> そのまま</label>
 <label><input type="radio" name="sizeMode" value="fitWidth"> 幅を統一</label>
 <label><input type="radio" name="sizeMode" value="fitHeight"> 高さを統一</label>
 </div>
 <div class="protect">
-<label><input type="checkbox" id="protectOutput"> 保存するPDFにパスワードを付ける</label>
+<label><input type="checkbox" id="protectOutput"> パスワードを付ける</label>
 <input type="password" id="outputPassword" autocomplete="new-password" aria-label="保存するPDFのパスワード" placeholder="パスワード" hidden>
 </div>
-<button id="downloadBtn" disabled>PDFをダウンロード</button>
+</div>
+<p id="status" role="status" aria-live="polite">PDFを追加してください。ファイルは外部に送信されません。</p>
+<p id="previewNote" class="hint" hidden></p>
+</div>
+<div id="pages" aria-label="保存するページ"></div>
 <noscript>JavaScriptを有効にすると利用できます。</noscript>
 </main>
 <dialog id="passwordDialog" aria-labelledby="passwordTitle">
