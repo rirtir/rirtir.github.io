@@ -8,8 +8,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'">
   <link rel="stylesheet" href="../../css/common-style.css">
   <link rel="stylesheet" href="../../css/common-style2.css">
-  <link rel="stylesheet" href="style.css">
-  <script type="module" src="app.mjs"></script>
+  <link rel="stylesheet" href="style.css?v=20261030-2">
+  <script type="module" src="app.mjs?v=20261030-2"></script>
 </head>
 <body>
 <main>
@@ -27,7 +27,7 @@
       <span>タップして選ぶ・PCではドロップもできます</span>
       <input id="file" type="file" accept="video/*,.mov,.mp4,.m4v" aria-label="トリミングする動画">
     </label>
-    <p class="hint">H.264 / HEVC、入力10GiBまで。iPhoneでは「ファイル」内の元動画を選ぶと、取り込み時の変換を避けやすくなります。</p>
+    <p class="hint">H.264 / HEVC。ファイル容量による一律の上限はありません。iPhoneは「ファイル」から元動画を選んでください。「写真」からの取り込みではiOS側で変換される場合があります。</p>
     <p id="fileInfo" class="file-info" hidden></p>
   </section>
 
@@ -71,6 +71,10 @@
     </select>
     <p id="storageInfo" class="hint"></p>
     <p id="dateInfo" class="hint"></p>
+    <div id="compatibilityAudioOption" class="audio-option" hidden>
+      <label><input id="compatibilityAudio" type="checkbox"> 空間オーディオを除き、互換用AAC音声を残す</label>
+      <p class="hint">この動画には未対応のAPAC空間音声と互換用AAC音声が含まれます。選択すると空間音声だけを除き、映像とAACは再エンコードせず保存します。空間音声・Audio Mixの編集情報は保持されません。</p>
+    </div>
     <button id="export" type="button" class="primary">選択範囲を切り出す</button>
     <p class="hint">処理中はこの画面を開いたままにしてください。一時出力では、完成動画と保存先のコピーを置ける空き容量が必要です。10GB級のiPhoneでの保存は実機検証中です。</p>
   </section>
@@ -85,8 +89,8 @@
     <h2 id="resultHeading">切り出しが完了しました</h2>
     <p id="resultInfo"></p>
     <div id="saveActions" class="save-actions" hidden>
-      <button id="share" type="button">共有して保存</button>
       <a id="download" class="button-link" download>ファイルをダウンロード</a>
+      <button id="share" class="secondary" type="button">共有から保存（別の方法）</button>
     </div>
     <p id="saveHint" class="hint"></p>
     <p id="savedNote" class="hint">共有・ダウンロード後、保存先で再生できることを確認してください。一時出力は自動では削除しません。</p>
@@ -101,7 +105,7 @@
 
   <details class="card">
     <summary>対応形式・日時・大容量動画について</summary>
-    <p>通常のMOV / MP4に入ったH.264・HEVC映像に対応します。再エンコードが必要な映像・音声はエラーで止めます。ProRes、空間ビデオ、暗号化、分割MP4などの特殊形式は対象外です。</p>
+    <p>通常のMOV / MP4に入ったH.264・HEVC映像に対応します。再エンコードが必要な映像・音声はエラーで止めます。APAC空間音声に互換用AACが併存する場合だけ、空間音声を除いてAACを残す選択肢を表示します。ProRes、空間ビデオ、暗号化、分割MP4などの特殊形式は対象外です。</p>
     <p>映像・音声の圧縮データをそのままコピーします。元の映像形式情報（HDR・色・Dolby Visionなど）と向き、読み取れる撮影日時のタグ、動画内の作成・更新日時を引き継ぎます。特殊な編集情報、スローモーションの編集状態、シネマティック編集、補助トラックなどの保持は保証しません。HDR表示や「写真」での認識は端末でも確認してください。</p>
     <p>「ファイル」に表示されるファイル自体の作成・更新日時は、ブラウザから元の値に設定できません。「写真」での並び順も保存先の判断によります。</p>
     <p>全動画をメモリへ読み込まず、部分読み込みと順次書き込みで処理します。動画の管理情報やプレビューにはメモリを使います。メモリ・空き容量・iOSの制限による中断を完全には防げません。</p>

@@ -24,6 +24,8 @@ button:disabled { opacity:.45; cursor:default; }
 .secondary { background:#edf1ee; color:#36584a; }
 button:focus-visible,.button-link:focus-visible { outline:3px solid #79a797; outline-offset:3px; }
 .primary { width:100%; margin-top:16px; padding:16px; font-weight:700; }
+.audio-option { margin-top:16px; padding:14px; border:1px solid #c5d3ca; border-radius:8px; background:#f8fbf9; font-size:.88rem; line-height:1.6; }
+.audio-option input { width:18px; height:18px; margin:0 6px 0 0; vertical-align:middle; accent-color:var(--accent); }
 .preview-tools { display:flex; align-items:center; justify-content:space-between; margin:12px 0 22px; gap:10px; }
 .mono,input[type=text] { font-variant-numeric:tabular-nums; font-family:ui-monospace,monospace; }
 .selection { background:#e9ece9; height:10px; border-radius:10px; overflow:hidden; margin-bottom:18px; }

@@ -7,11 +7,12 @@ const send = (type, data = {}) => postMessage({ type, ...data });
 const checkCancel = () => { if (canceled) throw new DOMException('中止しました。', 'AbortError'); };
 const tempDirectory = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('video-trimmer-v1', { create: true });
 const validTemp = name => /^clip-[a-f0-9-]+\.mp4$/.test(name);
+const describeTrack = async track => ({ id: track.id, type: track.type, codec: await track.getCodec(), containerCodec: await track.getInternalCodecId() });
 
 async function open(source) {
     input?.dispose(); input = null; info = null;
     file = source;
-    if (file.size > 10 * 1024 ** 3) throw new Error('入力は10GiB以下の動画を選んでください。');
+    if (!Number.isSafeInteger(file.size)) throw new Error('このブラウザで正確に扱えるファイルサイズを超えています。');
     original = await readOriginalMetadata(file);
     checkCancel();
     input = new Input({ formats: [MP4, QTFF], source: new BlobSource(file, { maxCacheSize: 8 * 1024 ** 2 }) });
@@ -38,11 +39,13 @@ async function open(source) {
     const uniqueKeys = [...new Set(keys)];
     if (!uniqueKeys.length) throw new Error('キーフレームが見つかりません。');
     const audio = await input.getAudioTracks();
-    const codecs = await Promise.all(audio.map(track => track.getCodec()));
+    const audioDetails = await Promise.all(audio.map(describeTrack));
+    const codecs = audioDetails.map(track => track.codec || track.containerCodec || '不明');
+    const canUseCompatibilityAudio = audioDetails.some(track => track.containerCodec === 'apac') && audioDetails.some(track => track.codec === 'aac');
     const tags = await input.getMetadataTags();
     const dateSeconds = original.dates?.created;
     const created = tags.date?.toISOString() ?? (dateSeconds > 0 ? new Date((dateSeconds - 2082844800) * 1000).toISOString() : null);
-    info = { duration, keys: uniqueKeys, codec: await video.getCodec(), audioCodecs: codecs, width: await video.getDisplayWidth(), height: await video.getDisplayHeight(), rotation: await video.getRotation(), created };
+    info = { duration, keys: uniqueKeys, codec: await video.getCodec(), audioCodecs: codecs, audioDetails, canUseCompatibilityAudio, width: await video.getDisplayWidth(), height: await video.getDisplayHeight(), rotation: await video.getRotation(), created };
     return info;
 }
 
@@ -75,6 +78,9 @@ async function trim(options) {
     if (!input || !info) throw new Error('先に動画を選んでください。');
     const range = snappedRange(info.keys, info.duration, options.start, options.end);
     const temporary = !options.handle;
+    const droppedIds = options.compatibilityAudio && info.canUseCompatibilityAudio
+        ? info.audioDetails.filter(track => track.containerCodec === 'apac').map(track => track.id) : [];
+    const droppedTracks = info.audioDetails.filter(track => droppedIds.includes(track.id));
     let directory, name, handle, storage, moov, size = 0;
     let success = false;
     try {
@@ -105,12 +111,19 @@ async function trim(options) {
             input, output, trim: range,
             copy: { mode: 'forced', shiftTolerance: Infinity, boundaryPolicy: 'expand' },
             video: { allowTransformationMetadata: true, alpha: 'keep' },
+            audio: track => ({ discard: droppedIds.includes(track.id) }),
             showWarnings: false,
         });
         checkCancel();
-        const lost = conversion.discardedTracks;
-        if (!conversion.isValid || lost.length || conversion.utilizedTracks.length !== (await input.getTracks()).length) {
-            throw new Error('この動画の映像または音声を無変換で保存できません。音声を落とした出力や再エンコードは行いません。');
+        const lost = conversion.discardedTracks.filter(item => !(item.reason === 'discarded_by_user' && droppedIds.includes(item.track.id)));
+        if (!conversion.isValid || lost.length || conversion.utilizedTracks.length !== (await input.getTracks()).length - droppedIds.length) {
+            const reasons = { unknown_source_codec: '未対応の形式', cannot_copy: '無変換コピー不可', undecodable_source_codec: 'デコード非対応', no_encodable_target_codec: '出力形式非対応' };
+            const details = await Promise.all(lost.map(async item => {
+                const track = await describeTrack(item.track);
+                return `${track.type === 'audio' ? '音声' : '映像'} #${track.id}: ${track.codec || track.containerCodec || '不明'}（${reasons[item.reason] || item.reason}）`;
+            }));
+            const hint = info.canUseCompatibilityAudio && !droppedIds.length ? ' 「空間オーディオを除き、互換用AAC音声を残す」を選ぶと切り出せる場合があります。' : '';
+            throw new Error(`無変換で保存できないトラックがあります。${details.join(' / ') || 'トラック構成を保持できません。'}。${hint}再エンコードは行っていません。`);
         }
         let lastUpdate = 0;
         conversion.onProgress = progress => {
@@ -127,7 +140,7 @@ async function trim(options) {
         size = moov.position + patched.length;
         await storage.finish(size); storage = null;
         if (temporary) {
-            const record = { name, downloadName: options.downloadName, lastModified: file.lastModified, savedAt: Date.now(), range, size };
+            const record = { name, downloadName: options.downloadName, lastModified: file.lastModified, savedAt: Date.now(), range, size, droppedTracks };
             const meta = await directory.getFileHandle(`${name}.json`, { create: true });
             const writer = await meta.createSyncAccessHandle();
             try {
@@ -141,7 +154,7 @@ async function trim(options) {
             return { ...record, file: result, temporary: true };
         }
         success = true;
-        return { size, range, temporary: false };
+        return { size, range, temporary: false, droppedTracks };
     } finally {
         conversion = null;
         if (storage) await storage.abort().catch(() => {});

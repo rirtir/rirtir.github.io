@@ -1,7 +1,7 @@
 import { snappedRange } from './core.mjs';
 
 const $ = id => document.getElementById(id);
-const worker = new Worker(new URL('./worker.mjs', import.meta.url), { type: 'module' });
+const worker = new Worker(new URL('./worker.mjs?v=20261030-2', import.meta.url), { type: 'module' });
 let nextId = 0, pending = new Map(), busy = false, workerFailed = false, info, sourceFile, points, startIndex = 0, endIndex = 1;
 let sourceUrl, resultUrl, resultFile, resultRecord, playingRange = false, wakeLock;
 const hasDirectSave = typeof window.showSaveFilePicker === 'function';
@@ -47,7 +47,7 @@ worker.onerror = event => {
 };
 function setBusy(value) {
     busy = value;
-    for (const element of document.querySelectorAll('#editor button, #editor input, #exportPanel button, #exportPanel select, #recovery button, #deleteResult, #file')) element.disabled = value;
+    for (const element of document.querySelectorAll('#editor button, #editor input, #exportPanel button, #exportPanel input, #exportPanel select, #recovery button, #deleteResult, #file')) element.disabled = value;
     $('cancel').hidden = !value;
     $('cancel').disabled = false;
     $('progress').hidden = !value;
@@ -96,6 +96,7 @@ async function refreshStorage() {
 async function loadFile(file) {
     if (!file || busy) return;
     setBusy(true); info = null;
+    $('compatibilityAudioOption').hidden = true; $('compatibilityAudio').checked = false;
     $('editor').hidden = true; $('exportPanel').hidden = true;
     $('preview').pause(); $('preview').removeAttribute('src'); $('preview').load();
     if (sourceUrl) URL.revokeObjectURL(sourceUrl);
@@ -114,6 +115,7 @@ async function loadFile(file) {
         $('fileInfo').textContent = `${file.name} / ${sizeText(file.size)} / ${info.codec === 'hevc' ? 'HEVC' : 'H.264'} / ${info.width} × ${info.height} / ${timeText(info.duration)} / キーフレーム ${info.keys.length}個 / 音声 ${info.audioCodecs.join(', ') || 'なし'}`;
         $('dateInfo').textContent = info.created ? `動画内の元の作成日時: ${new Date(info.created).toLocaleString('ja-JP')}。動画内の日時情報を引き継ぎます。ファイル自体の日時は保存時の値になる場合があります。` : '読み取れる動画内の日時タグを引き継ぎます。ファイル自体の日時は保存時の値になる場合があります。';
         $('editor').hidden = false; $('exportPanel').hidden = false;
+        $('compatibilityAudioOption').hidden = !info.canUseCompatibilityAudio;
         refreshSelection(); await refreshStorage();
         status('スライダー、時刻入力、または再生位置から範囲を選んでください。');
         if (!hasTemporarySave && !hasDirectSave) status('このブラウザは大容量保存に必要なAPIに対応していません。最新のiOS／ブラウザで開いてください。', true);
@@ -129,6 +131,7 @@ function showResult(record) {
     clearResult(); resultRecord = record;
     $('result').hidden = false;
     $('resultInfo').textContent = `${record.downloadName || '保存先への書き出し完了'} / ${sizeText(record.size)} / 元動画の ${timeText(record.range.start)} 〜 ${timeText(record.range.end)}`;
+    if (record.droppedTracks?.length) $('resultInfo').textContent += ' / APAC空間音声を除外（映像・AACは無変換）';
     $('saveActions').hidden = !record.temporary;
     $('deleteResult').hidden = !record.temporary;
     $('savedNote').hidden = !record.temporary;
@@ -140,7 +143,7 @@ function showResult(record) {
         catch { $('share').hidden = true; }
         $('saveHint').textContent = $('share').hidden
             ? '「ファイルをダウンロード」から保存してください。動画が開いた場合はブラウザの共有から「ファイルに保存」を選んでください。大容量ではiOS側の保存が失敗することがあります。'
-            : '「共有して保存」→「ファイルに保存」を選べます。「ビデオを保存」が表示される場合は「写真」にも保存できます。大容量で共有できないときはダウンロードをお試しください。';
+            : 'まず「ファイルをダウンロード」で保存してください。別の方法として共有も使えますが、iOS・動画形式・容量によって共有が失敗する場合があります。「ビデオを保存」が表示されれば「写真」にも保存できます。';
     } else $('saveHint').textContent = '選んだ保存先への書き出しが完了しました。保存先で再生を確認してください。';
 }
 async function refreshRecovery() {
@@ -225,7 +228,7 @@ $('export').addEventListener('click', async () => {
         await wake();
         clearResult();
         status('無再エンコードで書き出しを準備中…');
-        const record = await ask('trim', { start, end, handle, downloadName });
+        const record = await ask('trim', { start, end, handle, downloadName, compatibilityAudio: $('compatibilityAudio').checked });
         showResult(record); status('切り出しが完了しました。');
         $('result').scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (error) { status(error.name === 'AbortError' ? '処理を中止しました。元動画は変更していません。' : error.message, error.name !== 'AbortError'); }
@@ -233,7 +236,12 @@ $('export').addEventListener('click', async () => {
 });
 $('share').addEventListener('click', async () => {
     try { await navigator.share({ files: [resultFile] }); status('共有画面を閉じました。保存先で再生を確認してください。'); }
-    catch (error) { if (error.name !== 'AbortError') status('共有できませんでした。「ファイルをダウンロード」をお試しください。', true); }
+    catch (error) {
+        if (error.name !== 'AbortError') {
+            status(`共有できませんでした（${error.name}${error.message ? `: ${error.message}` : ''}）。切り出した動画は残っています。「ファイルをダウンロード」で保存してください。`, true);
+            $('download').focus();
+        }
+    }
 });
 $('download').addEventListener('click', () => status('保存を開始します。完了後、保存先で再生できることを確認してください。'));
 $('deleteResult').addEventListener('click', () => deleteTemp(resultRecord));

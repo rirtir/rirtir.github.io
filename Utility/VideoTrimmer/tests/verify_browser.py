@@ -58,8 +58,8 @@ def offset_moov(data, delta):
 
 
 def sparse_large_fixture(source, destination):
-    """9GiBのfree boxと64bitチャンクオフセット。実データは小さくディスクも圧迫しない。"""
-    padding = 9 * 1024 ** 3
+    """12GiBのfree boxと64bitチャンクオフセット。実データは小さくディスクも圧迫しない。"""
+    padding = 12 * 1024 ** 3
     original = list(boxes(source.read_bytes()))
     assert original[0][0] == b'ftyp' and original[-1][0] == b'moov'
     with destination.open('wb') as target:
@@ -92,6 +92,32 @@ def video_stsd(data):
     return descend(data)
 
 
+def synthetic_apac_fixture(source, destination):
+    """AACを複製し一方を未認識apac entryへ変更。実音声ではなく分岐検証用。"""
+    run('ffmpeg', '-v', 'error', '-i', str(source), '-map', '0:v', '-map', '0:a', '-map', '0:a', '-c', 'copy', '-metadata', 'creation_time=2020-02-03T04:05:06Z', '-y', str(destination))
+    audio_number = 0
+
+    def rewrite(data, audio=False):
+        nonlocal audio_number
+        result = b''
+        for kind, body, header in boxes(data):
+            if kind == b'trak':
+                audio = any(k == b'mdia' and any(ik == b'hdlr' and ib[ih + 8:ih + 12] == b'soun' for ik, ib, ih in boxes(b[h:])) for k, b, h in boxes(body[header:]))
+            if kind == b'stsd' and audio:
+                audio_number += 1
+                if audio_number == 2:
+                    body = body[:header + 12] + b'apac' + body[header + 16:]
+                    # esdsが残るとライブラリがAACとして認識するため、同サイズの未知boxにする。
+                    body = body.replace(b'esds', b'zzzz', 1)
+            elif kind in CONTAINERS:
+                body = body[:header] + rewrite(body[header:], audio)
+            result += body
+        return result
+
+    destination.write_bytes(rewrite(destination.read_bytes()))
+    assert audio_number == 2
+
+
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, *_args):
         pass
@@ -122,11 +148,13 @@ def fixtures():
     run('ffmpeg', '-v', 'error', '-i', str(avc), '-vf', "select='if(lt(t,4),not(mod(n,2)),1)'", '-fps_mode', 'vfr', '-c:v', 'libx264', '-force_key_frames', 'expr:gte(t,n_forced*2)', '-c:a', 'copy', '-y', str(vfr))
     unsupported = ARTIFACTS / 'unsupported-audio.mov'
     run('ffmpeg', '-v', 'error', '-i', str(avc), '-c:v', 'copy', '-c:a', 'pcm_u8', '-y', str(unsupported))
+    apac = ARTIFACTS / 'synthetic-apac.mp4'
+    synthetic_apac_fixture(avc, apac)
     large = ARTIFACTS / 'large-co64.mp4'
     sparse_large_fixture(avc, large)
     bad = ARTIFACTS / 'invalid.mov'
     bad.write_bytes(b'not a movie')
-    return avc, portrait, hevc, vfr, unsupported, large, bad
+    return avc, portrait, hevc, vfr, unsupported, apac, large, bad
 
 
 def load(page, path):
@@ -178,7 +206,7 @@ def verify_packets(source, output_path, check_stsd=True):
 
 
 def main():
-    avc, portrait, hevc, vfr, unsupported, large, invalid = fixtures()
+    avc, portrait, hevc, vfr, unsupported, apac, large, invalid = fixtures()
     checks, errors, external = [], [], []
     with server() as base, sync_playwright() as pw:
         browser = pw.chromium.launch(channel='chrome', headless=True)
@@ -282,7 +310,26 @@ def main():
         page.locator('#recoveryList button').last.click()
         expect(page.locator('#recovery')).to_be_hidden()
         checks.append('ページ中断で残った未完成ファイルの検出・削除')
+        load(page, apac)
+        assert 'apac' in page.locator('#fileInfo').inner_text()
+        expect(page.locator('#compatibilityAudioOption')).to_be_visible()
+        assert not page.locator('#compatibilityAudio').is_checked()
+        page.locator('#saveMode').select_option('temporary')
+        page.locator('#export').click()
+        expect(page.locator('#status')).to_have_class('error', timeout=30000)
+        assert 'apac' in page.locator('#status').inner_text()
+        assert '音声' in page.locator('#status').inner_text()
+        expect(page.locator('#export')).to_be_enabled()
+        page.locator('#compatibilityAudio').check()
+        apac_output = ARTIFACTS / 'trim-compatibility.mp4'
+        output(page, apac_output)
+        verify_packets(avc, apac_output)
+        assert 'APAC空間音声を除外' in page.locator('#resultInfo').inner_text()
+        page.locator('#deleteResult').click()
+        expect(page.locator('#result')).to_be_hidden()
+        checks.append('AAC+APAC識別・既定では除外しない・明示選択時のみAPAC除外・映像とAACパケット一致（APAC部分は合成試料）')
         load(page, unsupported)
+        expect(page.locator('#compatibilityAudioOption')).to_be_hidden()
         page.locator('#saveMode').select_option('temporary')
         page.locator('#export').click()
         expect(page.locator('#status')).to_have_class('error', timeout=30000)
@@ -298,7 +345,7 @@ def main():
         mobile = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, accept_downloads=True)
         mobile.add_init_script("""Object.defineProperty(window,'showSaveFilePicker',{value:undefined});
             Object.defineProperty(navigator,'canShare',{value:()=>true});
-            Object.defineProperty(navigator,'share',{value:async data=>{window.sharedName=data.files[0].name;}});""")
+            Object.defineProperty(navigator,'share',{value:async data=>{window.sharedName=data.files[0].name;},configurable:true});""")
         phone = mobile.new_page()
         phone.goto(base + '/Utility/VideoTrimmer/')
         load(phone, avc)
@@ -307,14 +354,22 @@ def main():
         output(phone, ARTIFACTS / 'trim-mobile.mp4')
         phone.locator('#share').click()
         assert '_trim_' in phone.evaluate('window.sharedName')
+        phone.evaluate("""() => { Object.defineProperty(navigator,'share',{value:async()=>{throw new DOMException('test share rejection','NotAllowedError');}, configurable:true}); }""")
+        phone.locator('#share').click()
+        expect(phone.locator('#status')).to_have_class('error')
+        assert 'NotAllowedError' in phone.locator('#status').inner_text()
+        with phone.expect_download() as fallback:
+            phone.locator('#download').click()
+        fallback.value.save_as(str(ARTIFACTS / 'trim-share-fallback.mp4'))
+        verify_packets(avc, ARTIFACTS / 'trim-share-fallback.mp4')
         phone.screenshot(path=str(ARTIFACTS / 'mobile.png'), full_page=True)
-        checks.append('モバイル幅・直接保存APIなしの分岐・共有へのファイル受け渡し')
+        checks.append('モバイル幅・共有へのファイル受け渡し・共有拒否後もダウンロード可能')
         mobile.close()
         assert not errors, errors
         assert not external, external
         checks.append('ページエラーなし・外部へのHTTP通信なし')
         browser.close()
-    result = {'checks': checks, 'errors': errors, 'external_requests': external, 'limits': 'iPhone実機・10GB級の実データ出力とiOS共有／ダウンロードは未検証。9GiB入力は疎ファイルで64bit位置を検証。'}
+    result = {'checks': checks, 'errors': errors, 'external_requests': external, 'limits': 'iPhone実機・大容量実データ出力とiOS共有は未検証。12GiB入力は疎ファイルで64bit位置を検証。APACの識別・除外試験は合成試料。'}
     (ARTIFACTS / 'verification.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
