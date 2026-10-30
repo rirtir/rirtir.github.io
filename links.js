@@ -318,6 +318,13 @@ const data = [
         category: "ユーティリティ",
         links: [
             {
+                title: "動画の無劣化トリミング",
+                url: "https://rirtir.com/Utility/VideoTrimmer/",
+                desc: "動画を送信せずキーフレーム単位で切り出し。iPhone・PC対応。",
+                tags: ["動画", "トリミング", "無劣化", "iPhone", "オフライン"],
+                main: false,
+            },
+            {
                 title: "メディア変換ツール",
                 url: "https://rirtir.com/Utility/MediaConverter/",
                 desc: "動画・音声・画像を好きな形式に変換。AviUtl向けの変換にも。",

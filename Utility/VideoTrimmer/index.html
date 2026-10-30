@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>動画の無劣化トリミング | rirtir</title>
+  <meta name="description" content="MOV・MP4をアップロードせず、キーフレーム単位で切り出し。iPhoneとPCで使える無再エンコードの動画トリミング。">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'">
+  <link rel="stylesheet" href="../../css/common-style.css">
+  <link rel="stylesheet" href="../../css/common-style2.css">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+<main>
+  <a class="back" href="../../">← ツール一覧</a>
+  <header>
+    <p class="eyebrow">端末内で処理 · アップロード不要</p>
+    <h1>動画の無劣化トリミング</h1>
+    <p>残したい範囲を選んで、そのままの画質で切り出す。</p>
+  </header>
+
+  <section class="card" aria-labelledby="chooseHeading">
+    <h2 id="chooseHeading"><span class="step">1</span> 動画を選ぶ</h2>
+    <label class="file-picker" id="dropArea">
+      <strong>MOV / MP4を選択</strong>
+      <span>タップして選ぶ・PCではドロップもできます</span>
+      <input id="file" type="file" accept="video/*,.mov,.mp4,.m4v" aria-label="トリミングする動画">
+    </label>
+    <p class="hint">H.264 / HEVC、入力10GiBまで。iPhoneでは「ファイル」内の元動画を選ぶと、取り込み時の変換を避けやすくなります。</p>
+    <p id="fileInfo" class="file-info" hidden></p>
+  </section>
+
+  <section id="editor" class="card" aria-labelledby="editHeading" hidden>
+    <h2 id="editHeading"><span class="step">2</span> 残す範囲を選ぶ</h2>
+    <video id="preview" controls playsinline preload="metadata"></video>
+    <p id="previewHint" class="hint" hidden>このブラウザではプレビューできません。時刻・スライダーによる切り出しは使えます。</p>
+    <div class="preview-tools">
+      <button id="previewRange" class="secondary" type="button">選択範囲を再生</button>
+      <span id="playTime" class="mono">0:00.000</span>
+    </div>
+    <div class="selection" aria-hidden="true"><div id="selectionFill"></div></div>
+    <div class="boundary">
+      <div class="boundary-title"><label for="start">開始</label><input id="startTime" type="text" inputmode="decimal" aria-label="開始時刻（時:分:秒）" spellcheck="false"></div>
+      <input id="start" type="range" min="0" max="1" value="0" step="1" aria-label="開始キーフレーム">
+      <div class="boundary-buttons">
+        <button id="startPrev" class="secondary" type="button" aria-label="開始を前のキーフレームへ">← 前</button>
+        <button id="startHere" class="secondary" type="button">再生位置を開始に</button>
+        <button id="startNext" class="secondary" type="button" aria-label="開始を次のキーフレームへ">次 →</button>
+      </div>
+    </div>
+    <div class="boundary">
+      <div class="boundary-title"><label for="end">終了</label><input id="endTime" type="text" inputmode="decimal" aria-label="終了時刻（時:分:秒）" spellcheck="false"></div>
+      <input id="end" type="range" min="1" max="1" value="1" step="1" aria-label="終了キーフレーム">
+      <div class="boundary-buttons">
+        <button id="endPrev" class="secondary" type="button" aria-label="終了を前のキーフレームへ">← 前</button>
+        <button id="endHere" class="secondary" type="button">再生位置を終了に</button>
+        <button id="endNext" class="secondary" type="button" aria-label="終了を次のキーフレームへ">次 →</button>
+      </div>
+    </div>
+    <p class="hint">スライダーはキーフレームごとに移動します。時刻入力・再生位置から指定した場合は、開始を前、終了を後のキーフレームに合わせます。音声の境界は1パケット程度ずれる場合があります。</p>
+    <div class="summary"><span>切り出す長さ <strong id="clipDuration"></strong></span><span id="sizeEstimate"></span></div>
+  </section>
+
+  <section id="exportPanel" class="card" aria-labelledby="exportHeading" hidden>
+    <h2 id="exportHeading"><span class="step">3</span> 切り出して保存</h2>
+    <label for="saveMode">保存方法</label>
+    <select id="saveMode">
+      <option value="temporary">端末内に一時出力してから保存（iPhone向け）</option>
+      <option id="directOption" value="direct">保存先へ直接書き出す（PC向け）</option>
+    </select>
+    <p id="storageInfo" class="hint"></p>
+    <p id="dateInfo" class="hint"></p>
+    <button id="export" type="button" class="primary">選択範囲を切り出す</button>
+    <p class="hint">処理中はこの画面を開いたままにしてください。一時出力では、完成動画と保存先のコピーを置ける空き容量が必要です。10GB級のiPhoneでの保存は実機検証中です。</p>
+  </section>
+
+  <section class="status-area" aria-label="処理状況">
+    <p id="status" role="status" aria-live="polite">動画を選ぶと編集を始められます。</p>
+    <progress id="progress" max="1" value="0" hidden></progress>
+    <button id="cancel" class="secondary" type="button" hidden>処理を中止</button>
+  </section>
+
+  <section id="result" class="card result" aria-labelledby="resultHeading" hidden>
+    <h2 id="resultHeading">切り出しが完了しました</h2>
+    <p id="resultInfo"></p>
+    <div id="saveActions" class="save-actions" hidden>
+      <button id="share" type="button">共有して保存</button>
+      <a id="download" class="button-link" download>ファイルをダウンロード</a>
+    </div>
+    <p id="saveHint" class="hint"></p>
+    <p id="savedNote" class="hint">共有・ダウンロード後、保存先で再生できることを確認してください。一時出力は自動では削除しません。</p>
+    <button id="deleteResult" class="secondary" type="button" hidden>この一時出力を削除</button>
+  </section>
+
+  <section id="recovery" class="card" hidden>
+    <h2>端末内に残っている出力</h2>
+    <p class="hint">ページを開き直した場合も、完成した一時出力はここから保存できます。中断された未完成の出力は削除して容量を空けられます。</p>
+    <div id="recoveryList"></div>
+  </section>
+
+  <details class="card">
+    <summary>対応形式・日時・大容量動画について</summary>
+    <p>通常のMOV / MP4に入ったH.264・HEVC映像に対応します。再エンコードが必要な映像・音声はエラーで止めます。ProRes、空間ビデオ、暗号化、分割MP4などの特殊形式は対象外です。</p>
+    <p>映像・音声の圧縮データをそのままコピーします。元の映像形式情報（HDR・色・Dolby Visionなど）と向き、読み取れる撮影日時のタグ、動画内の作成・更新日時を引き継ぎます。特殊な編集情報、スローモーションの編集状態、シネマティック編集、補助トラックなどの保持は保証しません。HDR表示や「写真」での認識は端末でも確認してください。</p>
+    <p>「ファイル」に表示されるファイル自体の作成・更新日時は、ブラウザから元の値に設定できません。「写真」での並び順も保存先の判断によります。</p>
+    <p>全動画をメモリへ読み込まず、部分読み込みと順次書き込みで処理します。動画の管理情報やプレビューにはメモリを使います。メモリ・空き容量・iOSの制限による中断を完全には防げません。</p>
+    <p>動画は外部へ送信しません。処理用ライブラリもこのサイトから読み込みます。一時出力はこのブラウザ内に保存され、ブラウザのサイトデータ削除で消える場合があります。</p>
+    <p><a href="vendor/README.md">使用ライブラリ・ライセンス</a></p>
+  </details>
+</main>
+</body>
+</html>
