@@ -318,6 +318,13 @@ const data = [
         category: "ユーティリティ",
         links: [
             {
+                title: "ポケット翻訳",
+                url: "https://rirtir.com/Utility/LocalTranslate/",
+                desc: "PLaMo 0.8Bを保存し、文章を端末内でオフライン翻訳。",
+                tags: ["翻訳", "AI", "PLaMo", "スマホ", "オフライン"],
+                main: false,
+            },
+            {
                 title: "動画の無劣化トリミング",
                 url: "https://rirtir.com/Utility/VideoTrimmer/",
                 desc: "動画を送信せずキーフレーム単位で切り出し。iPhone・PC対応。",

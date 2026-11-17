@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f5f5">
+  <meta name="description" content="PLaMo 3 Translate 0.8Bで、文章を外部に送らず端末内で翻訳。モデル保存後はオフラインでも使えます。">
+  <title>ポケット翻訳 — 端末の中で、ことばをつなぐ</title>
+  <link rel="stylesheet" href="../../css/common-style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="topbar"><a href="../../" class="home">rirtir tools <span>/</span> ポケット翻訳</a><span class="privacy"><i></i> 端末内で翻訳</span></header>
+  <main>
+    <div class="intro"><p class="eyebrow">YOUR WORDS, ON YOUR DEVICE</p><h1>端末の中で、<br class="mobile-break">ことばをつなぐ。</h1><p class="lead">一度ダウンロードすれば、あとはオフライン。<br>あなたのスマホが、小さな翻訳機になります。</p></div>
+
+    <section class="setup" aria-labelledby="modelHeading">
+      <div class="model-top"><div class="model-icon" aria-hidden="true">文<span>A</span></div><div><p class="eyebrow">翻訳モデル</p><h2 id="modelHeading">PLaMo 3 Translate <span>0.8B</span></h2><p class="model-note">Preferred Networks · 4bit / Q4_0 · 約548 MB</p></div><span id="modelBadge" class="badge">未ダウンロード</span></div>
+      <p class="setup-desc">初回だけモデルを自動取得して、このブラウザに保存します。Wi-Fi接続と、1 GB以上の空き容量がある環境で始めてください。</p>
+      <div class="setup-actions"><button id="prepare" type="button">↓ モデルをダウンロードして始める</button><button id="cancelDownload" type="button" class="secondary" hidden>ダウンロードを中止</button><button id="remove" type="button" class="text-button" hidden>モデルを削除</button></div>
+      <div id="progressArea" hidden><progress id="progress" max="100" value="0" aria-label="モデルのダウンロード進捗"></progress><p id="progressText" class="small"></p></div>
+      <p id="status" role="status" aria-live="polite">端末の対応状況を確認しています…</p>
+      <p id="offlineStatus" class="small">オフライン用ページを準備しています…</p>
+    </section>
+
+    <section class="translator" aria-label="翻訳">
+      <div class="language-bar"><div><label for="source">原文の言語</label><select id="source"><option value="auto">自動検出</option value="ja">日本語</option><option value="en">英語</option></select></div><button id="swap" class="swap" type="button" aria-label="原文と訳文の言語を入れ替える">⇄</button><div><label for="target">翻訳先の言語</label><select id="target"><option value="ja">日本語</option><option value="en" selected>英語</option></select></div></div>
+      <div class="editors">
+        <div class="editor"><div class="editor-heading"><label for="input">原文</label><button id="sample" class="text-button" type="button">例文を入れる</button></div><textarea id="input" maxlength="600" placeholder="翻訳したい文章を入力してください。" spellcheck="false"></textarea><div class="editor-bottom"><span id="count">0 / 600文字</span><button id="clear" class="text-button" type="button">クリア</button></div></div>
+        <div class="editor output-editor"><div class="editor-heading"><label for="output">訳文</label><span class="local-label">LOCAL TRANSLATION</span></div><textarea id="output" placeholder="翻訳結果がここに表示されます。" readonly aria-label="翻訳結果"></textarea><div class="editor-bottom"><span id="timing">文章は外部に送信されません</span><button id="copy" class="text-button" type="button" disabled>コピー</button></div></div>
+      </div>
+      <div class="translate-actions"><span class="small">まずは短い文章から。<span class="desktop-hint">Ctrl / ⌘ + Enter で翻訳</span></span><div><button id="stop" class="secondary" type="button" hidden>翻訳を中止</button><button id="translate" type="button" disabled>翻訳する <span aria-hidden="true">→</span></button></div></div>
+    </section>
+
+    <div class="footnotes"><p><span aria-hidden="true">◇</span> 翻訳履歴は保存しません</p><p><span aria-hidden="true">↧</span> モデルはブラウザに保存</p><p><span aria-hidden="true">◎</span> APIキー・アカウント不要</p></div>
+    <details><summary>使い方と対応端末について</summary><div class="details-content"><ol><li>「モデルをダウンロードして始める」で初回準備をします。</li><li>文章と翻訳先を選び、「翻訳する」を押します。</li><li>「オフライン用ページを保存済み」の表示後は、このページを再度開いてオフラインでも利用できます。ホーム画面に追加すると便利です。</li></ol><p>最新のAndroid Chrome・iPhone Safariを想定した実験的なツールです。WebAssembly SIMDとブラウザ内ストレージが必要です。空きメモリやOSによって読み込みに失敗したり、翻訳に時間がかかったりする場合があります。別のアプリを閉じ、短い文章で試してください。ブラウザからはネイティブアプリのNPU等を直接使用しないため、公式デモと同じ速度になるとは限りません。</p><p>600文字までの短文向けです。翻訳が長い場合は途中で止まることがあります。原文を短く分けてください。プライベートブラウズや容量整理で保存モデルが消えた場合は再取得が必要です。初回準備中はページを開いたままにしてください。</p><p>翻訳処理は端末内で行います。モデル取得時のみHugging Faceに接続します。入力文や訳文を通信に含めず、解析・広告スクリプトも使用しません。端末のキーボードや拡張機能の通信はこのページの管理対象外です。</p></div></details>
+    <details><summary>モデル・ライセンス・ソース</summary><div class="details-content"><p>本ツールはPreferred Networksの公式アプリではありません。モデルは<a href="https://huggingface.co/pfnet/plamo-3-translate-0.8b-GGUF" target="_blank" rel="noreferrer">公式配布元</a>から直接ダウンロードします。対応53言語から翻訳先を選べます。</p><p><a href="https://plamo.preferredai.jp/info/plamo-community-license" target="_blank" rel="noreferrer">PLaMoコミュニティライセンス</a>が適用されます。利用条件は配布元で確認してください。<a href="https://www.preferred.jp/ja/blog/tech/plamo-3-translate-weight-release" target="_blank" rel="noreferrer">公式の公開記事</a></p><p>推論エンジン：<a href="https://github.com/ngxson/wllama" target="_blank" rel="noreferrer">wllama 3.13.0</a>（MIT）/ llama.cpp。<a href="vendor/WLLAMA-LICENSE">ライセンス</a></p><p>翻訳には誤訳・省略が含まれることがあります。</p></div></details>
+  </main><footer>ポケット翻訳 <span>·</span> Powered by PLaMo 3 Translate <a href="../../">ツール一覧へ ↗</a></footer>
+</body>
+</html>
