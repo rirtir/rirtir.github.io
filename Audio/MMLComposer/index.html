@@ -580,7 +580,7 @@ const COLORS = ['#f2a03d', '#3fc79b', '#6aa8f0', '#c18af0', '#f0809e', '#52cfe0'
 const INSTS = {
   sf_piano: 'ピアノ', sf_violin: 'バイオリン', sf_cello: 'チェロ', sf_strings: '弦楽合奏（ストリングス）',
   sf_clarinet: 'クラリネット（シャリュモー音域も）', sf_xylo: 'シロフォン（木琴）', sf_flute: 'フルート',
-  sf_harp: 'ハープ', sf_nylon: 'ナイロンギター（リュートの代用）', sf_steel: 'スチールギター', sf_banjo: 'バンジョー',
+  sf_harp: 'ハープ', pm_harp: 'ハープ（物理モデル）', pm_harpsichord: 'チェンバロ（物理モデル）', pm_mandolin: 'マンドリン（物理モデル）', sf_nylon: 'ナイロンギター（リュートの代用）', sf_steel: 'スチールギター', sf_banjo: 'バンジョー',
 };
 const DEF_INST = 'sf_piano';        // 既定の楽器（サンプルのピアノ）
 const METERS = { '4/4': [192, 48], '3/4': [144, 48], '2/4': [96, 48], '5/4': [240, 48], '6/8': [144, 72], '9/8': [216, 72], '12/8': [288, 72] };
@@ -1359,9 +1359,13 @@ function voice(inst, midi, t, dur, vol, dest, nodes, ctx) {
     /* 実際の楽器を録音したサンプル（FluidR3_GM）。一番近い音を選び、再生速度を変えて音程を合わせる */
     const bank = SF.banks[inst];
     if (!bank) { sfLoad(inst).catch(() => {}); return; }          // まだ読み込み中：今回は鳴らさない
-    let best = bank.list[0];
-    for (const q of bank.list) if (Math.abs(q.m - midi) < Math.abs(best.m - midi)) best = q;
-    const rate = Math.pow(2, (midi - best.m) / 12);
+    let best, rate;
+    if (bank.pm) { best = { m: midi, buf: pmNote(bank, midi, c.sampleRate) }; rate = 1; }          // 物理モデル：その音をその場で（初回だけ）計算する
+    else {
+      best = bank.list[0];
+      for (const q of bank.list) if (Math.abs(q.m - midi) < Math.abs(best.m - midi)) best = q;
+      rate = Math.pow(2, (midi - best.m) / 12);
+    }
     const src = add(c.createBufferSource()); src.buffer = best.buf; src.playbackRate.value = rate;
     src.connect(g);
     const level = peak * bank.gain, sampleEnd = t + best.buf.duration / rate;
@@ -1375,18 +1379,92 @@ function voice(inst, midi, t, dur, vol, dest, nodes, ctx) {
 
   }
 }
+
+/* 物理モデルの撥弦楽器（CDAW の共鳴モデルを移植）：弦の倍音ごとに「減衰する正弦波」を足し合わせる。
+   音ごと・強さごとの倍音の大きさと減衰は pm/*.json（録音から測った表）。胴鳴りは固定の共鳴群。 */
+const PM_STYLE = {          // body: 胴の共鳴の周波数倍率, bodyDb: 胴鳴りの大きさ(dB), detune: 弦のうなり(cent), pluck: 弾く位置は録音のまま
+  pm_harpsichord: { body: 0.9, bodyDb: -18, detune: 1.0 },
+  pm_mandolin: { body: 1.7, bodyDb: -24, detune: 12.0 },
+  pm_harp: { body: 0.7, bodyDb: -24, detune: 0.5 },
+};
+const PM_BODY = (() => {                      // 胴の共鳴（空気の共鳴 約100Hz、表板の共鳴、〜2kHz の板の共鳴）
+  let a = 0x60D; const rnd = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const f = [98, 196, 240], q = [18, 25, 22], am = [1, 0.9, 0.6];
+  for (let i = 0; i < 22; i++) {
+    const fi = Math.exp(Math.log(280) + rnd() * (Math.log(2200) - Math.log(280)));
+    f.push(fi); q.push(20 + rnd() * 25); am.push((0.15 + rnd() * 0.35) * Math.pow(1 + Math.pow(fi / 500, 2), -0.5));
+  }
+  return f.map((fi, i) => ({ f: fi, sg: Math.PI * fi / q[i], a: am[i] * (rnd() < 0.5 ? -1 : 1) }));
+})();
+function pmTab(c, key, m, v) {                // 音の高さ→強さの順に表を補間
+  const n = c.notes, lv = c.lvel;
+  m = Math.min(n[n.length - 1], Math.max(n[0], m));
+  const i = Math.min(n.length - 2, Math.max(0, n.findIndex(x => x >= m) - 1)), w = (m - n[i]) / (n[i + 1] - n[i]);
+  const mix = (a, b) => a.map((x, k) => x * (1 - w) + b[k] * w);
+  if (key === 'level') {
+    const t = [0, 1].map(l => mix(c.level[i][l], c.level[i + 1][l])), jv = Math.min(lv.length - 2, Math.max(0, lv.findIndex(x => x >= v) - 1));
+    const ww = Math.min(1.2, Math.max(-1.5, (v - lv[jv]) / (lv[jv + 1] - lv[jv])));
+    return t[jv].map((x, k) => x * (1 - ww) + t[jv + 1][k] * ww);
+  }
+  if (key === 'logB') return c.logB[i] * (1 - w) + c.logB[i + 1] * w;
+  return mix(c[key][i], c[key][i + 1]);
+}
+function pmNote(bank, midi, sr) {
+  const key = midi + '@' + sr, hit = bank.cache[key];
+  if (hit) return hit;
+  const c = bank.tab, st = bank.style, v = 0.8, LOG = 8.6859;
+  const lvl = pmTab(c, 'level', midi, v), s1 = pmTab(c, 's1', midi), s2in = pmTab(c, 's2', midi), aft = pmTab(c, 'aft', midi);
+  const B = Math.exp(pmTab(c, 'logB', midi));
+  const f0 = 440 * Math.pow(2, (midi - 69) / 12) / Math.sqrt(1 + B);
+  const modes = [];          // {f(Hz), sg(1/s), a}
+  let amax = 0;
+  const lim = Math.min(0.45 * sr, 14000);
+  for (let k = 1; k <= lvl.length; k++) {
+    const fk = k * f0 * Math.sqrt(1 + B * k * k);
+    if (fk >= lim) break;
+    const A = Math.pow(10, lvl[k - 1] / 20); amax = Math.max(amax, A);
+    const r = Math.min(Math.pow(10, aft[k - 1] / 20), 0.9);
+    const a1 = s1[k - 1], a2 = aft[k - 1] <= -45 ? a1 : Math.max(s2in[k - 1], 0.15 * a1);
+    const det = 0.15 * st.detune * (1 + 0.5 * (((k * 2654435761) >>> 0) % 1000 / 500 - 1)), dl = fk * (Math.pow(2, det / 1200) - 1);
+    const tau = 0.6 * Math.sqrt(0.0006 * 0.0006 + Math.pow(0.4 / fk, 2));
+    modes.push({ f: fk, sg: a1 / LOG, a: A * (1 - r) }, { f: fk + dl, sg: a2 / LOG, a: A * r },
+      { f: fk, sg: 1 / tau, a: -2 * A }, { f: fk, sg: 2 / tau, a: A });
+  }
+  const kn = Math.pow(10, st.bodyDb / 20) * amax;
+  for (const b of PM_BODY) {
+    const bf = b.f * st.body, bs = b.sg * Math.sqrt(st.body);
+    modes.push({ f: bf, sg: bs, a: b.a * kn }, { f: bf, sg: 1 / 0.0015, a: -b.a * kn });
+  }
+  const N = Math.floor(sr * 4.0), out = new Float32Array(N), floor = amax * 1e-4;
+  for (const m of modes) {
+    const aa = Math.abs(m.a); if (aa < floor) continue;
+    const len = Math.min(N, Math.ceil(Math.log(aa / floor) / m.sg * sr));
+    const th = 2 * Math.PI * m.f / sr, d = Math.exp(-m.sg / sr), cr = d * Math.cos(th), ci = d * Math.sin(th);
+    let zr = m.a, zi = 0;
+    for (let n = 0; n < len; n++) { out[n] += zr; const t = zr * cr - zi * ci; zi = zr * ci + zi * cr; zr = t; }
+  }
+  let pk = 0; for (let n = 0; n < N; n++) { const x = Math.abs(out[n]); if (x > pk) pk = x; }
+  const g = pk > 0 ? 0.8 / pk : 1, fade = Math.floor(sr * 0.05);
+  for (let n = 0; n < N; n++) out[n] *= g * (n > N - fade ? (N - n) / fade : 1);
+  const buf = new AudioBuffer({ length: N, sampleRate: sr, numberOfChannels: 1 });
+  buf.copyToChannel(out, 0);
+  return bank.cache[key] = buf;
+}
 /* サンプル音源（samples/*.json）：必要になったときに読み込み、デコードして保持する */
 const SF_FILES = { sf_piano: 'piano', sf_nylon: 'nylon', sf_steel: 'steel', sf_harp: 'harp', sf_banjo: 'banjo', sf_flute: 'flute',
-  sf_violin: 'violin', sf_cello: 'cello', sf_strings: 'strings', sf_clarinet: 'clarinet', sf_xylo: 'xylo' };
-const SF_REL = { sf_flute: 0.09, sf_violin: 0.1, sf_cello: 0.12, sf_strings: 0.12, sf_clarinet: 0.09, sf_xylo: 0.06 };      // 音の終わりの余韻（秒）。長く伸びる楽器は短め
+  sf_violin: 'violin', sf_cello: 'cello', sf_strings: 'strings', sf_clarinet: 'clarinet', sf_xylo: 'xylo',
+  pm_harp: 'pm:harp', pm_harpsichord: 'pm:harpsichord', pm_mandolin: 'pm:mandolin' };
+const SF_REL = { sf_flute: 0.09, sf_violin: 0.1, sf_cello: 0.12, sf_strings: 0.12, sf_clarinet: 0.09, sf_xylo: 0.06, pm_harp: 0.5, pm_harpsichord: 0.12, pm_mandolin: 0.1 };      // 音の終わりの余韻（秒）。長く伸びる楽器は短め
 const SF = { banks: {}, loading: {} };
 function sfLoad(inst) {
   if (SF.banks[inst]) return Promise.resolve(SF.banks[inst]);
   if (SF.loading[inst]) return SF.loading[inst];
   const dec = new OfflineAudioContext(1, 1, 44100);          // デコード専用（ユーザー操作の前でも使える）
-  SF.loading[inst] = fetch('./samples/' + SF_FILES[inst] + '.json')
+  const isPM = SF_FILES[inst].startsWith('pm:');
+  SF.loading[inst] = fetch(isPM ? './pm/' + SF_FILES[inst].slice(3) + '.json' : './samples/' + SF_FILES[inst] + '.json')
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(async j => {
+      if (isPM) { SF.banks[inst] = { pm: true, tab: j, style: PM_STYLE[inst], gain: 1, cache: {} }; delete SF.loading[inst]; requestDraw(); return SF.banks[inst]; }
       const list = await Promise.all(Object.keys(j.notes).map(async k => {
         const bin = atob(j.notes[k]), u = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
