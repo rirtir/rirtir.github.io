@@ -1275,20 +1275,22 @@ function readFileAsMML(file) {
   fr.readAsText(file);
 }
 async function saveMMLFile() {
-  const text = $('tOut').value;
+  // ファイルには、出力のずらしをかけない元の楽譜を保存する（ずらしは貼り付け用の出力だけ）
+  const text = 'MML@' + S.tracks.map((tr, i) => genTrack(tr, i === 0 || S.chordTempo)).join(',') + ';';
+  const dsNote = dsVirtual() ? '（ずらす前の状態）' : '';
   const d = new Date(), z = n => String(n).padStart(2, '0');
   const name = 'MML_' + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + '_' + z(d.getHours()) + z(d.getMinutes()) + '.txt';
   if (window.showSaveFilePicker) {                         // 保存先を選べるブラウザ（Chrome／Edge）
     try {
       const h = await showSaveFilePicker({ suggestedName: name, types: [{ description: 'テキスト', accept: { 'text/plain': ['.txt', '.mml'] } }] });
       const w = await h.createWritable(); await w.write(text); await w.close();
-      flash('「' + h.name + '」に保存しました'); return;
+      flash('「' + h.name + '」に保存しました' + dsNote); return;
     } catch (e) { if (e && e.name === 'AbortError') return; }
   }
   const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
   const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  flash('「' + name + '」を保存しました（ダウンロードフォルダ）');
+  flash('「' + name + '」を保存しました（ダウンロードフォルダ）' + dsNote);
 }
 $('bSaveFile').onclick = saveMMLFile;
 $('bOpenFile').onclick = () => $('fOpen').click();
