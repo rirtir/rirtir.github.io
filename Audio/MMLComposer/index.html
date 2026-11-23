@@ -466,7 +466,8 @@ body.focus .roll{height:auto;flex:1 1 0;min-height:0}
     <div class="bar">
       <button id="bCopy" class="primary">📋 全部コピー</button>
       <button id="bLoad">MMLから読み込む</button>
-      <button id="bSaveFile" title="今のMMLをテキストファイル（.txt）として保存します">💾 ファイルに保存</button>
+      <button id="bSaveFile" title="今のMMLをテキストファイル（.txt）として保存します（出力のずらしはかけず、元の楽譜のまま）">💾 ファイルに保存</button>
+      <button id="bSaveFileDs" title="同じ音域の同時開始をずらしたMMLを保存します（ゲームにそのまま貼る用。ずらす幅は「ずらし」の設定のとおり）">💾 ずらしありで保存</button>
       <button id="bOpenFile" title="MMLが書かれたテキストファイルを読み込みます（ファイルをこのページにドラッグしても読み込めます）">📂 ファイルを読み込む</button>
       <input type="file" id="fOpen" accept=".txt,.mml,text/plain,.mid,.midi,audio/*" hidden>
       <span class="stat" id="stat"></span>
@@ -498,7 +499,7 @@ body.focus .roll{height:auto;flex:1 1 0;min-height:0}
       <li>M＝ミュート、S＝ソロ（そのパートだけ再生）。音量はパートごとに指定でき、MMLの <code>v</code> に反映されます。</li>
       <li>範囲選択：「⬚ 選択」の道具（または描く道具でShift+ドラッグ）で囲むと複数の音を選べます。Ctrl+Aで全選択。選んだ音はドラッグや矢印キーでまとめて移動、Deleteでまとめて削除できます。</li>
       <li>コピー／貼り付け：選択してCtrl+C（切り取りはCtrl+X）→ 上の目盛りをクリックして再生開始位置（しるし）を決める → Ctrl+V。選んだ音のうち一番先頭の音が、しるしの位置に来るように貼り付きます。別のパートに切り替えてから貼り付けることもできます。</li>
-      <li>ファイル：「💾 ファイルに保存」で今のMMLをテキストファイル（.txt）にします（Chrome／Edgeでは保存先を選べます）。「📂 ファイルを読み込む」、またはファイルをページにドラッグ＆ドロップで、MMLの書かれたテキストを読み込んで編集できます。</li>
+      <li>ファイル：「💾 ファイルに保存」で今のMMLをテキストファイル（.txt）にします（ずらしはかけず、元の楽譜のまま。Chrome／Edgeでは保存先を選べます）。「💾 ずらしありで保存」は、同じ音域の同時開始をずらしたMML（ゲームに貼る用）を保存します。「📂 ファイルを読み込む」、またはファイルをページにドラッグ＆ドロップで、MMLの書かれたテキストを読み込んで編集できます。</li>
       <li>曲から譜面（β）：「🎵 曲から譜面（β）」に、MIDIファイル（.mid）や音声ファイル（MP3・WAV等）を渡すと、メロディと和音のパートに分けた譜面を作ります。MIDIはほぼそのまま取り込めます。音声の自動採譜はベータ版で、単音のメロディなど単純な曲向きです。</li>
       <li>全体を動かす：左の「↕ 全体を動かす」で、今のパート（または選んだ音だけ／全パート）をまとめて、半音・1オクターブ単位で上下、32分〜1小節単位で早く／遅くできます。Alt+↑↓で半音、Alt+←→で時間（設定した幅ぶん）でも動かせます。</li>
       <li>音域と音抜け対策：ピアノロールに、ゲームの<b>3つの音域</b>（低：D#4以下／中：E4〜E5／高：F5以上）を色で表示します。同じ音域の音が同時に始まると、前のパートの音が約1/4の確率で鳴らなくなるので、そういう音に赤い点を付けます。左の「🛡 音抜け対策」の「ずらす」で、後ろのパートの音を1/64音符だけ遅らせて防げます（再生とMMLの出力だけずらす方式と、エディタ上で実際にずらす方式を選べます）。</li>
@@ -1274,12 +1275,13 @@ function readFileAsMML(file) {
   fr.onerror = () => flash('ファイルを読み込めませんでした', true);
   fr.readAsText(file);
 }
-async function saveMMLFile() {
-  // ファイルには、出力のずらしをかけない元の楽譜を保存する（ずらしは貼り付け用の出力だけ）
-  const text = 'MML@' + S.tracks.map((tr, i) => genTrack(tr, i === 0 || S.chordTempo)).join(',') + ';';
-  const dsNote = dsVirtual() ? '（ずらす前の状態）' : '';
+async function saveMMLFile(withDs) {
+  // 通常の保存は、出力のずらしをかけない元の楽譜。withDs のときは、ずらしをかけた楽譜（ゲームに貼る用）
+  const src = withDs ? desyncCopy(S.tracks, S.dsUnit).tracks : S.tracks;
+  const text = 'MML@' + src.map((tr, i) => genTrack(tr, i === 0 || S.chordTempo)).join(',') + ';';
+  const dsNote = withDs ? '（ずらしあり：' + (S.dsUnit === 6 ? '1/32' : '1/64') + '音符）' : dsVirtual() ? '（ずらす前の状態）' : '';
   const d = new Date(), z = n => String(n).padStart(2, '0');
-  const name = 'MML_' + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + '_' + z(d.getHours()) + z(d.getMinutes()) + '.txt';
+  const name = 'MML_' + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + '_' + z(d.getHours()) + z(d.getMinutes()) + (withDs ? '_ずらし' : '') + '.txt';
   if (window.showSaveFilePicker) {                         // 保存先を選べるブラウザ（Chrome／Edge）
     try {
       const h = await showSaveFilePicker({ suggestedName: name, types: [{ description: 'テキスト', accept: { 'text/plain': ['.txt', '.mml'] } }] });
@@ -1292,7 +1294,8 @@ async function saveMMLFile() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   flash('「' + name + '」を保存しました（ダウンロードフォルダ）' + dsNote);
 }
-$('bSaveFile').onclick = saveMMLFile;
+$('bSaveFile').onclick = () => saveMMLFile(false);
+$('bSaveFileDs').onclick = () => saveMMLFile(true);
 $('bOpenFile').onclick = () => $('fOpen').click();
 $('fOpen').onchange = e => { routeFile(e.target.files[0]); e.target.value = ''; };
 /* ファイルのドラッグ＆ドロップ */
